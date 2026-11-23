@@ -27,6 +27,10 @@ use std::{
 const PERSON: &str = "Alex Chen";
 const CONTRACT: &str = "Project Meridian Contract";
 const QUOTE: &str = "Alex Chen signed Project Meridian Contract.";
+const APPLICATION: &str = "Relay";
+const INVENTORY: &str = "Station 7 software inventory";
+const EDITOR_INSTALL: &str = "Station 7 ran two separate Relay apps side by side: com.arden.editor and org.bramble.backup. This entry records com.arden.editor.";
+const BACKUP_INSTALL: &str = "The Relay app in this entry is org.bramble.backup, installed on Station 7 alongside the separate com.arden.editor app also named Relay.";
 
 struct Directory(PathBuf);
 impl Directory {
@@ -104,6 +108,31 @@ impl GeneralEndpoint for Script {
                 "fixture evaluation gate timed out".into(),
             ));
         }
+        let installation = |side: &str| {
+            input[side]["relationships"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .enumerate()
+                .find_map(|(index, relationship)| {
+                    let quote = relationship["quote"].as_str()?;
+                    (relationship["kind"] == "inventory_entry"
+                        && [EDITOR_INSTALL, BACKUP_INSTALL].contains(&quote))
+                    .then_some((index, quote))
+                })
+        };
+        if let (Some((left, left_quote)), Some((right, right_quote))) =
+            (installation("left"), installation("right"))
+        {
+            assert_ne!(left_quote, right_quote);
+            return Ok(json!({
+                "outcome":"related_distinct", "reason":"distinct",
+                "citations":[
+                    {"side":"left","relationship":left,"memory":0,"fact":left_quote,"bearing":"separates_referents"},
+                    {"side":"right","relationship":right,"memory":0,"fact":right_quote,"bearing":"separates_referents"}
+                ]
+            }));
+        }
         let signature = |side: &str| {
             input[side]["relationships"]
                 .as_array()
@@ -117,8 +146,8 @@ impl GeneralEndpoint for Script {
         Ok(json!({
             "outcome":"same_identity", "reason":"corroborated",
             "citations":[
-                {"side":"left","relationship":left,"memory":0,"fact":CONTRACT},
-                {"side":"right","relationship":right,"memory":0,"fact":CONTRACT}
+                {"side":"left","relationship":left,"memory":0,"fact":CONTRACT,"bearing":"corroborates_identity"},
+                {"side":"right","relationship":right,"memory":0,"fact":CONTRACT,"bearing":"corroborates_identity"}
             ]
         }))
     }
@@ -197,12 +226,24 @@ fn draft(owner: [u8; 16], name: &str, text: &str) -> MemoryDraft {
     }
 }
 fn seed(path: &Path, owner: [u8; 16]) -> (EntityId, EntityId) {
+    seed_entities(
+        path,
+        owner,
+        [
+            ("person", PERSON, "person"),
+            ("contract", CONTRACT, "artifact"),
+        ],
+    )
+}
+
+fn seed_entities(
+    path: &Path,
+    owner: [u8; 16],
+    entities: [(&str, &str, &str); 2],
+) -> (EntityId, EntityId) {
     let mut writer = RelWriter::create_current_path(path, owner).unwrap();
     let mut ids = Vec::new();
-    for (mutation, text, kind) in [
-        ("person", PERSON, "person"),
-        ("contract", CONTRACT, "artifact"),
-    ] {
+    for (mutation, text, kind) in entities {
         let memory = writer
             .publish_direct_memory("author", draft(owner, mutation, text))
             .unwrap();
@@ -242,20 +283,25 @@ fn evidence(
     person: EntityId,
     contract: EntityId,
 ) -> reliquary_memory::MemorySummary {
-    relationship(work, person, contract, "signed", "signatory", QUOTE)
+    relationship(
+        work,
+        (person, "signatory"),
+        (contract, "contract"),
+        "signed",
+        QUOTE,
+    )
 }
 
 fn relationship(
     work: &WorkspaceManagement,
-    person: EntityId,
-    contract: EntityId,
+    subject: (EntityId, &str),
+    object: (EntityId, &str),
     kind: &str,
-    role: &str,
     quote: &str,
 ) -> reliquary_memory::MemorySummary {
     let memory = work
         .create_memory(
-            format!("Contract {kind}"),
+            format!("Authored {kind}"),
             quote.into(),
             "fact".into(),
             "project".into(),
@@ -265,18 +311,14 @@ fn relationship(
     work.create_relationship(CreateRelationshipRequest {
         owner_id: work.owner_id().as_bytes(),
         kind: kind.into(),
-        participants: vec![
-            RelationshipParticipantEvidence {
-                entity_id: person,
+        participants: [subject, object]
+            .into_iter()
+            .map(|(entity_id, role)| RelationshipParticipantEvidence {
+                entity_id,
                 entity_revision: 1,
                 role: Some(role.into()),
-            },
-            RelationshipParticipantEvidence {
-                entity_id: contract,
-                entity_revision: 1,
-                role: Some("contract".into()),
-            },
-        ],
+            })
+            .collect(),
         source_memory_id: MemoryId(bytes(&memory.id)),
         source_memory_revision: memory.revision,
         source_body_id: MemoryBodyId(bytes(&memory.body_id)),
@@ -372,10 +414,9 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
     let source = evidence(&work, a_entity, a_contract);
     relationship(
         &peer,
-        b_entity,
-        b_contract,
+        (b_entity, "attendee"),
+        (b_contract, "contract"),
         "attended",
-        "attendee",
         "Alex Chen attended a briefing for Project Meridian Contract.",
     );
     let initial = work
@@ -676,4 +717,92 @@ fn identity_readonly_peer_and_equivalent_concurrent_requests_publish_once() {
         peer_before,
         "recording A must preserve read-only B bytes"
     );
+}
+
+#[test]
+fn same_named_applications_need_evidence_of_separate_installations() {
+    let dir = Directory::new();
+    let ap = dir.0.join("a.rel");
+    let bp = dir.0.join("b.rel");
+    let entities = [
+        ("application", APPLICATION, "application"),
+        ("inventory", INVENTORY, "artifact"),
+    ];
+    let (a_app, a_inventory) = seed_entities(&ap, [7; 16], entities);
+    let (b_app, b_inventory) = seed_entities(&bp, [8; 16], entities);
+    let ar = Rel::open(&ap).unwrap();
+    let br = Rel::open(&bp).unwrap();
+    let gateway = Gateway::new();
+    let a = gateway.mount_rel(&ar, true).unwrap();
+    let b = gateway.mount_rel(&br, true).unwrap();
+    let token = "identity-app-manager-credential-00000000000";
+    let (admission, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
+        "author",
+        token,
+        [OwnerGrant::ManageRel(a), OwnerGrant::ManageRel(b)],
+    )])
+    .install(&gateway)
+    .unwrap();
+    let manager = admission.authenticate(token).unwrap();
+    let work = manager.workspace_management(a).unwrap();
+    let peer = manager.workspace_management(b).unwrap();
+    let script = Arc::new(Script::default());
+    let runtime = runtime(script.clone());
+    for (owner, app, inventory, quote) in [
+        (
+            &work,
+            a_app,
+            a_inventory,
+            "Station 7 software inventory lists Relay version 1.4.",
+        ),
+        (
+            &peer,
+            b_app,
+            b_inventory,
+            "Station 7 software inventory lists Relay version 2.0.",
+        ),
+    ] {
+        relationship(
+            owner,
+            (app, "application"),
+            (inventory, "inventory"),
+            "version_entry",
+            quote,
+        );
+    }
+    let initial = work
+        .compare_entity_identity(a_app, b, b_app, &runtime)
+        .unwrap();
+    assert_eq!(initial.revision, 1);
+    assert_eq!(initial.outcome, IdentityOutcome::Unresolved);
+    assert_eq!(initial.reason, IdentityReason::Ambiguity);
+
+    // Each owner records which package its Relay refers to, with both installed side by side.
+    for (owner, app, inventory, quote) in [
+        (&work, a_app, a_inventory, EDITOR_INSTALL),
+        (&peer, b_app, b_inventory, BACKUP_INSTALL),
+    ] {
+        relationship(
+            owner,
+            (app, "application"),
+            (inventory, "inventory"),
+            "inventory_entry",
+            quote,
+        );
+    }
+    let distinct = work
+        .compare_entity_identity(a_app, b, b_app, &runtime)
+        .unwrap();
+    assert_eq!(distinct.predecessor, Some(initial.revision));
+    assert_eq!(distinct.outcome, IdentityOutcome::RelatedDistinct);
+    assert_eq!(distinct.reason, IdentityReason::Distinct);
+    assert_eq!(distinct.citations.len(), 2);
+    let view = work
+        .inspect_entity_identity(a_app, b, b_app, None)
+        .unwrap()
+        .unwrap();
+    assert_eq!(view.state, IdentityComparisonState::Current);
+    assert_eq!(view.receipt, distinct);
+    assert_eq!(view.cited_quotes.unwrap(), [EDITOR_INSTALL, BACKUP_INSTALL]);
+    assert_eq!(script.calls.load(Ordering::SeqCst), 2);
 }
