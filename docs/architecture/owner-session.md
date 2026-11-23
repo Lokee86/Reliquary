@@ -30,6 +30,8 @@ REL and PHY writers are separate authorities. Session clones do not create indep
 
 Community recompute captures eligible IDs and active structural edges from one REL read. Capture and publication share the same active-Memory check. The writer rechecks the captured file identity and versions, requires every eligible ID exactly once, and syncs the Community frame through the owner write boundary.
 
+REL owner-session also owns the directional Entity identity receipt projection and typed publication. It supplies pair evidence from each REL’s active Entities, Relationships and cited Memory bodies, and publishes the receipt only to the recording REL. Gateway coordinates the two authorized sessions; owner-session does not acquire peer authority or mutate the peer.
+
 ## Failure, recovery, and invariants
 
 Important guarantees are owner/file-kind matching, no cross-owner write, deterministic retry identity, typed replay, and all-or-rejected grouped publication where the operation defines a group. An interrupted or uncertain publication is reconciled from owner records and stable operation ids; callers must not infer success from a prepared value alone. Verified copy/reconciliation APIs preserve source owners and reopen the result before reporting verification.

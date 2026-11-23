@@ -26,6 +26,8 @@ Inspection selects the retained revision metadata before loading its payload. Ap
 
 Community recompute solves the captured graph and calculates coverage and modularity. Preview returns the report. Apply sends that same partition and its captured versions to the REL writer.
 
+For cross-REL Entity identity, Application prepares and evaluates one pair-specific judgment from the bounded evidence supplied by Gateway. Deterministic grounding is used when sufficient; otherwise it validates the configured endpoint’s structured decision and citations, then returns a receipt proposal for Gateway to publish in the recording REL.
+
 Context preparation prepends attributed dependency-synthesis messages before the primary request and counts them under its existing source and compaction budgets. The transcript and source view used for checkpointing contain the existing conversation evidence.
 
 ## Failure, recovery, and invariants
