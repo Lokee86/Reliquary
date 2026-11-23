@@ -425,6 +425,7 @@ mod g4_test_cohort;
 mod tests;
 
 mod gateway_mounts;
+pub use gateway_mounts::{OwnerMountMode, PreparedOwnerMount};
 mod insomnia_worker;
 mod instance_context;
 mod instance_conversation;

@@ -14,6 +14,8 @@ The current owner formats are REL 2.1 and PHY 2.1. `Rel` and `Phylactery` expose
 
 `Rel::create(path)` requires a new path and allocates a fresh owner ID. The new header uses `Unspecified`. Opening or verifying an existing 2.1 REL reports its stored `Unspecified`, `Organization`, `Project`, or `Connection` value and original owner ID. Hosted authority comes from the authenticated principal's owner grants.
 
+`Gateway::mount_owner_path` admits the selected current owner once and returns its ID. Supply the previously reviewed or registered ID when it is known. Core checks it and the requested file kind on the same leased handle before registering the mount. A detached owner snapshot and a subsequent trusted mount remain independent.
+
 A trusted host can release a read-only PHY mount through `HostAdmissionControl::detach_read_only_phylactery(owner)` after draining its requests. The operation leaves other mounts available. Host credential revocation and owner selection remain explicit lifecycle steps.
 
 ## Getting started

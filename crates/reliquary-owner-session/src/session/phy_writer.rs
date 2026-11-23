@@ -47,7 +47,14 @@ impl PhyWriter {
 
     /// Acquire the exclusive writer lease after current-format durable admission.
     pub fn open_path_current(path: impl AsRef<Path>) -> Result<Self, OwnerSessionError> {
-        let container = Container::open_writer_as(path, FileKind::Phylactery)?;
+        Self::open_path_for_owner(path, None)
+    }
+
+    pub fn open_path_for_owner(
+        path: impl AsRef<Path>,
+        expected: Option<[u8; 16]>,
+    ) -> Result<Self, OwnerSessionError> {
+        let container = Container::open_writer_for(path, FileKind::Phylactery, expected)?;
         require_kind(&container, FileKind::Phylactery)?;
         reject_rel_only_records(&container)?;
         let common = open_common_for_owner(&container, container.owner_id(), [], false)?;

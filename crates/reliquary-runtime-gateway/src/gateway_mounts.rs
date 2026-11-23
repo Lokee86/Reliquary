@@ -1,5 +1,19 @@
 use super::*;
 
+#[derive(Clone, Copy)]
+pub enum OwnerMountMode {
+    ReadOnlyRel,
+    WritableRel,
+    ReadOnlyPhy,
+    WritablePhy,
+}
+
+/// An admitted owner whose state and lease have not been installed in a Gateway.
+pub struct PreparedOwnerMount {
+    owner: OwnerId,
+    state: MountedOwner,
+}
+
 impl Gateway {
     pub fn new() -> Self {
         Self::default()
@@ -26,10 +40,11 @@ impl Gateway {
 
     /// Mount a current-format REL using owner-session's durable admission.
     pub fn mount_reliquary_current(&self, path: impl AsRef<Path>) -> Result<OwnerId, GatewayError> {
-        let session = Arc::new(RelSession::open_path_current(path)?);
-        let owner = OwnerId(session.owner_id());
-        self.insert(owner, MountedOwner::Rel(session))?;
-        Ok(owner)
+        self.install_owner_mount(Self::prepare_owner_mount(
+            path,
+            OwnerMountMode::ReadOnlyRel,
+            None,
+        )?)
     }
 
     /// Mount a REL with one owner-local writer lease. The mutable Container
@@ -61,15 +76,11 @@ impl Gateway {
         &self,
         path: impl AsRef<Path>,
     ) -> Result<OwnerId, GatewayError> {
-        let writer = RelWriter::open_path_current(path)?;
-        let owner = OwnerId(writer.owner_id());
-        self.insert(
-            owner,
-            MountedOwner::RelWriter(Arc::new(MountedRelWriter {
-                writer: std::sync::Mutex::new(writer),
-            })),
-        )?;
-        Ok(owner)
+        self.install_owner_mount(Self::prepare_owner_mount(
+            path,
+            OwnerMountMode::WritableRel,
+            None,
+        )?)
     }
 
     pub fn mount_phylactery(
@@ -93,10 +104,11 @@ impl Gateway {
         &self,
         path: impl AsRef<Path>,
     ) -> Result<OwnerId, GatewayError> {
-        let session = Arc::new(PhySession::open_path_current(path)?);
-        let owner = OwnerId(session.owner_id());
-        self.insert(owner, MountedOwner::Phy(session))?;
-        Ok(owner)
+        self.install_owner_mount(Self::prepare_owner_mount(
+            path,
+            OwnerMountMode::ReadOnlyPhy,
+            None,
+        )?)
     }
 
     /// Mount a PHY with one owner-local writer lease for authenticated routed
@@ -123,15 +135,60 @@ impl Gateway {
         &self,
         path: impl AsRef<Path>,
     ) -> Result<OwnerId, GatewayError> {
-        let writer = PhyWriter::open_path_current(path)?;
-        let owner = OwnerId(writer.owner_id());
-        self.insert(
-            owner,
-            MountedOwner::PhyWriter(Arc::new(MountedPhyWriter {
-                writer: std::sync::Mutex::new(writer),
-            })),
-        )?;
-        Ok(owner)
+        self.install_owner_mount(Self::prepare_owner_mount(
+            path,
+            OwnerMountMode::WritablePhy,
+            None,
+        )?)
+    }
+
+    pub fn prepare_owner_mount(
+        path: impl AsRef<Path>,
+        mode: OwnerMountMode,
+        expected: Option<OwnerId>,
+    ) -> Result<PreparedOwnerMount, GatewayError> {
+        use OwnerMountMode::*;
+        let expected = expected.map(|owner| owner.0);
+        let (owner, state) = match mode {
+            ReadOnlyRel => {
+                let session = RelSession::open_path_for_owner(path, expected)?;
+                (session.owner_id(), MountedOwner::Rel(Arc::new(session)))
+            }
+            WritableRel => {
+                let writer = RelWriter::open_path_for_owner(path, expected)?;
+                (
+                    writer.owner_id(),
+                    MountedOwner::RelWriter(Arc::new(MountedRelWriter {
+                        writer: std::sync::Mutex::new(writer),
+                    })),
+                )
+            }
+            ReadOnlyPhy => {
+                let session = PhySession::open_path_for_owner(path, expected)?;
+                (session.owner_id(), MountedOwner::Phy(Arc::new(session)))
+            }
+            WritablePhy => {
+                let writer = PhyWriter::open_path_for_owner(path, expected)?;
+                (
+                    writer.owner_id(),
+                    MountedOwner::PhyWriter(Arc::new(MountedPhyWriter {
+                        writer: std::sync::Mutex::new(writer),
+                    })),
+                )
+            }
+        };
+        Ok(PreparedOwnerMount {
+            owner: OwnerId(owner),
+            state,
+        })
+    }
+
+    pub fn install_owner_mount(
+        &self,
+        prepared: PreparedOwnerMount,
+    ) -> Result<OwnerId, GatewayError> {
+        self.insert(prepared.owner, prepared.state)?;
+        Ok(prepared.owner)
     }
 
     /// Remove one mounted owner after host-side quiescence.

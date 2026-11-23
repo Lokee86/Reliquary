@@ -35,7 +35,7 @@ impl OwnerGrant {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 struct MountedOwnerRecord {
     path: PathBuf,
     kind: OwnerKind,
@@ -64,14 +64,7 @@ impl Gateway {
     }
 
     pub fn mount_rel(&self, rel: &Rel, writable: bool) -> Result<OwnerId, ProductError> {
-        let runtime_id = if writable {
-            self.inner.mount_writable_reliquary_current(rel.path())?
-        } else {
-            self.inner.mount_reliquary_current(rel.path())?
-        };
-        let id = OwnerId::from(runtime_id);
-        self.record_mount(id, rel.path(), OwnerKind::Rel, writable)?;
-        Ok(id)
+        self.mount_owner_path(rel.path(), OwnerKind::Rel, writable, Some(rel.owner_id()))
     }
 
     pub fn mount_phylactery(
@@ -79,29 +72,32 @@ impl Gateway {
         phy: &Phylactery,
         writable: bool,
     ) -> Result<OwnerId, ProductError> {
-        let runtime_id = if writable {
-            self.inner.mount_writable_phylactery_current(phy.path())?
-        } else {
-            self.inner.mount_phylactery_current(phy.path())?
-        };
-        let id = OwnerId::from(runtime_id);
-        self.record_mount(id, phy.path(), OwnerKind::Phylactery, writable)?;
-        Ok(id)
+        self.mount_owner_path(
+            phy.path(),
+            OwnerKind::Phylactery,
+            writable,
+            Some(phy.owner_id()),
+        )
     }
 
-    fn record_mount(
+    /// Admit and mount one owner on the same file handle. Hosts with a reviewed
+    /// or persisted assignment supply its expected owner ID.
+    pub fn mount_owner_path(
         &self,
-        id: OwnerId,
-        path: &Path,
+        path: impl AsRef<Path>,
         kind: OwnerKind,
         writable: bool,
-    ) -> Result<(), ProductError> {
+        expected_owner: Option<OwnerId>,
+    ) -> Result<OwnerId, ProductError> {
+        let path = path.as_ref();
+        let prepared = prepare_owner_mount(path, kind, writable, expected_owner)?;
         let mut mounted = self.mounted.lock().map_err(|_| {
             ProductError::new(
                 ProductErrorKind::Unavailable,
                 "mounted owner registry is unavailable",
             )
         })?;
+        let id: OwnerId = self.inner.install_owner_mount(prepared)?.into();
         mounted.insert(
             id,
             MountedOwnerRecord {
@@ -111,7 +107,7 @@ impl Gateway {
                 mounted: true,
             },
         );
-        Ok(())
+        Ok(id)
     }
 
     pub(crate) fn quiesce(&self, owner: OwnerId) -> Result<(), ProductError> {
@@ -166,31 +162,25 @@ impl Gateway {
                 "owner is already mounted",
             ));
         }
-        let reopened = match (record.kind, record.writable) {
-            (OwnerKind::Rel, true) => self.inner.mount_writable_reliquary_current(&record.path)?,
-            (OwnerKind::Rel, false) => self.inner.mount_reliquary_current(&record.path)?,
-            (OwnerKind::Phylactery, true) => {
-                self.inner.mount_writable_phylactery_current(&record.path)?
-            }
-            (OwnerKind::Phylactery, false) => self.inner.mount_phylactery_current(&record.path)?,
-        };
-        if OwnerId::from(reopened) != owner {
-            return Err(ProductError::new(
-                ProductErrorKind::Admission,
-                "reopened owner identity changed",
-            ));
-        }
-        self.mounted
-            .lock()
-            .map_err(|_| {
-                ProductError::new(
-                    ProductErrorKind::Unavailable,
-                    "mounted owner registry is unavailable",
-                )
-            })?
+        let prepared =
+            prepare_owner_mount(&record.path, record.kind, record.writable, Some(owner))?;
+        let mut mounted = self.mounted.lock().map_err(|_| {
+            ProductError::new(
+                ProductErrorKind::Unavailable,
+                "mounted owner registry is unavailable",
+            )
+        })?;
+        let current = mounted
             .get_mut(&owner)
-            .expect("registered owner remains present")
-            .mounted = true;
+            .filter(|current| **current == record)
+            .ok_or_else(|| {
+                ProductError::new(
+                    ProductErrorKind::Conflict,
+                    "owner registration changed before reopen",
+                )
+            })?;
+        self.inner.install_owner_mount(prepared)?;
+        current.mounted = true;
         Ok(())
     }
 
@@ -214,6 +204,26 @@ impl Gateway {
             })?;
         Ok((record.path, record.kind, record.mounted))
     }
+}
+
+fn prepare_owner_mount(
+    path: &Path,
+    kind: OwnerKind,
+    writable: bool,
+    expected: Option<OwnerId>,
+) -> Result<runtime::PreparedOwnerMount, ProductError> {
+    use runtime::OwnerMountMode::*;
+    let mode = match (kind, writable) {
+        (OwnerKind::Rel, false) => ReadOnlyRel,
+        (OwnerKind::Rel, true) => WritableRel,
+        (OwnerKind::Phylactery, false) => ReadOnlyPhy,
+        (OwnerKind::Phylactery, true) => WritablePhy,
+    };
+    Ok(runtime::Gateway::prepare_owner_mount(
+        path,
+        mode,
+        expected.map(Into::into),
+    )?)
 }
 
 #[path = "host_admission.rs"]

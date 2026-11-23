@@ -35,6 +35,53 @@ impl Drop for TestPaths {
 }
 
 #[test]
+fn trusted_path_mount_checks_the_expected_header_before_replay() {
+    use std::io::Write;
+
+    let files = TestPaths::new("expected-mount");
+    let path = files.path("candidate.rel");
+    let candidate = Rel::create(&path).unwrap();
+    let expected = Rel::create(files.path("expected.rel")).unwrap().owner_id();
+    let len = fs::metadata(&path).unwrap().len();
+    fs::OpenOptions::new()
+        .append(true)
+        .open(&path)
+        .unwrap()
+        .write_all(b"x")
+        .unwrap();
+
+    let gateway = Gateway::new();
+    assert_eq!(
+        gateway
+            .mount_owner_path(&path, OwnerKind::Rel, true, Some(expected))
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::Admission,
+    );
+    assert_eq!(
+        gateway
+            .mount_owner_path(&path, OwnerKind::Rel, true, Some(candidate.owner_id()))
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::Verification,
+    );
+
+    // Both rejections released the writer lease and installed no mount.
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
+        .unwrap()
+        .set_len(len)
+        .unwrap();
+    assert_eq!(
+        gateway
+            .mount_owner_path(&path, OwnerKind::Rel, true, Some(candidate.owner_id()))
+            .unwrap(),
+        candidate.owner_id(),
+    );
+}
+
+#[test]
 #[ignore = "requires RELIQUARY_ARCHIVE_FIXTURE pointing to an existing REL 2.1 with Archive vectors"]
 fn archive_search_matches_reference_and_reopens() {
     use reliquary_container::Container;

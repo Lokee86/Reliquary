@@ -331,7 +331,14 @@ impl RelSession {
     /// reconstructed inside owner-session. Callers cannot weaken replay by
     /// supplying an empty or partial admission set.
     pub fn open_path_current(path: impl AsRef<Path>) -> Result<Self, OwnerSessionError> {
-        let container = Container::open_read_only_as(path, FileKind::Reliquary)?;
+        Self::open_path_for_owner(path, None)
+    }
+
+    pub fn open_path_for_owner(
+        path: impl AsRef<Path>,
+        expected: Option<[u8; 16]>,
+    ) -> Result<Self, OwnerSessionError> {
+        let container = Container::open_read_only_for(path, FileKind::Reliquary, expected)?;
         Self::open_current(&container)
     }
 

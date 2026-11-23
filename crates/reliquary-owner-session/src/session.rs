@@ -101,7 +101,8 @@ impl OwnerSessionError {
             Self::Container(
                 ContainerError::WriterConflict | ContainerError::WriteRecoveryRequired,
             ) => OwnerFailureKind::WriterConflict,
-            Self::Graph(GraphError::WrongOwner)
+            Self::Container(ContainerError::WrongOwner)
+            | Self::Graph(GraphError::WrongOwner)
             | Self::StaleDreamCut
             | Self::Insomnia(InsomniaError::UnacceptedEpisode) => OwnerFailureKind::Admission,
             _ => OwnerFailureKind::Corruption,
@@ -929,7 +930,14 @@ impl PhySession {
 
     /// Open and fully admit one current-format PHY from durable owner evidence.
     pub fn open_path_current(path: impl AsRef<Path>) -> Result<Self, OwnerSessionError> {
-        let container = Container::open_read_only_as(path, FileKind::Phylactery)?;
+        Self::open_path_for_owner(path, None)
+    }
+
+    pub fn open_path_for_owner(
+        path: impl AsRef<Path>,
+        expected: Option<[u8; 16]>,
+    ) -> Result<Self, OwnerSessionError> {
+        let container = Container::open_read_only_for(path, FileKind::Phylactery, expected)?;
         Self::open_current(&container)
     }
 

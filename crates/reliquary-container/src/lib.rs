@@ -84,6 +84,7 @@ pub enum ContainerError {
         expected: FileKind,
         actual: FileKind,
     },
+    WrongOwner,
     TruncatedHeader,
     TruncatedFrame {
         offset: u64,
@@ -122,6 +123,7 @@ impl fmt::Display for ContainerError {
                 f,
                 "wrong container kind: expected {expected:?}, found {actual:?}"
             ),
+            Self::WrongOwner => f.write_str("container owner does not match the requested owner"),
             Self::TruncatedHeader => f.write_str("truncated container header"),
             Self::TruncatedFrame { offset } => write!(f, "truncated frame at {offset}"),
             Self::InvalidFrameLength { offset, length } => {
@@ -356,100 +358,89 @@ impl Container {
     }
 
     pub fn open_read_only(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
-        Self::open_read_only_inner(path.as_ref(), None)
+        Self::open_current(path.as_ref(), Mode::Read, None, None)
     }
 
     pub fn open_read_only_as(
         path: impl AsRef<Path>,
         expected: FileKind,
     ) -> Result<Self, ContainerError> {
-        Self::open_read_only_inner(path.as_ref(), Some(expected))
+        Self::open_read_only_for(path, expected, None)
     }
 
-    fn open_read_only_inner(
-        path: &Path,
-        expected: Option<FileKind>,
+    pub fn open_read_only_for(
+        path: impl AsRef<Path>,
+        kind: FileKind,
+        owner: Option<[u8; 16]>,
     ) -> Result<Self, ContainerError> {
-        let mut file = OpenOptions::new().read(true).open(path)?;
-        acquire_shared(&file)?;
-        let (identity, owner_id) = read_header(&mut file)?;
-        check_kind(identity, expected)?;
-        let mut container = Self {
-            file,
-            path: path.to_path_buf(),
-            identity,
-            owner_id,
-            mode: Mode::Read,
-            lease_token: *Uuid::new_v4().as_bytes(),
-            write_epoch: 0,
-            write_blocked: false,
-            next_version: 1,
-            transaction_times: BTreeMap::new(),
-            standalone_reservations: BTreeSet::new(),
-            #[cfg(test)]
-            fail_next_append_after: None,
-        };
-        container.validate_frames()?;
-        container.rebuild_clock()?;
-        Ok(container)
+        Self::open_current(path.as_ref(), Mode::Read, Some(kind), owner)
     }
 
     pub fn open_writer(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
-        Self::open_writer_as_inner(path.as_ref(), None)
+        Self::open_current(path.as_ref(), Mode::Write, None, None)
     }
 
     pub fn open_writer_as(
         path: impl AsRef<Path>,
         expected: FileKind,
     ) -> Result<Self, ContainerError> {
-        Self::open_writer_as_inner(path.as_ref(), Some(expected))
+        Self::open_writer_for(path, expected, None)
     }
 
-    fn open_writer_as_inner(
-        path: &Path,
-        expected: Option<FileKind>,
+    pub fn open_writer_for(
+        path: impl AsRef<Path>,
+        kind: FileKind,
+        owner: Option<[u8; 16]>,
     ) -> Result<Self, ContainerError> {
-        let mut file = OpenOptions::new().read(true).write(true).open(path)?;
-        acquire_exclusive(&file)?;
-        let (identity, owner_id) = read_header(&mut file)?;
-        check_kind(identity, expected)?;
-        let mut container = Self {
-            file,
-            path: path.to_path_buf(),
-            identity,
-            owner_id,
-            mode: Mode::Write,
-            lease_token: *Uuid::new_v4().as_bytes(),
-            write_epoch: 0,
-            write_blocked: false,
-            next_version: 1,
-            transaction_times: BTreeMap::new(),
-            standalone_reservations: BTreeSet::new(),
-            #[cfg(test)]
-            fail_next_append_after: None,
-        };
+        Self::open_current(path.as_ref(), Mode::Write, Some(kind), owner)
+    }
+
+    fn open_current(
+        path: &Path,
+        mode: Mode,
+        kind: Option<FileKind>,
+        owner: Option<[u8; 16]>,
+    ) -> Result<Self, ContainerError> {
+        let mut container = Self::open_leased(path, mode, kind, owner)?;
         container.validate_frames()?;
         container.rebuild_clock()?;
         Ok(container)
     }
 
-    /// Opens an exclusive repair session. It validates only the immutable header;
-    /// tail inspection and truncation remain explicit caller actions.
+    /// Opens an exclusive repair session. It validates only the immutable header.
     pub fn open_for_repair(
         path: impl AsRef<Path>,
         expected: FileKind,
     ) -> Result<Self, ContainerError> {
-        let path = path.as_ref();
-        let mut file = OpenOptions::new().read(true).write(true).open(path)?;
-        acquire_exclusive(&file)?;
+        Self::open_leased(path.as_ref(), Mode::Repair, Some(expected), None)
+    }
+
+    fn open_leased(
+        path: &Path,
+        mode: Mode,
+        kind: Option<FileKind>,
+        owner: Option<[u8; 16]>,
+    ) -> Result<Self, ContainerError> {
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(mode != Mode::Read)
+            .open(path)?;
+        if mode == Mode::Read {
+            acquire_shared(&file)?;
+        } else {
+            acquire_exclusive(&file)?;
+        }
         let (identity, owner_id) = read_header(&mut file)?;
-        check_kind(identity, Some(expected))?;
+        check_kind(identity, kind)?;
+        if owner.is_some_and(|expected| expected != owner_id) {
+            return Err(ContainerError::WrongOwner);
+        }
         Ok(Self {
             file,
             path: path.to_path_buf(),
             identity,
             owner_id,
-            mode: Mode::Repair,
+            mode,
             lease_token: *Uuid::new_v4().as_bytes(),
             write_epoch: 0,
             write_blocked: false,

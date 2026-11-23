@@ -1,5 +1,5 @@
 use reliquary_memory::{
-    Gateway, HostCredentialBinding, Instance, OwnerGrant, OwnerId, Phylactery, ProductError, Rel,
+    Gateway, HostCredentialBinding, Instance, OwnerGrant, OwnerId, OwnerKind, ProductError,
     TrustedHostAdmission,
 };
 use std::collections::BTreeMap;
@@ -21,7 +21,7 @@ pub(crate) enum RelAccess {
 impl LocalHost {
     pub fn open_phy(path: &str) -> Result<(Instance, OwnerId), ProductError> {
         let gateway = Gateway::new();
-        let owner = gateway.mount_phylactery(&Phylactery::open(path)?, false)?;
+        let owner = gateway.mount_owner_path(path, OwnerKind::Phylactery, false, None)?;
         let instance = authenticate(&gateway, owner, [OwnerGrant::ViewPhylactery(owner)])?;
         Ok((instance, owner))
     }
@@ -38,9 +38,9 @@ impl LocalHost {
     ) -> Result<(Self, Vec<OwnerId>), ProductError> {
         let gateway = Gateway::new();
         let writable = !matches!(access, RelAccess::View);
-        let rel = gateway.mount_rel(&Rel::open(rel_path)?, writable)?;
+        let rel = gateway.mount_owner_path(rel_path, OwnerKind::Rel, writable, None)?;
         let phy = phy
-            .map(|path| gateway.mount_phylactery(&Phylactery::open(path)?, writable))
+            .map(|path| gateway.mount_owner_path(path, OwnerKind::Phylactery, writable, None))
             .transpose()?;
         let mut grants = vec![match access {
             RelAccess::View => OwnerGrant::ViewRel(rel),
@@ -62,7 +62,7 @@ impl LocalHost {
                 let owner = if let Some(owner) = by_path.get(&path) {
                     *owner
                 } else {
-                    let owner = gateway.mount_rel(&Rel::open(&path)?, false)?;
+                    let owner = gateway.mount_owner_path(&path, OwnerKind::Rel, false, None)?;
                     by_path.insert(path, owner);
                     grants.push(OwnerGrant::ViewRel(owner));
                     owner
