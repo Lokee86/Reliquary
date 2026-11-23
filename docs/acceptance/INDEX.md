@@ -20,6 +20,7 @@ Dated measurements and review reports. These records are evidence for their stat
 - [leiden-community-recomputation-2026-11-18.md](leiden-community-recomputation-2026-11-18.md) - Copied REL preview, publication, and reopen results.
 - [owner-history-migration-first28d-2026-11-18.md](owner-history-migration-first28d-2026-11-18.md) - Original 28-day REL and PHY offline migration evidence.
 - [owner-history-migration-other-pairs-2026-11-19.md](owner-history-migration-other-pairs-2026-11-19.md) - Separate offline migration evidence for the original 14-day and Ellis pairs.
+- [rel-checkpoint-open-2026-11-23.md](rel-checkpoint-open-2026-11-23.md) - Verified REL checkpoint and Hermes startup results on copied workloads.
 - [rel-dependency-port-2026-11-18.md](rel-dependency-port-2026-11-18.md) - REL dependency port compatibility and verification.
 - [rel-homogeneity-2026-11-18.md](rel-homogeneity-2026-11-18.md) - Scope-free creation and legacy REL header verification.
 <!-- doc-ledger:files:end -->
