@@ -5,6 +5,9 @@ use crate::{
 };
 use std::sync::{Arc, Mutex};
 
+mod entity_identity;
+pub use entity_identity::*;
+
 pub use reliquary_application::inspection::{
     CommunityMetadata, CommunityNameOrigin, CreateRelationshipRequest, EntityRetirementRequest,
     ExactMemoryProvenance, GraphDirection, GraphEdge, GraphNode, ImportedSourceReference,

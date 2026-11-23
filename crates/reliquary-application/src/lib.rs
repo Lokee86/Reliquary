@@ -33,6 +33,7 @@ pub use conversation_workflow::{
     NativeConversationCommit, PublishedNativeTurn, commit_native_conversation_turn,
     finalize_native_episode, validate_native_conversation_commit,
 };
+pub mod entity_identity;
 mod entity_workflow;
 mod external_source_workflow;
 mod freshness_due_workflow;

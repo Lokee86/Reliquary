@@ -18,6 +18,8 @@ Configuration is opened from the configured path, parsed into typed objects, and
 
 Root also exposes a hosted construction path for host-owned general and embedding transports. It binds the general endpoint to the ordinary general and entity-resolution semantic slots and adapts it through the existing `GeneralDecisionEndpoint` for all decision consumers. The accompanying stable identity includes provider/model names and embedding dimensions, input semantics and normalization; it excludes credentials, profiles and leases. The path does not read persisted configuration, and Root validates reported model/dimension/normalization values before exposing the runtime.
 
+A cross-REL Entity receipt binds the selected Entity route by a digest of its provider, model, endpoint URL and reasoning effort. A hosted runtime binds the host's general provider and model. Changing an unrelated embedding route leaves the Entity comparison eligible for reuse.
+
 Credentials and their protected configuration are managed by Switchboard's protected-config boundary. Secret-bearing credential values are redacted from Debug output and protected key lifecycle is isolated from ordinary route data. Credentials are mutable configuration state, not part of REL/PHY owner files. Do not log or expose secrets through product objects, errors, or diagnostics.
 
 ## Failure and recovery

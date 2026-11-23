@@ -252,8 +252,13 @@ fn identity_receipts_restore_from_exact_checkpoint_and_validate_the_suffix() {
     writer.publish_identity_receipt(second.clone()).unwrap();
     drop(writer);
 
-    let (lease, restored, _) = admit(&owner, &slot, true).unwrap();
+    let (lease, restored, refresh) = admit(&owner, &slot, true).unwrap();
     assert!(lease.extent().unwrap() > first_extent);
+    assert_eq!(restored.identity_receipt(&first.pair, None), Some(&second));
+    assert_eq!(
+        refresh.unwrap().attempted_extent,
+        Some(lease.extent().unwrap())
+    );
     let manifest = Entry::open(&slot).unwrap().manifest;
     assert_eq!(manifest.physical.covered_end, lease.extent().unwrap());
     assert_eq!(manifest.identity_cut, 2);
@@ -261,7 +266,6 @@ fn identity_receipts_restore_from_exact_checkpoint_and_validate_the_suffix() {
         restored.identity_receipt(&first.pair, Some(1)),
         Some(&first)
     );
-    assert_eq!(restored.identity_receipt(&first.pair, None), Some(&second));
     assert_eq!(
         restored.historical_proof(OWNER, &first_cut).unwrap(),
         first_proof

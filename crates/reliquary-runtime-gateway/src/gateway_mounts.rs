@@ -265,6 +265,7 @@ impl Gateway {
         credential_active: Option<Arc<AtomicBool>>,
     ) -> Result<Instance, GatewayError> {
         Ok(Instance {
+            credential_publication: Arc::clone(&self.credential_publication),
             owners: Arc::clone(&self.owners),
             rel_topology: Arc::clone(&self.rel_topology),
             principal: Arc::from(principal),

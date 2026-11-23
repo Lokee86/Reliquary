@@ -23,6 +23,7 @@ pub enum OwnerWorkerKind {
     Entity,
     Vector,
     Freshness,
+    EntityIdentity,
 }
 impl OwnerWorkerKind {
     const fn lease_id(self) -> u8 {
@@ -31,6 +32,7 @@ impl OwnerWorkerKind {
             Self::Entity => 2,
             Self::Vector => 3,
             Self::Freshness => 4,
+            Self::EntityIdentity => 5,
         }
     }
 }

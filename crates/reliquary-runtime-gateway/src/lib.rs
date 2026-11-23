@@ -223,6 +223,7 @@ impl MountedOwner {
 pub struct Gateway {
     owners: Arc<RwLock<HashMap<OwnerId, MountedOwner>>>,
     owner_worker_leases: Arc<Mutex<BTreeSet<(OwnerId, u8)>>>,
+    credential_publication: Arc<RwLock<()>>,
     rel_topology: Arc<RwLock<()>>,
 }
 fn validate_principal(principal: &str) -> Result<(), GatewayError> {
@@ -323,7 +324,10 @@ impl TrustedHostAdmission {
                 gateway: gateway.clone(),
                 credentials,
             },
-            HostAdmissionControl { active },
+            HostAdmissionControl {
+                active,
+                publication: Arc::clone(&gateway.credential_publication),
+            },
         ))
     }
 }
@@ -343,6 +347,7 @@ pub struct HostAdmissionAdapter {
 
 /// Host-only revocation capability. Keep it out of request handlers.
 pub struct HostAdmissionControl {
+    publication: Arc<RwLock<()>>,
     active: HashMap<[u8; 32], Arc<AtomicBool>>,
 }
 impl HostAdmissionControl {
@@ -353,6 +358,10 @@ impl HostAdmissionControl {
             .active
             .get(&hash)
             .ok_or(GatewayError::InvalidCredential)?;
+        let _publication = self
+            .publication
+            .write()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
         active.store(false, Ordering::Release);
         Ok(())
     }
@@ -393,6 +402,7 @@ impl HostAdmissionAdapter {
 
 /// A principal-scoped view. Owner authorization is checked on every access.
 pub struct Instance {
+    credential_publication: Arc<RwLock<()>>,
     owners: Arc<RwLock<HashMap<OwnerId, MountedOwner>>>,
     rel_topology: Arc<RwLock<()>>,
     principal: Arc<str>,
@@ -461,6 +471,8 @@ pub use workflow_workers::{
 
 mod host_memory_delivery;
 mod instance_entity;
+mod instance_identity;
+pub use instance_identity::{EntityIdentityInspection, IdentityComparisonState};
 mod instance_perception_lifecycle;
 mod instance_vectors;
 pub use instance_vectors::{

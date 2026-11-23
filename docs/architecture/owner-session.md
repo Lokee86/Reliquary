@@ -30,7 +30,7 @@ REL and PHY writers are separate authorities. Session clones do not create indep
 
 Community recompute captures eligible IDs and active structural edges from one REL read. Capture and publication share the same active-Memory check. The writer rechecks the captured file identity and versions, requires every eligible ID exactly once, and syncs the Community frame through the owner write boundary.
 
-REL owner-session also owns the directional Entity identity receipt projection and typed publication. It supplies pair evidence from each REL’s active Entities, Relationships and cited Memory bodies, and publishes the receipt only to the recording REL. Gateway coordinates the two authorized sessions; owner-session does not acquire peer authority or mutate the peer.
+REL owner-session also owns the directional Entity identity receipt projection and typed publication. It supplies pair evidence from each RELâ€™s active Entities, Relationships and cited Memory bodies, and publishes the receipt only to the recording REL. Gateway checks access to both RELs and coordinates their sessions.
 
 ## Failure, recovery, and invariants
 

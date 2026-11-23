@@ -48,18 +48,20 @@ impl Drop for Directory {
 struct Script {
     calls: AtomicUsize,
     // A gate allows a test to mutate an owner after evaluation has begun.
-    gate: Mutex<(bool, bool)>,
+    gate: Mutex<bool>,
     wake: Condvar,
 }
 impl Script {
     fn pause(&self) {
-        *self.gate.lock().unwrap() = (true, false);
+        *self.gate.lock().unwrap() = true;
     }
-    fn entered(&self) {
+    fn entered(&self, expected_calls: usize) {
         let gate = self.gate.lock().unwrap();
-        let (_, timeout) = self
+        let (_gate, timeout) = self
             .wake
-            .wait_timeout_while(gate, Duration::from_secs(10), |g| !g.1)
+            .wait_timeout_while(gate, Duration::from_secs(10), |_| {
+                self.calls.load(Ordering::SeqCst) < expected_calls
+            })
             .unwrap();
         assert!(
             !timeout.timed_out(),
@@ -67,7 +69,7 @@ impl Script {
         );
     }
     fn release(&self) {
-        self.gate.lock().unwrap().0 = false;
+        *self.gate.lock().unwrap() = false;
         self.wake.notify_all();
     }
 }
@@ -91,17 +93,32 @@ impl GeneralEndpoint for Script {
         assert!(input["left"]["relationships"].is_array());
         assert!(input["right"]["relationships"].is_array());
         self.calls.fetch_add(1, Ordering::SeqCst);
-        let mut gate = self.gate.lock().unwrap();
-        gate.1 = true;
+        let gate = self.gate.lock().unwrap();
         self.wake.notify_all();
-        while gate.0 {
-            gate = self.wake.wait(gate).unwrap();
+        let (_gate, timeout) = self
+            .wake
+            .wait_timeout_while(gate, Duration::from_secs(15), |state| *state)
+            .unwrap();
+        if timeout.timed_out() {
+            return Err(GeneralEndpointError::Failure(
+                "fixture evaluation gate timed out".into(),
+            ));
         }
+        let signature = |side: &str| {
+            input[side]["relationships"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .position(|r| r["kind"] == "signed" && r["quote"] == QUOTE)
+        };
+        let (Some(left), Some(right)) = (signature("left"), signature("right")) else {
+            return Ok(json!({"outcome":"unresolved","reason":"ambiguity","citations":[]}));
+        };
         Ok(json!({
             "outcome":"same_identity", "reason":"corroborated",
             "citations":[
-                {"side":"left","relationship":0,"memory":0,"fact":CONTRACT},
-                {"side":"right","relationship":0,"memory":0,"fact":CONTRACT}
+                {"side":"left","relationship":left,"memory":0,"fact":CONTRACT},
+                {"side":"right","relationship":right,"memory":0,"fact":CONTRACT}
             ]
         }))
     }
@@ -225,10 +242,21 @@ fn evidence(
     person: EntityId,
     contract: EntityId,
 ) -> reliquary_memory::MemorySummary {
+    relationship(work, person, contract, "signed", "signatory", QUOTE)
+}
+
+fn relationship(
+    work: &WorkspaceManagement,
+    person: EntityId,
+    contract: EntityId,
+    kind: &str,
+    role: &str,
+    quote: &str,
+) -> reliquary_memory::MemorySummary {
     let memory = work
         .create_memory(
-            "Contract signature".into(),
-            QUOTE.into(),
+            format!("Contract {kind}"),
+            quote.into(),
             "fact".into(),
             "project".into(),
             20,
@@ -236,12 +264,12 @@ fn evidence(
         .unwrap();
     work.create_relationship(CreateRelationshipRequest {
         owner_id: work.owner_id().as_bytes(),
-        kind: "signed".into(),
+        kind: kind.into(),
         participants: vec![
             RelationshipParticipantEvidence {
                 entity_id: person,
                 entity_revision: 1,
-                role: Some("signatory".into()),
+                role: Some(role.into()),
             },
             RelationshipParticipantEvidence {
                 entity_id: contract,
@@ -254,9 +282,9 @@ fn evidence(
         source_body_id: MemoryBodyId(bytes(&memory.body_id)),
         source_field: MemoryTextField::Content,
         start_byte: 0,
-        end_byte: QUOTE.len(),
-        source_quote: QUOTE.into(),
-        mutation_id: "signature-relationship".into(),
+        end_byte: quote.len(),
+        source_quote: quote.into(),
+        mutation_id: format!("{kind}-relationship"),
         updated_at_ns: 21,
     })
     .unwrap();
@@ -341,13 +369,22 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
             .unwrap()
             .is_none()
     );
+    let source = evidence(&work, a_entity, a_contract);
+    relationship(
+        &peer,
+        b_entity,
+        b_contract,
+        "attended",
+        "attendee",
+        "Alex Chen attended a briefing for Project Meridian Contract.",
+    );
     let initial = work
         .compare_entity_identity(a_entity, b, b_entity, &runtime)
         .unwrap();
     assert_eq!(initial.revision, 1);
     assert_eq!(initial.outcome, IdentityOutcome::Unresolved);
-    assert_eq!(initial.reason, IdentityReason::InsufficientEvidence);
-    assert_eq!(script.calls.load(Ordering::SeqCst), 0);
+    assert_eq!(initial.reason, IdentityReason::Ambiguity);
+    assert_eq!(script.calls.load(Ordering::SeqCst), 1);
     assert_eq!(
         view.compare_entity_identity(a_entity, b, b_entity, &runtime)
             .unwrap_err()
@@ -361,9 +398,14 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
             .kind(),
         ProductErrorKind::Unauthorized
     );
-    let source = evidence(&work, a_entity, a_contract);
-    evidence(&peer, b_entity, b_contract);
+    assert_eq!(
+        work.compare_entity_identity(a_entity, b, b_entity, &runtime)
+            .unwrap(),
+        initial
+    );
+    assert_eq!(script.calls.load(Ordering::SeqCst), 1);
     let mut processing = work.start_entity_identity_processing(&runtime).unwrap();
+    evidence(&peer, b_entity, b_contract);
     wait_revision(&work, a_entity, b, b_entity, 2);
     let positive = view
         .inspect_entity_identity(a_entity, b, b_entity, None)
@@ -371,7 +413,8 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
         .unwrap();
     assert_eq!(positive.receipt.outcome, IdentityOutcome::SameIdentity);
     assert_eq!(positive.receipt.citations.len(), 2);
-    assert_eq!(script.calls.load(Ordering::SeqCst), 1);
+    assert_eq!(positive.cited_quotes.unwrap(), [QUOTE, QUOTE]);
+    assert_eq!(script.calls.load(Ordering::SeqCst), 2);
     work.create_memory(
         "Unrelated".into(),
         "An unrelated publication.".into(),
@@ -387,7 +430,7 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
         2
     );
     processing.stop().unwrap();
-    assert_eq!(script.calls.load(Ordering::SeqCst), 1);
+    assert_eq!(script.calls.load(Ordering::SeqCst), 2);
     let cut = manager
         .semantic_graph_inspection_cut(a, OwnerKind::Rel)
         .unwrap();
@@ -420,18 +463,29 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
         .unwrap()
         .unwrap();
     assert_eq!(current.receipt.outcome, IdentityOutcome::Unresolved);
-    assert_eq!(script.calls.load(Ordering::SeqCst), 1);
+    assert_eq!(script.calls.load(Ordering::SeqCst), 2);
     let historical = view
         .inspect_entity_identity(a_entity, b, b_entity, Some(2))
         .unwrap()
         .unwrap();
     assert_eq!(historical.state, IdentityComparisonState::Historical);
     assert_eq!(historical.receipt.outcome, IdentityOutcome::SameIdentity);
+    assert_eq!(historical.cited_quotes.unwrap(), [QUOTE, QUOTE]);
 }
 
 #[test]
 fn identity_paused_evaluation_rechecks_peer_and_revocation() {
-    for revoke in [false, true] {
+    #[derive(Clone, Copy)]
+    enum DuringEvaluation {
+        CorrectSource,
+        Revoke,
+        UnrelatedWrite,
+    }
+    for change in [
+        DuringEvaluation::CorrectSource,
+        DuringEvaluation::Revoke,
+        DuringEvaluation::UnrelatedWrite,
+    ] {
         let dir = Directory::new();
         let ap = dir.0.join("a.rel");
         let bp = dir.0.join("b.rel");
@@ -460,40 +514,51 @@ fn identity_paused_evaluation_rechecks_peer_and_revocation() {
         script.pause();
         let result = std::thread::scope(|scope| {
             let pending = scope.spawn(|| work.compare_entity_identity(ae, b, be, &runtime));
-            script.entered();
-            if revoke {
-                control.revoke(token).unwrap();
-            } else {
-                let cut = manager
-                    .semantic_graph_inspection_cut(b, OwnerKind::Rel)
+            script.entered(1);
+            match change {
+                DuringEvaluation::Revoke => control.revoke(token).unwrap(),
+                DuringEvaluation::UnrelatedWrite => {
+                    peer.create_memory(
+                        "Weather".into(),
+                        "It rained.".into(),
+                        "fact".into(),
+                        "note".into(),
+                        40,
+                    )
                     .unwrap();
-                peer.correct_memory_at_cut(
-                    cut,
-                    CorrectMemoryRequest {
-                        request_id: "race-correct".into(),
-                        memory_id: MemoryId(bytes(&source.id)),
-                        expected_revision: source.revision,
-                        expected_body_id: MemoryBodyId(bytes(&source.body_id)),
-                        title: "Corrected signatory".into(),
-                        content: "Morgan Lee signed Project Meridian Contract.".into(),
-                        created_at_ns: 40,
-                    },
-                )
-                .unwrap();
+                }
+                DuringEvaluation::CorrectSource => {
+                    let cut = manager
+                        .semantic_graph_inspection_cut(b, OwnerKind::Rel)
+                        .unwrap();
+                    peer.correct_memory_at_cut(
+                        cut,
+                        CorrectMemoryRequest {
+                            request_id: "race-correct".into(),
+                            memory_id: MemoryId(bytes(&source.id)),
+                            expected_revision: source.revision,
+                            expected_body_id: MemoryBodyId(bytes(&source.body_id)),
+                            title: "Corrected signatory".into(),
+                            content: "Morgan Lee signed Project Meridian Contract.".into(),
+                            created_at_ns: 40,
+                        },
+                    )
+                    .unwrap();
+                }
             }
             script.release();
             pending.join().unwrap()
         });
-        if revoke {
-            assert_eq!(result.unwrap_err().kind(), ProductErrorKind::Revoked);
-        } else {
-            assert_eq!(result.unwrap_err().kind(), ProductErrorKind::Stale);
-            assert!(
-                work.inspect_entity_identity(ae, b, be, None)
-                    .unwrap()
-                    .is_none(),
-                "stale evaluation must leave no receipt"
-            );
+        match change {
+            DuringEvaluation::Revoke => {
+                assert_eq!(result.unwrap_err().kind(), ProductErrorKind::Revoked)
+            }
+            DuringEvaluation::CorrectSource => {
+                assert_eq!(result.unwrap_err().kind(), ProductErrorKind::Stale)
+            }
+            DuringEvaluation::UnrelatedWrite => {
+                assert_eq!(result.unwrap().outcome, IdentityOutcome::SameIdentity)
+            }
         }
         assert_eq!(script.calls.load(Ordering::SeqCst), 1);
         // A fresh reader checks the durable projection even after the original credential is revoked.
@@ -511,15 +576,19 @@ fn identity_paused_evaluation_rechecks_peer_and_revocation() {
         )])
         .install(&gateway)
         .unwrap();
-        assert!(
-            admission
-                .authenticate(fresh)
-                .unwrap()
-                .workspace_management(a)
-                .unwrap()
-                .inspect_entity_identity(ae, b, be, None)
-                .unwrap()
-                .is_none()
+        let retained = admission
+            .authenticate(fresh)
+            .unwrap()
+            .workspace_management(a)
+            .unwrap()
+            .inspect_entity_identity(ae, b, be, None)
+            .unwrap();
+        assert_eq!(
+            retained.map(|view| view.receipt.revision),
+            match change {
+                DuringEvaluation::UnrelatedWrite => Some(1),
+                _ => None,
+            }
         );
     }
 }
@@ -575,8 +644,9 @@ fn identity_readonly_peer_and_equivalent_concurrent_requests_publish_once() {
         script.pause();
         let (first, second) = std::thread::scope(|scope| {
             let one = scope.spawn(|| work.compare_entity_identity(ae, b, be, &runtime));
-            script.entered();
+            script.entered(1);
             let two = scope.spawn(|| work.compare_entity_identity(ae, b, be, &runtime));
+            script.entered(2);
             script.release();
             (one.join().unwrap().unwrap(), two.join().unwrap().unwrap())
         });

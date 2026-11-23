@@ -19,8 +19,8 @@ pub struct IdentityJudgment {
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct IdentityPairEvidence {
-    pub left: IdentityEvidence,
-    pub right: IdentityEvidence,
+    pub(crate) left: IdentityEvidence,
+    pub(crate) right: IdentityEvidence,
     fingerprint: [u8; 32],
     model_input: Option<String>,
 }
@@ -57,7 +57,7 @@ impl IdentityPairEvidence {
         self.model_input.as_deref()
     }
 
-    pub(crate) fn side(&self, side: IdentitySide) -> &IdentityEvidence {
+    pub fn side(&self, side: IdentitySide) -> &IdentityEvidence {
         match side {
             IdentitySide::Left => &self.left,
             IdentitySide::Right => &self.right,

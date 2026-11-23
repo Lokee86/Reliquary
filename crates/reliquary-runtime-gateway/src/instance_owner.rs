@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Clone)]
 pub(super) enum RelMount {
     Read(std::sync::Weak<RelSession>),
     Write(std::sync::Weak<MountedRelWriter>),
@@ -11,11 +12,22 @@ impl RelMount {
             .owners
             .read()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
-        match owners.get(&owner) {
-            Some(MountedOwner::Rel(rel)) => Ok(Self::Read(Arc::downgrade(rel))),
-            Some(MountedOwner::RelWriter(rel)) => Ok(Self::Write(Arc::downgrade(rel))),
-            Some(_) => Err(GatewayError::WrongOwnerKind(owner)),
-            None => Err(GatewayError::UnknownOwner(owner)),
+        Self::from_mounted(
+            owners
+                .get(&owner)
+                .ok_or(GatewayError::UnknownOwner(owner))?,
+            owner,
+        )
+    }
+
+    pub(super) fn from_mounted(
+        mounted: &MountedOwner,
+        owner: OwnerId,
+    ) -> Result<Self, GatewayError> {
+        match mounted {
+            MountedOwner::Rel(rel) => Ok(Self::Read(Arc::downgrade(rel))),
+            MountedOwner::RelWriter(rel) => Ok(Self::Write(Arc::downgrade(rel))),
+            _ => Err(GatewayError::WrongOwnerKind(owner)),
         }
     }
 }

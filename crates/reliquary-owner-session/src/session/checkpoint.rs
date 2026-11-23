@@ -289,6 +289,8 @@ fn open_leased(
             .map(|slot| WriterCheckpoint::new(slot, prefix, &session));
         return Ok((container, session, refresh));
     }
+    // Full admission can replace this checkpoint. Release its file handle first.
+    drop(entry);
     if prefix.is_some() {
         container.validate_from_start()?;
     }

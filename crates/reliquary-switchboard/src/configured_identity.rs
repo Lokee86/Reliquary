@@ -65,7 +65,19 @@ pub(super) fn processing_routes(
         ])
     });
     let dream = general_identity(dream);
+    let identity_route = entity.map(|(_, route)| {
+        json!([
+            provider(route.endpoint.provider),
+            route.endpoint.model,
+            route.endpoint.url,
+            route.reasoning_effort
+        ])
+    });
     ProcessingRouteIdentity {
+        entity_identity: hash(json!([
+            "reliquary-entity-identity-route-v1",
+            identity_route
+        ])),
         import: hash(json!([
             "reliquary-owner-processing-routes-v1",
             general_identity(insomnia),
@@ -96,6 +108,7 @@ pub(super) fn hosted(identity: &HostedInferenceIdentity) -> ProcessingRouteIdent
         }
     ]);
     ProcessingRouteIdentity {
+        entity_identity: hash(json!(["reliquary-entity-identity-route-v1", general])),
         import: hash(json!([
             "reliquary-hermes-hosted-import-v1",
             general,

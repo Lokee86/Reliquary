@@ -92,6 +92,7 @@ pub struct ConfiguredRoutes {
 
 #[derive(Clone, Copy)]
 pub struct ProcessingRouteIdentity {
+    pub entity_identity: [u8; 32],
     pub import: [u8; 32],
     pub live_dream: [u8; 32],
 }
