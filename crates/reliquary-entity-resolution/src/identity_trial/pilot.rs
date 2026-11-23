@@ -8,6 +8,7 @@ use crate::{
 use reliquary_perception_store::identity::IdentityOutcome;
 use reliquary_switchboard::{
     ConfiguredRoutes, DecisionConsumer, DecisionEndpoint, DecisionEndpointError,
+    GeneralDecisionEndpoint, GeneralEndpoint,
 };
 use serde_json::Value;
 
@@ -56,9 +57,7 @@ fn sample(name: &str, kind: &str, context: &str, left: &str, right: &str) -> Ide
     IdentityPairEvidence::new(witness(1, left), witness(2, right))
 }
 
-#[test]
-#[ignore = "uses the selected provider routes with synthetic evidence"]
-fn configured_models_on_authored_pairs() {
+fn pilot_runtime() -> (ConfiguredRoutes, std::sync::Arc<dyn GeneralEndpoint>) {
     let path = std::env::var_os("RELIQUARY_IDENTITY_TRIAL_CONFIG")
         .expect("select a configured trial profile");
     let routes = ConfiguredRoutes::from_path(Path::new(&path)).expect("open trial routes");
@@ -76,20 +75,39 @@ fn configured_models_on_authored_pairs() {
         });
         eprintln!("Interpretation transport: signed-in Codex client");
     }
+    (routes, general)
+}
+
+#[test]
+#[ignore = "uses the selected provider routes with synthetic evidence"]
+fn configured_models_on_authored_pairs() {
+    let (routes, general) = pilot_runtime();
     let decision = routes
         .decision_endpoint(DecisionConsumer::EntityResolution)
         .expect("configured Entity decision route");
+    compare_authored_pairs(general.as_ref(), decision.as_ref());
+}
+
+#[test]
+#[ignore = "uses the same live general model for every stage with synthetic evidence"]
+fn same_model_on_authored_pairs() {
+    let (_, general) = pilot_runtime();
+    let decision = GeneralDecisionEndpoint::new(general.clone());
+    compare_authored_pairs(general.as_ref(), &decision);
+}
+
+fn compare_authored_pairs(general: &dyn GeneralEndpoint, decision: &dyn DecisionEndpoint) {
     eprintln!("Models: {} / {}", general.model(), decision.model());
     let cases = pilot_cases();
     let mut staged_correct = 0;
     for (case, label, pair) in cases {
         eprintln!("Case {case}");
         let started = Instant::now();
-        let baseline = evaluate_identity_pair(&pair, general.as_ref());
+        let baseline = evaluate_identity_pair(&pair, general);
         let baseline_time = started.elapsed();
         let started = Instant::now();
-        let observed = ObservedDecision(decision.as_ref());
-        let staged = start_trial(&pair, general.as_ref(), &observed).and_then(|step| match step {
+        let observed = ObservedDecision(decision);
+        let staged = start_trial(&pair, general, &observed).and_then(|step| match step {
             Trial::Complete(judgment) => Ok(judgment),
             Trial::Support(support) => support.evaluate(),
         });

@@ -24,7 +24,7 @@ impl GeneralEndpoint for SignedInSol {
         &self,
         prompt: &str,
         payload: &str,
-        _name: &str,
+        name: &str,
         schema: &Value,
     ) -> Result<Value, GeneralEndpointError> {
         static SEQUENCE: AtomicUsize = AtomicUsize::new(0);
@@ -37,6 +37,20 @@ impl GeneralEndpoint for SignedInSol {
         fs::create_dir(&dir).map_err(err)?;
         let schema_file = dir.join("schema.json");
         let response_file = dir.join("response.json");
+        let mut schema = schema.clone();
+        // The Codex CLI requires explicit types, even for a single allowed string.
+        if name == "decision_answers"
+            && let Some(answers) = schema
+                .pointer_mut("/properties/answers/properties")
+                .and_then(Value::as_object_mut)
+        {
+            for answer in answers.values_mut() {
+                let tag = &mut answer["properties"]["type"];
+                if *tag == serde_json::json!({"const": "choice"}) {
+                    *tag = serde_json::json!({"type": "string", "enum": ["choice"]});
+                }
+            }
+        }
         fs::write(&schema_file, schema.to_string()).map_err(err)?;
         let mut cmd = Command::new(&self.executable);
         cmd.current_dir(&dir)

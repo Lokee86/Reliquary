@@ -78,11 +78,26 @@ The fixed-proposal diagnostic exercised the selector directly because the instru
 
 The selector produced the expected final outcome in 1/3 conditional cases. This isolates two separate problems: the verdict prompt misses clear positive examples, and affirmative source selections can still endorse irrelevant evidence. Before cutover, address both and repeat on additional held-out pairs. Tuning a score threshold on these three examples would not establish a general solution. [Selector diagnostic](../../crates/reliquary-entity-resolution/src/identity_trial/pilot/fixed.rs)
 
+### Same-model control
+
+Two additional paired runs used `gpt-5.6-sol` at low reasoning effort for every call. Both arms received the same four original evidence fixtures. The one-call arm ran first on each pair. The staged arm used Switchboard's general decision adapter for the verdict and support selection, sharing the signed-in Sol endpoint with the baseline and interpretation pass. Prompts, policy checks and labels were held fixed across runs. An initial transport check showed the Codex client rejected a decision schema before returning a verdict. The pilot client now expresses the same single allowed tag as a typed string enum. The results below cover the two complete runs after that correction.
+
+| Evaluator | Run 1 | Run 2 | Model calls across both runs | Mean elapsed per pair |
+| --- | --- | --- | --- | --- |
+| One Sol call | 4/4 | 4/4 | 8 | 6.0 s |
+| Staged Sol | 4/4 | 4/4 | 20 | 13.9 s |
+
+Both runs identified the same summit and the two separate programs, and left the version-only and conflicting birthplace pairs unresolved. For both affirmative outcomes the staged selector chose one supporting source from each REL. For unresolved verdicts the staged path ended after the second call. On the conflicting birthplace example the one-call evaluator cited both conflicting records in both runs, while the staged evaluator returned an empty citation list. Measured time includes a fresh Codex client invocation per call.
+
+Using Sol throughout recovered the two affirmative examples that the Jev verdict step missed. The single and staged Sol evaluators tied on these four distinct inputs. There was no evidence of improved label accuracy from splitting the calls in this control. A broader comparison would require held-out pairs and would still compare the validators as well as the prompts. Production continues to use the one-call evaluator. [Control harness](../../crates/reliquary-entity-resolution/src/identity_trial/pilot.rs)
+
 ### Reproduce
 
 Run the default suite with `cargo test -p reliquary-entity-resolution --locked --offline --lib`. To reproduce the scripted false positive run the same command with `observe_version_only_false_affirmative -- --ignored --nocapture`.
 
 For an intentional live run, set `RELIQUARY_IDENTITY_TRIAL_CONFIG` to the existing protected config at its registered path and run `cargo test -p reliquary-entity-resolution --locked --offline --lib configured_models_on_authored_pairs -- --ignored --nocapture`. Cargo's offline flag applies to dependency resolution. This test contacts the selected models and fails its gate on a missed staged label or a provider failure. If using an existing signed-in Codex client for the configured Sol model, set `RELIQUARY_TRIAL_CODEX` to its native executable and `RELIQUARY_TRIAL_SCRATCH` to an existing local scratch directory. Jev continues to use Switchboard. To exercise only the real selector on fixed proposals, run the same ignored test command with the filter `configured_support_on_fixed_proposals`. [Proposed implementation and release gates](../planning/cross-rel-entity-staged-evaluation-2026-11-23.md)
+
+For the same-model control, use the same profile and signed-in client settings and run `cargo test -p reliquary-entity-resolution --locked --offline --lib same_model_on_authored_pairs -- --ignored --nocapture`. This test binds Switchboard's general decision adapter to the exact general endpoint used by the baseline and interpretation. It produces plain verdict and support choices. Each call runs in a fresh Codex session at low reasoning effort.
 
 ## Related docs
 
