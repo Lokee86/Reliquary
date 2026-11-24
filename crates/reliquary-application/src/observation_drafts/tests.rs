@@ -3,6 +3,7 @@ use reliquary_container::ReliquaryScope;
 use reliquary_owner_session::model::{MemoryId, MemoryTextField};
 use reliquary_owner_session::observation::{
     ObservationBatch, ObservationChange, ObservationPendingReason, ObservationSource,
+    ObservationWithdrawalReason,
 };
 use reliquary_owner_session::{DreamMemoryCut, RelWriter};
 use reliquary_perception::NATIVE_DECISION_MODEL;
@@ -321,6 +322,7 @@ fn prepares_and_rechecks_a_verified_successor_outside_owner_read_closures() {
     );
     assert_eq!(requests[2]["claim"], NARROWED);
     assert_eq!(requests[2]["backcheck_hits"].as_array().unwrap().len(), 0);
+    drop(requests);
     assert_eq!(script.embeddings.lock().unwrap().len(), 2);
     let accepted = writer
         .publish_observation_batch(ObservationBatch {
@@ -343,4 +345,87 @@ fn prepares_and_rechecks_a_verified_successor_outside_owner_read_closures() {
             .proposition,
         NARROWED
     );
+
+    let publish = |writer: &mut RelWriter, key: u8, operations| {
+        writer
+            .publish_observation_batch(ObservationBatch {
+                owner_id: cut.owner_id,
+                history_generation: cut.history_generation,
+                input_fingerprint: [key; 32],
+                policy: review.policy,
+                operations,
+                progress: None,
+            })
+            .unwrap()
+    };
+    let mut trigger = writer
+        .read_session()
+        .observation(id)
+        .unwrap()
+        .revision
+        .draft
+        .clone();
+    trigger.proposition = "Members use the east entrance without a staffed desk.".into();
+    trigger.citations = vec![incoming];
+    trigger.reviewed.clear();
+    let (trigger_id, trigger_revision) = publish(
+        &mut writer,
+        23,
+        vec![ObservationOperation::Create { draft: trigger }],
+    )
+    .revisions[0];
+    let historical_trigger = writer
+        .read_session()
+        .observation(trigger_id)
+        .unwrap()
+        .revision
+        .full_citation();
+    publish(
+        &mut writer,
+        24,
+        vec![
+            ObservationOperation::Pending {
+                id,
+                expected_revision: revision + 1,
+                reason: ObservationPendingReason::NewEvidence,
+                evidence: vec![historical_trigger],
+            },
+            ObservationOperation::Pending {
+                id: trigger_id,
+                expected_revision: trigger_revision,
+                reason: ObservationPendingReason::ChangedSupport,
+                evidence: Vec::new(),
+            },
+        ],
+    );
+    publish(
+        &mut writer,
+        25,
+        vec![ObservationOperation::Withdraw {
+            id: trigger_id,
+            expected_revision: trigger_revision,
+            reason: ObservationWithdrawalReason::UnresolvedEvidence,
+            reviewed: Vec::new(),
+        }],
+    );
+    let reaffirmed = evaluate_review(
+        &Read {
+            writer: &writer,
+            held: &held,
+        },
+        &routes,
+        id,
+    )
+    .unwrap()
+    .unwrap();
+    reaffirmed
+        .revalidate(writer.read_session(), routes.route_identity)
+        .unwrap();
+    assert!(
+        matches!(&reaffirmed.operation, ObservationOperation::Reaffirm { reviewed, .. }
+        if reviewed.contains(&historical_trigger))
+    );
+    let calls = script.decisions.lock().unwrap();
+    assert_eq!(calls.len(), 4);
+    assert_eq!(calls[3]["backcheck_hits"].as_array().unwrap().len(), 0);
 }

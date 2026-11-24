@@ -184,8 +184,8 @@ fn capture_review(
     let mut required: Vec<_> = head
         .triggering_evidence
         .iter()
-        .map(|cite| support[cite].ok_or(Error::PendingEvidence))
-        .collect::<Result<_>>()?;
+        .filter_map(|cite| support[cite])
+        .collect();
     required.sort_unstable();
     required.dedup();
     let mut prior = semantic_claim(rel, head.revision);
