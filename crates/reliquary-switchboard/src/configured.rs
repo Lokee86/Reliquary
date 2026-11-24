@@ -87,6 +87,7 @@ pub struct ConfiguredRoutes {
     chronos: SelectedDecision,
     entity: SelectedDecision,
     retrieval: SelectedDecision,
+    observation: SelectedDecision,
     processing_route_identity: ProcessingRouteIdentity,
 }
 
@@ -95,6 +96,7 @@ pub struct ProcessingRouteIdentity {
     pub entity_identity: [u8; 32],
     pub import: [u8; 32],
     pub live_dream: [u8; 32],
+    pub perception: [u8; 32],
 }
 
 /// Query and document inputs share one embedding space and are sent unchanged.
@@ -243,6 +245,10 @@ impl ConfiguredRoutes {
                 source: Some(GENERAL),
                 endpoint: Some(decision),
             },
+            observation: SelectedDecision {
+                source: None,
+                endpoint: None,
+            },
             processing_route_identity: identity::hosted(&identity),
         })
     }
@@ -327,6 +333,7 @@ impl ConfiguredRoutes {
             RETRIEVAL,
             bind_direct(RETRIEVAL, routes.memory_retrieval_decision.as_ref())?,
         )?;
+        let observation = select(DecisionConsumer::ObservationContribution, SHARED, None)?;
         Ok(Self {
             general,
             insomnia,
@@ -338,6 +345,7 @@ impl ConfiguredRoutes {
             chronos,
             entity,
             retrieval,
+            observation,
             processing_route_identity,
         })
     }
@@ -372,6 +380,8 @@ impl ConfiguredRoutes {
             DecisionConsumer::Chronos => &self.chronos,
             DecisionConsumer::EntityResolution => &self.entity,
             DecisionConsumer::MemoryRetrieval => &self.retrieval,
+            DecisionConsumer::ObservationContribution
+            | DecisionConsumer::ObservationVerification => &self.observation,
         }
         .endpoint
         .clone()
@@ -396,13 +406,15 @@ impl ConfiguredRoutes {
             }
         };
         format!(
-            "configured routes: general={}, decision={}, embedding={}; decision selection: chronos={}, entity_resolution={}, memory_retrieval={}; general selection: insomnia={}, dream={}, entity_resolution={}, insomnia_ownership={}",
+            "configured routes: general={}, decision={}, embedding={}; decision selection: chronos={}, entity_resolution={}, memory_retrieval={}, observation_contribution={}, observation_verification={}; general selection: insomnia={}, dream={}, entity_resolution={}, insomnia_ownership={}",
             self.general.is_some(),
             self.chronos.endpoint.is_some(),
             self.embedding.is_some(),
             self.chronos.label(),
             self.entity.label(),
             self.retrieval.label(),
+            self.observation.label(),
+            self.observation.label(),
             general_source(INSOMNIA, &self.insomnia),
             general_source(DREAM, &self.dream),
             if self.entity_resolution.is_some() {

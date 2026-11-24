@@ -232,14 +232,22 @@ pub(super) fn validated_http_url(value: &str) -> Result<reqwest::Url, &'static s
 }
 
 fn response_bytes(response: reqwest::blocking::Response) -> Result<Vec<u8>, String> {
-    let mut bytes = Vec::new();
-    response
-        .take((MAX_RESPONSE_BYTES + 1) as u64)
-        .read_to_end(&mut bytes)
-        .map_err(|_| "provider response read failed".to_owned())?;
+    let bytes = read_response_bytes(response, MAX_RESPONSE_BYTES)?;
     if bytes.len() > MAX_RESPONSE_BYTES {
         return Err("provider response exceeded the 1 MiB limit".into());
     }
+    Ok(bytes)
+}
+
+fn read_response_bytes(
+    response: reqwest::blocking::Response,
+    limit: usize,
+) -> Result<Vec<u8>, String> {
+    let mut bytes = Vec::new();
+    response
+        .take((limit + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "provider response read failed".to_owned())?;
     Ok(bytes)
 }
 
@@ -541,6 +549,15 @@ impl DecisionEndpoint for ConfiguredDecisionEndpoint {
     }
 
     fn evaluate(&self, state: &Value, questions: &Value) -> Result<Value, DecisionEndpointError> {
+        self.evaluate_bounded(state, questions, MAX_RESPONSE_BYTES)
+    }
+
+    fn evaluate_bounded(
+        &self,
+        state: &Value,
+        questions: &Value,
+        max_response_bytes: usize,
+    ) -> Result<Value, DecisionEndpointError> {
         let auth = SecretString::new(format!("Bearer {}", self.api_key.0))
             .expect("API key was validated as non-empty");
         let response = self
@@ -561,7 +578,18 @@ impl DecisionEndpoint for ConfiguredDecisionEndpoint {
         if !status.is_success() {
             return Err(DecisionEndpointError::HttpStatus(status.as_u16()));
         }
-        let bytes = response_bytes(response).map_err(DecisionEndpointError::Failure)?;
+        let bytes = if max_response_bytes < MAX_RESPONSE_BYTES {
+            let bytes = read_response_bytes(response, max_response_bytes)
+                .map_err(DecisionEndpointError::Failure)?;
+            if bytes.len() > max_response_bytes {
+                return Err(DecisionEndpointError::InvalidResponse(
+                    "response exceeded the byte limit",
+                ));
+            }
+            bytes
+        } else {
+            response_bytes(response).map_err(DecisionEndpointError::Failure)?
+        };
         serde_json::from_slice(&bytes)
             .map_err(|_| DecisionEndpointError::InvalidResponse("provider response is not JSON"))
     }

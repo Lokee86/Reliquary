@@ -1,10 +1,10 @@
 //! Stable identity of the routes an owner processing job may invoke.
 use super::model_config::{
-    DREAM, EMBEDDING, ENTITY, GENERAL, INSOMNIA, INSOMNIA_METADATA, RuntimeConfig,
+    DREAM, EMBEDDING, ENTITY, GENERAL, INSOMNIA, INSOMNIA_METADATA, RuntimeConfig, SHARED,
 };
 use super::{
     CredentialsConfig, GeneralRoute, HostedInferenceIdentity, ModelProvider,
-    ProcessingRouteIdentity,
+    OBSERVATION_DECISION_MODEL, ProcessingRouteIdentity,
 };
 use ring::digest::{SHA256, digest};
 use serde_json::{Value, json};
@@ -73,7 +73,18 @@ pub(super) fn processing_routes(
             route.reasoning_effort
         ])
     });
+    let native = config
+        .general_decision
+        .as_ref()
+        .filter(|route| route.model == OBSERVATION_DECISION_MODEL)
+        .map(|route| json!([SHARED, route.model, route.url, route.credential_id.0]));
     ProcessingRouteIdentity {
+        perception: hash(json!([
+            "reliquary-perception-routes-v1",
+            general_identity(general),
+            native,
+            embedding
+        ])),
         entity_identity: hash(json!([
             "reliquary-entity-identity-route-v1",
             identity_route
@@ -108,6 +119,11 @@ pub(super) fn hosted(identity: &HostedInferenceIdentity) -> ProcessingRouteIdent
         }
     ]);
     ProcessingRouteIdentity {
+        perception: hash(json!([
+            "reliquary-hermes-hosted-perception-v1",
+            general,
+            embedding
+        ])),
         entity_identity: hash(json!(["reliquary-entity-identity-route-v1", general])),
         import: hash(json!([
             "reliquary-hermes-hosted-import-v1",

@@ -1,0 +1,32 @@
+{
+  "{hit}": {
+    "criteria": {
+      "material_challenge": "The passage directly asserts a fact incompatible with the observation as stated, for the same referent, subject, scope and overlapping period. It is grounded evidence on its own that should trigger reconsideration.",
+      "material_qualification": "The passage establishes a material exception, boundary, or change of scope or valid time for the same claim. The earlier claim can still have been true, but its wording or current application needs reconsideration now.",
+      "no_material_effect": "The passage corroborates the claim, repeats what it already says, is incidental, or clearly concerns a different referent, scope, or period without altering this claim. No reconsideration.",
+      "weak_or_uncertain": "The passage plausibly bears on the claim but a tentative proposal, indirect signal, incomplete support, or unresolved identity, scope, or timing leaves it inconclusive on its own. Keep as a lead without triggering."
+    },
+    "instructions": "Classify evidence hit {hit} against the existing observation in the state. Judge this hit on its own. Does what it actually asserts justify reconsidering this exact observation now? Treat a proposed or hypothetical event as such. For a claim bounded to a particular date or period, a later change alone leaves that claim unchanged; select no_material_effect. A later record can still challenge the earlier claim if it establishes what was true then, for example by saying that a rule first took effect after the claimed date. If the observation asserts an ongoing state, an established later change can materially qualify it by ending the period when it held. Use the time the state applies, rather than the date the evidence was recorded. Make one independent choice for {hit}.",
+    "type": "choice"
+  },
+  "{hit}-time": {
+    "criteria": {
+      "change_to_ongoing_claim": "The observation asserts a state that continues without a stated historical end, and the passage establishes a change that ends or narrows that state.",
+      "earlier_period_evidence": "The passage makes an assertion about the time covered by the observation, including a later-published correction or a report describing what was true then. An assertion may support, qualify, or contradict the observation.",
+      "first_effective_after": "The observation claims a state or rule already applied during a particular period, but the passage establishes that the same state or rule first took effect after that period. A first activation or an authoritative initial effective date can establish that it did not apply earlier. A new change to a state already in effect does not qualify.",
+      "later_change_only": "The observation is explicitly about a closed date or period. The passage describes a change that takes effect strictly after that period. The change can coexist with the observation being true during its period. Select this only if the text establishes the ordering and does not also say or imply that the earlier asserted state never applied.",
+      "unclear_or_other": "The dates, their meaning, or their ordering are unclear, the event is merely proposed, or none of the other choices is established by what the passage says."
+    },
+    "instructions": "Read only evidence hit {hit} and the existing observation. Classify what the passage says about when the asserted fact applies, independently of its strength as evidence. Use the time that the state applies, not when a report was written or published. Separate a later-only replacement from a first effective date that establishes the claimed state was absent earlier. If the text is ambiguous or combines a later change with evidence about the earlier period, do not choose later_change_only.",
+    "type": "choice"
+  },
+  "{hit}-scope": {
+    "criteria": {
+      "explicitly_separate_scope": "The passage explicitly limits its assertion to a different entity, group, environment, region, contract, or other boundary outside the observation's coverage. The passage gives no basis for applying that assertion to the observation's target, including by inclusion or a shared rule. Similar names, a shared provider, or a shared parent do not establish overlapping coverage.",
+      "overlapping_scope": "The passage asserts something about the same target and covered scope, or about a subset or exception inside that scope. It may concern a wider population if it explicitly includes the target. A different value for the fact under comparison can be a disagreement within the same scope.",
+      "unclear_scope": "The passage does not establish coverage well enough to tell whether it applies to this target. Choose this if the relation between entities or their coverage is ambiguous."
+    },
+    "instructions": "Compare only evidence hit {hit} and the existing observation. Identify who or what each assertion actually covers. Decide whether the passage has overlapping coverage, explicitly separate coverage, or unclear coverage. Ignore dates and the strength of the evidence for this choice. Preserve subsets, exceptions, and conflicting values within the observation's coverage. When a passage links a separate group or rule to the observation's target, consider that link. Use explicitly_separate_scope only when the text establishes the separation.",
+    "type": "choice"
+  }
+}

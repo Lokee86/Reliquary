@@ -162,6 +162,12 @@ fn hosted_routes_bind_shared_general_decisions_and_validate_identity() {
             "general-model"
         );
     }
+    for consumer in [
+        DecisionConsumer::ObservationContribution,
+        DecisionConsumer::ObservationVerification,
+    ] {
+        assert!(routes.decision_endpoint(consumer).is_none());
+    }
     let readiness = routes.readiness();
     assert!(readiness.contains("general=true, decision=true, embedding=true"));
     assert!(readiness.contains("entity_resolution=general"));
@@ -332,6 +338,91 @@ fn offline_load_selects_dedicated_then_shared() {
     for private in [TEST_KEY, "KEY", "entity-model", "offline.example.invalid"] {
         assert!(!report.contains(private));
     }
+}
+
+#[test]
+fn observation_consumers_require_the_configured_shared_native_model() {
+    const URL: &str = "https://offline.example.invalid";
+    let consumers = [
+        DecisionConsumer::ObservationContribution,
+        DecisionConsumer::ObservationVerification,
+    ];
+    let general = (General, general(OBSERVATION_DECISION_MODEL, URL));
+    let dedicated = (
+        EntityResolutionDecision,
+        decision(OBSERVATION_DECISION_MODEL, URL),
+    );
+    let general_only = bind(std::slice::from_ref(&general));
+    let incompatible = bind(&[
+        general.clone(),
+        dedicated.clone(),
+        (GeneralDecision, decision("another-native-model", URL)),
+    ]);
+    let native = bind(&[
+        general.clone(),
+        dedicated,
+        (GeneralDecision, decision(OBSERVATION_DECISION_MODEL, URL)),
+    ]);
+    let rebound = bind(&[
+        general,
+        (
+            GeneralDecision,
+            decision(
+                OBSERVATION_DECISION_MODEL,
+                "https://elsewhere.example.invalid",
+            ),
+        ),
+    ]);
+    for consumer in consumers {
+        assert!(general_only.decision_endpoint(consumer).is_none());
+        assert!(incompatible.decision_endpoint(consumer).is_none());
+        assert_eq!(
+            native.decision_endpoint(consumer).unwrap().model(),
+            OBSERVATION_DECISION_MODEL
+        );
+    }
+    assert!(
+        native
+            .readiness()
+            .contains("observation_contribution=decision, observation_verification=decision")
+    );
+    assert_eq!(
+        incompatible.processing_route_identity().perception,
+        general_only.processing_route_identity().perception,
+    );
+    assert_ne!(
+        native.processing_route_identity().perception,
+        general_only.processing_route_identity().perception
+    );
+    assert_ne!(
+        native.processing_route_identity().perception,
+        rebound.processing_route_identity().perception
+    );
+}
+
+#[test]
+fn observation_native_transport_enforces_response_cap_before_decoding() {
+    // Valid JSON whose insignificant whitespace exceeds the requested cap.
+    let body = format!("{{{}}}", " ".repeat(128));
+    let (url, request) = mock_server("200 OK", "", &body);
+    let runtime = bind(&[(GeneralDecision, decision(OBSERVATION_DECISION_MODEL, url))]);
+    let endpoint = runtime
+        .decision_endpoint(DecisionConsumer::ObservationVerification)
+        .unwrap();
+    let state = json!({"claim": "The session was held indoors."});
+    let questions = json!({"verify": {"type": "choice"}});
+    assert!(matches!(
+        endpoint.evaluate_bounded(&state, &questions, 128),
+        Err(DecisionEndpointError::InvalidResponse(
+            "response exceeded the byte limit"
+        ))
+    ));
+    let request = String::from_utf8(request.join().unwrap()).unwrap();
+    let body: Value = serde_json::from_str(request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+    assert_eq!(
+        body,
+        json!({"model": OBSERVATION_DECISION_MODEL, "state": state, "questions": questions})
+    );
 }
 
 #[test]

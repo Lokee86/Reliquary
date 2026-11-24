@@ -1,0 +1,69 @@
+{
+  "state": {
+    "backcheck_hits": [
+      {
+        "after": " Tour reservations are handled by the visitor desk.",
+        "before": "On Saturdays the same van is used for",
+        "id": "p2",
+        "source_id": "record-2",
+        "text": "guided tours open to the general public."
+      }
+    ],
+    "citations": [
+      {
+        "after": " Seats must be booked by 4 p.m. the prior day.",
+        "before": "Station transport notice, revised June 2026: ",
+        "id": "p1",
+        "source_id": "record-1",
+        "text": "The weekday shuttle is reserved for registered researchers with an active station badge."
+      }
+    ],
+    "claim": "The Oriole Marsh field station reserved its weekday shuttle for registered researchers with an active station badge."
+  },
+  "questions": {
+    "hit-p2": {
+      "criteria": {
+        "material_challenge": "The passage directly asserts a fact incompatible with a material part of the claim about the same subject, event or covered scope. This includes placing the same event at a different time, denying the exact activity the claim describes, or giving a conflicting value at the same scope and counting basis. A different mode or a differently defined count is insufficient.",
+        "material_qualification": "The passage establishes a new exception, condition, or boundary that excludes or changes part of what the wording currently claims. Use this only if the exact claim would need an edit. A narrower boundary relative to the wider world is already reflected when the claim limits itself to that same scope.",
+        "no_material_effect": "The passage supports the claim, confirms a limit it already states, or describes a different subject, period, mode of activity, counting basis, or record stage that can coexist with what it asserts.",
+        "weak_or_uncertain": "The passage may bear on the claim, but the wording, identity, scope, timing, reported status, or connection to the claim is unclear. An indirect hint or tentative plan is insufficient."
+      },
+      "instructions": "Compare only back-check passage p2, including its before and after source context, with the exact claim. Decide what this passage itself bears on. First identify exactly what the claim says occurred and what the passage says was canceled or happened. A canceled part or mode leaves other parts open unless the passage explicitly includes them. For example, a notice canceling an outdoor performance and leaving the indoor fallback undecided is compatible with a claim that the indoor fallback went ahead. Choose no_material_effect for that notice against the indoor claim. A notice explicitly canceling the indoor fallback would bear on the indoor claim. Treat the passage's asserted event or valid time separately from the date of its record. Two different dates for the same event can conflict. An established later change can coexist with a historical snapshot, and a different subject or scope can coexist with the claim. Check the exact activity, measurement basis, and record stage on both sides. Cancellation of one mode of an activity can coexist with another mode taking place. A preliminary count of all items can coexist with a final count of eligible items. The passage must make an assertion about the same mode, measure, or stage to contradict that aspect of the claim. A different value for the same measure, or a different date for the same event, remains a challenge when the passage provides no basis to reconcile it. Do not infer a separate event or a resolution of the disagreement without evidence in this passage. Do not weigh this passage against the chosen citations or other back-check hits. Compare any stated restriction with the scope, time, or conditions the claim already states. Ask whether the claim would have to change to accommodate the restriction. A passage saying a rule applies only at one site confirms the scope of a claim already about that site. It does not add a qualification to that claim. Return one choice.",
+      "type": "choice"
+    },
+    "verify": {
+      "criteria": {
+        "needs_revision": "The evidence establishes a concrete material correction or narrower supported version of the same claim. The available evidence is sufficient to tell what must change, for example a documented exception, a narrower time or scope, or wording that overstates what the evidence establishes.",
+        "stands_as_written": "The selected citations ground all material parts of the exact claim, with its stated scope, certainty, and valid time. The back-check reveals no undefeated contradiction or material exception within that coverage. Relevant evidence about a different population, component of an event, or period can coexist with the claim. A record of the named fallback taking place can ground that claim despite prior cancellation of the original mode.",
+        "unresolved": "Essential evidence is missing or inconclusive, the referent, scope, or timing cannot be resolved, or comparably credible sources conflict without a grounded way to reconcile them. There is no clear supported correction or narrower version that resolves the underlying claim."
+      },
+      "instructions": "Verify the exact synthesized Observation in claim. Evaluate what the selected citations establish, then consider each back-check hit for support, a material exception, a correction, or an unresolved conflict. A stand requires the selected citations to ground the whole claim as written. Identify the exact part or mode of an event and its stated outcome. A notice canceling one part of an event applies to that part unless it says the entire event or the alternative was canceled. If a notice cancels an outdoor performance and leaves the indoor fallback undecided, it can coexist with a completion record showing the indoor fallback went ahead. For a claim only about the indoor fallback, the outdoor cancellation is compatible and does not require revision. Compare the same referent, component, scope, status, and applicable time. Distinguish the time something was true from when it was reported. Consider the documentary basis of each passage. Passages with the same source_id share their underlying record. Decide the disposition of the whole Observation. Do not rewrite it, select citations, or explain your choice.",
+      "type": "choice"
+    }
+  },
+  "reply": {
+    "answers": {
+      "hit-p2": {
+        "choice": "no_material_effect",
+        "confidence": 0.97,
+        "probabilities": {
+          "material_challenge": 0,
+          "material_qualification": 0,
+          "no_material_effect": 0.98,
+          "weak_or_uncertain": 0.02
+        },
+        "type": "choice"
+      },
+      "verify": {
+        "choice": "stands_as_written",
+        "confidence": 0.79,
+        "probabilities": {
+          "needs_revision": 0.06,
+          "stands_as_written": 0.86,
+          "unresolved": 0.08
+        },
+        "type": "choice"
+      }
+    }
+  }
+}

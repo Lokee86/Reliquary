@@ -312,7 +312,11 @@ pub enum DecisionConsumer {
     EntityResolution,
     MemoryRetrieval,
     Chronos,
+    ObservationContribution,
+    ObservationVerification,
 }
+
+pub const OBSERVATION_DECISION_MODEL: &str = "typesafe/jev-1.13";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DecisionRouteSelection<'a> {
@@ -322,7 +326,7 @@ pub enum DecisionRouteSelection<'a> {
     Unavailable,
 }
 
-/// Selects operation-specific, shared decision, then general fallback routes.
+/// Selects decision routes. Observation consumers require the tested shared native model.
 pub fn select_decision_route<'a>(
     config: &'a ModelSwitchboardConfig,
     consumer: DecisionConsumer,
@@ -331,6 +335,16 @@ pub fn select_decision_route<'a>(
         DecisionConsumer::EntityResolution => config.entity_resolution_decision.as_ref(),
         DecisionConsumer::MemoryRetrieval => config.memory_retrieval_decision.as_ref(),
         DecisionConsumer::Chronos => None,
+        DecisionConsumer::ObservationContribution | DecisionConsumer::ObservationVerification => {
+            return config
+                .general_decision
+                .as_ref()
+                .filter(|route| route.model == OBSERVATION_DECISION_MODEL)
+                .map_or(
+                    DecisionRouteSelection::Unavailable,
+                    DecisionRouteSelection::Shared,
+                );
+        }
     };
     if let Some(route) = dedicated {
         return DecisionRouteSelection::Dedicated(route);
@@ -439,6 +453,28 @@ impl std::error::Error for DecisionEndpointError {}
 pub trait DecisionEndpoint: Send + Sync {
     fn model(&self) -> &str;
     fn evaluate(&self, state: &Value, questions: &Value) -> Result<Value, DecisionEndpointError>;
+
+    /// Apply a consumer response budget. Native transport applies it while reading the body.
+    fn evaluate_bounded(
+        &self,
+        state: &Value,
+        questions: &Value,
+        max_response_bytes: usize,
+    ) -> Result<Value, DecisionEndpointError> {
+        let reply = self.evaluate(state, questions)?;
+        if serde_json::to_vec(&reply)
+            .map_err(|_| {
+                DecisionEndpointError::InvalidResponse("response could not be serialized")
+            })?
+            .len()
+            > max_response_bytes
+        {
+            return Err(DecisionEndpointError::InvalidResponse(
+                "response exceeded the byte limit",
+            ));
+        }
+        Ok(reply)
+    }
 }
 
 mod config_document;
