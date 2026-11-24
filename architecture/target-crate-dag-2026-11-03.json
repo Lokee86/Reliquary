@@ -199,7 +199,7 @@
     {
       "id": "reliquary-perception",
       "layer": "semantic-workflow",
-      "depends_on": ["reliquary-switchboard"],
+      "depends_on": ["reliquary-memory-audit", "reliquary-switchboard"],
       "boundary": "Observation discovery, synthesis, receptor descriptions, and native decision contracts"
     },
     {
