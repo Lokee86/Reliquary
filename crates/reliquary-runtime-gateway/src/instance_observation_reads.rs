@@ -215,9 +215,9 @@ fn page_cut<K>(
     limit: usize,
 ) -> Result<ObservationReadCut, GatewayError> {
     if !(1..=PAGE_SIZE).contains(&limit) {
-        return Err(GatewayError::OwnerSession(OwnerSessionError::Record(
-            "Observation pages require 1 through 128 rows".into(),
-        )));
+        return Err(GatewayError::Management(
+            reliquary_application::ManagementError::InvalidPage,
+        ));
     }
     let cut = ObservationReadCut::capture(rel);
     if cursor.is_some_and(|cursor| cursor.cut != cut) {

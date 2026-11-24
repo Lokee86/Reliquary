@@ -17,7 +17,7 @@ const POLICY: ObservationPolicy = ObservationPolicy {
 fn source(fixture: &Fixture) -> ObservationCitation {
     fixture.gateway.quiesce_owner(fixture.owner).unwrap();
     let owner = fixture.owner.as_bytes();
-    let text = "The delivery has been approved.";
+    let text = "The handoff has been approved.";
     let record = {
         let mut container = Container::open_writer(&fixture.path).unwrap();
         Archive::open(&container)
@@ -42,7 +42,7 @@ fn source(fixture: &Fixture) -> ObservationCitation {
             .publish_versioned_creation(
                 &mut container,
                 MemoryDraft {
-                    title: "Delivery".into(),
+                    title: "Handoff".into(),
                     content: text.into(),
                     category: "fact".into(),
                     memory_type: "semantic".into(),
@@ -189,6 +189,8 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
         12,
         "Zephyr work includes an approved delivery.",
     );
+    let (_, independent) =
+        create_observation(&fixture, support, 15, "Zephyr handoff was approved.");
     let alice = fixture.alice();
     let bob = fixture.gateway.instance("bob", [], []).unwrap();
     assert!(matches!(
@@ -210,7 +212,7 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
             .inspect_observation_evidence(fixture.owner, first, 1, support)
             .unwrap()
             .as_deref(),
-        Some("The delivery has been approved."),
+        Some("The handoff has been approved."),
     );
     assert_eq!(
         alice
@@ -226,7 +228,7 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
             .prepare_agentic_memory_delivery(
                 turn,
                 &route(),
-                RetrievalAction::Query("zephyr".into()),
+                RetrievalAction::Query("zephyr delivery".into()),
                 None,
                 None,
             )
@@ -234,13 +236,19 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
             .prepared
             .unwrap()
     };
-    let search = || {
+    let search = |limit| {
         alice
-            .search_rel_memories(fixture.owner, "zephyr", SearchMode::Lexical, Some(10), None)
+            .search_rel_memories(
+                fixture.owner,
+                "zephyr delivery",
+                SearchMode::Lexical,
+                Some(limit),
+                None,
+            )
             .unwrap()
     };
-    let before = search();
-    assert_eq!(before.observations.len(), 3);
+    let before = search(10);
+    assert_eq!(before.observations.len(), 4);
     assert!(before.memories.is_empty());
     let host = Arc::new(Host::default());
     let router = connect(&fixture.gateway, host.clone());
@@ -262,7 +270,7 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
     let operation = host.operations.lock().unwrap()[&accepted_id].clone();
     let payload: Value = serde_json::from_slice(&operation.payload).unwrap();
     assert_eq!(payload["memories"], json!([]));
-    assert_eq!(payload["observations"].as_array().unwrap().len(), 3);
+    assert_eq!(payload["observations"].as_array().unwrap().len(), 4);
     assert_eq!(host.calls.load(Ordering::Relaxed), 1);
     let pending_turn = alice
         .begin_memory_retrieval_turn(fixture.owner, "pending-observation")
@@ -280,14 +288,15 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
             evidence: Vec::new(),
         },
     );
-    let after = search();
+    let after = search(1);
     assert_eq!(before.cut.memory_version, after.cut.memory_version);
     assert_eq!(before.cut.graph_version, after.cut.graph_version);
     assert_ne!(
         before.cut.observation_version,
         after.cut.observation_version
     );
-    assert!(after.observations.is_empty());
+    assert_eq!(after.observations.len(), 1);
+    assert_eq!(after.observations[0].claim.citation, independent);
     assert!(
         alice
             .list_observations(fixture.owner, Some(&cursor), 1)
@@ -324,7 +333,7 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
             .unwrap()
             .provided_observations
             .len(),
-        3
+        4
     );
     assert!(
         alice
@@ -344,8 +353,8 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
             reviewed: Vec::new(),
         },
     );
-    let reaffirmed = search();
-    assert_eq!(reaffirmed.observations.len(), 3);
+    let reaffirmed = search(10);
+    assert_eq!(reaffirmed.observations.len(), 4);
     assert!(
         reaffirmed
             .observations
