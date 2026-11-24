@@ -30,7 +30,7 @@ Paths below are relative to the repository root. A focused owner serves several 
 | `reliquary-owner-session` | [Owner-session](../architecture/owner-session.md) | crate `src/session/` and `src/records/` grouped admission/replay tests |
 | `reliquary-application` | [Application](../architecture/application.md) | named workflow publication, maintenance, import and management tests |
 | `reliquary-runtime-gateway` | [Gateway](../architecture/gateway.md) | queue/host/worker/authentication tests; retained-host consumer |
-| `reliquary-switchboard` | [Switchboard](../architecture/switchboard.md), [configuration](../configured-runtime.md) | crate credential/key/route/provider tests; external `configured_runtime` |
+| `reliquary-switchboard` | [Switchboard](../architecture/switchboard.md), [configuration](../configured-runtime.md) | crate credential/key/route/provider tests, credential-free hosted route persistence/binding tests; external `configured_runtime` |
 | `reliquary-insomnia` | [Semantic processing](../architecture/semantic-processing.md) | crate evaluator/routing tests; native worker reopen tests |
 | `reliquary-dream` | [Semantic processing](../architecture/semantic-processing.md) | crate evaluator tests; Application Dream grouped publication tests |
 | `reliquary-entity-resolution` | [Semantic processing](../architecture/semantic-processing.md) | crate evaluator/fast-path tests; entity worker replay |

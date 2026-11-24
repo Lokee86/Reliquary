@@ -322,6 +322,30 @@ pub enum DecisionRouteSelection<'a> {
     Unavailable,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum DecisionRouteSource {
+    Dedicated,
+    Shared,
+    General,
+    Unavailable,
+}
+
+fn select_decision_source(
+    has_dedicated: bool,
+    has_shared: bool,
+    has_general: bool,
+) -> DecisionRouteSource {
+    if has_dedicated {
+        DecisionRouteSource::Dedicated
+    } else if has_shared {
+        DecisionRouteSource::Shared
+    } else if has_general {
+        DecisionRouteSource::General
+    } else {
+        DecisionRouteSource::Unavailable
+    }
+}
+
 /// Selects operation-specific, shared decision, then general fallback routes.
 pub fn select_decision_route<'a>(
     config: &'a ModelSwitchboardConfig,
@@ -332,16 +356,28 @@ pub fn select_decision_route<'a>(
         DecisionConsumer::MemoryRetrieval => config.memory_retrieval_decision.as_ref(),
         DecisionConsumer::Chronos => None,
     };
-    if let Some(route) = dedicated {
-        return DecisionRouteSelection::Dedicated(route);
+    match select_decision_source(
+        dedicated.is_some(),
+        config.general_decision.is_some(),
+        config.general.is_some(),
+    ) {
+        DecisionRouteSource::Dedicated => DecisionRouteSelection::Dedicated(
+            dedicated.expect("selected dedicated route must be present"),
+        ),
+        DecisionRouteSource::Shared => DecisionRouteSelection::Shared(
+            config
+                .general_decision
+                .as_ref()
+                .expect("selected shared route must be present"),
+        ),
+        DecisionRouteSource::General => DecisionRouteSelection::General(
+            config
+                .general
+                .as_ref()
+                .expect("selected general route must be present"),
+        ),
+        DecisionRouteSource::Unavailable => DecisionRouteSelection::Unavailable,
     }
-    if let Some(route) = config.general_decision.as_ref() {
-        return DecisionRouteSelection::Shared(route);
-    }
-    if let Some(route) = config.general.as_ref() {
-        return DecisionRouteSelection::General(route);
-    }
-    DecisionRouteSelection::Unavailable
 }
 
 /// Binds a selected configuration route to the caller's provider adapters.
@@ -444,6 +480,7 @@ pub trait DecisionEndpoint: Send + Sync {
 mod config_document;
 mod configured;
 mod device_auth;
+mod hosted_config;
 mod model_config;
 mod protected_config;
 mod runtime_probe;
@@ -454,6 +491,7 @@ pub use configured::{
     HostedInferenceIdentity, ProcessingRouteIdentity, RuntimeEndpointFailure,
 };
 pub use device_auth::{CodexDeviceCode, DeviceAuthError};
+pub use hosted_config::{HostedEmbeddingSettings, HostedModelRoute, HostedSwitchboardConfig};
 pub use model_config::{GeneralRoute, ModelRoute, ModelSlot};
 pub use protected_config::master_key::MasterKeyError;
 pub use protected_config::{ConfigFile, CredentialKind};

@@ -1,6 +1,9 @@
 use reliquary_application::{VectorWorkflowError, prepare_compatibility_profile};
 use reliquary_runtime_gateway::InsomniaWorkerConfig;
-use reliquary_switchboard::{ConfiguredRoutes, DecisionConsumer, DecisionEndpoint};
+use reliquary_switchboard::{
+    ConfiguredRoutes, DecisionConsumer, DecisionEndpoint, HostedModelRoute,
+    HostedSwitchboardConfig, ModelSlot,
+};
 use reliquary_vectors::SwitchboardEmbeddingEndpoint;
 use std::fmt;
 use std::path::Path;
@@ -51,6 +54,29 @@ impl ConfiguredRuntime {
         identity: HostedInferenceIdentity,
     ) -> Result<Self, ConfiguredRuntimeError> {
         let routes = ConfiguredRoutes::hosted(general, embedding, identity)?;
+        Ok(Self::new(routes, RetrievalConfig::default()))
+    }
+
+    /// Bind the persisted Switchboard route selections to host-owned transports.
+    /// The resolvers must only select/build local adapters; network calls happen
+    /// through the returned runtime or its explicit online probe.
+    pub fn hosted_switchboard<C, E>(
+        config: &HostedSwitchboardConfig,
+        completion_resolver: C,
+        embedding_resolver: E,
+    ) -> Result<Self, ConfiguredRuntimeError>
+    where
+        C: FnMut(
+            ModelSlot,
+            &HostedModelRoute,
+        ) -> Result<(String, Arc<dyn GeneralEndpoint>), ConfiguredRuntimeError>,
+        E: FnMut(
+            ModelSlot,
+            &HostedModelRoute,
+        ) -> Result<(String, Arc<dyn EmbeddingEndpoint>), ConfiguredRuntimeError>,
+    {
+        let routes =
+            ConfiguredRoutes::hosted_switchboard(config, completion_resolver, embedding_resolver)?;
         Ok(Self::new(routes, RetrievalConfig::default()))
     }
 

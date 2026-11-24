@@ -15,6 +15,9 @@ mod processing;
 mod retrieval;
 
 pub use configuration::*;
+pub use reliquary_switchboard::{
+    HostedEmbeddingSettings, HostedModelRoute, HostedSwitchboardConfig,
+};
 
 pub use configured_runtime::{
     CompatibilityProbeReference, CompatibilityProfile, ConfiguredRuntime, EmbeddingEndpoint,

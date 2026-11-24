@@ -11,7 +11,7 @@ pub(super) const ENTITY_DECISION: &str = "entity_resolution_decision";
 pub(super) const RETRIEVAL: &str = "memory_retrieval_decision";
 pub(super) const EMBEDDING: &str = "embedding";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ModelSlot {
     General,
     Insomnia,

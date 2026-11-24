@@ -4,6 +4,8 @@ use super::model_config::{
 };
 use super::runtime_probe::{probe_decision, probe_embedding, probe_general};
 use super::*;
+use super::{HostedEmbeddingSettings, HostedModelRoute, HostedSwitchboardConfig};
+use serde_json::{Value, json};
 use std::io::ErrorKind;
 use std::path::Path;
 
@@ -247,6 +249,162 @@ impl ConfiguredRoutes {
         })
     }
 
+    /// Resolve Switchboard-selected host routes into host-owned endpoint adapters.
+    /// Resolvers must be local and side-effect-free; provider calls belong to
+    /// endpoint invocation or explicit runtime probes, never route binding.
+    pub fn hosted_switchboard<C, E>(
+        config: &HostedSwitchboardConfig,
+        mut completion_resolver: C,
+        mut embedding_resolver: E,
+    ) -> Result<Self, ConfiguredRuntimeError>
+    where
+        C: FnMut(
+            ModelSlot,
+            &HostedModelRoute,
+        ) -> Result<(String, Arc<dyn GeneralEndpoint>), ConfiguredRuntimeError>,
+        E: FnMut(
+            ModelSlot,
+            &HostedModelRoute,
+        ) -> Result<(String, Arc<dyn EmbeddingEndpoint>), ConfiguredRuntimeError>,
+    {
+        let general = resolve_hosted_general(config, ModelSlot::General, &mut completion_resolver)?;
+        let insomnia =
+            resolve_hosted_general(config, ModelSlot::Insomnia, &mut completion_resolver)?;
+        let insomnia_metadata = resolve_hosted_general(
+            config,
+            ModelSlot::InsomniaMetadata,
+            &mut completion_resolver,
+        )?;
+        let entity_extraction = resolve_hosted_general(
+            config,
+            ModelSlot::EntityExtraction,
+            &mut completion_resolver,
+        )?;
+        let dream = resolve_hosted_general(config, ModelSlot::Dream, &mut completion_resolver)?;
+        let entity_resolution = resolve_hosted_general(
+            config,
+            ModelSlot::EntityResolution,
+            &mut completion_resolver,
+        )?;
+        let general_decision =
+            resolve_hosted_general(config, ModelSlot::GeneralDecision, &mut completion_resolver)?;
+        let entity_decision = resolve_hosted_general(
+            config,
+            ModelSlot::EntityResolutionDecision,
+            &mut completion_resolver,
+        )?;
+        let retrieval_decision = resolve_hosted_general(
+            config,
+            ModelSlot::MemoryRetrievalDecision,
+            &mut completion_resolver,
+        )?;
+        let embedding = resolve_hosted_embedding(config, &mut embedding_resolver)?;
+
+        let shared_adapter = general_decision.as_ref().map(|route| {
+            Arc::new(GeneralDecisionEndpoint::new(route.endpoint.clone()))
+                as Arc<dyn DecisionEndpoint>
+        });
+        let entity_adapter = entity_decision.as_ref().map(|route| {
+            Arc::new(GeneralDecisionEndpoint::new(route.endpoint.clone()))
+                as Arc<dyn DecisionEndpoint>
+        });
+        let retrieval_adapter = retrieval_decision.as_ref().map(|route| {
+            Arc::new(GeneralDecisionEndpoint::new(route.endpoint.clone()))
+                as Arc<dyn DecisionEndpoint>
+        });
+        let decision_selection = |consumer,
+                                  dedicated_adapter: Option<Arc<dyn DecisionEndpoint>>|
+         -> Result<SelectedDecision, ConfiguredRuntimeError> {
+            let source_kind = select_decision_source(
+                dedicated_adapter.is_some(),
+                shared_adapter.is_some(),
+                general.is_some(),
+            );
+            let (source, endpoint) = match source_kind {
+                DecisionRouteSource::Dedicated => (
+                    match consumer {
+                        DecisionConsumer::EntityResolution => Some(ENTITY_DECISION),
+                        DecisionConsumer::MemoryRetrieval => Some(RETRIEVAL),
+                        DecisionConsumer::Chronos => None,
+                    },
+                    dedicated_adapter,
+                ),
+                DecisionRouteSource::Shared => (Some(SHARED), shared_adapter.clone()),
+                DecisionRouteSource::General => (
+                    Some(GENERAL),
+                    general.as_ref().map(|route| {
+                        Arc::new(GeneralDecisionEndpoint::new(route.endpoint.clone()))
+                            as Arc<dyn DecisionEndpoint>
+                    }),
+                ),
+                DecisionRouteSource::Unavailable => (None, None),
+            };
+            if source_kind != DecisionRouteSource::Unavailable && endpoint.is_none() {
+                return Err(ConfiguredRuntimeError::Setup {
+                    route: source.unwrap_or(SHARED),
+                });
+            }
+            Ok(SelectedDecision { source, endpoint })
+        };
+        let chronos = decision_selection(DecisionConsumer::Chronos, None)?;
+        let entity = decision_selection(DecisionConsumer::EntityResolution, entity_adapter)?;
+        let retrieval = decision_selection(DecisionConsumer::MemoryRetrieval, retrieval_adapter)?;
+
+        let legacy_compatible = hosted_legacy_identity(
+            general.as_ref(),
+            insomnia.as_ref(),
+            insomnia_metadata.as_ref(),
+            dream.as_ref(),
+            entity_resolution.as_ref(),
+            entity_extraction.as_ref(),
+            embedding.as_ref(),
+        );
+        let processing_route_identity = if let Some(identity) = legacy_compatible {
+            identity::hosted(&identity)
+        } else {
+            let effective_insomnia = insomnia.as_ref().or(general.as_ref());
+            let effective_ownership = insomnia_metadata.as_ref().or(effective_insomnia);
+            let effective_dream = dream.as_ref().or(general.as_ref());
+            let entity_identity = hosted_route_identity(entity_resolution.as_ref());
+            let embedding_identity = embedding
+                .as_ref()
+                .map(|route| {
+                    let settings = &route.settings;
+                    json!([
+                        route.endpoint_ref,
+                        route.provider,
+                        route.model,
+                        "shared",
+                        normalization_name(settings.normalization),
+                        settings.dimensions
+                    ])
+                })
+                .unwrap_or(Value::Null);
+            identity::hosted_switchboard(
+                entity_identity,
+                hosted_route_identity(effective_insomnia),
+                hosted_route_identity(effective_ownership),
+                hosted_route_identity(effective_dream),
+                hosted_route_identity(entity_extraction.as_ref()),
+                embedding_identity,
+            )
+        };
+
+        Ok(Self {
+            general: general.map(|route| route.endpoint),
+            insomnia: insomnia.map(|route| route.endpoint),
+            insomnia_metadata: insomnia_metadata.map(|route| route.endpoint),
+            entity_extraction: entity_extraction.map(|route| route.endpoint),
+            dream: dream.map(|route| route.endpoint),
+            entity_resolution: entity_resolution.map(|route| route.endpoint),
+            embedding: embedding.map(|route| route.endpoint),
+            chronos,
+            entity,
+            retrieval,
+            processing_route_identity,
+        })
+    }
+
     pub(super) fn bind(
         config: RuntimeConfig,
         credentials: &CredentialsConfig,
@@ -348,6 +506,10 @@ impl ConfiguredRoutes {
 
     pub fn insomnia_endpoint(&self) -> Option<Arc<dyn GeneralEndpoint>> {
         self.insomnia.clone().or_else(|| self.general_endpoint())
+    }
+
+    pub fn entity_extraction_endpoint(&self) -> Option<Arc<dyn GeneralEndpoint>> {
+        self.entity_extraction.clone()
     }
 
     pub fn insomnia_ownership_endpoint(&self) -> Option<Arc<dyn GeneralEndpoint>> {
@@ -472,6 +634,197 @@ impl ConfiguredRoutes {
                 .map(|endpoint| (EMBEDDING, Probe::Embedding(endpoint))),
         )
     }
+}
+
+struct HostedGeneral {
+    endpoint: Arc<dyn GeneralEndpoint>,
+    endpoint_ref: String,
+    provider: String,
+    model: String,
+    reasoning_effort: Option<String>,
+}
+
+struct HostedEmbedding {
+    endpoint: Arc<dyn EmbeddingEndpoint>,
+    endpoint_ref: String,
+    provider: String,
+    model: String,
+    settings: HostedEmbeddingSettings,
+}
+
+fn resolve_hosted_general<F>(
+    config: &HostedSwitchboardConfig,
+    slot: ModelSlot,
+    resolver: &mut F,
+) -> Result<Option<HostedGeneral>, ConfiguredRuntimeError>
+where
+    F: FnMut(
+        ModelSlot,
+        &HostedModelRoute,
+    ) -> Result<(String, Arc<dyn GeneralEndpoint>), ConfiguredRuntimeError>,
+{
+    let Some(route) = config.model(slot) else {
+        return Ok(None);
+    };
+    let (provider, endpoint) = resolver(slot, route)?;
+    let model = endpoint.model().to_owned();
+    validate_hosted_identity(slot, &provider, &model)?;
+    if route
+        .model
+        .as_ref()
+        .is_some_and(|selected| selected != &model)
+    {
+        return Err(hosted_route_error(
+            slot,
+            "host endpoint resolved a different model",
+        ));
+    }
+    Ok(Some(HostedGeneral {
+        endpoint,
+        endpoint_ref: route.endpoint.clone(),
+        provider,
+        model,
+        reasoning_effort: route.reasoning_effort.clone(),
+    }))
+}
+
+fn resolve_hosted_embedding<F>(
+    config: &HostedSwitchboardConfig,
+    resolver: &mut F,
+) -> Result<Option<HostedEmbedding>, ConfiguredRuntimeError>
+where
+    F: FnMut(
+        ModelSlot,
+        &HostedModelRoute,
+    ) -> Result<(String, Arc<dyn EmbeddingEndpoint>), ConfiguredRuntimeError>,
+{
+    let Some(route) = config.model(ModelSlot::Embedding) else {
+        return Ok(None);
+    };
+    let settings = route
+        .embedding
+        .clone()
+        .ok_or(ConfiguredRuntimeError::Invalid {
+            route: EMBEDDING,
+            reason: "embedding route has no compatibility settings",
+        })?;
+    let (provider, endpoint) = resolver(ModelSlot::Embedding, route)?;
+    let model = endpoint
+        .model()
+        .ok_or(ConfiguredRuntimeError::Invalid {
+            route: EMBEDDING,
+            reason: "host embedding endpoint has no resolved model",
+        })?
+        .to_owned();
+    validate_hosted_identity(ModelSlot::Embedding, &provider, &model)?;
+    if route
+        .model
+        .as_ref()
+        .is_some_and(|selected| selected != &model)
+        || endpoint.dimensions() != settings.dimensions
+        || endpoint.normalization() != settings.normalization
+    {
+        return Err(hosted_route_error(
+            ModelSlot::Embedding,
+            "host embedding endpoint does not match the selected route",
+        ));
+    }
+    Ok(Some(HostedEmbedding {
+        endpoint,
+        endpoint_ref: route.endpoint.clone(),
+        provider,
+        model,
+        settings,
+    }))
+}
+
+fn validate_hosted_identity(
+    slot: ModelSlot,
+    provider: &str,
+    model: &str,
+) -> Result<(), ConfiguredRuntimeError> {
+    if provider.is_empty()
+        || provider.len() > 256
+        || provider.chars().any(char::is_control)
+        || model.is_empty()
+        || model.len() > 256
+        || model.chars().any(char::is_control)
+    {
+        return Err(hosted_route_error(
+            slot,
+            "host endpoint returned invalid route identity",
+        ));
+    }
+    Ok(())
+}
+
+fn hosted_route_error(slot: ModelSlot, reason: &'static str) -> ConfiguredRuntimeError {
+    ConfiguredRuntimeError::Invalid {
+        route: slot.label(),
+        reason,
+    }
+}
+
+fn hosted_route_identity(route: Option<&HostedGeneral>) -> Value {
+    route
+        .map(|route| {
+            json!([
+                route.endpoint_ref.as_str(),
+                route.provider.as_str(),
+                route.model.as_str(),
+                route.reasoning_effort.as_deref()
+            ])
+        })
+        .unwrap_or(Value::Null)
+}
+
+fn normalization_name(normalization: EmbeddingNormalization) -> &'static str {
+    match normalization {
+        EmbeddingNormalization::None => "none",
+        EmbeddingNormalization::L2 => "l2",
+    }
+}
+
+fn hosted_legacy_identity(
+    general: Option<&HostedGeneral>,
+    insomnia: Option<&HostedGeneral>,
+    metadata: Option<&HostedGeneral>,
+    dream: Option<&HostedGeneral>,
+    entity: Option<&HostedGeneral>,
+    extraction: Option<&HostedGeneral>,
+    embedding: Option<&HostedEmbedding>,
+) -> Option<HostedInferenceIdentity> {
+    let general = general?;
+    let embedding = embedding?;
+    if general.endpoint_ref != "chat"
+        || general.reasoning_effort.is_some()
+        || insomnia.is_some()
+        || metadata.is_some()
+        || dream.is_some()
+        || extraction.is_some()
+        || !entity.is_some_and(|route| {
+            route.endpoint_ref == "chat"
+                && route.endpoint_ref == general.endpoint_ref
+                && route.provider == general.provider
+                && route.model == general.model
+                && route.reasoning_effort.is_none()
+        })
+    {
+        return None;
+    }
+    if embedding.settings.normalization != EmbeddingNormalization::None {
+        return None;
+    }
+    HostedInferenceIdentity::new(
+        general.provider.clone(),
+        general.model.clone(),
+        embedding.provider.clone(),
+        embedding.model.clone(),
+        embedding.settings.dimensions,
+        HostedEmbeddingInputSemantics::Shared,
+        embedding.settings.normalization,
+    )
+    .ok()
 }
 
 enum Probe<'a> {

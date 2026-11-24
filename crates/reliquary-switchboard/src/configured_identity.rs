@@ -122,6 +122,35 @@ pub(super) fn hosted(identity: &HostedInferenceIdentity) -> ProcessingRouteIdent
     }
 }
 
+pub(super) fn hosted_switchboard(
+    entity_route: Value,
+    insomnia_route: Value,
+    ownership_route: Value,
+    dream_route: Value,
+    entity_extraction_route: Value,
+    embedding_route: Value,
+) -> ProcessingRouteIdentity {
+    let import = json!([
+        "reliquary-hosted-switchboard-import-v1",
+        insomnia_route,
+        ownership_route,
+        entity_extraction_route,
+        dream_route,
+        entity_route,
+        embedding_route,
+    ]);
+    let live_dream = json!([
+        "reliquary-hosted-switchboard-live-dream-v1",
+        dream_route,
+        embedding_route,
+    ]);
+    ProcessingRouteIdentity {
+        entity_identity: hash(json!(["reliquary-entity-identity-route-v1", entity_route])),
+        import: hash(import),
+        live_dream: hash(live_dream),
+    }
+}
+
 fn hash(canonical: Value) -> [u8; 32] {
     digest(&SHA256, canonical.to_string().as_bytes())
         .as_ref()
