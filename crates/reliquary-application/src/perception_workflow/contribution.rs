@@ -7,7 +7,7 @@ use reliquary_owner_session::observation::{
     ObservationRevision, ObservationStanding,
 };
 use reliquary_owner_session::{OwnerSessionError, PerceptionAuditPage, RelSession};
-use reliquary_perception::{ContributionState, HitVerdict, contribute};
+use reliquary_perception::{ContributionState, HitVerdict, NativeDecisionError, contribute};
 use reliquary_switchboard::EmbeddingMode;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -25,6 +25,31 @@ pub struct ContributionWork {
     pub next_source: u16,
     pub next_target: Option<ObservationId>,
     target: Option<ContributionTarget>,
+}
+
+impl ContributionWork {
+    /// Pins the exact semantic input without retaining any passage text.
+    pub fn decision_key(&self) -> Option<[u8; 32]> {
+        let target = self.target.as_ref()?;
+        let mut hash = Sha256::new();
+        hash.update(target.revision.id.0);
+        hash.update(target.revision.revision.to_le_bytes());
+        for row in &target.available {
+            hash.update(serde_json::to_vec(&row.cite).ok()?);
+        }
+        Some(hash.finalize().into())
+    }
+}
+
+pub enum ContributionFailure {
+    MalformedReply,
+    Owner(OwnerSessionError),
+}
+
+impl From<OwnerSessionError> for ContributionFailure {
+    fn from(value: OwnerSessionError) -> Self {
+        Self::Owner(value)
+    }
 }
 
 struct ContributionTarget {
@@ -250,7 +275,7 @@ pub fn evaluate_contribution(
     work: &ContributionWork,
     routes: &PerceptionRoutes,
     cache: &mut ContributionEmbeddingCache,
-) -> Result<Vec<ObservationOperation>, OwnerSessionError> {
+) -> Result<Vec<ObservationOperation>, ContributionFailure> {
     let Some(target) = &work.target else {
         return Ok(Vec::new());
     };
@@ -338,8 +363,12 @@ pub fn evaluate_contribution(
                     evidence_hits: model_hits,
                 },
             )
-            .map_err(|_| {
-                OwnerSessionError::Record("Perception contribution decision not accepted".into())
+            .map_err(|error| match error {
+                NativeDecisionError::InvalidReply(_) => ContributionFailure::MalformedReply,
+                _ => {
+                    OwnerSessionError::Record("Perception contribution decision unavailable".into())
+                        .into()
+                }
             })?,
         )
     };

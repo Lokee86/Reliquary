@@ -4,9 +4,9 @@ use reliquary_application::observation_drafts::{
     ScopedObservationRead, evaluate_proposal, evaluate_review,
 };
 use reliquary_application::perception_workflow::{
-    ListResult, LookupError, audit_lookups, audit_owner_cut, capture_contribution,
-    capture_discovery, capture_duplicate_contribution, discover, evaluate_contribution,
-    retain_current_ego_evidence,
+    ContributionFailure, ContributionWork, ListResult, LookupError, audit_lookups, audit_owner_cut,
+    capture_contribution, capture_discovery, capture_duplicate_contribution, discover,
+    evaluate_contribution, retain_current_ego_evidence,
 };
 use reliquary_application::{SwitchboardEmbeddingEndpoint, verify_compatibility_profile};
 use reliquary_owner_session::observation::{
@@ -19,6 +19,7 @@ use reliquary_owner_session::{
 use sha2::{Digest, Sha256};
 
 const REVIEW_SCAN_LIMIT: usize = 16;
+const MALFORMED_NATIVE_DRAFT: &str = "Perception native verification response malformed";
 
 impl ScopedObservationRead for OwnerWork<'_> {
     fn read<T>(
@@ -73,10 +74,17 @@ pub(super) fn tick(owner: &OwnerWork<'_>, state: &mut WorkerState) -> Result<boo
         TickInput::Review(id) => {
             let result = (|| {
                 let profile = resolve_memory_profile(owner, state)?;
-                if let Some(review) =
-                    evaluate_review(owner, &draft_routes(owner.routes, profile), id)
-                        .map_err(draft_error)?
+                let review = match evaluate_review(owner, &draft_routes(owner.routes, profile), id)
                 {
+                    Err(error) if error.malformed_native_reply() => {
+                        if let Some(cut) = state.review_cut {
+                            state.malformed_reviews.insert(id, cut);
+                        }
+                        return Ok(());
+                    }
+                    result => result.map_err(draft_error)?,
+                };
+                if let Some(review) = review {
                     let previous =
                         owner.read(|rel| rel.observation_progress().map(|row| row.fingerprint))?;
                     publish(owner, previous, None, [review], Vec::new(), |_| Ok(()))?;
@@ -107,7 +115,15 @@ fn prepare(rel: &RelSession, state: &mut WorkerState) -> Result<TickInput, Owner
         retain_current_ego_evidence(rel, &mut state.ego_candidates)?;
         state.ego_cut = Some(cut.clone());
     }
-    let changes = (cut.memory, cut.entity, rel.perception_review_version());
+    let changes = (
+        cut.memory,
+        cut.graph,
+        cut.entity,
+        rel.perception_review_version(),
+    );
+    state
+        .malformed_reviews
+        .retain(|_, snapshot| *snapshot == changes);
     let now = Instant::now();
     state.review_deferred.retain(|id, _| {
         rel.observation(*id).is_some_and(|head| {
@@ -131,10 +147,11 @@ fn prepare(rel: &RelSession, state: &mut WorkerState) -> Result<TickInput, Owner
         let inspections = rel.observations_after(state.review_after, REVIEW_SCAN_LIMIT);
         for head in &inspections {
             state.review_after = Some(head.revision.id);
-            if state
-                .review_deferred
-                .get(&head.revision.id)
-                .is_none_or(|retry| *retry <= now)
+            if !state.malformed_reviews.contains_key(&head.revision.id)
+                && state
+                    .review_deferred
+                    .get(&head.revision.id)
+                    .is_none_or(|retry| *retry <= now)
                 && matches!(
                     head.standing,
                     ObservationStanding::Pending(
@@ -177,8 +194,9 @@ fn audit_page(
             None
         };
         let work = owner.read(|rel| capture_contribution(rel, page, true, profile))??;
-        let operations =
-            evaluate_contribution(&work, owner.routes, &mut state.contribution_vectors)?;
+        let Some(operations) = process_contribution(owner, state, &work)? else {
+            return Ok(false);
+        };
         page.contribution_cursor = work.next_source;
         page.contribution_target_after = work.next_target;
         publish(
@@ -219,6 +237,11 @@ fn audit_page(
         )?;
         return Ok(true);
     }
+    let batch_key = (capture.key, page.batch);
+    let creation_held = state.malformed_creation == Some(batch_key);
+    if creation_held && page.ego_accepted {
+        return Ok(false);
+    }
     let mut lookup = |feature, query: &str| {
         owner
             .read(|rel| audit_lookups(rel, &page.cut, feature, query))
@@ -250,7 +273,7 @@ fn audit_page(
     }
     let mut drafts = Vec::new();
     let mut operations = Vec::new();
-    if !page.perception_accepted {
+    if !page.perception_accepted && !creation_held {
         match discovery.perception {
             ListResult::Inactive => {
                 page.perception_accepted = true;
@@ -266,8 +289,15 @@ fn audit_page(
                     Ok((prepared, contribution)) => {
                         drafts = prepared;
                         operations = contribution;
+                        state.malformed_creation = None;
                         page.perception_accepted = true;
                         changed = true;
+                    }
+                    Err(GatewayError::RetrievalUnavailable(MALFORMED_NATIVE_DRAFT)) => {
+                        state.malformed_creation = Some(batch_key);
+                        if !changed {
+                            return Ok(false);
+                        }
                     }
                     Err(error) if !changed => return Err(error),
                     Err(_) => {}
@@ -318,8 +348,9 @@ fn live_contribution(
     let operations = if usize::from(page.contribution_cursor) < page.sources.len() {
         let profile = resolve_memory_profile(owner, state)?;
         let work = owner.read(|rel| capture_contribution(rel, page, false, profile))??;
-        let operations =
-            evaluate_contribution(&work, owner.routes, &mut state.contribution_vectors)?;
+        let Some(operations) = process_contribution(owner, state, &work)? else {
+            return Ok(false);
+        };
         page.contribution_cursor = work.next_source;
         page.contribution_target_after = work.next_target;
         operations
@@ -381,13 +412,36 @@ fn proposals(
         let evidence = evidence.into_iter().collect::<Vec<_>>();
         let work = owner
             .read(|rel| capture_duplicate_contribution(rel, target, revision, &evidence))??;
-        operations.extend(evaluate_contribution(
-            &work,
-            owner.routes,
-            &mut state.contribution_vectors,
-        )?);
+        let Some(decisions) = process_contribution(owner, state, &work)? else {
+            return Err(workflow_wait(
+                "Perception contribution waits for changed evidence",
+            ));
+        };
+        operations.extend(decisions);
     }
     Ok((drafts, operations))
+}
+
+fn process_contribution(
+    owner: &OwnerWork<'_>,
+    state: &mut WorkerState,
+    work: &ContributionWork,
+) -> Result<Option<Vec<ObservationOperation>>, GatewayError> {
+    let key = work.decision_key();
+    if key.is_some() && state.malformed_contribution == key {
+        return Ok(None);
+    }
+    match evaluate_contribution(work, owner.routes, &mut state.contribution_vectors) {
+        Ok(operations) => {
+            state.malformed_contribution = None;
+            Ok(Some(operations))
+        }
+        Err(ContributionFailure::MalformedReply) => {
+            state.malformed_contribution = key;
+            Ok(None)
+        }
+        Err(ContributionFailure::Owner(error)) => Err(error.into()),
+    }
 }
 
 fn draft_routes(
@@ -526,8 +580,12 @@ fn credit_change(rel: &RelSession, operation: &mut ObservationOperation) {
         .map(|(_, _, activity)| activity);
 }
 
-fn draft_error(_error: ObservationWorkflowError) -> GatewayError {
-    workflow_wait("Perception draft remains pending")
+fn draft_error(error: ObservationWorkflowError) -> GatewayError {
+    if error.malformed_native_reply() {
+        workflow_wait(MALFORMED_NATIVE_DRAFT)
+    } else {
+        workflow_wait("Perception draft remains pending")
+    }
 }
 
 fn workflow_wait(reason: &'static str) -> GatewayError {

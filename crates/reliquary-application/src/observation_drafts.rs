@@ -91,6 +91,12 @@ impl fmt::Display for ObservationWorkflowError {
     }
 }
 
+impl ObservationWorkflowError {
+    pub fn malformed_native_reply(&self) -> bool {
+        matches!(self, Self::Native(NativeDecisionError::InvalidReply(_)))
+    }
+}
+
 impl std::error::Error for ObservationWorkflowError {}
 
 pub enum ProposalEvaluation {
