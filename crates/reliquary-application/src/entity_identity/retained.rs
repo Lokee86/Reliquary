@@ -2,7 +2,7 @@ use reliquary_owner_session::{
     OwnerSessionError, RelSession,
     model::{
         MemoryError, MemoryId, MemoryTextField,
-        identity::{IdentityReceipt, IdentitySide},
+        identity::{IdentityCitation, IdentityReceipt, IdentitySide},
     },
 };
 
@@ -12,16 +12,41 @@ pub fn retained_identity_quotes(
     right: &RelSession,
     receipt: &IdentityReceipt,
 ) -> Result<Option<Vec<String>>, OwnerSessionError> {
+    if left.owner_id() != receipt.pair.local_owner || right.owner_id() != receipt.pair.peer_owner {
+        return Ok(None);
+    }
     let mut quotes = Vec::with_capacity(receipt.citations.len());
     for citation in &receipt.citations {
-        let (owner, refs) = match citation.side {
-            IdentitySide::Left => (left, &receipt.left),
-            IdentitySide::Right => (right, &receipt.right),
+        let (owner, refs, endpoint) = match citation.side() {
+            IdentitySide::Left => (left, &receipt.left, receipt.pair.local_entity),
+            IdentitySide::Right => (right, &receipt.right, receipt.pair.peer_entity),
         };
-        let Some(relation) = refs.relationships.get(usize::from(citation.relationship)) else {
+        let (relationship, memory) = match *citation {
+            IdentityCitation::Relationship {
+                relationship,
+                memory,
+                ..
+            } => (relationship, memory),
+            IdentityCitation::Mention { mention, .. } => {
+                let Some(reference) = refs.mentions.get(usize::from(mention)) else {
+                    return Ok(None);
+                };
+                let Some(quote) = owner.retained_identity_mention_quote(
+                    endpoint,
+                    refs.endpoint_revision,
+                    reference,
+                )?
+                else {
+                    return Ok(None);
+                };
+                quotes.push(quote);
+                continue;
+            }
+        };
+        let Some(relation) = refs.relationships.get(usize::from(relationship)) else {
             return Ok(None);
         };
-        let Some(memory) = relation.memories.get(usize::from(citation.memory)) else {
+        let Some(memory) = relation.memories.get(usize::from(memory)) else {
             return Ok(None);
         };
         let Some(span) = memory.span else {

@@ -3,9 +3,9 @@ use crate::{EntityId, OwnerGrant, OwnerId, ProductError};
 
 pub use reliquary_owner_session::model::identity::{
     IdentityCitation, IdentityEndpointProof, IdentityEntityRevision, IdentityEvidenceRef,
-    IdentityLimit, IdentityMemoryRef, IdentityOutcome, IdentityPair, IdentityReason,
-    IdentityReceipt, IdentityRelationshipRef, IdentitySeparationAction, IdentitySeparationEvent,
-    IdentitySide, IdentitySpan,
+    IdentityLimit, IdentityMemoryRef, IdentityMentionRef, IdentityOutcome, IdentityPair,
+    IdentityReason, IdentityReceipt, IdentityRelationshipRef, IdentitySeparationAction,
+    IdentitySeparationEvent, IdentitySide, IdentitySpan,
 };
 pub use reliquary_runtime_gateway::{
     EntityIdentityInspection, IdentityComparisonState, IdentityEffectiveDecision,

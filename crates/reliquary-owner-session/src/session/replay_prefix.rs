@@ -12,6 +12,7 @@ pub(super) fn validate_graph_prefix(
     let mut receipts = IdentityHistory::default();
     let mut separations = SeparationHistory::default();
     let mut perception_cut = 0;
+    let mut retained_ordinal_cut = None;
     let mut observed_bodies = BTreeSet::new();
     let mut memories = std::collections::BTreeSet::new();
     let mut memory_bodies = std::collections::BTreeSet::new();
@@ -35,6 +36,7 @@ pub(super) fn validate_graph_prefix(
                     pruned_bodies,
                     perception,
                     perception_cut,
+                    retained_ordinal_cut,
                 };
                 receipts.replay(frame.payload, container.owner_id(), projection)?;
                 continue;
@@ -50,6 +52,11 @@ pub(super) fn validate_graph_prefix(
                 };
                 separations.replay(frame.payload, projection)?;
                 continue;
+            }
+            if let Some(ordinal) =
+                reliquary_perception_store::retained_resolution_ordinal_in_frame(frame.payload)?
+            {
+                retained_ordinal_cut = Some(ordinal);
             }
             if let Some(id) = reliquary_memory_core::body_id_in_frame(body)? {
                 observed_bodies.insert(id);

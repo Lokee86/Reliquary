@@ -28,7 +28,7 @@ Inspection selects the retained revision metadata before loading its payload. Ap
 
 Community recompute solves the captured graph and calculates coverage and modularity. Preview returns the report. Apply sends that same partition and its captured versions to the REL writer.
 
-For cross-REL Entity identity, Application prepares and evaluates one pair-specific judgment from the bounded evidence supplied by Gateway. Missing independent evidence settles the pair as unresolved. When both sides can support a judgment, Application invokes the Entity resolver and turns its checked answer into a receipt for the recording REL.
+For cross-REL Entity identity, Application prepares and evaluates one pair-specific judgment from the bounded evidence supplied by Gateway. Missing independent evidence settles the pair as unresolved. When both sides can support a judgment, Application invokes the Entity resolver and turns its checked answer into a receipt for the recording REL. During inspection, Application follows each citation to the corresponding owner's retained evidence. A mention citation recovers its exact Memory excerpt after checking the resolved Entity, mention revision or migrated source ordinal, and Memory body. A Relationship citation recovers the grounded quote from its cited Memory.
 
 Context preparation prepends attributed dependency-synthesis messages before the primary request and counts them under its existing source and compaction budgets. The transcript and source view used for checkpointing contain the existing conversation evidence.
 

@@ -152,6 +152,23 @@ impl PerceptionStore {
             .map(|(_, entity)| entity)
     }
 
+    /// Resolve the mention revision active at an admitted physical-prefix version.
+    pub fn mention_at_cut(
+        &self,
+        key: MemoryEntityMentionKey,
+        version: u64,
+    ) -> Option<&MemoryEntityResolution> {
+        self.mention_history
+            .range((key, 0)..=(key, u32::MAX))
+            .rev()
+            .find(|(key, _)| {
+                self.mention_versions
+                    .get(key)
+                    .is_some_and(|seen| *seen <= version)
+            })
+            .map(|(_, mention)| mention)
+    }
+
     /// Resolve the Relationship active at an admitted physical-prefix version.
     pub fn relationship_at_cut(&self, id: RelationshipId, version: u64) -> Option<&Relationship> {
         if self

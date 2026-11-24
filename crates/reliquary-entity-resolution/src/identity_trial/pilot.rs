@@ -73,6 +73,7 @@ fn pilot_runtime() -> (ConfiguredRoutes, std::sync::Arc<dyn GeneralEndpoint>) {
             executable: executable.into(),
             scratch,
             model: general.model().to_owned(),
+            retain_client_log: true,
         });
         eprintln!("Interpretation transport: signed-in Codex client");
     }

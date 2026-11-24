@@ -1,18 +1,19 @@
 //! Transient, owner-qualified inputs for one directional identity comparison.
 
 use crate::{
-    Entity, EntityId, RelationshipId,
+    Entity, EntityId, MemoryEntityMentionKey, RelationshipId,
     identity::{
         IdentityEntityRevision, IdentityEvidenceRef, IdentityLimit, IdentityMemoryRef,
-        IdentityRelationshipRef,
+        IdentityMentionRef, IdentityRelationshipRef, MAX_IDENTITY_MENTION_CONTEXT_WORDS,
     },
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 
-/// Perception and Memory versions followed by Relationship and Memory prune counts.
+/// Perception and Memory versions, Relationship and Memory prune counts, and retained Resolution history length.
 /// A mount incarnation belongs to the caller's authorization context.
-pub type IdentityEvidenceCut = (u64, u64, usize, usize);
+pub type IdentityEvidenceCut = (u64, u64, usize, usize, usize);
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IdentityEntityEvidence {
@@ -73,11 +74,62 @@ pub struct IdentityRelationshipEvidence {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IdentityMentionEvidence {
+    pub key: MemoryEntityMentionKey,
+    pub revision: u32,
+    pub memory: IdentityObservedMemory,
+    pub quote: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retained_ordinal: Option<u64>,
+}
+
+impl IdentityMentionEvidence {
+    /// The exact resolved surface inside the retained source excerpt.
+    pub fn surface(&self) -> Option<&str> {
+        let span = self.memory.reference.span?;
+        if span.field != self.key.field {
+            return None;
+        }
+        let start = self.key.start_byte.checked_sub(span.start_byte)? as usize;
+        let end = self.key.end_byte.checked_sub(span.start_byte)? as usize;
+        self.quote.get(start..end).filter(|value| !value.is_empty())
+    }
+
+    /// Rank nearby context while ignoring the resolved name and other Entity labels.
+    pub fn context_score(&self, endpoint: &IdentityEntityEvidence) -> usize {
+        self.context_score_for(endpoint, &self.quote)
+    }
+
+    pub fn context_score_for(&self, endpoint: &IdentityEntityEvidence, excerpt: &str) -> usize {
+        let Some(surface) = self.surface() else {
+            return 0;
+        };
+        let labels = std::iter::once(endpoint.canonical_name.as_str())
+            .chain(endpoint.aliases.iter().map(String::as_str))
+            .chain([surface, endpoint.kind.as_str()])
+            .flat_map(normalized_words)
+            .collect::<BTreeSet<_>>();
+        normalized_words(excerpt)
+            .filter(|word| !labels.contains(word))
+            .take(MAX_IDENTITY_MENTION_CONTEXT_WORDS)
+            .count()
+    }
+}
+
+fn normalized_words(text: &str) -> impl Iterator<Item = String> {
+    text.split(|ch: char| !ch.is_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .map(str::to_lowercase)
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IdentityEvidence {
     pub owner: [u8; 16],
     pub endpoint: IdentityEntityEvidence,
     pub relationships: Vec<IdentityRelationshipEvidence>,
     pub limit: Option<IdentityLimit>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub mentions: Vec<IdentityMentionEvidence>,
 }
 
 impl IdentityEvidence {
@@ -102,6 +154,16 @@ impl IdentityEvidence {
                 })
                 .collect(),
             limit: self.limit,
+            mentions: self
+                .mentions
+                .iter()
+                .map(|mention| IdentityMentionRef {
+                    key: mention.key,
+                    revision: mention.revision,
+                    memory: mention.memory.reference,
+                    retained_ordinal: mention.retained_ordinal,
+                })
+                .collect(),
         }
     }
 }

@@ -1,7 +1,10 @@
-use crate::{EntityId, MemoryTextField, RelationshipId};
+use crate::{EntityId, MemoryEntityMentionKey, MemoryTextField, RelationshipId};
 use serde::{Deserialize, Serialize};
 
 pub const MAX_IDENTITY_RELATIONSHIPS_PER_SIDE: usize = 4;
+pub const MAX_IDENTITY_MENTIONS_PER_SIDE: usize = 4;
+pub const MAX_IDENTITY_MENTION_QUOTE_BYTES: usize = 512;
+pub const MAX_IDENTITY_MENTION_CONTEXT_WORDS: usize = 12;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -34,6 +37,20 @@ pub struct IdentityEvidenceRef {
     pub endpoint_revision: u64,
     pub relationships: Vec<IdentityRelationshipRef>,
     pub limit: Option<IdentityLimit>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mentions: Vec<IdentityMentionRef>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IdentityMentionRef {
+    pub key: MemoryEntityMentionKey,
+    /// Revision of the resolution that bound this span to the endpoint.
+    pub revision: u32,
+    pub memory: IdentityMemoryRef,
+    /// Source ordinal for a typed resolution retained by native conversion.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retained_ordinal: Option<u64>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -70,11 +87,25 @@ pub struct IdentitySpan {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct IdentityCitation {
-    pub side: IdentitySide,
-    pub relationship: u16,
-    pub memory: u16,
+#[serde(untagged, deny_unknown_fields)]
+pub enum IdentityCitation {
+    Relationship {
+        side: IdentitySide,
+        relationship: u16,
+        memory: u16,
+    },
+    Mention {
+        side: IdentitySide,
+        mention: u16,
+    },
+}
+
+impl IdentityCitation {
+    pub fn side(self) -> IdentitySide {
+        match self {
+            Self::Relationship { side, .. } | Self::Mention { side, .. } => side,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]

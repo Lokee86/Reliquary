@@ -1,4 +1,8 @@
 //! Public cross-REL acceptance: authored writers, configured inference, and durable history.
+#[path = "entity_identity/mention_corpus.rs"]
+mod mention_corpus;
+#[path = "entity_identity/mentions.rs"]
+mod mentions;
 #[path = "entity_identity/separation.rs"]
 mod separation;
 
@@ -922,10 +926,12 @@ fn unchanged_pair_is_reconsidered_after_automatic_policy_changes() {
     let previous = {
         let mut a = RelWriter::open_path_current(&ap).unwrap();
         let b = RelSession::open_path_current(&bp).unwrap();
-        let basis = IdentityPairEvidence::new(
-            a.read_session().identity_evidence(ae).unwrap().unwrap(),
-            b.identity_evidence(be).unwrap().unwrap(),
-        );
+        let mut left = a.read_session().identity_evidence(ae).unwrap().unwrap();
+        let mut right = b.identity_evidence(be).unwrap().unwrap();
+        // Policy 3 only captured Relationships, even when a Memory had a resolved mention.
+        left.mentions.clear();
+        right.mentions.clear();
+        let basis = IdentityPairEvidence::new(left, right);
         let pair = IdentityPair {
             local_owner: a_id,
             local_entity: ae,
@@ -935,8 +941,7 @@ fn unchanged_pair_is_reconsidered_after_automatic_policy_changes() {
         let mut previous = IdentityComparison::prepare(basis, "")
             .evaluate(pair, None, None)
             .unwrap();
-        // Keep the evidence and route fixed so only the comparison policy changes.
-        previous.policy = 2;
+        previous.policy = 3;
         a.publish_identity_receipt(previous).unwrap()
     };
 
@@ -963,12 +968,11 @@ fn unchanged_pair_is_reconsidered_after_automatic_policy_changes() {
     };
     wait_revision(&work, ae, b, be, 2);
     let new = inspect(None).receipt;
-    assert_eq!(new.policy, 3);
+    assert_eq!(new.policy, 4);
     assert_eq!(new.predecessor, Some(previous.revision));
-    assert_eq!(
-        (new.fingerprint, new.route),
-        (previous.fingerprint, previous.route.clone())
-    );
+    assert_ne!(new.fingerprint, previous.fingerprint);
+    assert_eq!(new.route, previous.route);
+    assert!(!new.left.mentions.is_empty() && !new.right.mentions.is_empty());
     assert_eq!(new.outcome, IdentityOutcome::Unresolved);
     assert_eq!(inspect(Some(1)).receipt, previous);
 }

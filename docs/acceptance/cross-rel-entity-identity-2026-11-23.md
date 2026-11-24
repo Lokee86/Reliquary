@@ -138,7 +138,7 @@ Repeating the artwork and signatory examples reproduced both final outcomes. The
 
 The 128-Memory Insomnia calibration set contains 313 labeled Entity mentions. Its annotations identify mention spans. Scoring a cross-REL comparison also requires an expected pair judgment and independent grounded witnesses.
 
-A read-only Core scan paged through all current Entities in the migrated 28-day and Ellis RELs, including aliases. The 28-day owner contained 524 Entities and Ellis contained 88. After folding case and whitespace, the two indexes shared zero names or aliases. Different names can still identify the same referent. More importantly, each REL had **zero current Relationships**. The overlapping 14-day REL also returned an empty Relationship page with no continuation. These snapshots currently supply no grounded Relationship pairs for the live evaluator. Only authored evidence went to the model endpoints. The two scanned files matched their authoritative SHA-256 manifests after inspection. [Pair evidence contract](../planning/cross-rel-entity-identity-spec-2026-11-23.md) · [Migration evidence](./owner-history-migration-other-pairs-2026-11-19.md)
+A read-only Core scan paged through all current Entities in the migrated 28-day and Ellis RELs, including aliases. The 28-day owner contained 524 Entities and Ellis contained 88. After folding case and whitespace, the two indexes shared zero names or aliases. Different names can still identify the same referent. More importantly, each REL had **zero current Relationships**. The overlapping 14-day REL also returned an empty Relationship page with no continuation. Under policy 3 these snapshots supplied no input for the live evaluator, which required Relationships. Only authored evidence went to the model endpoints during that trial. The two scanned files matched their authoritative SHA-256 manifests after inspection. [Pair evidence contract](../planning/cross-rel-entity-identity-spec-2026-11-23.md) · [Migration evidence](./owner-history-migration-other-pairs-2026-11-19.md)
 
 ### Reproduce
 
@@ -158,6 +158,24 @@ At Core `0556fc9d`, all nine public Entity identity tests passed, including thre
 
 The Gateway regression covered an expired preview, a retry after a successful commit, and reuse of an action ID with different inputs. Owner-session tests covered reopening the recording REL without its peer, incomplete-tail recovery, checkpoints and verified copies. Hermes operator interaction remains a separate integration. [Gateway regression](../../crates/reliquary-runtime-gateway/src/instance_identity/separation/tests.rs) · [Event recovery](../../crates/reliquary-owner-session/src/session/identity_separation/tests.rs) · [Checkpoint and copy tests](../../crates/reliquary-owner-session/src/session/checkpoint/tests_identity_separation.rs)
 
+## Direct Memory evidence (policy 4)
+
+The public regression starts with two Entities named Alex Chen. Their only resolved mentions contain the name. Core records `Unresolved` with zero model calls. Two independent Memories then identify Alex through the registration of the same vessel. On reopening, Core revisits the pair. One scripted Entity call cites the two source passages and Core records `SameIdentity`, with zero Relationships in either REL. Withdrawing one mention returns the pair to `Unresolved`. The earlier receipt still returns both quotes. A separate mixed-evidence case combines a mention on one side with a Relationship on the other and checks that citing just the name cannot support a match. [Public regression](../../tests/entity_identity/mentions.rs) · [Evaluator tests](../../crates/reliquary-entity-resolution/src/identity_evaluator_tests.rs)
+
+The migrated 14-day and 28-day files share an owner ID. The trials therefore compare each ChatGPT snapshot separately with Ellis. All three RELs have zero current Relationships. Inventory on disposable copies found the following source material.
+
+| REL | Resolved links at the head of typed migration history | Eligible directly sourced mention spans | Entities with those spans |
+| --- | ---: | ---: | ---: |
+| 14-day | 0 | 0 | 0 |
+| 28-day | 2,523 | 1,467 | 419 |
+| Ellis | 1,267 | 731 | 82 |
+
+The 14-day file retains 169 opaque resolution records. The 28-day and Ellis files retain native typed decisions with a target Entity and a position in a specific Memory. The eligibility count requires an active source Memory, a direct source reference, and a valid span in its retained body.
+
+On untouched evidence in the 14-day and Ellis copies, Core recorded `Unresolved / InsufficientEvidence` with zero calls. On the 28-day and Ellis copies, the configured Entity model, `gpt-5.6-sol`, received one 28-day excerpt and three Ellis excerpts. All four matched their exact content spans. Sol proposed separate Entities. Core validated one exact citation on each side. At least one failed the check for evidence that positively distinguishes its referent. The trial kept the outcome and citation count, so it cannot identify which citation or condition failed. The recorded result was `Unresolved / Ambiguity`. Fresh Gateway instances reopened both comparisons. The two cited Memory passages were recovered verbatim, and a retry reused the receipt. All three original RELs and the read-only Ellis copy kept their hashes. This real pair has no independent reference judgment. [Copy trial](../../tests/entity_identity/mention_corpus.rs)
+
+To reproduce the live trial, set `RELIQUARY_MENTION_CORPUS_DIR` to the authoritative fixture root, `RELIQUARY_IDENTITY_TRIAL_CONFIG` to the protected Sol profile at its registered path, and `RELIQUARY_TRIAL_CODEX` to the signed-in native executable. Run `cargo test --locked --offline --test entity_identity authoritative_mention_corpus_compares_and_reopens -- --ignored --nocapture --test-threads=1`. This opt-in test sends the selected excerpts to the configured model via the signed-in client. The ordinary public test suite uses authored data.
+
 ## Related docs
 
 - [Public comparison and inspection API](../public-product-api.md)
@@ -166,4 +184,4 @@ The Gateway regression covered an expired preview, a retry after a successful co
 
 ## Notes
 
-These fixtures establish Core's decision, authorization and persistence behavior. Accuracy on a retained corpus with a live model is a separate milestone.
+The copy trial establishes real-source lookup, citation validation and persistence. Measuring decision accuracy on retained data still requires independently labeled cross-REL pairs.

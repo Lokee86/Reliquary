@@ -1,14 +1,16 @@
-use super::identity_evidence::{exact_quote_span, quote_names_entity};
+use super::identity_evidence::{exact_quote_span, identity_mention_excerpt, quote_names_entity};
 use super::perception_lifecycle::support::{has_direct_source, owner_hex, text_field};
 use super::*;
 use reliquary_perception_store::identity::{
-    IdentityEvidenceRef, IdentityLimit, IdentityMemoryRef, IdentityOutcome, IdentityPair,
-    IdentityReason, IdentityReceipt, IdentityRelationshipRef, IdentitySide, IdentitySpan,
+    IdentityCitation, IdentityEvidenceRef, IdentityLimit, IdentityMemoryRef, IdentityMentionRef,
+    IdentityOutcome, IdentityPair, IdentityReason, IdentityReceipt, IdentityRelationshipRef,
+    IdentitySide, IdentitySpan, MAX_IDENTITY_MENTION_QUOTE_BYTES, MAX_IDENTITY_MENTIONS_PER_SIDE,
     MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
 };
 use reliquary_perception_store::identity_evidence::{IdentityEvidence, IdentityEvidenceCut};
 use reliquary_perception_store::{
     MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_PARTICIPANTS, PRINCIPAL_ENTITY_KIND,
+    RetainedResolutionRecord,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -92,7 +94,7 @@ impl IdentityHistory {
         let receipt = decode(body)?;
         validate_structure(&receipt, owner)?;
         self.check_successor(&receipt)?;
-        projection.check(&receipt)?;
+        projection.check(&receipt, envelope.version - 1)?;
         self.push(StoredReceipt {
             publication_version: envelope.version,
             memory_cut: projection.memory_cut,
@@ -128,6 +130,7 @@ impl IdentityPublicationProof {
             || self.entity != receipt.pair.local_entity
             || self.references.endpoint_revision != actual.endpoint_revision
             || self.references.relationships != actual.relationships
+            || self.references.mentions != actual.mentions
             || !(self.references.limit == actual.limit
                 || (self.references.limit.is_none() && actual.limit == Some(IdentityLimit::Budget)))
         {
@@ -162,6 +165,51 @@ impl RelSession {
         revision: Option<u64>,
     ) -> Option<&IdentityReceipt> {
         self.identity_history.get(pair, revision)
+    }
+
+    /// Recover a cited mention excerpt from its exact retained owner-local revisions.
+    pub fn retained_identity_mention_quote(
+        &self,
+        endpoint: EntityId,
+        endpoint_revision: u64,
+        reference: &IdentityMentionRef,
+    ) -> Result<Option<String>, OwnerSessionError> {
+        let memory = &reference.memory;
+        let perception = &self.common.perception;
+        let resolved = match reference.retained_ordinal {
+            Some(ordinal) => perception
+                .retained_resolution_at_cut(reference.key, ordinal)
+                .is_some_and(|row| retained_mention_matches(row, reference, endpoint)),
+            None => perception
+                .mention_revision(reference.key, reference.revision)
+                .is_some_and(|mention| mention_resolves_to(mention, endpoint)),
+        };
+        if !valid_mention_reference(reference)
+            || perception
+                .entity_revision(endpoint, endpoint_revision)
+                .is_none_or(|entity| entity.kind == PRINCIPAL_ENTITY_KIND)
+            || !resolved
+        {
+            return Ok(None);
+        }
+
+        let (record, body) = match self
+            .common
+            .memories
+            .revision_projection(MemoryId(memory.id), Some(memory.revision))
+        {
+            Ok(value) => value,
+            Err(MemoryError::MissingMemory | MemoryError::RevisionConflict) => return Ok(None),
+            Err(error) => return Err(error.into()),
+        };
+        let Some(body) =
+            body.filter(|_| matches_active_memory(record, memory) && has_direct_source(record))
+        else {
+            return Ok(None);
+        };
+        Ok(identity_mention_excerpt(&body, reference.key)
+            .filter(|(span, _)| Some(*span) == memory.span)
+            .map(|(_, quote)| quote.to_owned()))
     }
 
     pub fn identity_pairs_after(
@@ -216,10 +264,11 @@ impl RelWriter {
             pruned_bodies: &BTreeSet::new(),
             perception: &self.session.common.perception,
             perception_cut: self.session.common.perception.version(),
+            retained_ordinal_cut: self.session.common.perception.retained_resolution_ordinal(),
         };
         match proof {
             Some(proof) => proof.check(&self.session, &receipt)?,
-            None => projection.check(&receipt)?,
+            None => projection.check(&receipt, self.container.latest_version())?,
         }
         let history = &mut self.session.identity_history;
         if let Some(head) = history.get(&receipt.pair, None)
@@ -258,6 +307,7 @@ pub(super) struct LocalProjection<'a> {
     pub(super) pruned_bodies: &'a BTreeSet<MemoryBodyId>,
     pub(super) perception: &'a PerceptionStore,
     pub(super) perception_cut: u64,
+    pub(super) retained_ordinal_cut: Option<u64>,
 }
 
 impl LocalProjection<'_> {
@@ -269,7 +319,7 @@ impl LocalProjection<'_> {
             })
     }
 
-    fn check(&self, receipt: &IdentityReceipt) -> Result<(), OwnerSessionError> {
+    fn check(&self, receipt: &IdentityReceipt, global_cut: u64) -> Result<(), OwnerSessionError> {
         if !self.active_entity(receipt.pair.local_entity, receipt.left.endpoint_revision) {
             return Err(invalid(
                 "local Entity revision outside the publication prefix",
@@ -304,18 +354,7 @@ impl LocalProjection<'_> {
                 return Err(invalid("local Relationship scope or participant revision"));
             }
             for memory in &reference.memories {
-                let record = self
-                    .memories
-                    .record_at_cut(MemoryId(memory.id), self.memory_cut)
-                    .filter(|record| {
-                        record.revision == memory.revision
-                            && record.body_id.0 == memory.body_id
-                            && !record.archived
-                            && record.superseded_by.is_none()
-                    })
-                    .ok_or_else(|| {
-                        invalid("local Memory revision outside the publication prefix")
-                    })?;
+                let record = self.check_memory(memory)?;
                 if !relationship
                     .evidence
                     .iter()
@@ -331,7 +370,81 @@ impl LocalProjection<'_> {
                 }
             }
         }
+        for reference in &receipt.left.mentions {
+            self.check_mention(reference, receipt.pair.local_entity, global_cut)?;
+        }
         Ok(())
+    }
+
+    fn check_memory(
+        &self,
+        memory: &IdentityMemoryRef,
+    ) -> Result<&reliquary_memory_core::MemoryRecord, OwnerSessionError> {
+        self.memories
+            .record_at_cut(MemoryId(memory.id), self.memory_cut)
+            .filter(|record| matches_active_memory(record, memory))
+            .ok_or_else(|| invalid("local Memory revision outside the publication prefix"))
+    }
+
+    fn check_mention(
+        &self,
+        reference: &IdentityMentionRef,
+        endpoint: EntityId,
+        global_cut: u64,
+    ) -> Result<(), OwnerSessionError> {
+        let current = self
+            .perception
+            .mention_at_cut(reference.key, self.perception_cut);
+        let resolved = match reference.retained_ordinal {
+            Some(_) => {
+                current.is_none()
+                    && self
+                        .retained_ordinal_cut
+                        .and_then(|ordinal| {
+                            self.perception
+                                .retained_resolution_at_cut(reference.key, ordinal)
+                        })
+                        .is_some_and(|row| {
+                            row.source_global_version <= global_cut
+                                && retained_mention_matches(row, reference, endpoint)
+                        })
+            }
+            None => current.is_some_and(|mention| {
+                mention.revision == reference.revision && mention_resolves_to(mention, endpoint)
+            }),
+        };
+        if !resolved {
+            return Err(invalid(
+                "local mention revision or endpoint outside the publication prefix",
+            ));
+        }
+        let memory = &reference.memory;
+        if !has_direct_source(self.check_memory(memory)?) {
+            return Err(invalid("local mention source provenance"));
+        }
+
+        let body_id = MemoryBodyId(memory.body_id);
+        let pruned = self.pruned_bodies.contains(&body_id);
+        if !pruned
+            && self
+                .observed_bodies
+                .is_some_and(|bodies| !bodies.contains(&body_id))
+        {
+            return Err(invalid("local mention body outside the publication prefix"));
+        }
+        let (_, body) = self
+            .memories
+            .revision_projection(MemoryId(memory.id), Some(memory.revision))?;
+        match body {
+            Some(body)
+                if identity_mention_excerpt(&body, reference.key)
+                    .is_some_and(|(span, _)| Some(span) == memory.span) =>
+            {
+                Ok(())
+            }
+            None if pruned => Ok(()),
+            _ => Err(invalid("local mention excerpt or missing body")),
+        }
     }
 
     fn check_span(
@@ -390,6 +503,50 @@ impl LocalProjection<'_> {
             _ => Err(invalid("local witness span or missing body")),
         }
     }
+}
+
+fn matches_active_memory(
+    record: &reliquary_memory_core::MemoryRecord,
+    reference: &IdentityMemoryRef,
+) -> bool {
+    record.revision == reference.revision
+        && record.body_id.0 == reference.body_id
+        && !record.archived
+        && record.superseded_by.is_none()
+}
+
+fn mention_resolves_to(mention: &MemoryEntityResolution, endpoint: EntityId) -> bool {
+    matches!(mention.status, MemoryEntityResolutionStatus::Resolved { entity_id, .. } if entity_id == endpoint)
+}
+
+fn retained_mention_matches(
+    row: &RetainedResolutionRecord,
+    reference: &IdentityMentionRef,
+    endpoint: EntityId,
+) -> bool {
+    if reference.retained_ordinal != Some(row.source_ordinal) {
+        return false;
+    }
+    row.resolved().is_some_and(|(mention, entity_id)| {
+        mention.key == reference.key
+            && mention.revision == reference.revision
+            && entity_id == endpoint
+    })
+}
+
+fn valid_mention_reference(reference: &IdentityMentionRef) -> bool {
+    let key = reference.key;
+    let memory = &reference.memory;
+    reference.revision > 0
+        && key.start_byte < key.end_byte
+        && key.memory_id == memory.id
+        && memory.revision > 0
+        && memory.span.is_some_and(|span| {
+            span.field == key.field
+                && span.start_byte <= key.start_byte
+                && span.end_byte >= key.end_byte
+                && (span.end_byte - span.start_byte) as usize <= MAX_IDENTITY_MENTION_QUOTE_BYTES
+        })
 }
 
 fn same_inputs(left: &IdentityReceipt, right: &IdentityReceipt) -> bool {
@@ -464,18 +621,28 @@ fn validate_structure(receipt: &IdentityReceipt, owner: [u8; 16]) -> Result<(), 
     }
     let mut sides = BTreeSet::new();
     for citation in &receipt.citations {
-        let side = match citation.side {
+        let side = match citation.side() {
             IdentitySide::Left => &receipt.left,
             IdentitySide::Right => &receipt.right,
         };
-        let memory = side
-            .relationships
-            .get(usize::from(citation.relationship))
-            .and_then(|value| value.memories.get(usize::from(citation.memory)));
+        let memory = match *citation {
+            IdentityCitation::Relationship {
+                relationship,
+                memory,
+                ..
+            } => side
+                .relationships
+                .get(usize::from(relationship))
+                .and_then(|value| value.memories.get(usize::from(memory))),
+            IdentityCitation::Mention { mention, .. } => side
+                .mentions
+                .get(usize::from(mention))
+                .map(|value| &value.memory),
+        };
         if memory.is_none_or(|value| value.span.is_none()) {
             return Err(invalid("citation outside grounded evidence"));
         }
-        sides.insert(citation.side);
+        sides.insert(citation.side());
     }
     if affirmative && sides.len() != 2 {
         return Err(invalid("missing two-sided citations"));
@@ -492,6 +659,11 @@ fn validate_side(side: &IdentityEvidenceRef, endpoint: EntityId) -> Result<(), O
             .relationships
             .windows(2)
             .any(|pair| pair[0].id >= pair[1].id)
+        || side.mentions.len() > MAX_IDENTITY_MENTIONS_PER_SIDE
+        || side
+            .mentions
+            .windows(2)
+            .any(|pair| pair[0].key.memory_id >= pair[1].key.memory_id)
     {
         return Err(invalid("evidence frontier"));
     }
@@ -542,6 +714,19 @@ fn validate_side(side: &IdentityEvidenceRef, endpoint: EntityId) -> Result<(), O
             {
                 return Err(invalid("inconsistent Memory references"));
             }
+        }
+    }
+    for mention in &side.mentions {
+        if !valid_mention_reference(mention) {
+            return Err(invalid("mention evidence reference"));
+        }
+        let memory = &mention.memory;
+        let revision = (memory.revision, memory.body_id);
+        if memories
+            .get(&memory.id)
+            .is_some_and(|previous| *previous != revision)
+        {
+            return Err(invalid("inconsistent Memory references"));
         }
     }
     Ok(())

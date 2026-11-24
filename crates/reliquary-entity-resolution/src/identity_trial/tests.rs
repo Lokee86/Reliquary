@@ -16,12 +16,12 @@ const SUPPORT: &str = "witnesses";
 const ANCHOR: &str = "Project Meridian Contract";
 const LEFT_QUOTE: &str = "Alex Chen signed Project Meridian Contract in April.";
 const RIGHT_QUOTE: &str = "The register shows Alex Chen signed Project Meridian Contract.";
-const LEFT_CITATION: IdentityCitation = IdentityCitation {
+const LEFT_CITATION: IdentityCitation = IdentityCitation::Relationship {
     side: IdentitySide::Left,
     relationship: 0,
     memory: 0,
 };
-const RIGHT_CITATION: IdentityCitation = IdentityCitation {
+const RIGHT_CITATION: IdentityCitation = IdentityCitation::Relationship {
     side: IdentitySide::Right,
     relationship: 0,
     memory: 0,
@@ -257,9 +257,10 @@ fn scores_rank_independent_support_without_changing_the_verdict() {
         (plain, RIGHT_CITATION),
         (
             scored,
-            IdentityCitation {
+            IdentityCitation::Relationship {
                 memory: 1,
-                ..RIGHT_CITATION
+                side: IdentitySide::Right,
+                relationship: 0,
             },
         ),
     ] {

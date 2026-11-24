@@ -6,14 +6,18 @@ use reliquary_memory_core::{MemoryBody, MemoryRecord, MemorySourceRef};
 use reliquary_perception_store::{
     PRINCIPAL_ENTITY_KIND,
     identity::{
-        IdentityLimit, IdentityMemoryRef, IdentitySpan, MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
+        IdentityLimit, IdentityMemoryRef, IdentitySpan, MAX_IDENTITY_MENTION_CONTEXT_WORDS,
+        MAX_IDENTITY_MENTION_QUOTE_BYTES, MAX_IDENTITY_MENTIONS_PER_SIDE,
+        MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
     },
     identity_evidence::{
-        IdentityEvidence, IdentityEvidenceCut, IdentityMemoryExclusion, IdentityObservedMemory,
-        IdentityParticipantEvidence, IdentityRelationshipEvidence,
+        IdentityEntityEvidence, IdentityEvidence, IdentityEvidenceCut, IdentityMemoryExclusion,
+        IdentityMentionEvidence, IdentityObservedMemory, IdentityParticipantEvidence,
+        IdentityRelationshipEvidence,
     },
 };
 use sha2::{Digest, Sha256};
+use std::cmp::Reverse;
 
 impl RelSession {
     /// A change hint for mounted comparisons. A changed cut requires recapture;
@@ -27,6 +31,7 @@ impl RelSession {
                 .relationship_description_prunes()
                 .len(),
             self.common.memories.pruned_body_count(),
+            self.common.perception.retained_resolution_history().len(),
         )
     }
 
@@ -39,10 +44,13 @@ impl RelSession {
             return Ok(None);
         };
         let owner = owner_hex(&self.owner_id);
+        let endpoint = IdentityEntityEvidence::from(endpoint);
+        let mentions = self.common.identity_mentions(&endpoint)?;
         let mut evidence = IdentityEvidence {
             owner: self.owner_id,
-            endpoint: endpoint.into(),
+            endpoint,
             relationships: Vec::new(),
+            mentions,
             limit: None,
         };
         for relationship in self
@@ -142,6 +150,86 @@ impl CommonState {
             .filter(|record| !record.archived && record.superseded_by.is_none())
     }
 
+    fn identity_mentions(
+        &self,
+        entity: &IdentityEntityEvidence,
+    ) -> Result<Vec<IdentityMentionEvidence>, OwnerSessionError> {
+        let mut mentions = self
+            .perception
+            .resolved_mentions_for_entity(entity.id)
+            .peekable();
+        let mut selected: Vec<(usize, IdentityMentionEvidence)> = Vec::new();
+        while let Some(first) = mentions.next() {
+            let id = MemoryId(first.key.memory_id);
+            let group = std::iter::once(first).chain(std::iter::from_fn(|| {
+                mentions.next_if(|mention| mention.key.memory_id == id.0)
+            }));
+            let Some(source) = self
+                .identity_memory(id)
+                .filter(|record| has_direct_source(record))
+                .and_then(|record| record.source_ref.as_ref())
+            else {
+                let _ = group.last();
+                continue;
+            };
+            let (record, body) = self.memories.revision_projection(id, None)?;
+            let Some(body) = body.as_deref() else {
+                let _ = group.last();
+                continue;
+            };
+            let lineage = source_lineage(source);
+            let Some((score, mention)) = group
+                .filter_map(|mention| {
+                    let (span, quote) = identity_mention_excerpt(body, mention.key)?;
+                    let witness = IdentityMentionEvidence {
+                        key: mention.key,
+                        revision: mention.revision,
+                        memory: IdentityObservedMemory {
+                            reference: IdentityMemoryRef {
+                                id: record.id.0,
+                                revision: record.revision,
+                                body_id: record.body_id.0,
+                                span: Some(span),
+                            },
+                            lineage: lineage.clone(),
+                            exclusion: None,
+                        },
+                        quote: quote.to_owned(),
+                        retained_ordinal: mention.retained_ordinal,
+                    };
+                    Some((witness.context_score(entity), witness))
+                })
+                .max_by_key(|(score, mention)| (*score, Reverse(mention.key)))
+            else {
+                continue;
+            };
+            let rank = (Reverse(score), mention.key);
+            let overlaps = |other: &IdentityMentionEvidence| {
+                other.memory.lineage.iter().any(|key| lineage.contains(key))
+            };
+            if selected
+                .iter()
+                .any(|(score, other)| (Reverse(*score), other.key) <= rank && overlaps(other))
+            {
+                continue;
+            }
+            selected.retain(|(_, other)| !overlaps(other));
+            selected.push((score, mention));
+            selected.sort_unstable_by_key(|(score, mention)| (Reverse(*score), mention.key));
+            selected.truncate(MAX_IDENTITY_MENTIONS_PER_SIDE);
+            // Later Memory IDs lose every tie. A full set at the maximum score is final.
+            if selected.len() == MAX_IDENTITY_MENTIONS_PER_SIDE
+                && selected
+                    .last()
+                    .is_some_and(|(score, _)| *score == MAX_IDENTITY_MENTION_CONTEXT_WORDS)
+            {
+                break;
+            }
+        }
+        selected.sort_unstable_by_key(|(_, mention)| mention.key);
+        Ok(selected.into_iter().map(|(_, mention)| mention).collect())
+    }
+
     fn observe_identity_memory(
         &self,
         id: MemoryId,
@@ -182,6 +270,53 @@ impl CommonState {
             exclusion: grounding.err(),
         })
     }
+}
+
+/// A bounded slice of the same field, anchored to the retained mention's exact bytes.
+/// Replay validates this window for mention-bearing receipts. Preserve the
+/// historical window when changing the selection algorithm.
+pub(super) fn identity_mention_excerpt(
+    body: &MemoryBody,
+    key: MemoryEntityMentionKey,
+) -> Option<(IdentitySpan, &str)> {
+    let text = text_field(body, key.field);
+    let mention_start = key.start_byte as usize;
+    let mention_end = key.end_byte as usize;
+    let surface = text.get(mention_start..mention_end)?;
+    if surface.trim().is_empty() || surface.len() > MAX_IDENTITY_MENTION_QUOTE_BYTES {
+        return None;
+    }
+
+    // Give both sides of the mention room, then spend any spare bytes on either side.
+    // The window stays on the same line and rounds inward at UTF-8 boundaries.
+    let prefix = &text[..mention_start];
+    let suffix = &text[mention_end..];
+    let budget = MAX_IDENTITY_MENTION_QUOTE_BYTES - surface.len();
+    let before = prefix
+        .as_bytes()
+        .iter()
+        .rev()
+        .take(budget)
+        .take_while(|&&byte| !matches!(byte, b'\r' | b'\n'))
+        .count();
+    let after = suffix
+        .as_bytes()
+        .iter()
+        .take(budget)
+        .take_while(|&&byte| !matches!(byte, b'\r' | b'\n'))
+        .count();
+    let left = before.min(budget / 2 + (budget - budget / 2).saturating_sub(after));
+    let right = after.min(budget - left);
+    let start = text.ceil_char_boundary(mention_start - left);
+    let end = text.floor_char_boundary(mention_end + right);
+    Some((
+        IdentitySpan {
+            field: key.field,
+            start_byte: start.try_into().ok()?,
+            end_byte: end.try_into().ok()?,
+        },
+        &text[start..end],
+    ))
 }
 
 pub(super) fn quote_names_entity(quote: &str, canonical_name: &str, aliases: &[String]) -> bool {
@@ -294,6 +429,246 @@ mod tests {
         assert_eq!(
             exact_quote_span(&body, "Mira"),
             Err(IdentityMemoryExclusion::QuoteAbsent)
+        );
+    }
+
+    #[test]
+    fn mention_excerpt_is_bounded_utf8_context_at_the_exact_key() {
+        let prefix = "🦀".repeat(180);
+        let body = MemoryBody {
+            title: "Élodie".into(),
+            content: format!("{prefix} Élodie signed the Meridian Contract.\nAn unrelated note."),
+        };
+        let start = (prefix.len() + 1) as u32;
+        let key = MemoryEntityMentionKey {
+            memory_id: [3; 32],
+            field: MemoryTextField::Content,
+            start_byte: start,
+            end_byte: start + "Élodie".len() as u32,
+        };
+        let (span, quote) = identity_mention_excerpt(&body, key).unwrap();
+        assert_eq!(span.field, key.field);
+        assert!(quote.ends_with(" Élodie signed the Meridian Contract."));
+        assert_eq!(
+            &quote[(key.start_byte - span.start_byte) as usize
+                ..(key.end_byte - span.start_byte) as usize],
+            "Élodie",
+        );
+        assert_eq!(
+            &body.content[span.start_byte as usize..span.end_byte as usize],
+            quote
+        );
+        assert!(quote.len() <= MAX_IDENTITY_MENTION_QUOTE_BYTES);
+        assert!(
+            identity_mention_excerpt(
+                &body,
+                MemoryEntityMentionKey {
+                    start_byte: key.start_byte + 1,
+                    ..key
+                }
+            )
+            .is_none()
+        );
+        let title_key = MemoryEntityMentionKey {
+            field: MemoryTextField::Title,
+            start_byte: 0,
+            end_byte: "Élodie".len() as u32,
+            ..key
+        };
+        let (_, quote) = identity_mention_excerpt(&body, title_key).unwrap();
+        assert_eq!(quote, "Élodie");
+    }
+
+    #[test]
+    fn capture_prefers_distinct_context_and_drops_corrected_or_withdrawn_mentions() {
+        use super::super::identity_receipt::tests::fixture_entity;
+        use crate::UserMemoryCorrection;
+        use reliquary_memory_core::MemoryDraft;
+
+        let scratch = Path::new(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+        std::fs::create_dir_all(&scratch).unwrap();
+        let directory = tempfile::tempdir_in(scratch).unwrap();
+        let path = directory.path().join("mention-evidence.rel");
+        let mut writer = RelWriter::create_current_path(&path, [21; 16]).unwrap();
+        let endpoint = fixture_entity(&mut writer, "Mira");
+        let owner = writer.owner_id();
+        let publish = |writer: &mut RelWriter, token: &str, source_node: &str, text: &str| {
+            writer
+                .publish_direct_memory(
+                    "principal-a",
+                    MemoryDraft {
+                        title: "Mira / MIRA | referent".into(),
+                        content: text.into(),
+                        category: "fact".into(),
+                        memory_type: "project".into(),
+                        authority_kind: "direct".into(),
+                        temporal_status: "current".into(),
+                        scope: "project".into(),
+                        lifecycle_state: "current".into(),
+                        archived: false,
+                        parent_id: None,
+                        superseded_by: None,
+                        source_node_id: None,
+                        content_source_conversation_id: None,
+                        content_source_node_id: None,
+                        grounding_source_conversation_id: None,
+                        grounding_source_node_id: None,
+                        source_episode_id: None,
+                        source_ref: Some(MemorySourceRef {
+                            owner_id: owner_hex(&owner),
+                            principal_id: Some("principal-a".into()),
+                            source_episode_id: [0; 32],
+                            source_node_id: source_node.into(),
+                            content_source_conversation_id: None,
+                            content_source_node_id: None,
+                            grounding_source_conversation_id: None,
+                            grounding_source_node_id: None,
+                        }),
+                        source_time_ns: Some(10),
+                        temporal_inference: None,
+                        mutation_id: token.into(),
+                        created_at_ns: 10,
+                        updated_at_ns: 10,
+                    },
+                )
+                .unwrap()
+                .record
+        };
+        let resolve = |writer: &mut RelWriter, memory: &MemoryRecord, field, surface: &str| {
+            let key = MemoryEntityMentionKey {
+                memory_id: memory.id.0,
+                field,
+                start_byte: 0,
+                end_byte: surface.len() as u32,
+            };
+            writer
+                .commit_entity_mention(EntityMentionCommit {
+                    owner_id: owner,
+                    memory_revision: memory.revision,
+                    body_id: memory.body_id,
+                    key,
+                    surface: surface.into(),
+                    expected_revision: 0,
+                    updated_at_ns: 11,
+                    status: MemoryEntityResolutionStatus::Resolved {
+                        entity_id: endpoint.id,
+                        reason: EntityResolutionReason::ContextMatch,
+                    },
+                    target_revisions: vec![(endpoint.id, 1)],
+                    new_entity: None,
+                })
+                .unwrap();
+            key
+        };
+        for number in 0..6 {
+            let token = format!("name-only-{number}");
+            let memory = publish(&mut writer, &token, &token, "Other material.");
+            resolve(&mut writer, &memory, MemoryTextField::Title, "Mira");
+        }
+        let first = publish(
+            &mut writer,
+            "independent-primary",
+            "primary-turn",
+            "Lantern Keeper signed the Meridian Contract.",
+        );
+        resolve(&mut writer, &first, MemoryTextField::Title, "Mira");
+        let first_key = resolve(
+            &mut writer,
+            &first,
+            MemoryTextField::Content,
+            "Lantern Keeper",
+        );
+        let copy = publish(
+            &mut writer,
+            "primary-copy",
+            "primary-turn",
+            "Mira signed it.",
+        );
+        resolve(&mut writer, &copy, MemoryTextField::Content, "Mira");
+        let second = publish(
+            &mut writer,
+            "independent-secondary",
+            "secondary-turn",
+            "Mira led the Meridian expedition.",
+        );
+        let second_key = resolve(&mut writer, &second, MemoryTextField::Content, "Mira");
+
+        let capture = |writer: &RelWriter| {
+            writer
+                .session
+                .identity_evidence(endpoint.id)
+                .unwrap()
+                .unwrap()
+        };
+        let before = capture(&writer);
+        assert_eq!(before.mentions.len(), MAX_IDENTITY_MENTIONS_PER_SIDE);
+        assert_eq!(
+            before
+                .mentions
+                .iter()
+                .filter(|mention| mention.context_score(&before.endpoint) > 0)
+                .count(),
+            2
+        );
+        assert!(
+            before
+                .mentions
+                .iter()
+                .any(|mention| mention.key == first_key)
+        );
+        assert!(
+            before
+                .mentions
+                .iter()
+                .any(|mention| mention.key == second_key)
+        );
+        assert!(
+            !before
+                .mentions
+                .iter()
+                .any(|mention| mention.key.memory_id == copy.id.0)
+        );
+
+        writer
+            .withdraw_entity_mention(WithdrawEntityMentionRequest {
+                owner_id: owner,
+                memory_id: second.id,
+                memory_revision: second.revision,
+                body_id: second.body_id,
+                key: second_key,
+                source_surface: "Mira".into(),
+                expected_mention_revision: 1,
+                target_revisions: vec![(endpoint.id, 1)],
+                withdrawn_at_ns: 12,
+            })
+            .unwrap();
+        assert!(
+            !capture(&writer)
+                .mentions
+                .iter()
+                .any(|mention| mention.key == second_key)
+        );
+
+        writer
+            .correct_user_memory(
+                "principal-a",
+                format!("management:{}", "5".repeat(64)),
+                [5; 32],
+                UserMemoryCorrection {
+                    id: first.id,
+                    revision: first.revision,
+                    body: first.body_id,
+                    title: "Mira".into(),
+                    content: "Mira signed the Beacon Contract.".into(),
+                    created_at_ns: 13,
+                },
+            )
+            .unwrap();
+        assert!(
+            !capture(&writer)
+                .mentions
+                .iter()
+                .any(|mention| mention.key.memory_id == first.id.0)
         );
     }
 

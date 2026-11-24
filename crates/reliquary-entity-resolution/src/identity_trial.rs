@@ -84,7 +84,7 @@ fn start_trial<'a>(
     }
     let citations: BTreeSet<_> = grounded_citations(pair);
     if !citations.iter().any(|left| {
-        left.side == IdentitySide::Left
+        left.side() == IdentitySide::Left
             && citations
                 .iter()
                 .any(|right| independent(pair, *left, *right))
@@ -206,7 +206,7 @@ fn grounded_citations(pair: &IdentityPairEvidence) -> BTreeSet<IdentityCitation>
                     && witness.reference.span.is_some()
                     && witness.exclusion.is_none()
                 {
-                    citations.insert(IdentityCitation {
+                    citations.insert(IdentityCitation::Relationship {
                         side,
                         relationship: relationship.try_into().expect("bounded Relationship index"),
                         memory: memory.try_into().expect("bounded Memory index"),
@@ -223,12 +223,12 @@ fn independent(
     left: IdentityCitation,
     right: IdentityCitation,
 ) -> bool {
-    if left.side == right.side {
+    if left.side() == right.side() {
         return false;
     }
     let (_, left_memory, _) = pair.witness(left).expect("grounded citation");
     let (_, right_memory, _) = pair.witness(right).expect("grounded citation");
-    let same_memory = pair.side(left.side).owner == pair.side(right.side).owner
+    let same_memory = pair.side(left.side()).owner == pair.side(right.side()).owner
         && left_memory.reference.id == right_memory.reference.id;
     !same_memory && independent_sources(left_memory, right_memory)
 }
@@ -255,7 +255,7 @@ fn interpreted_items(
             "right" => IdentitySide::Right,
             _ => return None,
         };
-        let citation = IdentityCitation {
+        let citation = IdentityCitation::Relationship {
             side,
             relationship: row["relationship"].as_u64()?.try_into().ok()?,
             memory: row["memory"].as_u64()?.try_into().ok()?,
@@ -287,8 +287,8 @@ fn interpreted_items(
             .collect();
         citations.push(citation);
         normalized.push(json!({
-            "item": item, "side": row["side"], "relationship": citation.relationship,
-            "memory": citation.memory, "excerpt": excerpt, "interpretation": interpretation,
+            "item": item, "side": row["side"], "relationship": row["relationship"],
+            "memory": row["memory"], "excerpt": excerpt, "interpretation": interpretation,
             "source": source, "lineage": lineage,
         }));
     }

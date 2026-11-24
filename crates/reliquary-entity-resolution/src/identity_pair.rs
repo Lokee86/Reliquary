@@ -67,14 +67,31 @@ impl IdentityPairEvidence {
     pub(crate) fn witness(
         &self,
         citation: IdentityCitation,
-    ) -> Option<(&IdentityRelationshipEvidence, &IdentityObservedMemory, &str)> {
-        let relationship = self
-            .side(citation.side)
-            .relationships
-            .get(usize::from(citation.relationship))?;
-        let memory = relationship.memories.get(usize::from(citation.memory))?;
-        memory.reference.span?;
-        Some((relationship, memory, relationship.quote.as_deref()?))
+    ) -> Option<(
+        Option<&IdentityRelationshipEvidence>,
+        &IdentityObservedMemory,
+        &str,
+    )> {
+        match citation {
+            IdentityCitation::Relationship {
+                side,
+                relationship,
+                memory,
+            } => {
+                let relationship = self
+                    .side(side)
+                    .relationships
+                    .get(usize::from(relationship))?;
+                let memory = relationship.memories.get(usize::from(memory))?;
+                memory.reference.span?;
+                Some((Some(relationship), memory, relationship.quote.as_deref()?))
+            }
+            IdentityCitation::Mention { side, mention } => {
+                let mention = self.side(side).mentions.get(usize::from(mention))?;
+                mention.surface()?;
+                Some((None, &mention.memory, &mention.quote))
+            }
+        }
     }
 
     pub fn quote(&self, citation: IdentityCitation) -> Option<&str> {
@@ -89,6 +106,11 @@ fn model_input(side: &IdentityEvidence) -> Value {
             "aliases": side.endpoint.aliases,
             "kind": side.endpoint.kind,
         },
+        "mentions": side.mentions.iter().map(|mention| json!({
+            "surface": mention.surface(),
+            "start_byte": mention.memory.reference.span.and_then(|s| mention.key.start_byte.checked_sub(s.start_byte)),
+            "quote": mention.quote,
+        })).collect::<Vec<_>>(),
         "relationships": side.relationships.iter().map(|r| {
             json!({
                 "kind": r.kind,

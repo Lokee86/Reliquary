@@ -18,7 +18,7 @@ The [standards remediation specification](../engineering-standards-remediation-s
 
 Manual community recomputation follows the [Leiden specification](leiden-community-recomputation-spec-2026-11-18.md) and [execution plan](leiden-community-recomputation-plan-2026-11-18.md). The operator runs preview and apply through the existing REL management boundary.
 
-Core compares two explicitly selected Entities across authorized RELs. The recording REL retains the evidence and each decision revision. The public fixture follows an unresolved pair through corroboration, source correction and reconsideration after reopen. Broader candidate discovery, retained-corpus calibration and Perception Observations remain future work. [Acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md) · [Comparison specification](cross-rel-entity-identity-spec-2026-11-23.md)
+Core compares two explicitly selected Entities across authorized RELs. Each owner supplies excerpts from the Memories that mention its Entity, plus evidence from existing Relationships. The recording REL keeps the source references and each decision revision. The public fixture follows an unresolved pair through corroboration, source correction and reconsideration after reopen. Broader candidate discovery, retained-corpus calibration and Perception Observations remain future work. [Acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md) · [Comparison specification](cross-rel-entity-identity-spec-2026-11-23.md)
 
 Core supports explicit, reversible operator confirmation for a selected cross-REL pair. Enabling the action in Hermes requires a trusted operator interaction and its own host verification. [Public API](../public-product-api.md#confirm-or-undo-separation)
 

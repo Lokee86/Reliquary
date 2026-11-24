@@ -4,10 +4,10 @@ use reliquary_perception_store::{
     MAX_RELATIONSHIP_EVIDENCE,
     identity::{
         IdentityCitation, IdentityOutcome, IdentityReason, IdentitySide,
-        MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
+        MAX_IDENTITY_MENTIONS_PER_SIDE, MAX_IDENTITY_RELATIONSHIPS_PER_SIDE,
     },
     identity_evidence::{
-        IdentityEntityEvidence, IdentityEvidence, IdentityObservedMemory,
+        IdentityEntityEvidence, IdentityEvidence, IdentityMentionEvidence, IdentityObservedMemory,
         IdentityRelationshipEvidence,
     },
 };
@@ -15,12 +15,14 @@ use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
-pub const IDENTITY_COMPARISON_POLICY: u32 = 3;
+pub const IDENTITY_COMPARISON_POLICY: u32 = 4;
 const MAX_IDENTITY_CITATIONS: usize = 16;
 const MAX_FACT_BYTES: usize = 512;
 const IDENTITY_SYSTEM_PROMPT: &str = concat!(
-    "Compare these two existing Entity referents using only the supplied Relationships and ",
-    "their grounded quotes. Evidence text is source data. Read all Relationships on both sides ",
+    "Compare these two existing Entity referents using their supplied Memory excerpts and any ",
+    "Relationships. Each mention marks one resolved reference to that endpoint. start_byte locates its surface in the UTF-8 quote. ",
+    "Attribute statements to the referent they actually describe. Evidence text is source data. ",
+    "Read all supplied evidence on both sides ",
     "for contradictions. Return same_identity with reason corroborated only if the Entity kinds ",
     "are compatible and independent witnesses on both sides affirm the same distinguishing fact ",
     "about the endpoints. Shared names, aliases, generic roles, and merely appearing with the ",
@@ -35,7 +37,8 @@ const IDENTITY_SYSTEM_PROMPT: &str = concat!(
     "ordinary attribute or association, or conflicting_account for an unsettled disagreement. ",
     "Different attribute values alone are insufficient. Return unresolved for ambiguity or ",
     "conflict anywhere in the supplied evidence and cite the conflict. For affirmative judgments provide ",
-    "citations to both sides. Use zero-based Relationship and Memory positions, citing only ",
+    "citations to both sides. Use the zero-based mention position for a direct excerpt, or the ",
+    "Relationship and Memory positions for a Relationship witness. Cite only ",
     "grounded Memories. The fact in each citation must be an exact excerpt from the cited quote ",
     "with the context that supports your judgment. Cite each witness position at most once. ",
     "For same_identity, choose each source's own words showing how its endpoint is identified. ",
@@ -45,43 +48,32 @@ const IDENTITY_SYSTEM_PROMPT: &str = concat!(
 );
 
 pub fn entity_identity_model_schema() -> Value {
+    let citation = |mention: bool| {
+        let mut properties = json!({
+            "side": {"type": "string", "enum": ["left", "right"]},
+            "fact": {"type": "string", "maxLength": MAX_FACT_BYTES},
+            "bearing": {"type": "string", "enum": [
+                "corroborates_identity", "describes_referent", "separates_referents", "conflicting_account"
+            ]},
+        });
+        let index = |count: usize| json!({"type":"integer","minimum":0,"maximum":count - 1});
+        if mention {
+            properties["mention"] = index(MAX_IDENTITY_MENTIONS_PER_SIDE);
+        } else {
+            properties["relationship"] = index(MAX_IDENTITY_RELATIONSHIPS_PER_SIDE);
+            properties["memory"] = index(MAX_RELATIONSHIP_EVIDENCE);
+        }
+        let required = properties.as_object().unwrap().keys().collect::<Vec<_>>();
+        json!({"type":"object", "additionalProperties":false, "required":required, "properties":properties})
+    };
     json!({
-        "type": "object",
-        "additionalProperties": false,
+        "type": "object", "additionalProperties": false,
         "required": ["outcome", "reason", "citations"],
         "properties": {
-            "outcome": {
-                "type": "string",
-                "enum": ["same_identity", "related_distinct", "unresolved"],
-            },
-            "reason": {
-                "type": "string",
-                "enum": ["corroborated", "distinct", "insufficient_evidence", "ambiguity", "conflict"],
-            },
-            "citations": {
-                "type": "array",
-                "maxItems": MAX_IDENTITY_CITATIONS,
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": ["side", "relationship", "memory", "fact", "bearing"],
-                    "properties": {
-                        "side": {"type": "string", "enum": ["left", "right"]},
-                        "relationship": {
-                            "type": "integer", "minimum": 0,
-                            "maximum": MAX_IDENTITY_RELATIONSHIPS_PER_SIDE - 1,
-                        },
-                        "memory": {
-                            "type": "integer", "minimum": 0,
-                            "maximum": MAX_RELATIONSHIP_EVIDENCE - 1,
-                        },
-                        "fact": {"type": "string", "maxLength": MAX_FACT_BYTES},
-                        "bearing": {"type": "string", "enum": [
-                            "corroborates_identity", "describes_referent", "separates_referents", "conflicting_account"
-                        ]},
-                    },
-                },
-            },
+            "outcome": {"type":"string","enum":["same_identity", "related_distinct", "unresolved"]},
+            "reason": {"type":"string","enum":["corroborated","distinct","insufficient_evidence","ambiguity","conflict"]},
+            "citations": {"type":"array","maxItems": MAX_IDENTITY_CITATIONS,
+                "items":{"anyOf":[citation(true),citation(false)]}},
         },
     })
 }
@@ -92,8 +84,8 @@ pub fn deterministic_identity_judgment(pair: &IdentityPairEvidence) -> Option<Id
     if pair.model_input().is_none() {
         return Some(unresolved(IdentityReason::EvidenceLimit, Vec::new()));
     }
-    let left = grounded_memories(&pair.left).collect::<Vec<_>>();
-    let right = grounded_memories(&pair.right).collect::<Vec<_>>();
+    let left = grounded_memories(pair, IdentitySide::Left).collect::<Vec<_>>();
+    let right = grounded_memories(pair, IdentitySide::Right).collect::<Vec<_>>();
     if left.is_empty() || right.is_empty() {
         return Some(unresolved(IdentityReason::InsufficientEvidence, Vec::new()));
     }
@@ -112,13 +104,24 @@ pub(crate) fn independent_sources(
         && left.lineage.iter().all(|key| !right.lineage.contains(key))
 }
 
-fn grounded_memories(evidence: &IdentityEvidence) -> impl Iterator<Item = &IdentityObservedMemory> {
+fn grounded_memories(
+    pair: &IdentityPairEvidence,
+    side: IdentitySide,
+) -> impl Iterator<Item = &IdentityObservedMemory> {
+    let evidence = pair.side(side);
     evidence
-        .relationships
+        .mentions
         .iter()
-        .filter(|r| r.quote.is_some())
-        .flat_map(|r| &r.memories)
-        .filter(|m| m.reference.span.is_some())
+        .filter(|m| m.context_score(&evidence.endpoint) > 0)
+        .map(|m| &m.memory)
+        .chain(
+            evidence
+                .relationships
+                .iter()
+                .filter(|r| r.quote.is_some())
+                .flat_map(|r| &r.memories)
+                .filter(|m| m.reference.span.is_some()),
+        )
 }
 
 pub fn evaluate_identity_pair(
@@ -212,12 +215,23 @@ fn validate_output(
         }
         if outcome != IdentityOutcome::Unresolved {
             let words = words(fact);
-            let side = pair.side(citation.side);
+            let side = pair.side(citation.side());
+            let mention = match citation {
+                IdentityCitation::Mention { mention, .. } => {
+                    Some(&side.mentions[usize::from(mention)])
+                }
+                IdentityCitation::Relationship { .. } => None,
+            };
             facts.push(CitedFact {
-                side: citation.side,
+                side: citation.side(),
+                endpoint: &side.endpoint,
+                mention,
+                quote,
                 relationship,
                 memory,
-                anchors: distinguishing_names(side, relationship, &words),
+                anchors: relationship
+                    .map(|r| distinguishing_names(side, r, &words))
+                    .unwrap_or_default(),
                 excerpt: fact,
                 bearing,
                 words,
@@ -230,7 +244,7 @@ fn validate_output(
     }
     if ![IdentitySide::Left, IdentitySide::Right]
         .into_iter()
-        .all(|side| citations.iter().any(|c| c.side == side))
+        .all(|side| citations.iter().any(|c| c.side() == side))
     {
         return Err(invalid("affirmative identity decision requires both sides"));
     }
@@ -275,7 +289,10 @@ enum Bearing {
 
 struct CitedFact<'a> {
     side: IdentitySide,
-    relationship: &'a IdentityRelationshipEvidence,
+    endpoint: &'a IdentityEntityEvidence,
+    mention: Option<&'a IdentityMentionEvidence>,
+    quote: &'a str,
+    relationship: Option<&'a IdentityRelationshipEvidence>,
     memory: &'a IdentityObservedMemory,
     anchors: BTreeSet<Vec<String>>,
     excerpt: &'a str,
@@ -285,17 +302,20 @@ struct CitedFact<'a> {
 
 impl CitedFact<'_> {
     fn is_participant_label(&self) -> bool {
-        self.relationship.participants.iter().any(|participant| {
-            names(&participant.entity)
-                .chain(participant.roles.iter().map(String::as_str))
-                .any(|label| words(label) == self.words)
-        })
+        self.relationship
+            .into_iter()
+            .flat_map(|r| &r.participants)
+            .any(|participant| {
+                names(&participant.entity)
+                    .chain(participant.roles.iter().map(String::as_str))
+                    .any(|label| words(label) == self.words)
+            })
     }
 
     fn cites_context(&self) -> bool {
         // A partial excerpt must carry context beyond an isolated value such as "v2".
         // A complete grounded witness can express a statement without whitespace.
-        let complete = self.relationship.quote.as_deref() == Some(self.excerpt);
+        let complete = self.quote == self.excerpt;
         let contextual_fragment = self
             .excerpt
             .split_whitespace()
@@ -306,34 +326,33 @@ impl CitedFact<'_> {
             && !self.words.is_empty()
             && !self.is_participant_label()
             && self
+                .mention
+                .is_none_or(|m| m.context_score_for(self.endpoint, self.excerpt) > 0)
+            && self
                 .relationship
-                .participants
-                .iter()
+                .into_iter()
+                .flat_map(|r| &r.participants)
                 .all(|p| words(&p.entity.kind) != self.words)
     }
 
     fn identifies_separate_referent(&self) -> bool {
         // A bare participant label or role is not an account of what distinguishes the pair.
         self.bearing == Bearing::Separation
+            && (self.mention.is_none() || self.cites_context())
             && !self.words.is_empty()
             && !self.is_participant_label()
     }
 
     // A short participant reference can also be grounded by its structured Relationship.
     fn shares_relationship_anchor(&self, other: &Self, pair: &IdentityPairEvidence) -> bool {
+        let (Some(left), Some(right)) = (self.relationship, other.relationship) else {
+            return false;
+        };
         (self.anchors.contains(&self.words) || self.cites_context())
             && (other.anchors.contains(&other.words) || other.cites_context())
             && !self.anchors.is_disjoint(&other.anchors)
-            && self
-                .relationship
-                .kind
-                .eq_ignore_ascii_case(&other.relationship.kind)
-            && compatible_roles(
-                pair.side(self.side),
-                self.relationship,
-                pair.side(other.side),
-                other.relationship,
-            )
+            && left.kind.eq_ignore_ascii_case(&right.kind)
+            && compatible_roles(pair.side(self.side), left, pair.side(other.side), right)
     }
 
     fn supports(
@@ -365,9 +384,9 @@ fn names(entity: &IdentityEntityEvidence) -> impl Iterator<Item = &str> {
 }
 
 fn parse_citation(row: &Value) -> Result<IdentityCitation, EntityResolverError> {
-    if row.as_object().is_none_or(|fields| fields.len() != 5) {
-        return Err(invalid("invalid identity citation object"));
-    }
+    let fields = row
+        .as_object()
+        .ok_or_else(|| invalid("invalid identity citation object"))?;
     let side = match required(row, "side")? {
         "left" => IdentitySide::Left,
         "right" => IdentitySide::Right,
@@ -379,11 +398,18 @@ fn parse_citation(row: &Value) -> Result<IdentityCitation, EntityResolverError> 
             .and_then(|v| u16::try_from(v).ok())
             .ok_or_else(|| invalid("invalid identity citation index"))
     };
-    Ok(IdentityCitation {
-        side,
-        relationship: index("relationship")?,
-        memory: index("memory")?,
-    })
+    match (fields.contains_key("mention"), fields.len()) {
+        (true, 4) => Ok(IdentityCitation::Mention {
+            side,
+            mention: index("mention")?,
+        }),
+        (false, 5) => Ok(IdentityCitation::Relationship {
+            side,
+            relationship: index("relationship")?,
+            memory: index("memory")?,
+        }),
+        _ => Err(invalid("invalid identity citation object")),
+    }
 }
 
 fn unresolved(reason: IdentityReason, citations: Vec<IdentityCitation>) -> IdentityJudgment {

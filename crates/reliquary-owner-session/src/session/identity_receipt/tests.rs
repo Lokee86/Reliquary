@@ -4,10 +4,7 @@ use crate::{
     rewrite_memory_history_copy,
 };
 use reliquary_memory_core::{MemoryDraft, MemorySourceRef};
-use reliquary_perception_store::identity::{
-    IdentityCitation, IdentityEntityRevision, IdentityMemoryRef, IdentityRelationshipRef,
-    IdentitySpan,
-};
+use reliquary_perception_store::identity::IdentityEntityRevision;
 use reliquary_perception_store::{Entity, EntityDraft, MemoryTextField};
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -43,6 +40,7 @@ pub(in crate::session) fn unresolved(owner: [u8; 16], entity: &Entity) -> Identi
         endpoint_revision: entity.revision,
         relationships: vec![],
         limit: None,
+        mentions: vec![],
     };
     IdentityReceipt {
         pair: IdentityPair {
@@ -62,6 +60,128 @@ pub(in crate::session) fn unresolved(owner: [u8; 16], entity: &Entity) -> Identi
         reason: IdentityReason::InsufficientEvidence,
         citations: vec![],
     }
+}
+
+fn fixture_source_memory(writer: &mut RelWriter) -> reliquary_memory_core::MemoryRecord {
+    let owner = crate::session::perception_lifecycle::support::owner_hex(&OWNER);
+    let memory = writer
+        .session
+        .common
+        .memories
+        .publish_versioned_creation(
+            &mut writer.container,
+            MemoryDraft {
+                title: "Accepted source".into(),
+                content: QUOTE.into(),
+                category: "fact".into(),
+                memory_type: "project".into(),
+                authority_kind: "direct".into(),
+                temporal_status: "current".into(),
+                scope: "project".into(),
+                lifecycle_state: "current".into(),
+                archived: false,
+                parent_id: None,
+                superseded_by: None,
+                source_node_id: None,
+                content_source_conversation_id: None,
+                content_source_node_id: None,
+                grounding_source_conversation_id: None,
+                grounding_source_node_id: None,
+                source_episode_id: None,
+                source_ref: Some(MemorySourceRef {
+                    owner_id: owner,
+                    principal_id: Some("principal-a".into()),
+                    source_episode_id: [7; 32],
+                    source_node_id: "accepted-turn".into(),
+                    content_source_conversation_id: Some("conversation".into()),
+                    content_source_node_id: Some("accepted-turn".into()),
+                    grounding_source_conversation_id: None,
+                    grounding_source_node_id: None,
+                }),
+                source_time_ns: Some(10),
+                temporal_inference: None,
+                mutation_id: "source-memory".into(),
+                created_at_ns: 10,
+                updated_at_ns: 10,
+            },
+            10,
+        )
+        .unwrap()
+        .revision
+        .record;
+    writer.session.writer_lease_proof = writer.container.writer_lease_proof();
+    memory
+}
+
+fn fixture_mention_reference(
+    memory: &reliquary_memory_core::MemoryRecord,
+    retained_ordinal: Option<u64>,
+) -> IdentityMentionRef {
+    IdentityMentionRef {
+        key: MemoryEntityMentionKey {
+            memory_id: memory.id.0,
+            field: MemoryTextField::Content,
+            start_byte: 0,
+            end_byte: 4,
+        },
+        revision: 1,
+        memory: IdentityMemoryRef {
+            id: memory.id.0,
+            revision: memory.revision,
+            body_id: memory.body_id.0,
+            span: Some(IdentitySpan {
+                field: MemoryTextField::Content,
+                start_byte: 0,
+                end_byte: QUOTE.len() as u32,
+            }),
+        },
+        retained_ordinal,
+    }
+}
+
+fn fixture_retained_resolution(
+    writer: &RelWriter,
+    reference: &IdentityMentionRef,
+    entity: &Entity,
+) -> Vec<u8> {
+    let mut row = b"RELERH01".to_vec();
+    row.extend_from_slice(&OWNER);
+    row.extend_from_slice(&writer.container.latest_version().to_le_bytes());
+    row.extend_from_slice(&reference.retained_ordinal.unwrap().to_le_bytes());
+    row.extend_from_slice(&reference.key.memory_id);
+    row.push(2); // Content
+    row.extend_from_slice(&reference.key.start_byte.to_le_bytes());
+    row.extend_from_slice(&reference.key.end_byte.to_le_bytes());
+    row.extend_from_slice(&reference.revision.to_le_bytes());
+    row.extend_from_slice(&11i64.to_le_bytes());
+    row.push(1); // Resolved
+    row.extend_from_slice(&entity.id.0);
+    row.push(3); // NamedReferent
+    row
+}
+
+fn fixture_mention(
+    writer: &mut RelWriter,
+    memory: &reliquary_memory_core::MemoryRecord,
+    entity: &Entity,
+) -> MemoryEntityResolution {
+    writer
+        .commit_entity_mention(EntityMentionCommit {
+            owner_id: OWNER,
+            memory_revision: memory.revision,
+            body_id: memory.body_id,
+            key: fixture_mention_reference(memory, None).key,
+            surface: "Mira".into(),
+            expected_revision: 0,
+            updated_at_ns: 11,
+            status: MemoryEntityResolutionStatus::Resolved {
+                entity_id: entity.id,
+                reason: EntityResolutionReason::NamedReferent,
+            },
+            target_revisions: vec![(entity.id, entity.revision)],
+            new_entity: None,
+        })
+        .unwrap()
 }
 
 fn distinct_successor(previous: &IdentityReceipt, fingerprint: [u8; 32]) -> IdentityReceipt {
@@ -303,53 +423,7 @@ fn grounded_receipt_survives_description_pruning_and_reclamation() {
     let mut writer = RelWriter::create_current_path(&source, OWNER).unwrap();
     let endpoint = fixture_entity(&mut writer, "Mira");
     let landmark = fixture_entity(&mut writer, "Lantern");
-    let owner = crate::session::perception_lifecycle::support::owner_hex(&OWNER);
-    let memory = writer
-        .session
-        .common
-        .memories
-        .publish_versioned_creation(
-            &mut writer.container,
-            MemoryDraft {
-                title: "Accepted source".into(),
-                content: QUOTE.into(),
-                category: "fact".into(),
-                memory_type: "project".into(),
-                authority_kind: "direct".into(),
-                temporal_status: "current".into(),
-                scope: "project".into(),
-                lifecycle_state: "current".into(),
-                archived: false,
-                parent_id: None,
-                superseded_by: None,
-                source_node_id: None,
-                content_source_conversation_id: None,
-                content_source_node_id: None,
-                grounding_source_conversation_id: None,
-                grounding_source_node_id: None,
-                source_episode_id: None,
-                source_ref: Some(MemorySourceRef {
-                    owner_id: owner,
-                    principal_id: Some("principal-a".into()),
-                    source_episode_id: [7; 32],
-                    source_node_id: "accepted-turn".into(),
-                    content_source_conversation_id: Some("conversation".into()),
-                    content_source_node_id: Some("accepted-turn".into()),
-                    grounding_source_conversation_id: None,
-                    grounding_source_node_id: None,
-                }),
-                source_time_ns: Some(10),
-                temporal_inference: None,
-                mutation_id: "source-memory".into(),
-                created_at_ns: 10,
-                updated_at_ns: 10,
-            },
-            10,
-        )
-        .unwrap()
-        .revision
-        .record;
-    writer.session.writer_lease_proof = writer.container.writer_lease_proof();
+    let memory = fixture_source_memory(&mut writer);
     let mut participants = [&endpoint, &landmark].map(|entity| RelationshipParticipantEvidence {
         entity_id: entity.id,
         entity_revision: entity.revision,
@@ -399,7 +473,7 @@ fn grounded_receipt_survives_description_pruning_and_reclamation() {
     receipt.outcome = IdentityOutcome::SameIdentity;
     receipt.reason = IdentityReason::Corroborated;
     receipt.citations = [IdentitySide::Left, IdentitySide::Right]
-        .map(|side| IdentityCitation {
+        .map(|side| IdentityCitation::Relationship {
             side,
             relationship: 0,
             memory: 0,
@@ -538,4 +612,273 @@ fn prepared_proof_rechecks_cut_and_exact_references_before_publication() {
     );
     drop(writer);
     assert_chain(&reopen(&source), &[budget]);
+}
+
+#[test]
+fn legacy_relationship_citations_and_evidence_keep_their_named_encoding() {
+    let legacy_citation = b"\x83\xa4side\xa4Left\xacrelationship\x02\xa6memory\x03";
+    let citation = IdentityCitation::Relationship {
+        side: IdentitySide::Left,
+        relationship: 2,
+        memory: 3,
+    };
+    assert_eq!(rmp_serde::to_vec_named(&citation).unwrap(), legacy_citation);
+    assert_eq!(
+        rmp_serde::from_slice::<IdentityCitation>(legacy_citation).unwrap(),
+        citation
+    );
+
+    let legacy_evidence = b"\x83\xb1endpoint_revision\x01\xadrelationships\x90\xa5limit\xc0";
+    let evidence = IdentityEvidenceRef {
+        endpoint_revision: 1,
+        relationships: vec![],
+        limit: None,
+        mentions: vec![],
+    };
+    assert_eq!(rmp_serde::to_vec_named(&evidence).unwrap(), legacy_evidence);
+    assert_eq!(
+        rmp_serde::from_slice::<IdentityEvidenceRef>(legacy_evidence).unwrap(),
+        evidence
+    );
+    assert_eq!(
+        serde_json::to_value(&evidence).unwrap(),
+        serde_json::json!({"endpoint_revision": 1, "relationships": [], "limit": null})
+    );
+}
+
+#[test]
+fn direct_mention_receipt_binds_its_excerpt_and_historical_resolution() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("mention.rel");
+    let mut writer = RelWriter::create_current_path(&source, OWNER).unwrap();
+    let endpoint = fixture_entity(&mut writer, "Mira");
+    let memory = fixture_source_memory(&mut writer);
+    let mention = fixture_mention(&mut writer, &memory, &endpoint);
+
+    let (basis, proof) = writer
+        .read_session()
+        .identity_evidence_with_proof(endpoint.id)
+        .unwrap()
+        .unwrap();
+    let mut receipt = unresolved(OWNER, &endpoint);
+    receipt.left = basis.references();
+    assert_eq!(receipt.left.mentions.len(), 1);
+    receipt.right = receipt.left.clone();
+    receipt.route = "a".repeat(64);
+    receipt.outcome = IdentityOutcome::SameIdentity;
+    receipt.reason = IdentityReason::Corroborated;
+    receipt.citations = [IdentitySide::Left, IdentitySide::Right]
+        .map(|side| IdentityCitation::Mention { side, mention: 0 })
+        .to_vec();
+    let original = receipt.left.mentions[0];
+    assert_eq!(original.key, mention.key);
+    assert_eq!(original.revision, mention.revision);
+
+    let mut forged = receipt.clone();
+    forged.left.mentions[0]
+        .memory
+        .span
+        .as_mut()
+        .unwrap()
+        .end_byte -= 1;
+    let extent = writer.container.extent().unwrap();
+    let error = writer
+        .publish_prepared_identity_receipt(forged.clone(), &proof)
+        .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("prepared local evidence changed")
+    );
+
+    let error = writer.publish_identity_receipt(forged).unwrap_err();
+    assert!(error.to_string().contains("local mention excerpt"));
+    assert_eq!(writer.container.extent().unwrap(), extent);
+    writer
+        .publish_prepared_identity_receipt(receipt.clone(), &proof)
+        .unwrap();
+
+    writer
+        .withdraw_entity_mention(WithdrawEntityMentionRequest {
+            owner_id: OWNER,
+            key: mention.key,
+            expected_mention_revision: mention.revision,
+            memory_id: memory.id,
+            memory_revision: memory.revision,
+            body_id: memory.body_id,
+            source_surface: "Mira".into(),
+            target_revisions: vec![(endpoint.id, endpoint.revision)],
+            withdrawn_at_ns: 12,
+        })
+        .unwrap();
+    let error = writer
+        .publish_identity_receipt(distinct_successor(&receipt, [2; 32]))
+        .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("local mention revision or endpoint")
+    );
+    drop(writer);
+
+    let reopened = reopen(&source);
+    assert_chain(&reopened, std::slice::from_ref(&receipt));
+    assert_eq!(
+        reopened
+            .retained_identity_mention_quote(endpoint.id, endpoint.revision, &original)
+            .unwrap()
+            .as_deref(),
+        Some(QUOTE)
+    );
+    let withdrawn = IdentityMentionRef {
+        revision: original.revision + 1,
+        ..original
+    };
+    assert_eq!(
+        reopened
+            .retained_identity_mention_quote(endpoint.id, endpoint.revision, &withdrawn)
+            .unwrap(),
+        None
+    );
+}
+
+#[test]
+fn full_replay_rejects_a_mention_first_resolved_after_publication() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("future-mention.rel");
+    let mut writer = RelWriter::create_current_path(&source, OWNER).unwrap();
+    let endpoint = fixture_entity(&mut writer, "Mira");
+    let memory = fixture_source_memory(&mut writer);
+    let mut receipt = unresolved(OWNER, &endpoint);
+    receipt
+        .left
+        .mentions
+        .push(fixture_mention_reference(&memory, None));
+    writer
+        .container
+        .append_publication_envelope(&encode(&receipt).unwrap(), None)
+        .unwrap();
+    writer.session.writer_lease_proof = writer.container.writer_lease_proof();
+    fixture_mention(&mut writer, &memory, &endpoint);
+    drop(writer);
+
+    let error = RelSession::open_path(&source, &admission(), [], [])
+        .err()
+        .unwrap();
+    assert!(
+        error
+            .to_string()
+            .contains("local mention revision or endpoint")
+    );
+}
+
+#[test]
+fn retained_resolution_receipt_binds_its_ordinal_and_survives_an_ordinary_override() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("retained-mention.rel");
+    let mut writer = RelWriter::create_current_path(&source, OWNER).unwrap();
+    let endpoint = fixture_entity(&mut writer, "Mira");
+    let memory = fixture_source_memory(&mut writer);
+    let reference = fixture_mention_reference(&memory, Some(7));
+    let row = fixture_retained_resolution(&writer, &reference, &endpoint);
+    writer.container.append(&row).unwrap();
+    writer.container.sync().unwrap();
+    drop(writer);
+
+    let mut writer = RelWriter::open_path(&source, admission(), [], []).unwrap();
+    let (basis, proof) = writer
+        .read_session()
+        .identity_evidence_with_proof(endpoint.id)
+        .unwrap()
+        .unwrap();
+    let mut receipt = unresolved(OWNER, &endpoint);
+    receipt.left = basis.references();
+    assert_eq!(receipt.left.mentions, [reference]);
+    receipt.citations = vec![IdentityCitation::Mention {
+        side: IdentitySide::Left,
+        mention: 0,
+    }];
+
+    let mut forged = receipt.clone();
+    forged.left.mentions[0].retained_ordinal = Some(6);
+    let error = writer
+        .publish_prepared_identity_receipt(forged.clone(), &proof)
+        .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("prepared local evidence changed")
+    );
+    let error = writer.publish_identity_receipt(forged).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("local mention revision or endpoint")
+    );
+
+    writer
+        .publish_prepared_identity_receipt(receipt.clone(), &proof)
+        .unwrap();
+    let live = fixture_mention(&mut writer, &memory, &endpoint);
+    assert_eq!(live.key, reference.key);
+    assert_eq!(live.revision, reference.revision);
+    let error = writer
+        .publish_identity_receipt(distinct_successor(&receipt, [2; 32]))
+        .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("local mention revision or endpoint")
+    );
+
+    let basis = writer
+        .read_session()
+        .identity_evidence(endpoint.id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        basis.references().mentions,
+        [fixture_mention_reference(&memory, None)]
+    );
+    drop(writer);
+
+    let reopened = reopen(&source);
+    assert_chain(&reopened, std::slice::from_ref(&receipt));
+    assert_eq!(
+        reopened
+            .retained_identity_mention_quote(endpoint.id, endpoint.revision, &reference)
+            .unwrap()
+            .as_deref(),
+        Some(QUOTE)
+    );
+}
+
+#[test]
+fn full_replay_rejects_a_retained_resolution_written_after_the_receipt() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("future-retained-mention.rel");
+    let mut writer = RelWriter::create_current_path(&source, OWNER).unwrap();
+    let endpoint = fixture_entity(&mut writer, "Mira");
+    let memory = fixture_source_memory(&mut writer);
+    let reference = fixture_mention_reference(&memory, Some(7));
+    let mut receipt = unresolved(OWNER, &endpoint);
+    receipt.left.mentions.push(reference);
+    // The later record claims the same source cut the receipt actually observed.
+    let row = fixture_retained_resolution(&writer, &reference, &endpoint);
+    writer
+        .container
+        .append_publication_envelope(&encode(&receipt).unwrap(), None)
+        .unwrap();
+    writer.container.append(&row).unwrap();
+    writer.container.sync().unwrap();
+    drop(writer);
+
+    let error = RelSession::open_path(&source, &admission(), [], [])
+        .err()
+        .unwrap();
+    assert!(
+        error
+            .to_string()
+            .contains("local mention revision or endpoint")
+    );
 }

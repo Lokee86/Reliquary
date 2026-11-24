@@ -91,6 +91,7 @@ pub(crate) fn side(owner: u8, lineage: u8, quote: &str) -> IdentityEvidence {
             quote: Some(quote.into()),
             quote_digest: [7; 32],
         }],
+        mentions: Vec::new(),
         limit: None,
     }
 }
@@ -140,6 +141,39 @@ fn pair_judgment_accepts_grounded_corroboration_and_preserves_uncertainty() {
     invalid["citations"][1]["memory"] = json!(1);
     assert!(evaluate_identity_pair(&pair, &Scripted::reply(invalid)).is_err());
     assert!(evaluate_identity_pair(&pair, &Scripted::reply(answer("invented fact"))).is_err());
+}
+
+#[test]
+fn direct_mention_and_relationship_can_corroborate_but_a_name_citation_cannot() {
+    let mut left = side(1, 1, QUOTE);
+    let witness = left.relationships.pop().unwrap().memories.remove(0);
+    left.mentions.push(IdentityMentionEvidence {
+        retained_ordinal: None,
+        key: reliquary_perception_store::MemoryEntityMentionKey {
+            memory_id: witness.reference.id,
+            field: MemoryTextField::Content,
+            start_byte: 0,
+            end_byte: "Alex Chen".len() as u32,
+        },
+        revision: 1,
+        memory: witness,
+        quote: QUOTE.to_owned(),
+    });
+    let pair = IdentityPairEvidence::new(left, side(2, 2, QUOTE));
+    let mut reply = answer(QUOTE);
+    reply["citations"][0] = json!({
+        "side":"left", "mention":0, "fact":QUOTE, "bearing":"corroborates_identity"
+    });
+    for (fact, expected) in [
+        (QUOTE, IdentityOutcome::SameIdentity),
+        ("Alex Chen", IdentityOutcome::Unresolved),
+    ] {
+        reply["citations"][0]["fact"] = json!(fact);
+        let decision = evaluate_identity_pair(&pair, &Scripted::reply(reply.clone())).unwrap();
+        assert_eq!(decision.outcome, expected);
+    }
+    reply["citations"][0]["mention"] = json!(1);
+    assert!(evaluate_identity_pair(&pair, &Scripted::reply(reply)).is_err());
 }
 
 #[test]

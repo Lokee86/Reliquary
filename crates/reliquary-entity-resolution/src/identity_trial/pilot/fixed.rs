@@ -1,6 +1,6 @@
 use super::{IdentityOutcome, IdentityPairEvidence, Trial, pilot_cases, start_trial};
 use crate::identity_trial::grounded_citations;
-use reliquary_perception_store::identity::IdentitySide;
+use reliquary_perception_store::identity::{IdentityCitation, IdentitySide};
 use reliquary_switchboard::{
     ConfiguredRoutes, DecisionConsumer, DecisionEndpoint, DecisionEndpointError, GeneralEndpoint,
     GeneralEndpointError,
@@ -27,14 +27,22 @@ impl GeneralEndpoint for QuoteFixture<'_> {
         let items: Vec<_> = grounded_citations(self.0)
             .into_iter()
             .map(|citation| {
-                let side = match citation.side {
+                let IdentityCitation::Relationship {
+                    side,
+                    relationship,
+                    memory,
+                } = citation
+                else {
+                    unreachable!("historical trial uses Relationships")
+                };
+                let side = match side {
                     IdentitySide::Left => "left",
                     IdentitySide::Right => "right",
                 };
                 json!({
                     "side": side,
-                    "relationship": citation.relationship,
-                    "memory": citation.memory,
+                    "relationship": relationship,
+                    "memory": memory,
                     "excerpt": self.0.quote(citation).expect("grounded source quote"),
                     "interpretation": "The excerpt is the full source quote."
                 })

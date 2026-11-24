@@ -3,6 +3,7 @@ use super::*;
 
 const REVISION: &[u8; 8] = b"RELERH01";
 const INERT: &[u8; 8] = b"RELERL01";
+const SOURCE_ORDINAL_OFFSET: usize = 8 + 16 + 8;
 
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RetainedUnresolvedEvidence {
@@ -53,21 +54,68 @@ pub struct RetainedResolutionRecord {
     pub value: RetainedResolutionValue,
 }
 
+impl RetainedResolutionRecord {
+    pub fn resolved(&self) -> Option<(&RetainedResolutionRevision, EntityId)> {
+        if let RetainedResolutionValue::Revision(revision) = &self.value
+            && let RetainedResolutionDecision::Resolved { entity_id, .. } = revision.decision
+        {
+            return Some((revision, entity_id));
+        }
+        None
+    }
+}
+
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(super) struct History {
     pub(super) records: Vec<RetainedResolutionRecord>,
     current: BTreeMap<MemoryEntityMentionKey, usize>,
+    #[serde(skip)]
+    revisions: std::sync::OnceLock<BTreeMap<(MemoryEntityMentionKey, u64), usize>>,
 }
 
 impl History {
+    pub(super) fn current_record(
+        &self,
+        key: MemoryEntityMentionKey,
+    ) -> Option<&RetainedResolutionRecord> {
+        self.current.get(&key).map(|&index| &self.records[index])
+    }
+
     pub(super) fn current(
         &self,
         key: MemoryEntityMentionKey,
     ) -> Option<&RetainedResolutionRevision> {
-        match &self.records[*self.current.get(&key)?].value {
+        match &self.current_record(key)?.value {
             RetainedResolutionValue::Revision(value) => Some(value),
             RetainedResolutionValue::Inert(_) => unreachable!("only revisions are indexed"),
         }
+    }
+
+    pub(super) fn current_records(&self) -> impl Iterator<Item = &RetainedResolutionRecord> {
+        self.current.values().map(|&index| &self.records[index])
+    }
+
+    pub(super) fn at_cut(
+        &self,
+        key: MemoryEntityMentionKey,
+        source_ordinal: u64,
+    ) -> Option<&RetainedResolutionRecord> {
+        let revisions = self.revisions.get_or_init(|| {
+            self.records
+                .iter()
+                .enumerate()
+                .filter_map(|(index, row)| match &row.value {
+                    RetainedResolutionValue::Revision(revision) => {
+                        Some(((revision.key, row.source_ordinal), index))
+                    }
+                    RetainedResolutionValue::Inert(_) => None,
+                })
+                .collect()
+        });
+        revisions
+            .range((key, 0)..=(key, source_ordinal))
+            .next_back()
+            .map(|(_, &index)| &self.records[index])
     }
 
     pub(super) fn accept(
@@ -101,6 +149,9 @@ impl History {
             } else {
                 self.current.insert(value.key, self.records.len());
             }
+            if let Some(revisions) = self.revisions.get_mut() {
+                revisions.insert((value.key, row.source_ordinal), self.records.len());
+            }
         }
         self.records.push(row);
         Ok(())
@@ -108,6 +159,15 @@ impl History {
 }
 
 type DecodedResolution = ([u8; 16], RetainedResolutionRecord);
+
+/// Read the source ordinal from the fixed header of an admitted Resolution carrier.
+pub fn retained_resolution_ordinal_in_frame(bytes: &[u8]) -> Result<Option<u64>, PerceptionError> {
+    if bytes.starts_with(REVISION) || bytes.starts_with(INERT) {
+        let mut at = SOURCE_ORDINAL_OFFSET;
+        return get_u64(bytes, &mut at).map(Some);
+    }
+    Ok(None)
+}
 
 pub(super) fn decode(bytes: &[u8]) -> Result<Option<DecodedResolution>, PerceptionError> {
     let inert = match bytes.get(..8) {
