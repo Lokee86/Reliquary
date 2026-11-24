@@ -200,7 +200,7 @@ impl WriterCheckpoint {
             .capture_checkpoint(self.prefix.as_ref())
             .map_err(io::Error::other)?;
         let parent = self.slot.parent().ok_or_else(invalid_cache)?;
-        let mut staged = tempfile::NamedTempFile::new_in(parent)?;
+        let mut staged = private_cache::stage(parent)?;
         staged.write_all(MAGIC)?;
         staged.write_all(&[0; 8])?;
         let mut pages = PageWriter::new(
