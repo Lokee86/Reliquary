@@ -932,7 +932,8 @@ fn unchanged_pair_is_reconsidered_after_automatic_policy_changes() {
         let mut previous = IdentityComparison::prepare(basis, "")
             .evaluate(pair, None, None)
             .unwrap();
-        previous.policy = 1;
+        // Keep the evidence and route fixed so only the comparison policy changes.
+        previous.policy = 2;
         a.publish_identity_receipt(previous).unwrap()
     };
 
@@ -959,7 +960,7 @@ fn unchanged_pair_is_reconsidered_after_automatic_policy_changes() {
     };
     wait_revision(&work, ae, b, be, 2);
     let new = inspect(None).receipt;
-    assert!(new.policy > previous.policy);
+    assert_eq!(new.policy, 3);
     assert_eq!(new.predecessor, Some(previous.revision));
     assert_eq!(
         (new.fingerprint, new.route),

@@ -4,7 +4,7 @@ Parent index: [Planning](./INDEX.md)
 
 ## Purpose
 
-Give each model request one job. Core currently asks one Entity model to interpret quotes, reach a verdict and justify it in the same response. The proposed evaluator first interprets the sources, then asks a decision model for a provisional verdict, then asks it to select the evidence supporting that verdict. An unsupported affirmative proposal must leave the pair unresolved. This proposal is at the trial stage. [Current evaluator](../../crates/reliquary-entity-resolution/src/identity_evaluator.rs) · [Trial evidence](../acceptance/cross-rel-entity-identity-2026-11-23.md#three-call-trial)
+Give each model request one job. Core currently asks one Entity model to interpret quotes, reach a verdict and justify it in the same response. The proposed evaluator first interprets the sources, then asks a decision model for a provisional verdict, then asks it to select the evidence supporting that verdict. An unsupported affirmative proposal must leave the pair unresolved. The staged design was evaluated as a test-only alternative. Policy 3 retains one call in production. [Decision and verification](../acceptance/cross-rel-entity-identity-2026-11-23.md#one-call-comparison-policy-3) [Current evaluator](../../crates/reliquary-entity-resolution/src/identity_evaluator.rs) · [Trial evidence](../acceptance/cross-rel-entity-identity-2026-11-23.md#three-call-trial)
 
 ## Overview
 
@@ -37,7 +37,7 @@ For the initial integration, hold the selector continuation in the live Gateway 
 4. Bump the automatic comparison policy and replace the old evaluator in one integration change. Keep existing 2.1 receipt records readable with their original policies, revisions and citations. Reconsider recorded pairs on ordinary authorized use and append a successor on the current chain. Keep the single Root comparison interface, independent peer authorization and owner file format.
 5. Before release run the public cold-reopen fixture with a read-only peer, the paused-revocation/route-replacement publication case, a failed-selector retry with invocation counts, and receipt-history inspection. Run the locked offline workspace checks. The old one-call implementation remains the production path until the pilot's false positives and the integration gates are resolved.
 
-## Next trial before promotion
+## Historical trial follow-up
 
 The [same-model control](../acceptance/cross-rel-entity-identity-2026-11-23.md#same-model-control) tied at 4/4 in both runs, with more calls for the staged evaluator. Freeze the original quotes and Sol interpretations for the missed summit and software pairs. Vary only how Jev receives the verdict question, so its ability to distinguish the three outcomes can be measured separately from interpretation. For support selection, keep the provisional verdict fixed and change one source from a genuinely distinguishing fact to an incidental attribute. Check whether that specific item's rank and selection change. Repeat the paired test on fresh examples before adopting a request shape or a minimum score. Preserve valid empty support as unresolved and malformed or unavailable support as pending.
 

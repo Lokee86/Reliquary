@@ -116,6 +116,24 @@ A diagnostic repeat of the two cases with rejected responses used the same promp
 
 This is one paired measurement on a balanced, authored set. Real REL pair frequencies, multiple-witness attribution, and the Jev decision route are outside this score. Results compare two complete evaluators, including their different citation requirements. Production uses the one-call evaluator.
 
+### One-call comparison policy 3
+
+Policy 3 keeps the existing Entity route. One model request judges the evidence and supplies its citations. Core checks every selected excerpt against its own source, verifies the indexed witnesses and their independent lineages, and requires compatible Entity kinds for a match. Two contextual excerpts can corroborate an identifying fact using different wording, Relationship kinds, roles, or named participants. The model judges the meaning of those excerpts. A compact named participant reference can still be supported by the recorded Relationships. Duplicate citations are invalid and prevent publication.
+
+Replaying the saved first one-call responses from the 24-pair comparison isolates the validator change. The same 23 well-formed responses now all settle to their labels, including the yard, renamed application and meter. The two same-named libraries still produce an invalid response because the saved answer repeats both witness positions. The public upgrade test seeds an earlier policy 2 receipt and observes a policy 3 successor from ordinary authorized use with its predecessor still inspectable. [Replay fixture](../../crates/reliquary-entity-resolution/src/identity_trial/pilot/held_out_one_call_replies.json) · [Public receipt test](../../tests/entity_identity.rs)
+
+The first live check after loosening the wording rule recovered the three paraphrased matches and produced a false match on `thorn` (23/24 on the comparison cases, 6/6 on regressions). The artwork descriptions shared a venue and appearance, while one witness could not identify the artist or exhibition. The final prompt asks Sol to consider whether separate referents reasonably fit both complete accounts and to preserve each source's qualifications.
+
+| Final one-call prompt, first attempts | Correct settled outcomes | Rejected responses |
+| --- | ---: | ---: |
+| Prior 24 comparison cases | 24/24 | 0 |
+| Six reused regression examples | 5/6 | 0 |
+| Four new pre-labeled cases | 4/4 | 0 |
+
+Each pair used one signed-in `gpt-5.6-sol` call at low effort. The final prompt kept the artworks unresolved. Its miss was the corroborated contract signatory. Sol itself returned unresolved with an empty citation list, so citation validation did not change its verdict. The new cases covered a rescue described from two perspectives, two pieces of equipment operating or disabled at different locations, two plausible market sellers, and conflicting reports about a choir. The prior 24 were already known during this change. The four new pairs were labeled before they were evaluated. [New cases and rationales](../../crates/reliquary-entity-resolution/src/identity_trial/pilot/corroboration.json)
+
+Repeating the artwork and signatory examples reproduced both final outcomes. The six-case regression fixture presents each witness as `recorded_in` with generic roles. A separate two-call control supplied the public fixture's actual Relationship kinds and roles and retained the earlier briefing. With A as signatory and B as attendee, Sol returned unresolved. After B also gained a signature, Sol returned same and cited A's signature (Relationship 0) and B's new signature (Relationship 1), with exact excerpts on both sides. These two observations are raw model responses. The public integration test independently exercises Core validation, persistence and reopening with a scripted endpoint. [Public evidence-change fixture](../../tests/entity_identity.rs)
+
 ### Real REL inventory
 
 The 128-Memory Insomnia calibration set contains 313 labeled Entity mentions. Its annotations identify mention spans. Scoring a cross-REL comparison also requires an expected pair judgment and independent grounded witnesses.
@@ -131,6 +149,8 @@ For an intentional live run, set `RELIQUARY_IDENTITY_TRIAL_CONFIG` to the existi
 For the same-model control, use the same profile and signed-in client settings and run `cargo test -p reliquary-entity-resolution --locked --offline --lib same_model_on_authored_pairs -- --ignored --nocapture`. This test binds Switchboard's general decision adapter to the exact general endpoint used by the baseline and interpretation. It produces plain verdict and support choices. Each call runs in a fresh Codex session at low reasoning effort.
 
 For the expanded same-model comparison, run the same Cargo command with `same_model_on_held_out_pairs` or `same_model_on_regression_pairs`. Each filter runs its whole set by default. To repeat specific cases, set `RELIQUARY_TRIAL_CASES` to their comma-separated IDs. The harness prints every outcome and both scores before checking completeness and agreement with the labels. Either a missing judgment or a wrong settled outcome fails the labeled trial. [Corpus runner](../../crates/reliquary-entity-resolution/src/identity_trial/pilot/corpus.rs)
+
+To run policy 3 alone on the 24 comparison cases, six reused examples and four new cases, use the same configured pilot settings and the filter `one_call_on_synthetic_pairs`. Set `RELIQUARY_TRIAL_CASES` to select a subset. The default offline package suite replays the saved responses without contacting any model.
 
 ## Related docs
 

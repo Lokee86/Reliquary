@@ -15,7 +15,7 @@ use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
-pub const IDENTITY_COMPARISON_POLICY: u32 = 2;
+pub const IDENTITY_COMPARISON_POLICY: u32 = 3;
 const MAX_IDENTITY_CITATIONS: usize = 16;
 const MAX_FACT_BYTES: usize = 512;
 const IDENTITY_SYSTEM_PROMPT: &str = concat!(
@@ -27,6 +27,8 @@ const IDENTITY_SYSTEM_PROMPT: &str = concat!(
     "same participant do not establish identity. Return related_distinct with reason distinct only ",
     "when independently grounded evidence identifies two separate referents. Consider whether ",
     "one referent could fit both accounts, including changes over time or a source error. ",
+    "For same_identity also test the alternative: could two separate referents reasonably fit ",
+    "both complete accounts? If so, choose unresolved. Preserve each witness's qualifications. ",
     "Classify each exact excerpt: corroborates_identity for a distinguishing fact shared by ",
     "the endpoints, separates_referents when ",
     "it identifies its endpoint in evidence distinguishing the two, describes_referent for an ",
@@ -35,8 +37,10 @@ const IDENTITY_SYSTEM_PROMPT: &str = concat!(
     "conflict anywhere in the supplied evidence and cite the conflict. For affirmative judgments provide ",
     "citations to both sides. Use zero-based Relationship and Memory positions, citing only ",
     "grounded Memories. The fact in each citation must be an exact excerpt from the cited quote ",
-    "with the context that supports your judgment. For same_identity select the same ",
-    "distinguishing phrase naming a non-endpoint participant on both sides. For uncertainty return unresolved with reason ",
+    "with the context that supports your judgment. Cite each witness position at most once. ",
+    "For same_identity, choose each source's own words showing how its endpoint is identified. ",
+    "The two excerpts may express the identifying fact differently. A collection of ordinary ",
+    "similarities or a shared setting alone is insufficient. For uncertainty return unresolved with reason ",
     "insufficient_evidence, ambiguity, or conflict. Citations can be empty for unresolved."
 );
 
@@ -214,6 +218,7 @@ fn validate_output(
                 relationship,
                 memory,
                 anchors: distinguishing_names(side, relationship, &words),
+                excerpt: fact,
                 bearing,
                 words,
             });
@@ -273,20 +278,62 @@ struct CitedFact<'a> {
     relationship: &'a IdentityRelationshipEvidence,
     memory: &'a IdentityObservedMemory,
     anchors: BTreeSet<Vec<String>>,
+    excerpt: &'a str,
     bearing: Bearing,
     words: Vec<String>,
 }
 
 impl CitedFact<'_> {
+    fn is_participant_label(&self) -> bool {
+        self.relationship.participants.iter().any(|participant| {
+            names(&participant.entity)
+                .chain(participant.roles.iter().map(String::as_str))
+                .any(|label| words(label) == self.words)
+        })
+    }
+
+    fn cites_context(&self) -> bool {
+        // A partial excerpt must carry context beyond an isolated value such as "v2".
+        // A complete grounded witness can express a statement without whitespace.
+        let complete = self.relationship.quote.as_deref() == Some(self.excerpt);
+        let contextual_fragment = self
+            .excerpt
+            .split_whitespace()
+            .filter(|part| part.chars().any(char::is_alphanumeric))
+            .nth(1)
+            .is_some();
+        (complete || contextual_fragment)
+            && !self.words.is_empty()
+            && !self.is_participant_label()
+            && self
+                .relationship
+                .participants
+                .iter()
+                .all(|p| words(&p.entity.kind) != self.words)
+    }
+
     fn identifies_separate_referent(&self) -> bool {
         // A bare participant label or role is not an account of what distinguishes the pair.
         self.bearing == Bearing::Separation
             && !self.words.is_empty()
-            && self.relationship.participants.iter().all(|participant| {
-                names(&participant.entity)
-                    .chain(participant.roles.iter().map(String::as_str))
-                    .all(|label| words(label) != self.words)
-            })
+            && !self.is_participant_label()
+    }
+
+    // A short participant reference can also be grounded by its structured Relationship.
+    fn shares_relationship_anchor(&self, other: &Self, pair: &IdentityPairEvidence) -> bool {
+        (self.anchors.contains(&self.words) || self.cites_context())
+            && (other.anchors.contains(&other.words) || other.cites_context())
+            && !self.anchors.is_disjoint(&other.anchors)
+            && self
+                .relationship
+                .kind
+                .eq_ignore_ascii_case(&other.relationship.kind)
+            && compatible_roles(
+                pair.side(self.side),
+                self.relationship,
+                pair.side(other.side),
+                other.relationship,
+            )
     }
 
     fn supports(
@@ -302,18 +349,8 @@ impl CitedFact<'_> {
             IdentityOutcome::SameIdentity => {
                 self.bearing == Bearing::Corroboration
                     && other.bearing == Bearing::Corroboration
-                    && !self.anchors.is_disjoint(&other.anchors)
-                    && self.words == other.words
-                    && self
-                        .relationship
-                        .kind
-                        .eq_ignore_ascii_case(&other.relationship.kind)
-                    && compatible_roles(
-                        pair.side(self.side),
-                        self.relationship,
-                        pair.side(other.side),
-                        other.relationship,
-                    )
+                    && ((self.cites_context() && other.cites_context())
+                        || self.shares_relationship_anchor(other, pair))
             }
             IdentityOutcome::RelatedDistinct => {
                 self.identifies_separate_referent() && other.identifies_separate_referent()

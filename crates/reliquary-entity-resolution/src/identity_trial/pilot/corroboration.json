@@ -1,0 +1,50 @@
+[
+  {
+    "id": "sluice",
+    "kind": "person",
+    "left_name": "Nera Pell",
+    "right_name": "Nera Dain",
+    "left_context": "Glassfen Spillway",
+    "right_context": "Glassfen dam",
+    "left": "The rescue log names Nera Pell as the sole diver who freed both trapped surveyors from the intake beneath Glassfen Spillway during the 2006 flood.",
+    "right": "Interviewed about the 2006 flood at Glassfen dam, surveyor Eda Roan credits Nera Dain with swimming alone into the water inlet to pull her and her field partner clear.",
+    "expected": "same_identity",
+    "rationale": "The rescue log and survivor independently identify one diver who rescued the two surveyors at the Glassfen intake in the 2006 flood. The records describe that singular act in different language."
+  },
+  {
+    "id": "capstan",
+    "kind": "device",
+    "left_name": "Tern",
+    "right_name": "Tern",
+    "left_context": "Marl Quay",
+    "right_context": "Lantern Pier",
+    "left": "While the pier crew tested its own capstan across the harbor, the Marl Quay inspector stopped the quay's Tern to replace its cracked drum.",
+    "right": "The Lantern Pier electrician certified the pier's Tern under load while the other Tern at Marl Quay sat idle with its drum removed.",
+    "expected": "related_distinct",
+    "rationale": "Both records describe separate capstans at the same time. One was out of service at the quay while the other ran under load at the pier."
+  },
+  {
+    "id": "till",
+    "kind": "organization",
+    "left_name": "Ember Bakers",
+    "right_name": "Ember Bakery Collective",
+    "left_context": "Flint Arcade",
+    "right_context": "Flint Arcade",
+    "left": "A market notice lists Ember Bakers among the rye bread sellers at Flint Arcade's Saturday market.",
+    "right": "A shopper's review recommends the Ember Bakery Collective for its rye loaves at the Saturday market in Flint Arcade.",
+    "expected": "unresolved",
+    "rationale": "A similar name, a shared market, and a common product could describe one seller or two separate sellers."
+  },
+  {
+    "id": "charter",
+    "kind": "organization",
+    "left_name": "Lowmere Choir",
+    "right_name": "Lowmere Choir",
+    "left_context": "Alder Ward",
+    "right_context": "Cairn Ward",
+    "left": "A 1940 town directory gives Alder Ward as the founding location of Lowmere Choir.",
+    "right": "An undated anniversary flyer says Lowmere Choir was founded in Cairn Ward.",
+    "expected": "unresolved",
+    "rationale": "The shared name supplies little corroboration. The conflicting locations could reflect a mistake or different choirs."
+  }
+]

@@ -9,13 +9,13 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 const CONTRACT: &str = "Project Meridian Contract";
 const QUOTE: &str = "Alex Chen signed Project Meridian Contract.";
 
-struct Scripted {
+pub(crate) struct Scripted {
     calls: AtomicUsize,
     output: Value,
 }
 
 impl Scripted {
-    fn reply(output: Value) -> Self {
+    pub(crate) fn reply(output: Value) -> Self {
         Self {
             calls: AtomicUsize::new(0),
             output,
@@ -209,6 +209,14 @@ fn affirmative_answers_require_distinguishing_facts_beyond_generic_roles() {
         citation["bearing"] = json!("separates_referents");
     }
     let two_contracts = IdentityPairEvidence::new(left.clone(), harbor_contract);
+    let mut same = answer(CONTRACT);
+    same["citations"][1]["fact"] = json!("Harbor Contract");
+    assert_eq!(
+        evaluate_identity_pair(&two_contracts, &Scripted::reply(same))
+            .unwrap()
+            .outcome,
+        IdentityOutcome::Unresolved
+    );
     let judgment =
         evaluate_identity_pair(&two_contracts, &Scripted::reply(distinct.clone())).unwrap();
     assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
@@ -293,6 +301,33 @@ fn distinction_requires_independent_sources_identifying_separate_referents() {
     let judgment = evaluate(&pair, &separate);
     assert_eq!(judgment.outcome, IdentityOutcome::Unresolved);
     assert_eq!(judgment.reason, IdentityReason::Conflict);
+}
+
+#[test]
+fn independently_worded_witnesses_can_corroborate_across_relationships() {
+    let left_quote = "Alex Chen founded the Glasslight Quartet under the stage name Vale.";
+    let right_quote = "At its first concert, Glasslight's founder introduced herself as Alex Chen, performing as Vale.";
+    let mut left = side(1, 1, left_quote);
+    let mut right = side(2, 2, right_quote);
+    left.relationships[0].kind = "founded".into();
+    left.relationships[0].participants[0].roles = vec!["founder".into()];
+    left.relationships[0].participants[1].entity.canonical_name = "Glasslight Quartet".into();
+    right.relationships[0].kind = "appeared_at".into();
+    right.relationships[0].participants[0].roles = vec!["performer".into()];
+    right.relationships[0].participants[1].entity.canonical_name = "first concert".into();
+    let pair = IdentityPairEvidence::new(left, right);
+    let mut reply = answer("founded the Glasslight Quartet under the stage name Vale");
+    reply["citations"][1]["fact"] =
+        json!("Glasslight's founder introduced herself as Alex Chen, performing as Vale");
+    let judge = |reply| {
+        evaluate_identity_pair(&pair, &Scripted::reply(reply))
+            .unwrap()
+            .outcome
+    };
+
+    assert_eq!(judge(reply.clone()), IdentityOutcome::SameIdentity);
+    reply["citations"][1]["bearing"] = json!("describes_referent");
+    assert_eq!(judge(reply), IdentityOutcome::Unresolved);
 }
 
 #[test]
