@@ -19,6 +19,10 @@ Unresolved future corrections and their acceptance boundaries.
 - [cross-rel-entity-staged-evaluation-2026-11-23.md](cross-rel-entity-staged-evaluation-2026-11-23.md) - Three-call identity evaluation, pre-cutover trial and acceptance gates.
 - [leiden-community-recomputation-plan-2026-11-18.md](leiden-community-recomputation-plan-2026-11-18.md) - Leiden implementation order and copied-REL acceptance.
 - [leiden-community-recomputation-spec-2026-11-18.md](leiden-community-recomputation-spec-2026-11-18.md) - Leiden recomputation contract and compatibility.
+- [memory-web-audit-plan-2026-11-24.md](memory-web-audit-plan-2026-11-24.md) - Shared audit implementation sequence and focused acceptance.
+
+- [memory-web-audit-spec-2026-11-24.md](memory-web-audit-spec-2026-11-24.md) - Shared Ego and Perception audit, older Memory sampling and Observation publication.
+
 - [owner-history-migration-plan-2026-11-18.md](owner-history-migration-plan-2026-11-18.md) - Work sequence and acceptance for the original 28-day owner pair.
 - [owner-history-migration-spec-2026-11-18.md](owner-history-migration-spec-2026-11-18.md) - Offline history migration and independent verification for native 2.1 owners.
 - [rel-checkpoint-open-plan-2026-11-20.md](rel-checkpoint-open-plan-2026-11-20.md) - REL checkpoint and Hermes mount implementation order and acceptance.

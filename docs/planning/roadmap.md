@@ -26,7 +26,7 @@ Core supports explicit, reversible operator confirmation for a selected cross-RE
 
 Ego and Perception will use the same audit code for bounded batches, coverage of selected Memories, optional authorized REL search and source references. Each crate supplies its own extraction contract. Ego extracts candidate subjects for summaries. Perception extracts candidate propositions for evidence review before publication, including Relationships between Entities.
 
-Perception periodically includes a small, rotating sample of Stale and Dormant Memories directly in its audit batches, even when recent Memories could fill the budget. Either feature can search for older evidence when following a lead. [Historical Ego audit plan](https://github.com/Lokee86/Reliquary/blob/2b5bd0eabfbac0a85f899d7d730220b5e8e93efa/docs/ego-service-crate-extraction-spec-2026-10-28.md#L55-L65)
+Perception periodically includes a small, rotating sample of Stale and Dormant Memories directly in its audit batches, even when recent Memories could fill the budget. Either feature can search for older evidence when following a lead. [Historical Ego audit plan](https://github.com/Lokee86/Reliquary/blob/2b5bd0eabfbac0a85f899d7d730220b5e8e93efa/docs/ego-service-crate-extraction-spec-2026-10-28.md#L55-L65) · [Shared audit and Observation specification](memory-web-audit-spec-2026-11-24.md) · [Implementation plan](memory-web-audit-plan-2026-11-24.md)
 
 ## Implementation sequence and acceptance
 
