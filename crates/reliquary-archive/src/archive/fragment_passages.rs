@@ -1,10 +1,19 @@
 //! Source-bound passages for Archive windows that exceed the embedding budget.
 use super::*;
-use crate::{Fragment, FragmentDefinition, FragmentId, FragmentPassage};
+use crate::{
+    Fragment, FragmentDefinition, FragmentId, FragmentPassage,
+    embedding_redaction::redact_embedding_range,
+};
 use std::{collections::BTreeSet, ops::Range};
 
 /// UTF-8 bytes, including role labels and separators in the embedding input.
 const PASSAGE_BYTES: usize = 12_000;
+
+struct FragmentTextRange<'a> {
+    node: &'a Node,
+    text: Arc<String>,
+    range: Range<usize>,
+}
 
 impl Archive {
     /// Publish all passages for the supplied, already accepted fragment windows.
@@ -170,21 +179,21 @@ impl Archive {
         Ok(())
     }
 
-    /// Render the exact passage or whole fragment used by Archive embeddings.
+    /// Render the source passage for Archive inference with detected sensitive values redacted.
     pub fn fragment_embedding_text(
         &self,
         fragment: &Fragment,
         max_bytes: usize,
     ) -> Result<String, ArchiveError> {
-        let turns = self.fragment_source_text(fragment, max_bytes)?;
+        let turns = self.fragment_text_ranges(fragment, max_bytes)?;
         let mut output = String::new();
-        for (node, body) in turns {
+        for FragmentTextRange { node, text, range } in turns {
             if !output.is_empty() {
                 output.push('\n');
             }
-            output.push_str(&node.role);
+            output.push_str(&crate::redact_embedding_text(&node.role));
             output.push_str(": ");
-            output.push_str(&body);
+            output.push_str(&redact_embedding_range(&text, range));
             if output.len() > max_bytes {
                 return Err(ArchiveError::EvidenceLimitExceeded);
             }
@@ -197,6 +206,25 @@ impl Archive {
         fragment: &Fragment,
         max_bytes: usize,
     ) -> Result<Vec<(&Node, Arc<String>)>, ArchiveError> {
+        Ok(self
+            .fragment_text_ranges(fragment, max_bytes)?
+            .into_iter()
+            .map(|FragmentTextRange { node, text, range }| {
+                let text = if range.start == 0 && range.end == text.len() {
+                    text
+                } else {
+                    Arc::new(text[range].to_owned())
+                };
+                (node, text)
+            })
+            .collect())
+    }
+
+    fn fragment_text_ranges(
+        &self,
+        fragment: &Fragment,
+        max_bytes: usize,
+    ) -> Result<Vec<FragmentTextRange<'_>>, ArchiveError> {
         let nodes = self.fragment_nodes(fragment)?;
         let mut source = Vec::with_capacity(nodes.len());
         let mut bytes = 0usize;
@@ -214,12 +242,10 @@ impl Archive {
             let text = self
                 .content_for_node(&node.conversation_id, &node.id)?
                 .ok_or(ArchiveError::MissingContent)?;
-            let text = if range.start == 0 && range.end == length {
-                text
-            } else {
-                Arc::new(text.get(range).ok_or(invalid_passage())?.to_owned())
-            };
-            source.push((*node, text));
+            if text.get(range.clone()).is_none() {
+                return Err(invalid_passage());
+            }
+            source.push(FragmentTextRange { node, text, range });
         }
         Ok(source)
     }

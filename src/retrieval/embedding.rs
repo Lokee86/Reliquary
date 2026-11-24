@@ -1,5 +1,6 @@
 use super::{ConfiguredRuntime, GatewayError, Instance, OwnerId};
 use reliquary_application::prepare_compatibility_profile;
+use reliquary_archive::redact_embedding_text;
 use reliquary_switchboard::EmbeddingEndpoint;
 use reliquary_vectors::{SwitchboardEmbeddingEndpoint, compare_profiles, embed_batch_bounded};
 use std::sync::Arc;
@@ -53,10 +54,14 @@ impl Instance {
             }
             profile
         };
+        let query = match scope {
+            EmbeddingScope::Memory => query.to_owned(),
+            EmbeddingScope::Archive => redact_embedding_text(query).into_owned(),
+        };
         let mut vectors = embed_batch_bounded(
             &endpoint,
             reliquary_vectors::EmbeddingMode::Query,
-            &[query.to_owned()],
+            &[query],
             8 << 20,
         )
         .map_err(|_| GatewayError::Retrieval("query embedding failed".into()))?;

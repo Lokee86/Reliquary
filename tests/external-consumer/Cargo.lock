@@ -3109,6 +3109,7 @@ name = "reliquary-archive"
 version = "0.1.0"
 dependencies = [
  "aho-corasick",
+ "regex",
  "reliquary-container",
  "serde",
  "serde_json",

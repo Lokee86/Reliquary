@@ -111,7 +111,7 @@ For incremental copied-source import, `from_hermes_copy_extension(snapshot, pred
 With an open native import and an accepted source receipt, the REL operator can call
 `Instance::publish_native_import_archive_vectors(owner, import_id, endpoint)` to publish Archive vectors for the current accepted REL cut.
 The specified embedding endpoint must support bounded requests. The receipt records the compatibility profile,
-generation ID, source Archive version, and searchable fragment count. Eight-turn windows use two-turn overlap. Windows above 12,000 UTF-8 bytes, including role labels, are split into separately embedded passages. The splitter keeps complete turns together where they fit and cuts within an oversized individual turn at a UTF-8 boundary, favoring nearby whitespace. This call leaves the import available for later
+generation ID, source Archive version, and searchable fragment count. Eight-turn windows use two-turn overlap. Windows above 12,000 UTF-8 bytes, including role labels, are split into separately embedded passages. The splitter keeps complete turns together where they fit and cuts within an oversized individual turn at a UTF-8 boundary, favoring nearby whitespace. Archive embedding documents and configured Archive query embeddings use locally redacted text. Supported PII and credential patterns are replaced with typed placeholders before inference. Name and address matching depends on recognizable context or formatting. Archive citations and lexical search use the original source text. This call leaves the import available for later
 semantic processing and does not bind its semantic processing plan.
 
 ## Bounded inspection and Community projections

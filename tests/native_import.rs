@@ -192,6 +192,7 @@ fn archive_vectors_publish_through_a_staged_import_without_processing() {
     struct Endpoint {
         calls: AtomicUsize,
         archive_calls: AtomicUsize,
+        redacted_documents: AtomicUsize,
     }
     impl EmbeddingEndpoint for Endpoint {
         fn dimensions(&self) -> u32 {
@@ -226,6 +227,16 @@ fn archive_vectors_publish_through_a_staged_import_without_processing() {
                 if text.starts_with("user: ") {
                     assert_eq!(mode, SwitchboardEmbeddingMode::Document);
                     assert!(text.len() <= 12_000);
+                    assert!(!text.contains("dev@example.invalid"));
+                    assert!(!text.contains("604-555-0123"));
+                    assert!(!text.contains("123-45-6789"));
+                    assert!(!text.contains("synthetic-provider-token"));
+                    if ["[EMAIL]", "[PHONE]", "[SSN]", "[TOKEN]"]
+                        .iter()
+                        .all(|label| text.contains(label))
+                    {
+                        self.redacted_documents.fetch_add(1, Ordering::Relaxed);
+                    }
                     self.archive_calls.fetch_add(1, Ordering::Relaxed);
                 }
             }
@@ -240,7 +251,7 @@ fn archive_vectors_publish_through_a_staged_import_without_processing() {
     let source = dir.join("source.json");
     let rel_path = dir.join("owner.rel");
     let turn = format!(
-        "{} quasar {} {}",
+        "{} quasar dev@example.invalid 604-555-0123 123-45-6789 Authorization: Bearer synthetic-provider-token {} {}",
         "prefix ".repeat(2_200),
         "λ ".repeat(44 * 1024),
         "end"
@@ -307,6 +318,7 @@ fn archive_vectors_publish_through_a_staged_import_without_processing() {
             .publish_native_import_archive_vectors(owner, &staged.import_id, endpoint.clone())
             .unwrap();
         assert!(published.fragment_count > 1);
+        assert_eq!(endpoint.redacted_documents.load(Ordering::Relaxed), 1);
         assert_eq!(
             operator
                 .native_import_status(owner, &staged.import_id)
@@ -340,6 +352,17 @@ fn archive_vectors_publish_through_a_staged_import_without_processing() {
     assert!(hits.hits[0].lexical_score.is_some());
     assert!(matched.start_byte <= quasar && quasar + 6 <= matched.end_byte);
     assert!(matched.start_byte > 0);
+    let contacts = operator
+        .search_archive_hybrid(
+            owner,
+            publication.profile_id,
+            "dev@example.invalid",
+            &[0.8, 0.6],
+            32,
+        )
+        .unwrap();
+    assert!(contacts.hits[0].lexical_score.is_some());
+    assert_eq!(contacts.hits[0].passage, Some(matched));
     let mut passages = hits
         .hits
         .iter()

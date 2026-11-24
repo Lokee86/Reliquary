@@ -5,6 +5,8 @@
 
 mod archive;
 mod codec;
+mod embedding_redaction;
+pub use embedding_redaction::redact_embedding_text;
 mod echo_codec;
 mod echo_model;
 mod echo_store;
