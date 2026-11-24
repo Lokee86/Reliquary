@@ -1,6 +1,6 @@
 //! Local redaction for Archive embedding documents and queries.
 
-use regex::{Match, Regex};
+use regex::{Match, Regex, RegexSet};
 use std::{borrow::Cow, net::IpAddr, ops::Range, sync::LazyLock};
 
 const ASSIGNED_VALUE: &str = r#"
@@ -150,6 +150,10 @@ static RULES: LazyLock<Vec<Rule>> = LazyLock::new(|| {
             r#"["']?\+?\(?[0-9](?:[\x20\t().-]*[0-9]){6,14}\)?"#,
             "[PHONE]",
         ),
+        Rule::new(
+            r"(?i)\bs-1-[0-9]{1,15}(?:-[0-9]{1,10}){3,15}\b",
+            "[SECURITY_ID]",
+        ),
         Rule::new(r"\b[0-9]{3}[-\x20][0-9]{2}[-\x20][0-9]{4}\b", "[SSN]"),
         Rule::field(
             r"(?:social[\x20_-]+security(?:[\x20_-]+(?:no\.?|number))?|ssn|itin)",
@@ -229,6 +233,11 @@ static RULES: LazyLock<Vec<Rule>> = LazyLock::new(|| {
     ]
 });
 
+static CANDIDATE_RULES: LazyLock<RegexSet> = LazyLock::new(|| {
+    RegexSet::new(RULES.iter().map(|rule| rule.pattern.as_str()))
+        .expect("valid Archive redaction pattern set")
+});
+
 /// Prepare an Archive query or document body for embedding inference.
 pub fn redact_embedding_text(text: &str) -> Cow<'_, str> {
     redact_embedding_range(text, 0..text.len())
@@ -237,7 +246,8 @@ pub fn redact_embedding_text(text: &str) -> Cow<'_, str> {
 /// Detect sensitive spans in the original turn before clipping to a passage.
 pub(crate) fn redact_embedding_range(text: &str, range: Range<usize>) -> Cow<'_, str> {
     let mut matches = Vec::new();
-    for rule in RULES.iter() {
+    for index in CANDIDATE_RULES.matches(text).iter() {
+        let rule = &RULES[index];
         for captures in rule.pattern.captures_iter(text) {
             let captured = captures.name("value");
             let matched = captured.unwrap_or_else(|| captures.get(0).expect("full match"));
@@ -420,6 +430,15 @@ mod tests {
         for (input, expected) in cases {
             assert_eq!(redact_embedding_text(input), expected);
         }
+    }
+
+    #[test]
+    fn masks_windows_account_security_identifiers() {
+        let text = "Principal S-1-5-21-1111111111-2222222222-3333333333-1001 and system S-1-5-18";
+        assert_eq!(
+            redact_embedding_text(text),
+            "Principal [SECURITY_ID] and system S-1-5-18"
+        );
     }
 
     #[test]
