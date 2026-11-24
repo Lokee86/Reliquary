@@ -815,6 +815,14 @@ impl RelSession {
         self.observations.award_total(id, activity)
     }
 
+    pub fn observation_semantic_match(
+        &self,
+        id: ObservationId,
+        activity: ObservationActivity,
+    ) -> Option<u8> {
+        self.observations.semantic_match(id, activity)
+    }
+
     fn prepare_observation_scores(
         &self,
         record: &ObservationRecord,

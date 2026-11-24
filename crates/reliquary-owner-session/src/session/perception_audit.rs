@@ -138,6 +138,18 @@ impl RelSession {
             .memory_ids_page(after, limit.min(MAX_CAPTURE_PAGE))
     }
 
+    pub fn perception_memory_changes_page(
+        &self,
+        after: u64,
+        through: u64,
+        limit: usize,
+    ) -> Vec<(u64, MemoryId)> {
+        self.common
+            .memories
+            .changes_after(after, through, limit.min(MAX_CAPTURE_PAGE))
+            .collect()
+    }
+
     pub fn perception_source_metadata(
         &self,
         cut: &PerceptionSourceCut,

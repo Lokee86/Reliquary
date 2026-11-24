@@ -65,6 +65,9 @@ pub(super) fn tick(owner: &OwnerWork<'_>, state: &mut WorkerState) -> Result<boo
                 Ok(true)
             }
             PerceptionAuditAdvance::Ready => audit_page(owner, state, previous, progress),
+            PerceptionAuditAdvance::LiveContributionReady => {
+                live_contribution(owner, previous, progress)
+            }
         },
         TickInput::Review(id) => {
             let result = (|| {
@@ -161,7 +164,7 @@ fn audit_page(
         .as_mut()
         .ok_or(OwnerSessionError::ManagementStale)?;
     if usize::from(page.contribution_cursor) < page.sources.len() {
-        let work = owner.read(|rel| capture_contribution(rel, page))??;
+        let work = owner.read(|rel| capture_contribution(rel, page, true))??;
         let operations = evaluate_contribution(&work, owner.routes)?;
         page.contribution_cursor = work.next_source;
         page.contribution_target_after = work.next_target;
@@ -284,6 +287,36 @@ fn audit_page(
     Ok(true)
 }
 
+fn live_contribution(
+    owner: &OwnerWork<'_>,
+    previous: [u8; 32],
+    mut progress: PerceptionAuditProgress,
+) -> Result<bool, GatewayError> {
+    let page = progress
+        .live_contribution
+        .as_mut()
+        .ok_or(OwnerSessionError::ManagementStale)?;
+    let operations = if usize::from(page.contribution_cursor) < page.sources.len() {
+        let work = owner.read(|rel| capture_contribution(rel, page, false))??;
+        let operations = evaluate_contribution(&work, owner.routes)?;
+        page.contribution_cursor = work.next_source;
+        page.contribution_target_after = work.next_target;
+        operations
+    } else {
+        progress.live_contribution = None;
+        Vec::new()
+    };
+    publish(
+        owner,
+        Some(previous),
+        Some(progress),
+        [],
+        operations,
+        |_| Ok(()),
+    )?;
+    Ok(true)
+}
+
 fn proposals(
     owner: &OwnerWork<'_>,
     cut: &PerceptionSourceCut,
@@ -293,28 +326,34 @@ fn proposals(
     let mut drafts = Vec::new();
     let mut operations = Vec::new();
     let mut seen = BTreeSet::new();
+    let mut duplicate_targets = BTreeMap::<_, BTreeSet<_>>::new();
     for candidate in candidates {
         match evaluate_proposal(owner, &routes, audit_owner_cut(cut), &candidate)
             .map_err(draft_error)?
         {
             ProposalEvaluation::Abstained | ProposalEvaluation::Unresolved => {}
             ProposalEvaluation::Ready(draft) => {
-                if seen.insert(draft.input_fingerprint) {
+                let identity = match &draft.operation {
+                    ObservationOperation::Create { draft } => draft.claim_digest(),
+                    _ => draft.input_fingerprint,
+                };
+                if seen.insert(identity) {
                     drafts.push(draft);
                 }
             }
             ProposalEvaluation::Duplicate { target, evidence } => {
-                let work = owner.read(|rel| {
-                    capture_duplicate_contribution(
-                        rel,
-                        ObservationId(target.id),
-                        target.revision,
-                        &evidence,
-                    )
-                })??;
-                operations.extend(evaluate_contribution(&work, owner.routes)?);
+                duplicate_targets
+                    .entry((ObservationId(target.id), target.revision))
+                    .or_default()
+                    .extend(evidence);
             }
         }
+    }
+    for ((target, revision), evidence) in duplicate_targets {
+        let evidence = evidence.into_iter().collect::<Vec<_>>();
+        let work = owner
+            .read(|rel| capture_duplicate_contribution(rel, target, revision, &evidence))??;
+        operations.extend(evaluate_contribution(&work, owner.routes)?);
     }
     Ok((drafts, operations))
 }
@@ -410,7 +449,7 @@ fn credit_change(rel: &RelSession, operation: &mut ObservationOperation) {
         .chain(&draft.reviewed)
         .filter_map(|cite| {
             let activity = rel.perception_source_activity(cite)?;
-            let amount = rel.observation_award(*id, activity)?;
+            let amount = rel.observation_semantic_match(*id, activity)?;
             Some((std::cmp::Reverse(amount), activity.source, activity))
         })
         .min()

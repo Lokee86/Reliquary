@@ -97,6 +97,7 @@ pub struct ProcessingRouteIdentity {
     pub import: [u8; 32],
     pub live_dream: [u8; 32],
     pub perception: [u8; 32],
+    pub perception_embedding: [u8; 32],
 }
 
 /// Query and document inputs share one embedding space and are sent unchanged.

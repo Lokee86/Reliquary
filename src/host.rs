@@ -94,6 +94,7 @@ impl Gateway {
                     .decision_endpoint_for(DecisionConsumer::ObservationVerification)?,
                 embedding: runtime.embedding_endpoint()?,
                 identity: runtime.processing_route_identity().perception,
+                embedding_identity: runtime.processing_route_identity().perception_embedding,
             })
         }))?;
         Ok(())

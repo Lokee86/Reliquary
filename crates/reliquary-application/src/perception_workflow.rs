@@ -33,13 +33,14 @@ pub struct PerceptionRoutes {
     pub verification: Arc<dyn DecisionEndpoint>,
     pub embedding: Arc<dyn EmbeddingEndpoint>,
     pub identity: [u8; 32],
+    pub embedding_identity: [u8; 32],
 }
 
 impl PerceptionRoutes {
     pub fn embedding_profile(&self) -> [u8; 32] {
         let mut hash = Sha256::new();
         hash.update(b"reliquary-observation-receptor-embedding-v1\0");
-        hash.update(self.identity);
+        hash.update(self.embedding_identity);
         hash.update(self.embedding.dimensions().to_le_bytes());
         hash.update(self.embedding.model().unwrap_or("").as_bytes());
         hash.finalize().into()

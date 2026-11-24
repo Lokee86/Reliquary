@@ -61,8 +61,9 @@ impl CandidateContract for PerceptionContract {
                 "Retain uncertainty and temporal qualifiers, distinguish plans and requests from outcomes, ",
                 "and select direct support or the premises of a bounded conclusion. ",
                 "Exclude unsupported generalizations and causal guesses. ",
-                "Use empty participants for ordinary Observations. For relational Observations cite only Memory ",
-                "passages and select two to four distinct resolved participant slots, with grounded roles ",
+                "Use empty participants for ordinary Observations. For relational Observations cite Memory ",
+                "passages that ground two to four distinct resolved participant slots. An ordinary Observation ",
+                "can supply additional evidence. Select grounded roles ",
                 "or null. Co-occurrence, similar names and existing labels do not establish a relationship.",
             ),
         }
@@ -162,13 +163,13 @@ pub(crate) fn bind_claim<'a>(
     for slot in fields.source_slots {
         let source = source(slot)?;
         let citation = source.citation;
-        if !source.allows(Feature::Perception)
-            || !supports_profile(profile, citation.source)
-            || citations.contains(&citation)
-        {
+        if !source.allows(Feature::Perception) || citations.contains(&citation) {
             return None;
         }
         citations.push(citation);
+    }
+    if !has_participant_evidence(profile, &citations) {
+        return None;
     }
     let mut participants = Vec::new();
     let mut entities = BTreeSet::new();
@@ -198,16 +199,21 @@ pub(crate) fn valid_claim(claim: &ProposedClaim) -> bool {
     nonblank_bounded(&claim.proposition, MAX_PROPOSITION_BYTES)
         && participant_count(claim.profile, claim.participants.len())
         && claim.citations.len() <= MAX_CITATIONS
-        && claim.citations.iter().all(|citation| {
-            supports_profile(claim.profile, citation.source) && citations.insert(citation)
-        })
+        && has_participant_evidence(claim.profile, &claim.citations)
+        && claim
+            .citations
+            .iter()
+            .all(|citation| citations.insert(citation))
         && claim.participants.iter().all(|entry| {
             valid_role(entry.role.as_deref()) && identities.insert(entry.participant.entity_id)
         })
 }
 
-pub(crate) fn supports_profile(profile: ObservationProfile, source: SourceId) -> bool {
-    profile == ObservationProfile::Ordinary || matches!(source, SourceId::Memory(_))
+fn has_participant_evidence(profile: ObservationProfile, citations: &[SourceCitation]) -> bool {
+    profile == ObservationProfile::Ordinary
+        || citations
+            .iter()
+            .any(|cite| matches!(cite.source, SourceId::Memory(_)))
 }
 
 fn participant_count(profile: ObservationProfile, count: usize) -> bool {

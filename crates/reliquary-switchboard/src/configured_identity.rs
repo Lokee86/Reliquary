@@ -79,6 +79,10 @@ pub(super) fn processing_routes(
         .filter(|route| route.model == OBSERVATION_DECISION_MODEL)
         .map(|route| json!([SHARED, route.model, route.url, route.credential_id.0]));
     ProcessingRouteIdentity {
+        perception_embedding: hash(json!([
+            "reliquary-perception-embedding-route-v1",
+            embedding
+        ])),
         perception: hash(json!([
             "reliquary-perception-routes-v1",
             general_identity(general),
@@ -119,6 +123,10 @@ pub(super) fn hosted(identity: &HostedInferenceIdentity) -> ProcessingRouteIdent
         }
     ]);
     ProcessingRouteIdentity {
+        perception_embedding: hash(json!([
+            "reliquary-perception-embedding-route-v1",
+            embedding
+        ])),
         perception: hash(json!([
             "reliquary-hermes-hosted-perception-v1",
             general,

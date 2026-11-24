@@ -7,6 +7,7 @@ pub const AUDIT_DORMANT_SAMPLES: usize = 5;
 pub const AUDIT_WORK_PAGE_SIZE: usize = 125;
 const MAX_PROGRESS_BYTES: usize = 32 * 1024;
 const PROGRESS_VERSION: u8 = 1;
+const LIVE_CONTRIBUTION_GROUP: usize = 5;
 // A Memory change contributes at most one source, a Graph change at most two
 // and an Entity change up to MAX_NEIGHBORS. Reserve room for the cadence group
 // and both sample bands before moving any of the three change cursors.
@@ -86,6 +87,7 @@ pub struct AuditDiscoveryCursor {
 pub enum PerceptionAuditAdvance {
     Updated,
     Ready,
+    LiveContributionReady,
     Idle,
 }
 
@@ -97,6 +99,9 @@ pub struct PerceptionAuditProgress {
     bootstrap_after: Option<MemoryId>,
     after: PerceptionSourceCut,
     settled_after: u64,
+    live_settled_after: u64,
+    live_memory_after: u64,
+    pub live_contribution: Option<PerceptionAuditPage>,
     due: Vec<MemoryId>,
     stale_after: Option<MemoryId>,
     dormant_after: Option<MemoryId>,
@@ -193,6 +198,9 @@ impl PerceptionAuditProgress {
             version: PROGRESS_VERSION,
             bootstrap_cut: (cut.memory != 0).then(|| cut.clone()),
             bootstrap_after: None,
+            live_settled_after: cut.settlements,
+            live_memory_after: cut.memory,
+            live_contribution: None,
             after: cut,
             settled_after,
             due: Vec::new(),
@@ -236,7 +244,8 @@ impl PerceptionAuditProgress {
         let cuts = std::iter::once(&parsed.after)
             .chain(&parsed.bootstrap_cut)
             .chain(parsed.run.as_ref().map(|run| &run.cut))
-            .chain(parsed.page.as_ref().map(|page| &page.cut));
+            .chain(parsed.page.as_ref().map(|page| &page.cut))
+            .chain(parsed.live_contribution.as_ref().map(|page| &page.cut));
         for cut in cuts {
             if cut.owner_id != owner
                 || cut.history_generation != generation
@@ -255,6 +264,12 @@ impl PerceptionAuditProgress {
         &mut self,
         rel: &RelSession,
     ) -> Result<PerceptionAuditAdvance, OwnerSessionError> {
+        if self.live_contribution.is_some() {
+            return Ok(PerceptionAuditAdvance::LiveContributionReady);
+        }
+        if self.advance_live_contribution(rel)? {
+            return Ok(PerceptionAuditAdvance::Updated);
+        }
         if self.page.is_some() {
             return Ok(PerceptionAuditAdvance::Ready);
         }
@@ -274,6 +289,62 @@ impl PerceptionAuditProgress {
 
     pub fn finish_page(&mut self) {
         self.page = None;
+    }
+
+    fn advance_live_contribution(&mut self, rel: &RelSession) -> Result<bool, OwnerSessionError> {
+        let cut = rel.perception_source_cut();
+        if self.live_settled_after == cut.settlements && self.live_memory_after == cut.memory {
+            return Ok(false);
+        }
+        // Initial draft back-check covers evidence accepted before the first
+        // head. Subsequent first settlements reach existing heads immediately.
+        if rel.observations_after(None, 1).is_empty() {
+            self.live_settled_after = cut.settlements;
+            self.live_memory_after = cut.memory;
+            return Ok(true);
+        }
+        let settled = rel.perception_settlements_page(
+            self.live_settled_after,
+            cut.settlements,
+            LIVE_CONTRIBUTION_GROUP,
+        );
+        let memories = rel.perception_memory_changes_page(
+            self.live_memory_after,
+            cut.memory,
+            LIVE_CONTRIBUTION_GROUP - settled.len(),
+        );
+        if let Some((position, _)) = settled.last() {
+            self.live_settled_after = *position;
+        }
+        if let Some((position, _)) = memories.last() {
+            self.live_memory_after = *position;
+        }
+        let mut seen = BTreeSet::new();
+        let ids = settled
+            .iter()
+            .map(|&(_, id)| (id, true))
+            .chain(memories.iter().map(|&(_, id)| (id, false)))
+            .filter(|(id, _)| seen.insert(*id))
+            .collect::<Vec<_>>();
+        let memory_ids = ids.iter().map(|&(id, _)| id).collect::<Vec<_>>();
+        let eligible = rel
+            .perception_source_metadata(&cut, &memory_ids)?
+            .into_iter()
+            .map(|row| row.source.id)
+            .collect::<BTreeSet<_>>();
+        let sources = ids
+            .into_iter()
+            .filter(|(id, _)| eligible.contains(id))
+            .map(|(memory, newly_settled)| AuditWorkSource {
+                memory,
+                sampled: false,
+                newly_settled,
+            })
+            .collect::<Vec<_>>();
+        if !sources.is_empty() {
+            self.live_contribution = Some(page(cut, sources, Vec::new()));
+        }
+        Ok(true)
     }
 
     fn advance_bootstrap(
@@ -438,7 +509,7 @@ impl PerceptionAuditProgress {
                     || run.stale.selected.len() > AUDIT_STALE_SAMPLES
                     || run.dormant.selected.len() > AUDIT_DORMANT_SAMPLES
             })
-            || self.page.as_ref().is_some_and(|page| {
+            || self.page.iter().chain(&self.live_contribution).any(|page| {
                 !valid_cut(&page.cut)
                     || (page.sources.is_empty() && page.derived.is_empty())
                     || page.sources.len() > AUDIT_WORK_PAGE_SIZE

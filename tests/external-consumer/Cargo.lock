@@ -3091,10 +3091,13 @@ dependencies = [
  "reliquary-chronos",
  "reliquary-context-engine",
  "reliquary-dream",
+ "reliquary-ego",
  "reliquary-entity-resolution",
  "reliquary-freshness",
  "reliquary-insomnia",
+ "reliquary-memory-audit",
  "reliquary-owner-session",
+ "reliquary-perception",
  "reliquary-project-environment",
  "reliquary-retrieval",
  "reliquary-switchboard",
@@ -3149,6 +3152,15 @@ dependencies = [
  "reliquary-memory-core",
  "reliquary-switchboard",
  "reliquary-vectors",
+ "serde_json",
+]
+
+[[package]]
+name = "reliquary-ego"
+version = "0.1.0"
+dependencies = [
+ "reliquary-memory-audit",
+ "serde",
  "serde_json",
 ]
 
@@ -3260,6 +3272,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "reliquary-memory-audit"
+version = "0.1.0"
+dependencies = [
+ "reliquary-switchboard",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "reliquary-memory-core"
 version = "0.1.0"
 dependencies = [
@@ -3289,6 +3310,17 @@ dependencies = [
  "sha2",
  "tempfile",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "reliquary-perception"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "reliquary-memory-audit",
+ "reliquary-switchboard",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

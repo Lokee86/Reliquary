@@ -1,6 +1,6 @@
 use crate::claim::{
     ClaimFields, MAX_CITATIONS, bind_claim, claim_schema, model_claim, model_participants,
-    nonblank_bounded, normalize, object, participant_identity, supports_profile, valid_claim,
+    nonblank_bounded, normalize, object, participant_identity, valid_claim,
 };
 use crate::general::{complete, fingerprint};
 use crate::{
@@ -204,7 +204,6 @@ impl SynthesisRequest<'_> {
                         == u32::try_from(source.text.len()).ok()
                     && !source.text.trim().is_empty()
                     && source.allows(Feature::Perception)
-                    && supports_profile(self.proposal.profile, citation.source)
                     && citations.insert(citation)
                     && *source_revisions.entry(citation.source).or_insert(revision) == revision
             })

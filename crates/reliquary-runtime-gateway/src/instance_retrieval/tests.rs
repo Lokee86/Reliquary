@@ -633,7 +633,7 @@ fn readonly_preparation_cannot_deliver_and_terminal_rejection_releases_turn() {
 
 #[path = "inspection_tests.rs"]
 mod inspection_tests;
-#[path = "observation_tests.rs"]
+#[path = "observation_checks/tests.rs"]
 mod observation_tests;
 
 #[test]

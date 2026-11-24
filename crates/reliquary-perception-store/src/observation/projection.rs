@@ -66,6 +66,15 @@ fn normalize(value: &str) -> String {
         .join(" ")
 }
 
+impl ObservationDraft {
+    /// Identity used to coalesce simultaneous proposes of an equivalent claim.
+    pub fn claim_digest(&self) -> [u8; 32] {
+        let key = serde_json::to_vec(&ClaimKey::new(self))
+            .expect("Observation claim key is serializable");
+        digest(b"reliquary-observation-claim-v1", &[&key])
+    }
+}
+
 #[derive(Default, Serialize, Deserialize)]
 pub struct ObservationStore {
     records: Vec<(ObservationBatchReceipt, ObservationRecord)>,
@@ -275,6 +284,10 @@ impl ObservationStore {
 
     pub fn award_total(&self, id: ObservationId, activity: ObservationActivity) -> Option<u8> {
         self.awards.get(&(id, activity.turn)).copied()
+    }
+
+    pub fn semantic_match(&self, id: ObservationId, activity: ObservationActivity) -> Option<u8> {
+        self.semantic_matches.get(&(id, activity)).copied()
     }
 
     /// Plan a bounded transaction without cloning the full owner projection.

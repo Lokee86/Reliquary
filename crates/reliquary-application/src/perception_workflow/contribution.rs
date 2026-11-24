@@ -29,6 +29,7 @@ struct ContributionEvidence {
     cite: ObservationCitation,
     text: String,
     activity: Option<ObservationActivity>,
+    structural: bool,
 }
 
 /// One bounded source group and one exact target head, with independent
@@ -37,9 +38,28 @@ struct ContributionEvidence {
 pub fn capture_contribution(
     rel: &RelSession,
     page: &PerceptionAuditPage,
+    samples_only: bool,
 ) -> Result<ContributionWork, OwnerSessionError> {
     let position = usize::from(page.contribution_cursor);
     let end = (position + MAX_HITS).min(page.sources.len());
+    if samples_only && !page.sources[position..].iter().any(|source| source.sampled) {
+        return Ok(ContributionWork {
+            next_source: page.sources.len() as u16,
+            next_target: None,
+            target: None,
+        });
+    }
+    if samples_only
+        && !page.sources[position..end]
+            .iter()
+            .any(|source| source.sampled)
+    {
+        return Ok(ContributionWork {
+            next_source: end as u16,
+            next_target: None,
+            target: None,
+        });
+    }
     let Some(inspection) = rel
         .observations_after(page.contribution_target_after, 1)
         .pop()
@@ -57,6 +77,9 @@ pub fn capture_contribution(
         let mut evidence = Vec::new();
         let mut seen_lineage = BTreeSet::new();
         for source in &page.sources[position..end] {
+            if samples_only && !source.sampled {
+                continue;
+            }
             let Some(row) = rel
                 .perception_memory_evidence(&page.cut, &[source.memory])?
                 .pop()
@@ -91,6 +114,20 @@ pub fn capture_contribution(
             if let Some(passage) = passage {
                 let cite = owner_citation(passage.citation);
                 if can_compare(rel, &inspection, cite) {
+                    let neighbors = rel.perception_graph_neighbors(source.memory);
+                    let structural =
+                        inspection.revision.draft.citations.iter().any(|prior| {
+                            matches!(prior.source, ObservationSource::Memory(id)
+                            if id == source.memory.0 || neighbors.contains(&MemoryId(id)))
+                        }) || (!inspection.revision.draft.profile.participants().is_empty()
+                            && rel
+                                .perception_participant_evidence(&page.cut, row.metadata.source)?
+                                .iter()
+                                .any(|anchor| {
+                                    inspection.revision.draft.profile.participants().iter().any(
+                                        |participant| participant.entity_id == anchor.entity_id,
+                                    )
+                                }));
                     let activity = source
                         .newly_settled
                         .then(|| rel.perception_source_activity(&cite))
@@ -99,6 +136,7 @@ pub fn capture_contribution(
                         cite,
                         text: passage.text,
                         activity,
+                        structural,
                     });
                 }
             }
@@ -145,6 +183,7 @@ pub fn capture_duplicate_contribution(
                         cite,
                         text,
                         activity: None,
+                        structural: true,
                     })
                 })
                 .collect::<Result<Vec<_>, OwnerSessionError>>()?;
@@ -193,52 +232,39 @@ pub fn evaluate_contribution(
         return Ok(Vec::new());
     };
     let profile = routes.embedding_profile();
-    let receptors = target
-        .revision
-        .draft
-        .receptors
-        .iter()
-        .filter(|receptor| receptor.embedding_profile == profile)
-        .collect::<Vec<_>>();
+    let receptors = &target.revision.draft.receptors;
     if target.available.is_empty() || receptors.is_empty() {
         return Ok(Vec::new());
     }
+    let rebound = if receptors
+        .iter()
+        .any(|receptor| receptor.embedding_profile != profile)
+    {
+        let descriptions = receptors
+            .iter()
+            .map(|receptor| receptor.description.clone())
+            .collect::<Vec<_>>();
+        Some(embed(routes, EmbeddingMode::Query, &descriptions)?)
+    } else {
+        None
+    };
     let input = target
         .available
         .iter()
         .map(|item| item.text.clone())
         .collect::<Vec<_>>();
-    let vectors = if routes.embedding.supports_bounded_embedding() {
-        routes.embedding.embed_bounded(
-            EmbeddingMode::Document,
-            &input,
-            MAX_EMBEDDING_RESPONSE_BYTES,
-        )
-    } else {
-        routes.embedding.embed(EmbeddingMode::Document, &input)
-    }
-    .map_err(|_| {
-        OwnerSessionError::Record("Perception contribution embedding unavailable".into())
-    })?;
-    if vectors.len() != input.len()
-        || vectors.iter().any(|vec| {
-            vec.len() != routes.embedding.dimensions() as usize
-                || vec.iter().any(|value| !value.is_finite())
-                || vec.iter().all(|value| *value == 0.0)
-        })
-    {
-        return Err(OwnerSessionError::Record(
-            "invalid Perception passage embeddings".into(),
-        ));
-    }
+    let vectors = embed(routes, EmbeddingMode::Document, &input)?;
     let policy = SemanticPolicy::default();
     let mut matches = Vec::new();
     let mut model_hits = BTreeMap::new();
     for (index, (evidence, vector)) in target.available.iter().zip(&vectors).enumerate() {
         let mut strength = 0i16;
-        let mut review = false;
-        for receptor in &receptors {
-            let cosine = cosine_similarity(vector, &receptor.vector).map_err(|_| {
+        let mut review = evidence.structural;
+        for (receptor_index, receptor) in receptors.iter().enumerate() {
+            let query = rebound
+                .as_ref()
+                .map_or(&receptor.vector, |rows| &rows[receptor_index]);
+            let cosine = cosine_similarity(vector, query).map_err(|_| {
                 OwnerSessionError::Record("incompatible Perception receptor embedding".into())
             })?;
             let amount = policy.bonus(cosine).map_err(|_| {
@@ -247,7 +273,7 @@ pub fn evaluate_contribution(
             strength = strength.max(amount);
             review |= amount > 0 && receptor.kind != ObservationReceptorKind::Support;
         }
-        if strength > 0 {
+        if strength > 0 || review {
             let slot = format!("p{index}");
             if review {
                 model_hits.insert(slot.clone(), evidence.text.clone());
@@ -300,7 +326,7 @@ pub fn evaluate_contribution(
                 outcome,
             },
         });
-        if let Some(activity) = row.activity {
+        if let Some(activity) = row.activity.filter(|_| strength > 0) {
             operations.push(ObservationOperation::SemanticAward {
                 id,
                 expected_revision: revision,
@@ -319,4 +345,33 @@ pub fn evaluate_contribution(
         });
     }
     Ok(operations)
+}
+
+fn embed(
+    routes: &PerceptionRoutes,
+    mode: EmbeddingMode,
+    input: &[String],
+) -> Result<Vec<Vec<f32>>, OwnerSessionError> {
+    let vectors = if routes.embedding.supports_bounded_embedding() {
+        routes
+            .embedding
+            .embed_bounded(mode, input, MAX_EMBEDDING_RESPONSE_BYTES)
+    } else {
+        routes.embedding.embed(mode, input)
+    }
+    .map_err(|_| {
+        OwnerSessionError::Record("Perception contribution embedding unavailable".into())
+    })?;
+    if vectors.len() != input.len()
+        || vectors.iter().any(|vector| {
+            vector.len() != routes.embedding.dimensions() as usize
+                || vector.iter().any(|value| !value.is_finite())
+                || vector.iter().all(|value| *value == 0.0)
+        })
+    {
+        return Err(OwnerSessionError::Record(
+            "invalid Perception passage embeddings".into(),
+        ));
+    }
+    Ok(vectors)
 }
