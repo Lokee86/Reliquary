@@ -171,6 +171,14 @@ impl RelSession {
         };
         let mut paths = Vec::with_capacity(view.fragments().len());
         for fragment in view.fragments() {
+            if self
+                .archive
+                .conversation_tombstone(&fragment.conversation_id)
+                .is_some()
+            {
+                paths.push(None);
+                continue;
+            }
             // This validates the ancestor path and rejects pruned or unavailable text.
             match self.archive.bounded_fragment_index_text(fragment) {
                 Ok(_) => {}

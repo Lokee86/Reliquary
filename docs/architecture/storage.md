@@ -16,7 +16,7 @@ The eight durable domain owners are `reliquary-archive`, `reliquary-memory-core`
 
 ## Responsibilities and state owners
 
-- **Archive** owns accepted conversation turns, episode boundaries, attachment/source references, and echo records. Its stable episode and turn identities ground later processing.
+- **Archive** owns accepted conversation turns, episode boundaries, attachment/source references, and echo records. Its stable episode and turn identities ground later processing. Copied Hermes imports write typed, source-keyed Echo before publishing the Archive receipt. Reopening replays accepted Echo sequence keys and an identical retry reuses each accepted event.
 - **Memory core** owns memory records, payload state, and memory identity. Leased replay retains verified ranges for standalone and grouped bodies. Historical projection reads the selected body from its owner file. Detached snapshots retain their payloads in memory.
 - **Graph** owns relation/community state and graph history; it does not own memory payloads.
 - **Perception store** owns entity descriptions, mentions, and relationship descriptions/history. Cross-REL discovery pages through the existing ordered map of current Entities by seeking past the last Entity ID. Historical and retired descriptions live in separate projections. The candidate keys are derived in memory, and the recording REL persists each judgment in its existing identity receipt history.

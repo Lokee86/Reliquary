@@ -26,8 +26,9 @@ use std::{
 };
 
 pub use hermes::{
-    HermesCopiedMessage, HermesCopiedRole, HermesCopiedSnapshot, HermesCopyScope,
-    tombstone_hermes_copy,
+    HermesCopiedEcho, HermesCopiedEchoKind, HermesCopiedMessage, HermesCopiedRole,
+    HermesCopiedSnapshot, HermesCopiedSource, HermesCopiedSourceTurn, HermesCopiedToolOutcome,
+    HermesCopyScope, read_hermes_archive_range, read_hermes_copy_source, tombstone_hermes_copy,
 };
 pub use reliquary_owner_session::model::ImportedSourceAuthor as HermesCopiedAuthor;
 pub use stage::{
@@ -166,6 +167,7 @@ enum NativeSource {
     HermesCopy {
         scope: HermesCopyScope,
         predecessor: Option<[u8; 32]>,
+        echo: Vec<reliquary_owner_session::model::EchoEvent>,
     },
 }
 

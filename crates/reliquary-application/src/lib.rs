@@ -28,8 +28,12 @@ mod dream_empty_publication;
 mod dream_publication;
 mod dream_supersession_publication;
 mod dream_temporal;
+mod temporal_query;
 mod temporal_search;
 pub use reliquary_retrieval::{TemporalBasis, TemporalEvidence, TemporalFilter};
+pub use temporal_query::{
+    ResolvedArchiveTemporalQuery, TemporalQueryError, resolve_archive_temporal_query,
+};
 pub use temporal_search::{memory_temporal_evidence, text_temporal_evidence};
 mod dream_workflow;
 pub use conversation_workflow::{

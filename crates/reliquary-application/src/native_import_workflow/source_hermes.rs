@@ -4,6 +4,15 @@ use super::graph::{SourceConversation, SourceTurn};
 use super::*;
 use reliquary_owner_session::{RelSession, RelWriter};
 
+#[path = "source_hermes_echo.rs"]
+mod echo;
+#[path = "source_hermes_read.rs"]
+mod read;
+pub use echo::{HermesCopiedEcho, HermesCopiedEchoKind, HermesCopiedToolOutcome};
+pub use read::{
+    HermesCopiedSource, HermesCopiedSourceTurn, read_hermes_archive_range, read_hermes_copy_source,
+};
+
 #[path = "source_hermes_extension.rs"]
 mod extension;
 pub(super) use extension::attach_predecessor;
@@ -66,6 +75,7 @@ impl HermesCopyScope {
 pub enum HermesCopiedRole {
     User,
     Assistant,
+    Commentary,
     System,
     Tool,
 }
@@ -75,6 +85,7 @@ impl HermesCopiedRole {
         match self {
             Self::User => "user",
             Self::Assistant => "assistant",
+            Self::Commentary => "commentary",
             Self::System => "system",
             Self::Tool => "tool",
         }
@@ -104,19 +115,35 @@ impl NativeImportPlan {
     pub fn from_hermes_copy(
         snapshot: HermesCopiedSnapshot,
     ) -> Result<Self, NativeImportSourceError> {
-        Self::hermes_copy(snapshot, None)
+        Self::from_hermes_copy_with_echo(snapshot, Vec::new())
     }
 
     pub fn from_hermes_copy_extension(
         snapshot: HermesCopiedSnapshot,
         predecessor_sha256: [u8; 32],
     ) -> Result<Self, NativeImportSourceError> {
-        Self::hermes_copy(snapshot, Some(predecessor_sha256))
+        Self::from_hermes_copy_extension_with_echo(snapshot, predecessor_sha256, Vec::new())
+    }
+
+    pub fn from_hermes_copy_with_echo(
+        snapshot: HermesCopiedSnapshot,
+        echo: Vec<HermesCopiedEcho>,
+    ) -> Result<Self, NativeImportSourceError> {
+        Self::hermes_copy(snapshot, None, echo)
+    }
+
+    pub fn from_hermes_copy_extension_with_echo(
+        snapshot: HermesCopiedSnapshot,
+        predecessor_sha256: [u8; 32],
+        echo: Vec<HermesCopiedEcho>,
+    ) -> Result<Self, NativeImportSourceError> {
+        Self::hermes_copy(snapshot, Some(predecessor_sha256), echo)
     }
 
     fn hermes_copy(
         snapshot: HermesCopiedSnapshot,
         predecessor: Option<[u8; 32]>,
+        mut evidence: Vec<HermesCopiedEcho>,
     ) -> Result<Self, NativeImportSourceError> {
         if snapshot.messages.is_empty() || snapshot.messages.len() > MAX_MESSAGES {
             return Err(invalid(
@@ -147,12 +174,39 @@ impl NativeImportPlan {
                 "Hermes copy exceeds 256 KiB",
             ));
         }
-        let digest = Sha256::digest(bytes);
+        if evidence.len() > echo::MAX_ECHO_EVENTS {
+            return Err(NativeImportSourceError::Limit(
+                "too many Hermes Echo events",
+            ));
+        }
+        evidence.sort_by(|a, b| {
+            a.message_uid
+                .cmp(&b.message_uid)
+                .then(a.sequence.cmp(&b.sequence))
+        });
+        let conversation_id = snapshot.scope.conversation_id();
+        let echo = echo::normalize_echo(&snapshot, &conversation_id, &evidence)?;
+        let digest = if evidence.is_empty() {
+            Sha256::digest(bytes)
+        } else {
+            let evidence = serde_json::to_vec(&evidence)
+                .map_err(|_| invalid("invalid Hermes Echo evidence"))?;
+            if bytes.len() + evidence.len() > MAX_COPY_BYTES {
+                return Err(NativeImportSourceError::Limit(
+                    "Hermes copy with Echo exceeds 256 KiB",
+                ));
+            }
+            let mut digest = Sha256::new();
+            digest.update(b"reliquary/hermes-copied-echo/v1\0");
+            digest.update((bytes.len() as u64).to_le_bytes());
+            digest.update(bytes);
+            digest.update(evidence);
+            digest.finalize()
+        };
         let revision = snapshot.source_revision.as_ref().map_or_else(
             || format!("authorized-copy-sha256:{digest:x}"),
             |revision| format!("hermes-snapshot-revision:{revision}"),
         );
-        let conversation_id = snapshot.scope.conversation_id();
         let branch_id = copied_branch_id(snapshot.branch_id.as_deref());
         let mut parent = None;
         let turns = snapshot
@@ -217,6 +271,7 @@ impl NativeImportPlan {
             source: NativeSource::HermesCopy {
                 scope: snapshot.scope,
                 predecessor,
+                echo,
             },
             source_sha256: import_key,
             import_key,

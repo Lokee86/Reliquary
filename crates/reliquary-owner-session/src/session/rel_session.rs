@@ -433,6 +433,22 @@ impl RelSession {
     pub fn archive_node(&self, conversation: &str, node: &str) -> Option<&Node> {
         self.archive.node(conversation, node)
     }
+    pub fn archive_node_version(&self, conversation: &str, node: &str) -> Option<u64> {
+        self.archive.node_archive_version(conversation, node)
+    }
+
+    pub fn imported_archive_source(
+        &self,
+        conversation: &str,
+        node: &str,
+    ) -> Option<(
+        &crate::model::ImportReceipt,
+        &crate::model::ImportedConversation,
+        &crate::model::ImportedMessage,
+    )> {
+        self.archive.imported_turn_reference(conversation, node)
+    }
+
     pub fn archive_branch(
         &self,
         conversation: &str,

@@ -173,11 +173,10 @@ pub(super) fn archive_vector_input(
                 "current Archive vector rows do not match profile",
             ));
         }
-        existing_max_fragment_archive_version = info.max_fragment_archive_version;
         let mut verified_max = 0;
         for (row, fragment_id) in binding.fragment_ids.into_iter().enumerate() {
-            let version = archive
-                .fragment_vector_source_version(
+            let (fragment, version) = archive
+                .fragment_vector_source(
                     reliquary_archive::FragmentId(fragment_id.0),
                     generation.source_archive_version,
                 )
@@ -185,6 +184,14 @@ pub(super) fn archive_vector_input(
                     vector_invalid("accepted vector has no Archive fragment at its cut")
                 })?;
             verified_max = verified_max.max(version);
+            if archive
+                .conversation_tombstone(&fragment.conversation_id)
+                .is_some()
+            {
+                continue;
+            }
+            existing_max_fragment_archive_version =
+                existing_max_fragment_archive_version.max(version);
             if existing_rows.contains_key(&fragment_id) {
                 return Err(vector_invalid(
                     "current Archive vector binding repeats a fragment",
@@ -253,13 +260,7 @@ fn ensure_fragment_definitions(
     archive: &mut Archive,
     container: &mut Container,
 ) -> Result<(), OwnerSessionError> {
-    let mut branches = archive.branches();
-    branches.sort_by(|left, right| {
-        left.conversation_id
-            .cmp(&right.conversation_id)
-            .then_with(|| left.id.cmp(&right.id))
-    });
-    for branch in branches {
+    for branch in searchable_archive_branches(archive) {
         archive
             .define_branch_fragments(
                 container,
@@ -273,18 +274,27 @@ fn ensure_fragment_definitions(
     Ok(())
 }
 
-fn archive_fragment_versions(
-    archive: &Archive,
-) -> Result<Vec<(ArchiveFragmentVersion, FragmentDefinition)>, OwnerSessionError> {
+fn searchable_archive_branches(archive: &Archive) -> Vec<reliquary_archive::Branch> {
     let mut branches = archive.branches();
+    branches.retain(|branch| {
+        archive
+            .conversation_tombstone(&branch.conversation_id)
+            .is_none()
+    });
     branches.sort_by(|left, right| {
         left.conversation_id
             .cmp(&right.conversation_id)
             .then_with(|| left.id.cmp(&right.id))
     });
+    branches
+}
+
+fn archive_fragment_versions(
+    archive: &Archive,
+) -> Result<Vec<(ArchiveFragmentVersion, FragmentDefinition)>, OwnerSessionError> {
     let mut definitions =
         BTreeMap::<ArchiveFragmentId, (ArchiveFragmentVersion, FragmentDefinition)>::new();
-    for branch in branches {
+    for branch in searchable_archive_branches(archive) {
         let fragments = archive
             .branch_fragment_windows(
                 &branch.conversation_id,

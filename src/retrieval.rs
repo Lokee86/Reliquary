@@ -7,15 +7,20 @@ use reliquary_application::RetrievalAction;
 use reliquary_runtime_gateway::{GatewayError, MemoryRetrievalRoute, MemoryRetrievalTurn};
 use reliquary_switchboard::DecisionConsumer;
 mod archive;
+mod archive_publication;
+mod chat;
 mod embedding;
 mod outcome;
 pub use archive::ArchiveSearchOptions;
 use archive::{validate_archive_limit, validate_archive_vector};
+pub use archive_publication::ArchiveVectorPublication;
+pub use chat::{ChatArchiveHit, ChatArchiveResult, ChatMemoryResult, ChatRetrieval};
 use embedding::{EmbeddingScope, embedding_endpoint};
 pub use outcome::{PreparedMemoryDelivery, PreparedRetrieval, RetrievalOutcome};
 
 pub use reliquary_application::{
-    RetrievalAnchorReport, RetrievalDirection, RetrievalRelationEvidence,
+    ResolvedArchiveTemporalQuery, RetrievalAnchorReport, RetrievalDirection,
+    RetrievalRelationEvidence, TemporalQueryError, resolve_archive_temporal_query,
 };
 pub use reliquary_runtime_gateway::{
     ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication,
