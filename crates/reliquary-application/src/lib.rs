@@ -71,6 +71,7 @@ pub use native_import_workflow::settle_native_import_initial_dream;
 pub mod live_processing;
 mod native_insomnia;
 mod native_insomnia_evidence;
+pub mod observation_drafts;
 pub mod processing_plan;
 mod project_correlation_workflow;
 mod rel_reconciliation_workflow;
