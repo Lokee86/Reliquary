@@ -473,7 +473,12 @@ pub use workflow_workers::{
 mod host_memory_delivery;
 mod instance_entity;
 mod instance_identity;
-pub use instance_identity::{EntityIdentityInspection, IdentityComparisonState, IdentityLifecycle};
+pub use instance_identity::{
+    EntityIdentityInspection, IdentityComparisonState, IdentityEffectiveDecision,
+    IdentityLifecycle, IdentitySeparationControl, IdentitySeparationInspection,
+    IdentitySeparationPreview, IdentitySeparationRequest, IdentitySeparationReview,
+    IdentitySeparationState, PreparedIdentitySeparation,
+};
 mod instance_perception_lifecycle;
 mod instance_vectors;
 pub use instance_vectors::{

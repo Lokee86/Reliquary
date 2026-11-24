@@ -2,18 +2,23 @@
 use super::*;
 use reliquary_application::{
     ManagementError,
-    entity_identity::{
-        IDENTITY_COMPARISON_POLICY, IdentityComparison, IdentityPairEvidence,
-        retained_identity_quotes,
-    },
+    entity_identity::{IdentityComparison, IdentityPairEvidence, retained_identity_quotes},
 };
 use reliquary_owner_session::{
     IdentityPublicationProof,
-    model::identity::{IdentityPair, IdentityReceipt},
+    model::identity::{IdentityOutcome, IdentityPair, IdentityReceipt},
 };
+use std::sync::RwLockReadGuard;
 mod locked_pair;
+mod separation;
 mod worker;
 use locked_pair::{HeldRel, PairStamp};
+use separation::separation_inspection;
+pub use separation::{
+    IdentitySeparationControl, IdentitySeparationInspection, IdentitySeparationPreview,
+    IdentitySeparationRequest, IdentitySeparationReview, IdentitySeparationState,
+    PreparedIdentitySeparation,
+};
 pub use worker::IdentityLifecycle;
 use worker::{BackgroundAdmission, IdentityRoute, RouteBinding};
 
@@ -25,12 +30,24 @@ pub enum IdentityComparisonState {
     Unavailable,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+pub enum IdentityEffectiveDecision {
+    ConfirmedSeparate,
+    Evaluated(IdentityOutcome),
+    Pending,
+    Unavailable,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub struct EntityIdentityInspection {
     pub receipt: IdentityReceipt,
     pub state: IdentityComparisonState,
     /// In receipt citation order. Absent when the observed basis cannot be verified.
     pub cited_quotes: Option<Vec<String>>,
+    /// The current separation head, independent of the selected receipt revision.
+    pub separation: Option<IdentitySeparationInspection>,
+    /// The current pair decision, also when inspecting a historical receipt.
+    pub effective: IdentityEffectiveDecision,
 }
 
 fn evidence(
@@ -66,7 +83,108 @@ fn stale() -> GatewayError {
     GatewayError::Management(ManagementError::Stale)
 }
 
+fn comparison_state(
+    receipt: &IdentityReceipt,
+    basis: Option<&IdentityPairEvidence>,
+    route: &IdentityRoute,
+) -> IdentityComparisonState {
+    match basis {
+        None => IdentityComparisonState::Unavailable,
+        Some(basis) if IdentityComparison::prepare(basis.clone(), &route.id).matches(receipt) => {
+            IdentityComparisonState::Current
+        }
+        Some(_) => IdentityComparisonState::Pending,
+    }
+}
+
+fn inspect_comparison(
+    local: &RelSession,
+    peer: &RelSession,
+    receipt: &IdentityReceipt,
+    basis: Option<&IdentityPairEvidence>,
+    route: &IdentityRoute,
+    historical: bool,
+) -> Result<EntityIdentityInspection, GatewayError> {
+    let pair = &receipt.pair;
+    let current = local.identity_receipt(pair, None).unwrap_or(receipt);
+    let current_state = comparison_state(current, basis, route);
+    let state = if historical {
+        IdentityComparisonState::Historical
+    } else {
+        current_state
+    };
+    let cited_quotes =
+        match basis.filter(|basis| !historical && basis.fingerprint() == receipt.fingerprint) {
+            Some(basis) => receipt
+                .citations
+                .iter()
+                .map(|citation| basis.quote(*citation).map(str::to_owned))
+                .collect(),
+            None => retained_identity_quotes(local, peer, receipt)?,
+        };
+    let separation = local
+        .identity_separation(pair, None)
+        .map(|event| separation_inspection(local, peer, event));
+    let effective = if separation
+        .as_ref()
+        .is_some_and(|view| view.state == IdentitySeparationState::Applies)
+    {
+        IdentityEffectiveDecision::ConfirmedSeparate
+    } else {
+        match current_state {
+            IdentityComparisonState::Current => {
+                IdentityEffectiveDecision::Evaluated(current.outcome)
+            }
+            IdentityComparisonState::Unavailable => IdentityEffectiveDecision::Unavailable,
+            _ => IdentityEffectiveDecision::Pending,
+        }
+    };
+    Ok(EntityIdentityInspection {
+        receipt: receipt.clone(),
+        state,
+        cited_quotes,
+        separation,
+        effective,
+    })
+}
+
+impl IdentityLifecycle {
+    pub fn inspect(
+        &self,
+        instance: &Instance,
+        pair: IdentityPair,
+        revision: Option<u64>,
+    ) -> Result<Option<EntityIdentityInspection>, GatewayError> {
+        instance.with_identity_pair(&pair, false, |local, peer, _| {
+            let _publication = instance.fence_identity_access(&pair)?;
+            let local = local.session();
+            let Some(receipt) = local.identity_receipt(&pair, revision) else {
+                return Ok(None);
+            };
+            let historical = local
+                .identity_receipt(&pair, None)
+                .is_some_and(|latest| latest.revision != receipt.revision);
+            let basis = evidence(local, peer, &pair)?;
+            let route = self.route_binding().read()?;
+            inspect_comparison(local, peer, receipt, basis.as_ref(), &route, historical).map(Some)
+        })
+    }
+}
+
 impl Instance {
+    fn fence_identity_access(
+        &self,
+        pair: &IdentityPair,
+    ) -> Result<RwLockReadGuard<'_, ()>, GatewayError> {
+        let publication = self
+            .credential_publication
+            .read()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        self.authorize_rel_access(OwnerId(pair.local_owner))?;
+        self.authorize_rel_access(OwnerId(pair.peer_owner))?;
+        Ok(publication)
+    }
+
     fn compare_entity_identity(
         &self,
         pair: IdentityPair,
@@ -201,54 +319,5 @@ impl Instance {
             basis,
             proof,
         ))
-    }
-
-    pub fn inspect_entity_identity(
-        &self,
-        pair: IdentityPair,
-        revision: Option<u64>,
-    ) -> Result<Option<EntityIdentityInspection>, GatewayError> {
-        let view = self.with_identity_pair(&pair, false, |local, peer, _| {
-            let local = local.session();
-            let Some(receipt) = local.identity_receipt(&pair, revision) else {
-                return Ok(None);
-            };
-            let is_history = local
-                .identity_receipt(&pair, None)
-                .is_some_and(|latest| latest.revision != receipt.revision);
-            if is_history {
-                return Ok(Some(EntityIdentityInspection {
-                    receipt: receipt.clone(),
-                    state: IdentityComparisonState::Historical,
-                    cited_quotes: retained_identity_quotes(local, peer, receipt)?,
-                }));
-            }
-            let basis = evidence(local, peer, &pair)?;
-            let matching = basis
-                .as_ref()
-                .filter(|b| b.fingerprint() == receipt.fingerprint);
-            let state = if basis.is_none() {
-                IdentityComparisonState::Unavailable
-            } else if matching.is_none() || receipt.policy != IDENTITY_COMPARISON_POLICY {
-                IdentityComparisonState::Pending
-            } else {
-                IdentityComparisonState::Current
-            };
-            let cited_quotes = match matching {
-                Some(basis) => receipt
-                    .citations
-                    .iter()
-                    .map(|c| basis.quote(*c).map(str::to_owned))
-                    .collect(),
-                None => retained_identity_quotes(local, peer, receipt)?,
-            };
-            Ok(Some(EntityIdentityInspection {
-                receipt: receipt.clone(),
-                state,
-                cited_quotes,
-            }))
-        })?;
-        self.ensure_credential_active()?;
-        Ok(view)
     }
 }

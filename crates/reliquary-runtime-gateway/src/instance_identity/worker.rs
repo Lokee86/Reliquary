@@ -31,18 +31,19 @@ pub(super) struct IdentityRoute {
 pub(super) struct RouteBinding(RwLock<Arc<IdentityRoute>>);
 
 impl RouteBinding {
+    pub(super) fn read(&self) -> Result<RwLockReadGuard<'_, Arc<IdentityRoute>>, GatewayError> {
+        self.0.read().map_err(|_| GatewayError::RegistryPoisoned)
+    }
+
     fn snapshot(&self) -> Result<Arc<IdentityRoute>, GatewayError> {
-        self.0
-            .read()
-            .map(|route| Arc::clone(&route))
-            .map_err(|_| GatewayError::RegistryPoisoned)
+        self.read().map(|route| Arc::clone(&route))
     }
 
     pub(super) fn fence(
         &self,
         route: &IdentityRoute,
     ) -> Result<RwLockReadGuard<'_, Arc<IdentityRoute>>, GatewayError> {
-        let binding = self.0.read().map_err(|_| GatewayError::RegistryPoisoned)?;
+        let binding = self.read()?;
         if !std::ptr::eq(binding.as_ref(), route) {
             return Err(stale());
         }
@@ -86,6 +87,10 @@ pub struct IdentityLifecycle {
 }
 
 impl IdentityLifecycle {
+    pub(super) fn route_binding(&self) -> &RouteBinding {
+        &self.control.route
+    }
+
     pub fn admit(
         &self,
         instance: &Arc<Instance>,
