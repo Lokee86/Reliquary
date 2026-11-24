@@ -28,6 +28,7 @@ Unresolved future corrections and their acceptance boundaries.
 - [rel-homogeneity-plan-2026-11-18.md](rel-homogeneity-plan-2026-11-18.md) - Scope-free creation and Hermes integration sequence.
 - [rel-homogeneity-spec-2026-11-18.md](rel-homogeneity-spec-2026-11-18.md) - Scope-free creation, host roles, and legacy file compatibility.
 - [roadmap.md](roadmap.md) - Roadmap documentation.
+- [temporal-search-spec-2026-11-23.md](temporal-search-spec-2026-11-23.md) - Chronos evidence, time windows, and acceptance gates for Memory and Archive search.
 <!-- doc-ledger:files:end -->
 
 ## Stub Files
