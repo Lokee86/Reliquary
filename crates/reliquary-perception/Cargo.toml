@@ -6,6 +6,8 @@ license = "MPL-2.0"
 publish = false
 
 [dependencies]
+blake3 = "1"
+reliquary-memory-audit = { path = "../reliquary-memory-audit" }
 reliquary-switchboard = { path = "../reliquary-switchboard" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

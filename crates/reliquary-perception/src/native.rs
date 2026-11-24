@@ -39,7 +39,7 @@ impl std::error::Error for NativeDecisionError {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum HitVerdict {
     MaterialChallenge,
