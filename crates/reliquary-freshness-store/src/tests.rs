@@ -255,6 +255,21 @@ fn accepted_use_cut_exposes_only_the_complete_group_boundary() {
     assert_eq!(complete.event_id_inclusive.as_ref(), ids.last());
     assert!(store.is_authoritative_cut(&complete));
     assert_eq!(store.records_at(&complete).unwrap().len(), 2);
+    assert_eq!(
+        store.records_for_memories_at(&complete, [first]).unwrap(),
+        [(first, store.records_at(&complete).unwrap()[&first])]
+            .into_iter()
+            .collect(),
+    );
+    let through = store.memory_change_position();
+    assert_eq!(
+        store.memory_changes_after(through - 2, through, 1).next(),
+        Some((through - 1, first)),
+    );
+    assert_eq!(
+        store.memory_changes_after(through - 1, through, 1).next(),
+        Some((through, second)),
+    );
 }
 
 #[test]

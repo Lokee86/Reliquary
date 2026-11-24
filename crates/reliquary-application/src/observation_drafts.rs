@@ -134,6 +134,11 @@ impl PreparedObservation {
         if let Some(fence) = &self.review {
             fence.revalidate(&mut capture)?;
         }
+        if let ObservationOperation::Create { draft } = &self.operation
+            && rel.has_equivalent_manual_relationship(draft)
+        {
+            return Err(Error::Stale);
+        }
         if let ObservationOperation::Create { draft }
         | ObservationOperation::Successor { draft, .. } = &self.operation
         {

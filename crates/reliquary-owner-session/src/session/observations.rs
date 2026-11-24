@@ -317,7 +317,12 @@ impl ObservationPrefix<'_> {
                     }
                     ObservationOperation::Reaffirm { id, reviewed, .. } => {
                         let row = store.head(*id).ok_or_else(|| invalid("review target"))?;
-                        if checker.invalid_support(row, 0).is_some() {
+                        if checker.has_invalid_support(row)
+                            || row.draft.citations.iter().any(|cite| {
+                                matches!(cite.source, ObservationSource::Observation(source)
+                                    if checker.standing(source) != ObservationStanding::Current)
+                            })
+                        {
                             return Err(invalid("reaffirmation evidence no longer eligible"));
                         }
                         for cite in reviewed {
