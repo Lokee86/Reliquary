@@ -47,6 +47,6 @@ Use a REL-only typed record in the clocked publication envelope. Full replay che
 
 ## Notes
 
-Core implements this contract for explicitly selected REL Entity pairs. [Acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md)
+Core implements this contract for explicitly selected REL Entity pairs. Subsequent work added automatic nomination and pair listing. [Current discovery contract](../public-product-api.md#cross-rel-entity-identity) [Acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md)
 
 Ordinary owner-local mention resolution and local Observation evidence can proceed independently. A cross-REL Observation that depends on shared identity must use the pair's current authorized `effective` decision. An applicable operator confirmation keeps the pair separate even if the evaluator receipt says `SameIdentity`. [Pair inspection and operator review](../public-product-api.md#confirm-or-undo-separation)

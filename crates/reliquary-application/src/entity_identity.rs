@@ -1,4 +1,4 @@
-//! Prepare and adjudicate one explicit pair. Only the recording owner publishes the result.
+//! Select cross-REL candidates and adjudicate one pair at a time. Only the recording owner publishes.
 use crate::ManagementError;
 use reliquary_entity_resolution::IdentityJudgment;
 use reliquary_entity_resolution::{
@@ -7,7 +7,9 @@ use reliquary_entity_resolution::{
 use reliquary_owner_session::model::identity::{IdentityPair, IdentityReceipt, IdentitySide};
 use reliquary_switchboard::GeneralEndpoint;
 
-pub use reliquary_entity_resolution::{IDENTITY_COMPARISON_POLICY, IdentityPairEvidence};
+pub use reliquary_entity_resolution::{
+    IDENTITY_COMPARISON_POLICY, IdentityDiscoveryIndex, IdentityPairEvidence,
+};
 
 mod retained;
 pub use retained::retained_identity_quotes;

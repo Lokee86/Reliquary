@@ -1,4 +1,6 @@
 //! Public cross-REL acceptance: authored writers, configured inference, and durable history.
+#[path = "entity_identity/discovery.rs"]
+mod discovery;
 #[path = "entity_identity/mention_corpus.rs"]
 mod mention_corpus;
 #[path = "entity_identity/mentions.rs"]
@@ -153,8 +155,8 @@ impl GeneralEndpoint for Script {
         Ok(json!({
             "outcome":"same_identity", "reason":"corroborated",
             "citations":[
-                {"side":"left","relationship":left,"memory":0,"fact":CONTRACT,"bearing":"corroborates_identity"},
-                {"side":"right","relationship":right,"memory":0,"fact":CONTRACT,"bearing":"corroborates_identity"}
+                {"side":"left","relationship":left,"memory":0,"fact":QUOTE,"bearing":"corroborates_identity"},
+                {"side":"right","relationship":right,"memory":0,"fact":QUOTE,"bearing":"corroborates_identity"}
             ]
         }))
     }
@@ -242,6 +244,19 @@ fn seed(path: &Path, owner: [u8; 16]) -> (EntityId, EntityId) {
         [
             ("person", PERSON, "person"),
             ("contract", CONTRACT, "artifact"),
+        ],
+    )
+}
+
+fn seed_short_names(path: &Path, owner: [u8; 16], person: &str) -> (EntityId, EntityId) {
+    // A shared signed source can mention these names without automatic discovery
+    // nominating the pair on a full-name match during foreground race tests.
+    seed_entities(
+        path,
+        owner,
+        [
+            ("person", person, "person"),
+            ("contract", "Meridian Contract", "artifact"),
         ],
     )
 }
@@ -373,7 +388,7 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
     let ap = dir.0.join("a.rel");
     let bp = dir.0.join("b.rel");
     let (a_entity, a_contract) = seed(&ap, [1; 16]);
-    let (b_entity, b_contract) = seed(&bp, [2; 16]);
+    let (b_entity, b_contract) = seed_short_names(&bp, [2; 16], PERSON);
     assert_eq!(
         a_entity, b_entity,
         "equal Entity bytes remain owner-qualified"
@@ -385,6 +400,7 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
     let b = gateway.mount_rel(&b_rel, true).unwrap();
     let manager_token = "identity-manager-credential-000000000000000";
     let viewer_token = "identity-viewer-credential-0000000000000000";
+    let peer_token = "identity-peer-credential-0000000000000000000";
     let limited_token = "identity-limited-credential-000000000000000";
     let (admission, _) = TrustedHostAdmission::new([
         HostCredentialBinding::new(
@@ -398,12 +414,10 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
             [OwnerGrant::ViewRel(a), OwnerGrant::ViewRel(b)],
         ),
         HostCredentialBinding::new("limited", limited_token, [OwnerGrant::ManageRel(a)]),
+        HostCredentialBinding::new("peer-author", peer_token, [OwnerGrant::ManageRel(b)]),
     ])
     .install(&gateway)
     .unwrap();
-    let manager = admission.authenticate(manager_token).unwrap();
-    let work = manager.workspace_management(a).unwrap();
-    let peer = manager.workspace_management(b).unwrap();
     let view = admission
         .authenticate(viewer_token)
         .unwrap()
@@ -421,7 +435,12 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
             .unwrap()
             .is_none()
     );
-    let source = evidence(&work, a_entity, a_contract);
+    let peer = admission
+        .authenticate(peer_token)
+        .unwrap()
+        .workspace_management(b)
+        .unwrap();
+    let source = evidence(&limited, a_entity, a_contract);
     relationship(
         &peer,
         (b_entity, "attendee"),
@@ -430,11 +449,29 @@ fn identity_namesakes_revisit_correction_restart_and_grants() {
         "Alex Chen attended a briefing for Project Meridian Contract.",
     );
     gateway.set_runtime(Some(&runtime)).unwrap();
-    let initial = work.compare_entity_identity(a_entity, b, b_entity).unwrap();
+    let manager = admission.authenticate(manager_token).unwrap();
+    let work = manager.workspace_management(a).unwrap();
+    wait_revision(&work, a_entity, b, b_entity, 1);
+    let initial = work
+        .inspect_entity_identity(a_entity, b, b_entity, None)
+        .unwrap()
+        .unwrap()
+        .receipt;
     assert_eq!(initial.revision, 1);
     assert_eq!(initial.outcome, IdentityOutcome::Unresolved);
     assert_eq!(initial.reason, IdentityReason::Ambiguity);
     assert_eq!(script.calls.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        view.list_entity_identity_pairs(b, None, 10).unwrap(),
+        [initial.pair]
+    );
+    let reverse = manager.workspace_management(b).unwrap();
+    assert!(
+        reverse
+            .list_entity_identity_pairs(a, None, 10)
+            .unwrap()
+            .is_empty()
+    );
     assert_eq!(
         view.compare_entity_identity(a_entity, b, b_entity)
             .unwrap_err()
@@ -531,7 +568,7 @@ fn identity_paused_evaluation_rechecks_peer_and_revocation() {
         let ap = dir.0.join("a.rel");
         let bp = dir.0.join("b.rel");
         let (ae, ac) = seed(&ap, [3; 16]);
-        let (be, bc) = seed(&bp, [4; 16]);
+        let (be, bc) = seed_short_names(&bp, [4; 16], "Alex");
         let ar = Rel::open(&ap).unwrap();
         let br = Rel::open(&bp).unwrap();
         let gateway = Gateway::new();
@@ -653,7 +690,7 @@ fn identity_readonly_peer_and_equivalent_concurrent_requests_publish_once() {
     let ap = dir.0.join("a.rel");
     let bp = dir.0.join("b.rel");
     let (ae, ac) = seed(&ap, [5; 16]);
-    let (be, bc) = seed(&bp, [6; 16]);
+    let (be, bc) = seed_short_names(&bp, [6; 16], "Alex");
     // Author the independent witnesses before mounting the peer read-only.
     {
         let gateway = Gateway::new();
@@ -735,8 +772,8 @@ fn cold_reopen_rechecks_prior_comparison_after_generic_route_bind() {
     let bp = dir.0.join("b.rel");
     let cp = dir.0.join("c.rel");
     let (ae, ac) = seed(&ap, [11; 16]);
-    let (be, bc) = seed(&bp, [12; 16]);
-    seed(&cp, [13; 16]);
+    let (be, bc) = seed_short_names(&bp, [12; 16], "Alex");
+    seed_short_names(&cp, [13; 16], "Chen");
     let script = Arc::new(Script::default());
     let runtime = runtime(script.clone());
     {
@@ -827,23 +864,43 @@ fn two_programs_named_relay_are_distinguished_by_independent_inventory_records()
         ("inventory", INVENTORY, "artifact"),
     ];
     let (a_app, a_inventory) = seed_entities(&ap, [7; 16], entities);
-    let (b_app, b_inventory) = seed_entities(&bp, [8; 16], entities);
+    let (b_app, b_inventory) = seed_entities(
+        &bp,
+        [8; 16],
+        [
+            ("application", APPLICATION, "application"),
+            ("inventory", "software inventory", "artifact"),
+        ],
+    );
     let ar = Rel::open(&ap).unwrap();
     let br = Rel::open(&bp).unwrap();
     let gateway = Gateway::new();
     let a = gateway.mount_rel(&ar, true).unwrap();
     let b = gateway.mount_rel(&br, true).unwrap();
     let token = "identity-app-manager-credential-00000000000";
-    let (admission, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
-        "author",
-        token,
-        [OwnerGrant::ManageRel(a), OwnerGrant::ManageRel(b)],
-    )])
+    let left_token = "identity-left-app-author-credential-00000000";
+    let peer_token = "identity-peer-app-author-credential-00000000";
+    let (admission, _) = TrustedHostAdmission::new([
+        HostCredentialBinding::new(
+            "author",
+            token,
+            [OwnerGrant::ManageRel(a), OwnerGrant::ViewRel(b)],
+        ),
+        HostCredentialBinding::new("left-author", left_token, [OwnerGrant::ManageRel(a)]),
+        HostCredentialBinding::new("peer-author", peer_token, [OwnerGrant::ManageRel(b)]),
+    ])
     .install(&gateway)
     .unwrap();
-    let manager = admission.authenticate(token).unwrap();
-    let work = manager.workspace_management(a).unwrap();
-    let peer = manager.workspace_management(b).unwrap();
+    let work = admission
+        .authenticate(left_token)
+        .unwrap()
+        .workspace_management(a)
+        .unwrap();
+    let peer = admission
+        .authenticate(peer_token)
+        .unwrap()
+        .workspace_management(b)
+        .unwrap();
     let script = Arc::new(Script::default());
     let runtime = runtime(script.clone());
     gateway.set_runtime(Some(&runtime)).unwrap();
@@ -869,7 +926,13 @@ fn two_programs_named_relay_are_distinguished_by_independent_inventory_records()
             quote,
         );
     }
-    let initial = work.compare_entity_identity(a_app, b, b_app).unwrap();
+    let manager = admission
+        .authenticate(token)
+        .unwrap()
+        .workspace_management(a)
+        .unwrap();
+    wait_revision(&manager, a_app, b, b_app, 1);
+    let initial = manager.compare_entity_identity(a_app, b, b_app).unwrap();
     assert_eq!(initial.revision, 1);
     assert_eq!(initial.outcome, IdentityOutcome::Unresolved);
     assert_eq!(initial.reason, IdentityReason::Ambiguity);
@@ -889,8 +952,8 @@ fn two_programs_named_relay_are_distinguished_by_independent_inventory_records()
         );
     }
     gateway.set_runtime(Some(&runtime)).unwrap();
-    wait_revision(&work, a_app, b, b_app, 2);
-    let distinct = work
+    wait_revision(&manager, a_app, b, b_app, 2);
+    let distinct = manager
         .inspect_entity_identity(a_app, b, b_app, None)
         .unwrap()
         .unwrap()
@@ -899,7 +962,7 @@ fn two_programs_named_relay_are_distinguished_by_independent_inventory_records()
     assert_eq!(distinct.outcome, IdentityOutcome::RelatedDistinct);
     assert_eq!(distinct.reason, IdentityReason::Distinct);
     assert_eq!(distinct.citations.len(), 2);
-    let view = work
+    let view = manager
         .inspect_entity_identity(a_app, b, b_app, None)
         .unwrap()
         .unwrap();

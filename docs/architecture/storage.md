@@ -19,7 +19,7 @@ The eight durable domain owners are `reliquary-archive`, `reliquary-memory-core`
 - **Archive** owns accepted conversation turns, episode boundaries, attachment/source references, and echo records. Its stable episode and turn identities ground later processing.
 - **Memory core** owns memory records, payload state, and memory identity. Leased replay retains verified ranges for standalone and grouped bodies. Historical projection reads the selected body from its owner file. Detached snapshots retain their payloads in memory.
 - **Graph** owns relation/community state and graph history; it does not own memory payloads.
-- **Perception store** owns entity descriptions, mentions, and relationship descriptions/history.
+- **Perception store** owns entity descriptions, mentions, and relationship descriptions/history. Cross-REL discovery pages through the existing ordered map of current Entities by seeking past the last Entity ID. Historical and retired descriptions live in separate projections. The candidate keys are derived in memory, and the recording REL persists each judgment in its existing identity receipt history.
 - **Ego store** owns owner identity/profile state.
 - **Freshness store** owns freshness policy, scores/projections, and historical snapshots.
 - **Insomnia store** owns accepted episode order and Insomnia progression/settlement records.

@@ -116,13 +116,20 @@ fn confirmed_pair_keeps_the_worker_judgment_and_undo_restores_it() {
         .set_runtime(Some(&runtime(script.clone())))
         .unwrap();
     evidence(&work, f.pair.local_entity, f.ac);
-    assert_eq!(f.compare(&work).outcome, IdentityOutcome::Unresolved);
+    let initial = f.compare(&work);
+    assert_eq!(initial.outcome, IdentityOutcome::Unresolved);
     let first_action = user.prepare(f.pair, Request::Confirm).unwrap();
     let id = first_action.preview().action_id;
     assert_eq!(user.commit(&first_action).unwrap().state, State::Applies);
 
     evidence(&peer, f.pair.peer_entity, f.bc);
-    wait_revision(&work, f.pair.local_entity, f.b, f.pair.peer_entity, 2);
+    wait_revision(
+        &work,
+        f.pair.local_entity,
+        f.b,
+        f.pair.peer_entity,
+        initial.revision + 1,
+    );
     let revised = f.inspect(&work);
     assert_eq!(revised.receipt.outcome, IdentityOutcome::SameIdentity);
     assert_eq!(

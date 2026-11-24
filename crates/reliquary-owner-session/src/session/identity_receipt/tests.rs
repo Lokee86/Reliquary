@@ -63,6 +63,13 @@ pub(in crate::session) fn unresolved(owner: [u8; 16], entity: &Entity) -> Identi
 }
 
 fn fixture_source_memory(writer: &mut RelWriter) -> reliquary_memory_core::MemoryRecord {
+    fixture_source_memory_with_content(writer, QUOTE)
+}
+
+fn fixture_source_memory_with_content(
+    writer: &mut RelWriter,
+    content: &str,
+) -> reliquary_memory_core::MemoryRecord {
     let owner = crate::session::perception_lifecycle::support::owner_hex(&OWNER);
     let memory = writer
         .session
@@ -72,7 +79,7 @@ fn fixture_source_memory(writer: &mut RelWriter) -> reliquary_memory_core::Memor
             &mut writer.container,
             MemoryDraft {
                 title: "Accepted source".into(),
-                content: QUOTE.into(),
+                content: content.into(),
                 category: "fact".into(),
                 memory_type: "project".into(),
                 authority_kind: "direct".into(),
@@ -165,12 +172,24 @@ fn fixture_mention(
     memory: &reliquary_memory_core::MemoryRecord,
     entity: &Entity,
 ) -> MemoryEntityResolution {
+    fixture_mention_at(writer, memory, entity, 0)
+}
+
+fn fixture_mention_at(
+    writer: &mut RelWriter,
+    memory: &reliquary_memory_core::MemoryRecord,
+    entity: &Entity,
+    offset: u32,
+) -> MemoryEntityResolution {
+    let mut key = fixture_mention_reference(memory, None).key;
+    key.start_byte += offset;
+    key.end_byte += offset;
     writer
         .commit_entity_mention(EntityMentionCommit {
             owner_id: OWNER,
             memory_revision: memory.revision,
             body_id: memory.body_id,
-            key: fixture_mention_reference(memory, None).key,
+            key,
             surface: "Mira".into(),
             expected_revision: 0,
             updated_at_ns: 11,
@@ -643,6 +662,67 @@ fn legacy_relationship_citations_and_evidence_keep_their_named_encoding() {
     assert_eq!(
         serde_json::to_value(&evidence).unwrap(),
         serde_json::json!({"endpoint_revision": 1, "relationships": [], "limit": null})
+    );
+}
+
+#[test]
+fn discovery_pages_seek_and_resolved_context_follows_withdrawal() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("discovery.rel");
+    let mut writer = RelWriter::create_current_path(&source, OWNER).unwrap();
+    let endpoint = fixture_entity(&mut writer, "Mira");
+    let other = fixture_entity(&mut writer, "Different endpoint");
+    let content =
+        "Setup.\ncom.arden.editor confirms Mira signed contract M42-7816 under ticket abc-123.";
+    let memory = fixture_source_memory_with_content(&mut writer, content);
+    let session = writer.read_session();
+    let before = session.identity_discovery_keys(None, 4).unwrap();
+    assert_eq!(before.len(), 2);
+    assert!(before[0].0 < before[1].0);
+    assert!(before.iter().all(|(_, keys)| keys.len() == 1));
+    assert_eq!(
+        session.identity_discovery_keys(None, 1).unwrap(),
+        before[..1]
+    );
+    assert_eq!(
+        session
+            .identity_discovery_keys(Some(before[0].0), 1)
+            .unwrap(),
+        before[1..]
+    );
+
+    let offset = content.find("Mira").unwrap().try_into().unwrap();
+    let mention = fixture_mention_at(&mut writer, &memory, &endpoint, offset);
+    let session = writer.read_session();
+    let resolved = session.identity_discovery_keys(None, 4).unwrap();
+    let count = |id| resolved.iter().find(|row| row.0 == id).unwrap().1.len();
+    assert_eq!(count(endpoint.id), 4);
+    assert_eq!(count(other.id), 1);
+
+    writer
+        .withdraw_entity_mention(WithdrawEntityMentionRequest {
+            owner_id: OWNER,
+            key: mention.key,
+            expected_mention_revision: mention.revision,
+            memory_id: memory.id,
+            memory_revision: memory.revision,
+            body_id: memory.body_id,
+            source_surface: "Mira".into(),
+            target_revisions: vec![(endpoint.id, endpoint.revision)],
+            withdrawn_at_ns: 12,
+        })
+        .unwrap();
+    assert_eq!(
+        writer
+            .read_session()
+            .identity_discovery_keys(None, 4)
+            .unwrap(),
+        before
+    );
+    drop(writer);
+    assert_eq!(
+        reopen(&source).identity_discovery_keys(None, 4).unwrap(),
+        before
     );
 }
 

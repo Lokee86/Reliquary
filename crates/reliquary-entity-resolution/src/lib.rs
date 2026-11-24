@@ -10,10 +10,12 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 mod decision_fast_path;
+mod identity_discovery;
 mod identity_pair;
 #[cfg(test)]
 mod identity_trial;
 mod model_evaluator;
+pub use identity_discovery::IdentityDiscoveryIndex;
 pub use identity_pair::{IdentityJudgment, IdentityPairEvidence};
 pub use model_evaluator::{
     AdmissionDecision, ENTITY_ADMISSION_SYSTEM_PROMPT, ENTITY_RESOLUTION_SYSTEM_PROMPT,

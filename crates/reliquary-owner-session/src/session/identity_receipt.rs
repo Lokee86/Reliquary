@@ -212,6 +212,28 @@ impl RelSession {
             .map(|(_, quote)| quote.to_owned()))
     }
 
+    /// Page the recorded pairs for one peer without loading receipts or Memory bodies.
+    pub fn peer_identity_pairs_after(
+        &self,
+        peer_owner: [u8; 16],
+        after: Option<(EntityId, EntityId)>,
+        limit: usize,
+    ) -> Vec<IdentityPair> {
+        let after = after.map(|(local_entity, peer_entity)| IdentityPair {
+            local_owner: self.owner_id,
+            local_entity,
+            peer_owner,
+            peer_entity,
+        });
+        self.identity_history
+            .by_pair
+            .range((after.as_ref().map_or(Unbounded, Excluded), Unbounded))
+            .filter(|(pair, _)| pair.peer_owner == peer_owner)
+            .take(limit)
+            .map(|(pair, _)| *pair)
+            .collect()
+    }
+
     pub fn identity_pairs_after(
         &self,
         after: Option<&IdentityPair>,

@@ -176,6 +176,16 @@ On untouched evidence in the 14-day and Ellis copies, Core recorded `Unresolved 
 
 To reproduce the live trial, set `RELIQUARY_MENTION_CORPUS_DIR` to the authoritative fixture root, `RELIQUARY_IDENTITY_TRIAL_CONFIG` to the protected Sol profile at its registered path, and `RELIQUARY_TRIAL_CODEX` to the signed-in native executable. Run `cargo test --locked --offline --test entity_identity authoritative_mention_corpus_compares_and_reopens -- --ignored --nocapture --test-threads=1`. This opt-in test sends the selected excerpts to the configured model via the signed-in client. The ordinary public test suite uses authored data.
 
+## Automatic pair discovery
+
+A managed REL and a read-only peer were mounted under one credential. Without a caller supplying Entity IDs, Core found two pairs from names or aliases and recorded both as unresolved with zero model calls. After a new Memory placed the same hull number beside a differently named vessel, Core found a third pair. One scripted Entity call returned a match with separate citations from the two Memories. The public API listed all three pairs by peer and paged them by ID. A third mounted REL outside the credential's grants produced no receipt. [Discovery cases](../../tests/entity_identity/discovery.rs)
+
+An offline run on temporary copies of the original 28-day and Ellis project RELs enumerated all eligible Entity rows and found **zero** pairs sharing a qualifying key. The authenticated workspace returned zero pairs, the reopened recording copy held zero receipts and the local endpoint received zero requests. Both source files and the read-only Ellis copy retained their original hashes. This measures coverage of the current discovery rules on this corpus. It leaves open whether differently described Entities refer to the same thing.
+
+In a separate positive control, one new Entity on the disposable 28-day copy was given the name of an existing Ellis Entity as an alias. The public list showed one pair 0.91 seconds after reopening finished. With no witnesses on the new Entity, Core recorded `Unresolved / InsufficientEvidence` locally. The receipt survived a fresh reopen. Both originals and the read-only peer still matched their initial hashes.
+
+To repeat the copy run, set `RELIQUARY_MENTION_CORPUS_DIR` to the authoritative fixture directory and run `cargo test --locked --offline -j 1 --test entity_identity discovery::authoritative_copies_discover_without_presupplied_entity_ids -- --ignored --exact --nocapture`. The earlier configured-model trial above supplied its own pair.
+
 ## Related docs
 
 - [Public comparison and inspection API](../public-product-api.md)

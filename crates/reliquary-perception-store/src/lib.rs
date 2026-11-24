@@ -715,6 +715,13 @@ impl PerceptionStore {
     pub fn entities(&self) -> impl Iterator<Item = &Entity> {
         self.entities.values()
     }
+    /// Seek active Entities in ID order after an exclusive cursor.
+    pub fn entities_after(&self, after: Option<EntityId>) -> impl Iterator<Item = &Entity> {
+        use std::ops::Bound::{Excluded, Unbounded};
+        self.entities
+            .range((after.map_or(Unbounded, Excluded), Unbounded))
+            .map(|(_, entity)| entity)
+    }
     pub fn historical_entities(&self) -> impl Iterator<Item = EntityId> + '_ {
         self.entity_tombstones.keys().copied()
     }

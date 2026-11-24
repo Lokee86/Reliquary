@@ -1,9 +1,10 @@
-//! Authorized comparison of one explicit pair. Only its recording REL is writable.
+//! Authorized cross-REL identity comparisons. Only the recording REL is writable.
 use super::*;
 use reliquary_application::{
     ManagementError,
     entity_identity::{IdentityComparison, IdentityPairEvidence, retained_identity_quotes},
 };
+use reliquary_owner_session::model::EntityId;
 use reliquary_owner_session::{
     IdentityPublicationProof,
     model::identity::{IdentityOutcome, IdentityPair, IdentityReceipt},
@@ -79,6 +80,25 @@ fn prepare_pair(
     Ok((IdentityPairEvidence::new(local, peer), proof))
 }
 
+fn require_unrecorded_discovery(
+    local: &RelSession,
+    peer: &RelSession,
+    pair: &IdentityPair,
+) -> Result<(), GatewayError> {
+    let reverse = IdentityPair {
+        local_owner: pair.peer_owner,
+        local_entity: pair.peer_entity,
+        peer_owner: pair.local_owner,
+        peer_entity: pair.local_entity,
+    };
+    if local.identity_receipt(pair, None).is_some()
+        || peer.identity_receipt(&reverse, None).is_some()
+    {
+        return Err(GatewayError::Management(ManagementError::Conflict));
+    }
+    Ok(())
+}
+
 fn stale() -> GatewayError {
     GatewayError::Management(ManagementError::Stale)
 }
@@ -149,6 +169,27 @@ fn inspect_comparison(
 }
 
 impl IdentityLifecycle {
+    pub fn list_pairs(
+        &self,
+        instance: &Instance,
+        recording: OwnerId,
+        peer: OwnerId,
+        after: Option<(EntityId, EntityId)>,
+        limit: usize,
+    ) -> Result<Vec<IdentityPair>, GatewayError> {
+        instance.with_identity_owners(recording, peer, false, |local, _, _| {
+            let _publication = instance.fence_identity_owners(recording, peer)?;
+            if !(1..=reliquary_application::MAX_MANAGEMENT_PAGE_ITEMS).contains(&limit) {
+                return Err(GatewayError::Management(ManagementError::InvalidInput(
+                    "pair list limit must be between 1 and 128",
+                )));
+            }
+            Ok(local
+                .session()
+                .peer_identity_pairs_after(peer.as_bytes(), after, limit))
+        })
+    }
+
     pub fn inspect(
         &self,
         instance: &Instance,
@@ -176,12 +217,20 @@ impl Instance {
         &self,
         pair: &IdentityPair,
     ) -> Result<RwLockReadGuard<'_, ()>, GatewayError> {
+        self.fence_identity_owners(OwnerId(pair.local_owner), OwnerId(pair.peer_owner))
+    }
+
+    fn fence_identity_owners(
+        &self,
+        local: OwnerId,
+        peer: OwnerId,
+    ) -> Result<RwLockReadGuard<'_, ()>, GatewayError> {
         let publication = self
             .credential_publication
             .read()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
-        self.authorize_rel_access(OwnerId(pair.local_owner))?;
-        self.authorize_rel_access(OwnerId(pair.peer_owner))?;
+        self.authorize_rel_access(local)?;
+        self.authorize_rel_access(peer)?;
         Ok(publication)
     }
 
@@ -194,10 +243,17 @@ impl Instance {
         before_evaluation: impl FnOnce([u8; 32]) -> Result<(), GatewayError>,
     ) -> Result<IdentityReceipt, GatewayError> {
         let admitted = || admission.as_ref().map(BackgroundAdmission::pin).transpose();
+        let discovery = admission.as_ref().and_then(|admission| admission.discovery);
         let _ = admitted()?;
         let (mut prepared_on, current, (basis, mut proof)) =
             self.with_identity_pair(&pair, true, |local, peer, stamp| {
                 let local = local.session();
+                if let Some(expected) = discovery {
+                    if &stamp != expected {
+                        return Err(stale());
+                    }
+                    require_unrecorded_discovery(local, peer, &pair)?;
+                }
                 Ok((
                     stamp,
                     local.identity_receipt(&pair, None).cloned(),
@@ -220,7 +276,13 @@ impl Instance {
         // One cut-only race can reuse the judgment after recapturing its exact inputs.
         // A changed mount or a genuinely changed input must return to preparation.
         for attempt in 0..2 {
-            let result = self.with_identity_pair(&pair, true, |local, _, stamp| {
+            let result = self.with_identity_pair(&pair, true, |local, peer, stamp| {
+                if let Some(expected) = discovery {
+                    if &stamp != expected {
+                        return Err(stale());
+                    }
+                    require_unrecorded_discovery(local.session(), peer, &pair)?;
+                }
                 if stamp.mounts != prepared_on.mounts {
                     return Err(stale());
                 }

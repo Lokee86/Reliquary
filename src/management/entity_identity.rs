@@ -29,6 +29,25 @@ impl WorkspaceManagement {
         )?)
     }
 
+    /// List pairs recorded in this REL for a readable peer, including automatic discoveries.
+    /// For the next page pass the last pair's (local Entity ID, peer Entity ID).
+    pub fn list_entity_identity_pairs(
+        &self,
+        peer_owner: OwnerId,
+        after: Option<(EntityId, EntityId)>,
+        limit: usize,
+    ) -> Result<Vec<IdentityPair>, ProductError> {
+        self.instance.require_rel_read(self.owner)?;
+        self.instance.require_rel_read(peer_owner)?;
+        Ok(self.instance.gateway.identity.list_pairs(
+            &self.instance.inner,
+            self.owner.into(),
+            peer_owner.into(),
+            after,
+            limit,
+        )?)
+    }
+
     /// Read a receipt and check whether its evidence still supports a current judgment.
     pub fn inspect_entity_identity(
         &self,

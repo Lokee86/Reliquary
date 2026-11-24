@@ -19,6 +19,8 @@ use reliquary_perception_store::{
 use sha2::{Digest, Sha256};
 use std::cmp::Reverse;
 
+mod discovery;
+
 impl RelSession {
     /// A change hint for mounted comparisons. A changed cut requires recapture;
     /// the pair fingerprint determines whether its decision input has changed.

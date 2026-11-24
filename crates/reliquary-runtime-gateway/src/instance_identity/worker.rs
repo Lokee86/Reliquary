@@ -12,6 +12,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod discovery;
+
 const BATCH_SIZE: usize = 8;
 const BATCH_PAUSE: Duration = Duration::from_millis(25);
 const IDLE_PAUSE: Duration = Duration::from_millis(250);
@@ -59,6 +61,7 @@ struct Admission {
 pub(super) struct BackgroundAdmission<'a> {
     instance: &'a Weak<Instance>,
     stopping: &'a AtomicBool,
+    pub(super) discovery: Option<&'a PairStamp>,
 }
 
 impl BackgroundAdmission<'_> {
@@ -78,7 +81,7 @@ struct Control {
     route: RouteBinding,
 }
 
-/// Schedules reconsideration through the credentials of live managed sessions.
+/// Schedules discovery and reconsideration through live managed sessions.
 /// Root supplies only recording owners that have the product's ManageRel grant.
 #[derive(Default)]
 pub struct IdentityLifecycle {
@@ -225,6 +228,7 @@ struct Sweep {
     cursors: BTreeMap<OwnerId, OwnerCursor>,
     checked: BTreeMap<IdentityPair, PairCheck>,
     route: Weak<IdentityRoute>,
+    discovery: discovery::Discovery,
 }
 
 fn run(control: Arc<Control>) {
@@ -294,6 +298,7 @@ impl Sweep {
         let Some((&owner, candidates)) = next else {
             self.after_owner = None;
             self.checked.clear();
+            self.discovery = discovery::Discovery::default();
             return Some(false);
         };
         let more_owners = owners.range((Excluded(owner), Unbounded)).next().is_some();
@@ -303,14 +308,16 @@ impl Sweep {
         let route_ref = Arc::downgrade(&route);
         if !self.route.ptr_eq(&route_ref) {
             self.checked.clear();
+            self.discovery.reset_scans();
             self.route = route_ref;
         }
+        let more_discovery = self.discovery.poll(control, &route, &owners);
         let cursor = self.cursors.entry(owner).or_default();
         let Some(keys) = candidates
             .iter()
             .find_map(|candidate| Self::recorded_pairs(candidate, owner, cursor))
         else {
-            return Some(more_owners);
+            return Some(more_owners || more_discovery);
         };
         cursor.after = if keys.len() == BATCH_SIZE {
             keys.last().copied()
@@ -323,7 +330,7 @@ impl Sweep {
             }
             self.check_pair(control, &route, candidates, pair);
         }
-        Some(more_owners || keys.len() == BATCH_SIZE)
+        Some(more_owners || more_discovery || keys.len() == BATCH_SIZE)
     }
 
     fn recorded_pairs(
@@ -388,6 +395,7 @@ impl Sweep {
         let admission = BackgroundAdmission {
             instance: admission,
             stopping: &control.stopping,
+            discovery: None,
         };
         let mut check = PairCheck {
             stamp,

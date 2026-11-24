@@ -31,8 +31,21 @@ impl Instance {
         write: bool,
         operation: impl FnOnce(HeldRel<'_>, &RelSession, PairStamp) -> Result<R, GatewayError>,
     ) -> Result<R, GatewayError> {
-        let local_id = OwnerId(pair.local_owner);
-        let peer_id = OwnerId(pair.peer_owner);
+        self.with_identity_owners(
+            OwnerId(pair.local_owner),
+            OwnerId(pair.peer_owner),
+            write,
+            operation,
+        )
+    }
+
+    pub(super) fn with_identity_owners<R>(
+        &self,
+        local_id: OwnerId,
+        peer_id: OwnerId,
+        write: bool,
+        operation: impl FnOnce(HeldRel<'_>, &RelSession, PairStamp) -> Result<R, GatewayError>,
+    ) -> Result<R, GatewayError> {
         self.authorize_rel_access(local_id)?;
         self.authorize_rel_access(peer_id)?;
         if local_id == peer_id {
