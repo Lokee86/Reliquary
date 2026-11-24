@@ -2,11 +2,16 @@ use super::WorkspaceManagement;
 use crate::{EntityId, OwnerGrant, OwnerId, ProductError};
 
 pub use reliquary_owner_session::model::identity::{
-    IdentityCitation, IdentityEntityRevision, IdentityEvidenceRef, IdentityLimit,
-    IdentityMemoryRef, IdentityOutcome, IdentityPair, IdentityReason, IdentityReceipt,
-    IdentityRelationshipRef, IdentitySide, IdentitySpan,
+    IdentityCitation, IdentityEndpointProof, IdentityEntityRevision, IdentityEvidenceRef,
+    IdentityLimit, IdentityMemoryRef, IdentityOutcome, IdentityPair, IdentityReason,
+    IdentityReceipt, IdentityRelationshipRef, IdentitySeparationAction, IdentitySeparationEvent,
+    IdentitySide, IdentitySpan,
 };
-pub use reliquary_runtime_gateway::{EntityIdentityInspection, IdentityComparisonState};
+pub use reliquary_runtime_gateway::{
+    EntityIdentityInspection, IdentityComparisonState, IdentityEffectiveDecision,
+    IdentitySeparationInspection, IdentitySeparationPreview, IdentitySeparationRequest,
+    IdentitySeparationReview, IdentitySeparationState, PreparedIdentitySeparation,
+};
 
 impl WorkspaceManagement {
     /// Compare an explicit pair and publish the evidence receipt in this REL.
@@ -34,10 +39,28 @@ impl WorkspaceManagement {
     ) -> Result<Option<EntityIdentityInspection>, ProductError> {
         self.instance.require_rel_read(self.owner)?;
         self.instance.require_rel_read(peer_owner)?;
-        Ok(self
-            .instance
-            .inner
-            .inspect_entity_identity(self.identity_pair(local, peer_owner, peer), revision)?)
+        Ok(self.instance.gateway.identity.inspect(
+            &self.instance.inner,
+            self.identity_pair(local, peer_owner, peer),
+            revision,
+        )?)
+    }
+
+    /// Inspect the latest or a numbered operator decision for this directional pair.
+    pub fn inspect_entity_separation(
+        &self,
+        local: EntityId,
+        peer_owner: OwnerId,
+        peer: EntityId,
+        revision: Option<u64>,
+    ) -> Result<Option<IdentitySeparationInspection>, ProductError> {
+        self.instance.require_rel_read(self.owner)?;
+        self.instance.require_rel_read(peer_owner)?;
+        Ok(self.instance.gateway.identity.inspect_separation(
+            &self.instance.inner,
+            self.identity_pair(local, peer_owner, peer),
+            revision,
+        )?)
     }
 
     fn identity_pair(&self, local: EntityId, peer_owner: OwnerId, peer: EntityId) -> IdentityPair {

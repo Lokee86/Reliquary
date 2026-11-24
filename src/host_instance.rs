@@ -13,6 +13,7 @@ impl ConversationQueue {
 #[derive(Clone)]
 pub struct Instance {
     pub(crate) inner: Arc<runtime::Instance>,
+    pub(super) installation: Arc<()>,
     pub(super) grants: Arc<BTreeSet<OwnerGrant>>,
     pub(crate) gateway: Gateway,
 }

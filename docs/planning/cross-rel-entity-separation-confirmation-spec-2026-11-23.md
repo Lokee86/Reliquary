@@ -4,7 +4,7 @@ Parent index: [Planning](./INDEX.md)
 
 ## Purpose
 
-Proposed follow-up. A user reviewing two selected Entities in different RELs can record “These are separate Entities” and later undo that decision.
+A user reviewing two selected Entities in different RELs can record “These are separate Entities” and later undo that decision. Core implements the trusted-host API. Hermes operator interaction remains a separate host integration. [Public API](../public-product-api.md#confirm-or-undo-separation)
 
 ## Overview
 
@@ -47,7 +47,7 @@ Apply both current read grants to hosted inspection of confirmations, their hist
 | Revisions and race | A changed receipt, replaced mount or intervening confirmation rejects a pending action. A concurrent retry gets one durable event. Reused action IDs with different inputs and undo against a superseded head fail. An unrelated write permits commit. A committed confirmation survives an ordinary Entity revision and a remount with verified continuity. Retirement or a replacement lacking the reviewed history makes it unavailable for a current decision. Authoritative undo still works for a stale confirmation with both owners accessible. |
 | Reopen and maintenance | Old 2.1 files open with an empty confirmation history. Cold replay, checkpoint and suffix replay, and verified copies preserve the chain without B. A partial tail recovers the complete prefix. Unsupported rewrite and divergent reconciliation fail before creating a destination. |
 
-Run the focused cases through the existing [Root pair fixture](../../tests/entity_identity.rs) and [owner-session receipt tests](../../crates/reliquary-owner-session/src/session/identity_receipt/tests.rs), plus the locked offline integration and documentation checks.
+The [Root review tests](../../tests/entity_identity/separation.rs) exercise the trusted operator interaction with the existing pair fixture. [Gateway tests](../../crates/reliquary-runtime-gateway/src/instance_identity/separation/tests.rs) cover expiry and durable retries. [Owner-session tests](../../crates/reliquary-owner-session/src/session/identity_separation/tests.rs) cover event admission and recovery. [Maintenance tests](../../crates/reliquary-owner-session/src/session/checkpoint/tests_identity_separation.rs) cover checkpoints, verified copies and unsupported transformations.
 
 ## Related docs
 

@@ -1,4 +1,5 @@
 use super::*;
+use reliquary_owner_session::model::identity::MAX_IDENTITY_SEPARATION_OPERATOR_ID_BYTES;
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -29,6 +30,45 @@ impl TrustedHostAdmission {
         Self {
             bindings: bindings.into_iter().collect(),
         }
+    }
+
+    /// Install admission and give the trusted user-interaction handler a separate
+    /// approval capability. Operator IDs are stable, nonsecret principal names
+    /// from this host's credential configuration.
+    pub fn install_with_entity_review(
+        &self,
+        gateway: &Gateway,
+        operator_principals: &[&str],
+    ) -> Result<
+        (
+            HostAdmissionAdapter,
+            HostAdmissionControl,
+            EntityReviewAuthority,
+        ),
+        ProductError,
+    > {
+        for operator in operator_principals {
+            let configured = self
+                .bindings
+                .iter()
+                .any(|binding| binding.principal == *operator);
+            let is_credential = self
+                .bindings
+                .iter()
+                .any(|binding| binding.token == *operator);
+            if !configured
+                || is_credential
+                || operator.trim() != *operator
+                || operator.len() > MAX_IDENTITY_SEPARATION_OPERATOR_ID_BYTES
+            {
+                return Err(ProductError::invalid(
+                    "expected a configured nonsecret operator ID",
+                ));
+            }
+        }
+        let (adapter, control) = self.install(gateway)?;
+        let review = EntityReviewAuthority::new(gateway, &adapter, operator_principals);
+        Ok((adapter, control, review))
     }
 
     pub fn install(
@@ -68,6 +108,7 @@ impl TrustedHostAdmission {
         Ok((
             HostAdmissionAdapter {
                 inner: adapter,
+                installation: Arc::new(()),
                 grants: product_grants,
                 gateway: gateway.clone(),
             },
@@ -97,6 +138,7 @@ impl HostAdmissionControl {
 
 pub struct HostAdmissionAdapter {
     inner: runtime::HostAdmissionAdapter,
+    pub(super) installation: Arc<()>,
     grants: HashMap<[u8; 32], BTreeSet<OwnerGrant>>,
     gateway: Gateway,
 }
@@ -124,6 +166,7 @@ impl HostAdmissionAdapter {
         self.gateway.identity.admit(&inner, recording)?;
         Ok(Instance {
             inner,
+            installation: self.installation.clone(),
             grants: Arc::new(grants),
             gateway: self.gateway.clone(),
         })

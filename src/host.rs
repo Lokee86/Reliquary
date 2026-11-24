@@ -255,6 +255,10 @@ pub use admission::{
 mod instance;
 pub use instance::{ConversationQueue, Instance};
 
+#[path = "host_entity_review.rs"]
+mod entity_review;
+pub use entity_review::{EntityReviewAuthority, EntityReviewSession};
+
 #[path = "host_context.rs"]
 pub(crate) mod context;
 #[path = "host_external_source.rs"]

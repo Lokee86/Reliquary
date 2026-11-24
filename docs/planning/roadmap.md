@@ -20,7 +20,7 @@ Manual community recomputation follows the [Leiden specification](leiden-communi
 
 Core compares two explicitly selected Entities across authorized RELs. The recording REL retains the evidence and each decision revision. The public fixture follows an unresolved pair through corroboration, source correction and reconsideration after reopen. Broader candidate discovery, retained-corpus calibration and Perception Observations remain future work. [Acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md) · [Comparison specification](cross-rel-entity-identity-spec-2026-11-23.md)
 
-A follow-up proposal covers explicit user confirmation that two selected Entities are separate and the ability to undo it. [Confirmation proposal](cross-rel-entity-separation-confirmation-spec-2026-11-23.md)
+Core supports explicit, reversible operator confirmation for a selected cross-REL pair. Enabling the action in Hermes requires a trusted operator interaction and its own host verification. [Public API](../public-product-api.md#confirm-or-undo-separation)
 
 The [temporal search specification](temporal-search-spec-2026-11-23.md) proposes source-time and mentioned-time filtering for Memory and Archive search, with Chronos evidence and acceptance gates.
 

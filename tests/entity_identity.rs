@@ -1,4 +1,7 @@
 //! Public cross-REL acceptance: authored writers, configured inference, and durable history.
+#[path = "entity_identity/separation.rs"]
+mod separation;
+
 use reliquary_memory::{
     ConfiguredRuntime, CorrectMemoryRequest, CreateRelationshipRequest, EmbeddingEndpoint,
     EmbeddingEndpointError, EmbeddingNormalization, EntityId, Gateway, GeneralEndpoint,
