@@ -156,14 +156,15 @@ impl HostAdmissionAdapter {
                 )
             })?;
         let inner = Arc::new(inner);
-        let recording = grants
+        let recording: Vec<_> = grants
             .iter()
             .filter_map(|grant| match grant {
                 OwnerGrant::ManageRel(owner) => Some((*owner).into()),
                 _ => None,
             })
             .collect();
-        self.gateway.identity.admit(&inner, recording)?;
+        self.gateway.identity.admit(&inner, recording.clone())?;
+        self.gateway.admit_perception(&inner, recording)?;
         Ok(Instance {
             inner,
             installation: self.installation.clone(),

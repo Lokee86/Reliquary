@@ -46,6 +46,7 @@ mod ingest_publication;
 mod maintenance_workflow;
 mod management_workflow;
 mod perception_lifecycle_workflow;
+pub mod perception_workflow;
 pub use management_workflow::inspection;
 pub use management_workflow::{
     CommunityRecomputeReport, CommunityRenameRequest, CommunityRenameResult,

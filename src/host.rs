@@ -47,6 +47,7 @@ struct MountedOwnerRecord {
 pub struct Gateway {
     pub(crate) inner: runtime::Gateway,
     pub(crate) identity: Arc<runtime::IdentityLifecycle>,
+    perception: Arc<runtime::PerceptionLifecycle>,
     mounted: Arc<Mutex<BTreeMap<OwnerId, MountedOwnerRecord>>>,
 }
 
@@ -58,9 +59,12 @@ impl Default for Gateway {
 
 impl Gateway {
     pub fn new() -> Self {
+        let inner = runtime::Gateway::new();
+        let perception = Arc::new(inner.perception_lifecycle());
         Self {
-            inner: runtime::Gateway::new(),
+            inner,
             identity: Arc::default(),
+            perception,
             mounted: Arc::new(Mutex::new(BTreeMap::new())),
         }
     }
@@ -80,7 +84,27 @@ impl Gateway {
             })
             .unwrap_or_default();
         self.identity.set_route(endpoint, route)?;
+        self.perception.set_routes(runtime.and_then(|runtime| {
+            use reliquary_switchboard::DecisionConsumer;
+            Some(runtime::PerceptionRoutes {
+                general: runtime.general_endpoint()?,
+                contribution: runtime
+                    .decision_endpoint_for(DecisionConsumer::ObservationContribution)?,
+                verification: runtime
+                    .decision_endpoint_for(DecisionConsumer::ObservationVerification)?,
+                embedding: runtime.embedding_endpoint()?,
+                identity: runtime.processing_route_identity().perception,
+            })
+        }))?;
         Ok(())
+    }
+
+    pub(crate) fn admit_perception(
+        &self,
+        instance: &Arc<runtime::Instance>,
+        managed: Vec<runtime::OwnerId>,
+    ) -> Result<(), ProductError> {
+        Ok(self.perception.admit(instance, managed)?)
     }
 
     pub fn mount_rel(&self, rel: &Rel, writable: bool) -> Result<OwnerId, ProductError> {

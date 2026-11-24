@@ -479,7 +479,9 @@ pub use instance_identity::{
     IdentitySeparationPreview, IdentitySeparationRequest, IdentitySeparationReview,
     IdentitySeparationState, PreparedIdentitySeparation,
 };
+mod instance_perception;
 mod instance_perception_lifecycle;
+pub use instance_perception::{PerceptionLifecycle, PerceptionRoutes};
 mod instance_vectors;
 pub use instance_vectors::{
     ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication,

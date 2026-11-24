@@ -4,6 +4,9 @@ use super::*;
 use reliquary_freshness_store::FreshnessEventCut;
 pub use reliquary_freshness_store::FreshnessState as PerceptionSourceGrade;
 use reliquary_memory_core::{MemoryBody, MemoryRecord};
+use reliquary_perception_store::observation::{
+    ObservationActivity, ObservationCitation, ObservationId, ObservationSource, ObservationStanding,
+};
 use reliquary_perception_store::{EntityEvidenceChange, PRINCIPAL_ENTITY_KIND};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -25,6 +28,7 @@ pub struct PerceptionSourceCut {
     pub memory: u64,
     pub graph: u64,
     pub entity: u64,
+    pub observation: u64,
     pub settlements: u64,
     pub rel_turn: u64,
     pub freshness_event: Option<String>,
@@ -67,9 +71,11 @@ pub struct PerceptionParticipantEvidence {
 #[derive(Clone, Debug)]
 pub struct PerceptionSourceChanges {
     pub memories: Vec<MemoryId>,
+    pub derived: Vec<ObservationId>,
     pub memory_through: u64,
     pub graph_through: u64,
     pub entity_through: u64,
+    pub observation_through: u64,
 }
 
 impl RelSession {
@@ -81,10 +87,33 @@ impl RelSession {
             memory: self.memory_version(),
             graph: self.graph_version(),
             entity: self.common.perception.version(),
+            observation: self.observation_publication_version(),
             settlements: self.common.dreams.settlement_count(),
             rel_turn,
             freshness_event: self.freshness.cut_through_turn(rel_turn).event_id_inclusive,
         }
+    }
+
+    /// A progress-only audit publication doesn't invalidate the standing sweep.
+    pub fn perception_review_version(&self) -> u64 {
+        use reliquary_perception_store::observation::ObservationOperation;
+        self.observations
+            .records()
+            .iter()
+            .rev()
+            .find(|(_, record)| {
+                record.batch.operations.iter().any(|op| {
+                    matches!(
+                        op,
+                        ObservationOperation::Pending { .. }
+                            | ObservationOperation::Create { .. }
+                            | ObservationOperation::Successor { .. }
+                            | ObservationOperation::Withdraw { .. }
+                            | ObservationOperation::Reaffirm { .. }
+                    )
+                })
+            })
+            .map_or(0, |(receipt, _)| receipt.publication_version)
     }
 
     pub fn perception_settlements_page(
@@ -231,8 +260,33 @@ impl RelSession {
                 }
             }
         }
+        let records = self.observations.records();
+        let start = records
+            .partition_point(|(receipt, _)| receipt.publication_version <= after.observation);
+        let end = records
+            .partition_point(|(receipt, _)| receipt.publication_version <= through.observation);
+        let owned = &records[start.min(end)..end];
+        let mut derived = BTreeSet::new();
+        let mut observation_through = through.observation;
+        for (index, (receipt, _)) in owned.iter().take(MAX_CAPTURE_PAGE + 1).enumerate() {
+            if derived.len() >= limit || index == MAX_CAPTURE_PAGE {
+                observation_through = receipt.publication_version - 1;
+                break;
+            }
+            // A native batch can publish several claims. Include its entire
+            // currently eligible set before advancing past that batch.
+            for &(id, revision) in &receipt.revisions {
+                if self.observation(id).is_some_and(|head| {
+                    head.standing == ObservationStanding::Current
+                        && head.revision.revision == revision
+                }) {
+                    derived.insert(id);
+                }
+            }
+        }
         Ok(PerceptionSourceChanges {
             memories: sources.into_iter().collect(),
+            derived: derived.into_iter().collect(),
             memory_through: if memory.len() > limit {
                 memory[limit - 1].0
             } else {
@@ -248,6 +302,7 @@ impl RelSession {
             } else {
                 through.entity
             },
+            observation_through,
         })
     }
 
@@ -271,6 +326,53 @@ impl RelSession {
             })
             .take(MAX_NEIGHBORS)
             .collect()
+    }
+
+    pub fn perception_relationship_sources(&self, entity: EntityId) -> Vec<MemoryId> {
+        let local = owner_hex(&self.owner_id);
+        let mut seen = BTreeSet::new();
+        self.common
+            .perception
+            .relationships_for_local_participant(entity)
+            .take(MAX_NEIGHBORS)
+            .flat_map(|relationship| &relationship.evidence)
+            .filter(|reference| reference.owner_id == local && seen.insert(reference.memory_id))
+            .map(|reference| MemoryId(reference.memory_id))
+            .take(MAX_NEIGHBORS)
+            .collect()
+    }
+
+    pub fn perception_source_activity(
+        &self,
+        cite: &ObservationCitation,
+    ) -> Option<ObservationActivity> {
+        let ObservationSource::Memory(source_id) = cite.source else {
+            return None;
+        };
+        let current = self
+            .common
+            .memories
+            .revision_record(MemoryId(source_id), None)
+            .ok()?;
+        if current.revision != cite.revision || current.body_id.0 != cite.body_id {
+            return None;
+        }
+        let source = current.source_ref.as_ref()?;
+        let conversation = source
+            .content_source_conversation_id
+            .as_deref()
+            .or(source.grounding_source_conversation_id.as_deref())?;
+        let node = source
+            .content_source_node_id
+            .as_deref()
+            .unwrap_or(&source.source_node_id);
+        let turn = self
+            .archive
+            .activity_position_for_turn(conversation, node)?;
+        Some(ObservationActivity {
+            turn,
+            source: source_id,
+        })
     }
 
     /// Supply exact active local mention anchors. The proposal can select a
@@ -338,6 +440,7 @@ impl RelSession {
             || cut.memory > self.memory_version()
             || cut.graph > self.graph_version()
             || cut.entity > self.common.perception.version()
+            || cut.observation > self.observation_publication_version()
             || cut.settlements > self.common.dreams.settlement_count()
             || cut.rel_turn > self.rel_turn_count()
         {
@@ -355,6 +458,7 @@ impl RelSession {
         let current = self.common.memories.revision_record(id, None).ok()?;
         let valid = !record.archived
             && record.superseded_by.is_none()
+            && matches!(record.lifecycle_state.as_str(), "knowledge" | "canonical")
             && current.revision == record.revision
             && has_direct_source(record)
             && self.common.memories.contains_body_payload(record.body_id)

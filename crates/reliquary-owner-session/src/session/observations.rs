@@ -230,6 +230,17 @@ impl ObservationPrefix<'_> {
         {
             return Err(invalid("record differs from owner physical prefix"));
         }
+        if let Some(progress) = &record.batch.progress {
+            super::perception_audit::PerceptionAuditProgress::verify_prefix(
+                &progress.bytes,
+                self.owner,
+                self.generation,
+                self.memory_cut,
+                self.perception_cut,
+                store.frontier(),
+                record.rel_turn,
+            )?;
+        }
         let mut checker = StandingCheck::new(*self, store);
         let changes = record
             .batch

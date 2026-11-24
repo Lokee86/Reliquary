@@ -27,6 +27,7 @@ pub struct AuditWorkSource {
 pub struct PerceptionAuditPage {
     pub cut: PerceptionSourceCut,
     pub sources: Vec<AuditWorkSource>,
+    pub derived: Vec<ObservationId>,
     pub discovery: AuditDiscoveryCursor,
     /// Discovery cursor through deterministic request batches in this page.
     pub batch: u32,
@@ -35,6 +36,7 @@ pub struct PerceptionAuditPage {
     pub perception_accepted: bool,
     /// Contribution routes independently of accepted discovery output.
     pub contribution_cursor: u16,
+    pub contribution_target_after: Option<ObservationId>,
 }
 
 impl PerceptionAuditPage {
@@ -55,7 +57,9 @@ impl PerceptionAuditPage {
     }
 
     pub fn finish_capture(&mut self, next: AuditDiscoveryCursor) -> Result<(), OwnerSessionError> {
-        if next <= self.discovery || usize::from(next.source) > self.sources.len() {
+        if next <= self.discovery
+            || usize::from(next.source) > self.sources.len() + self.derived.len()
+        {
             return Err(invalid_progress());
         }
         self.discovery = next;
@@ -219,6 +223,34 @@ impl PerceptionAuditProgress {
         Ok(progress)
     }
 
+    pub(in crate::session) fn verify_prefix(
+        bytes: &[u8],
+        owner: [u8; 16],
+        generation: [u8; 32],
+        memory: u64,
+        entity: u64,
+        observation: u64,
+        rel_turn: u64,
+    ) -> Result<(), OwnerSessionError> {
+        let parsed = Self::decode(bytes)?;
+        let cuts = std::iter::once(&parsed.after)
+            .chain(&parsed.bootstrap_cut)
+            .chain(parsed.run.as_ref().map(|run| &run.cut))
+            .chain(parsed.page.as_ref().map(|page| &page.cut));
+        for cut in cuts {
+            if cut.owner_id != owner
+                || cut.history_generation != generation
+                || cut.memory > memory
+                || cut.entity > entity
+                || cut.observation > observation
+                || cut.rel_turn > rel_turn
+            {
+                return Err(invalid_progress());
+            }
+        }
+        Ok(())
+    }
+
     pub fn advance(
         &mut self,
         rel: &RelSession,
@@ -265,6 +297,7 @@ impl PerceptionAuditProgress {
                         newly_settled: false,
                     })
                     .collect(),
+                Vec::new(),
             ));
         }
         self.bootstrap_cut = None;
@@ -379,10 +412,11 @@ impl PerceptionAuditProgress {
             memory: changes.memory_through,
             graph: changes.graph_through,
             entity: changes.entity_through,
+            observation: changes.observation_through,
             ..run.cut.clone()
         };
-        if !sources.is_empty() {
-            self.page = Some(page(run.cut.clone(), sources));
+        if !sources.is_empty() || !changes.derived.is_empty() {
+            self.page = Some(page(run.cut.clone(), sources, changes.derived));
         }
         Ok(())
     }
@@ -406,9 +440,10 @@ impl PerceptionAuditProgress {
             })
             || self.page.as_ref().is_some_and(|page| {
                 !valid_cut(&page.cut)
-                    || page.sources.is_empty()
+                    || (page.sources.is_empty() && page.derived.is_empty())
                     || page.sources.len() > AUDIT_WORK_PAGE_SIZE
-                    || usize::from(page.discovery.source) > page.sources.len()
+                    || page.derived.len() > AUDIT_WORK_PAGE_SIZE
+                    || usize::from(page.discovery.source) > page.sources.len() + page.derived.len()
                     || usize::from(page.contribution_cursor) > page.sources.len()
                     || page
                         .sources
@@ -425,10 +460,15 @@ impl PerceptionAuditProgress {
     }
 }
 
-fn page(cut: PerceptionSourceCut, sources: Vec<AuditWorkSource>) -> PerceptionAuditPage {
+fn page(
+    cut: PerceptionSourceCut,
+    sources: Vec<AuditWorkSource>,
+    derived: Vec<ObservationId>,
+) -> PerceptionAuditPage {
     PerceptionAuditPage {
         cut,
         sources,
+        derived,
         discovery: AuditDiscoveryCursor {
             source: 0,
             field: MemoryTextField::Title,
@@ -439,6 +479,7 @@ fn page(cut: PerceptionSourceCut, sources: Vec<AuditWorkSource>) -> PerceptionAu
         ego_accepted: false,
         perception_accepted: false,
         contribution_cursor: 0,
+        contribution_target_after: None,
     }
 }
 

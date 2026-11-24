@@ -3320,6 +3320,8 @@ dependencies = [
 name = "reliquary-perception"
 version = "0.1.0"
 dependencies = [
+ "blake3",
+ "reliquary-memory-audit",
  "reliquary-switchboard",
  "serde",
  "serde_json",

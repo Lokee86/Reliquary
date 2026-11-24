@@ -23,14 +23,16 @@ pub enum OwnerWorkerKind {
     Entity,
     Vector,
     Freshness,
+    Perception,
 }
 impl OwnerWorkerKind {
-    const fn lease_id(self) -> u8 {
+    pub(crate) const fn lease_id(self) -> u8 {
         match self {
             Self::Dream => 1,
             Self::Entity => 2,
             Self::Vector => 3,
             Self::Freshness => 4,
+            Self::Perception => 5,
         }
     }
 }
