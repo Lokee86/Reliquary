@@ -328,7 +328,7 @@ fn phylactery_rejects_separation_publications() {
         .unwrap();
     writer.container.sync().unwrap();
     drop(writer);
-    let error = PhySession::open_path(&source, &admission(OWNER), [], [])
+    let error = PhySession::open_path(&source, &admission(OWNER), [])
         .err()
         .unwrap();
     assert!(matches!(
