@@ -9,6 +9,7 @@ pub use reliquary_graph::CommunityId;
 pub use reliquary_graph::GraphAdmission;
 pub use reliquary_insomnia_store::AcceptedEpisodeOrder;
 pub use reliquary_memory_core::MemoryId;
+pub use reliquary_perception_store::observation;
 pub mod model;
 pub mod records;
 pub use records::{

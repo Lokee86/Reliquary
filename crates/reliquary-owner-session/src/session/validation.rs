@@ -338,6 +338,11 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
                 "cross-REL Entity separation",
             ));
         }
+        if length >= 6 && prefix.starts_with(super::observations::PREFIX) {
+            return Err(OwnerSessionError::RelOnlyRecordInPhylactery(
+                "Observation publication",
+            ));
+        }
         if length >= 6 && &prefix[..6] == b"RELAPB" {
             return Err(OwnerSessionError::RelOnlyRecordInPhylactery(
                 "versioned Archive publication",

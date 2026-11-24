@@ -31,8 +31,9 @@ pub(super) fn open_common_for_owner(
         replay_grouped_insomnia,
         reliquary_memory_core::MemoryReplayStart::Detached,
         None,
+        &BTreeMap::new(),
     )
-    .map(|(common, _, _)| common)
+    .map(|(common, _, _, _)| common)
 }
 
 pub(super) fn replay_memories(
@@ -134,11 +135,13 @@ pub(super) fn open_common_replaying(
     replay_grouped_insomnia: bool,
     memory_start: reliquary_memory_core::MemoryReplayStart,
     identity_generation: Option<[u8; 32]>,
+    observation_archive_cuts: &BTreeMap<u64, (u64, u64)>,
 ) -> Result<
     (
         CommonState,
         super::identity_receipt::IdentityHistory,
         super::identity_separation::SeparationHistory,
+        reliquary_perception_store::observation::ObservationStore,
     ),
     OwnerSessionError,
 > {
@@ -267,12 +270,13 @@ pub(super) fn open_common_replaying(
         &maintenance,
         &grouped_body_ids,
     )?;
-    let (identity_history, identity_separation_history) =
+    let (identity_history, identity_separation_history, observations) =
         super::replay_prefix::validate_graph_prefix(
             container,
             &memories,
             identity_generation.map(|generation| (&perception, generation)),
             &pruned_bodies,
+            observation_archive_cuts,
         )?;
     memories.retain_pruned_body_fence(pruned_bodies);
     let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
@@ -392,5 +396,10 @@ pub(super) fn open_common_replaying(
         dream_pairs,
         dream_read_index,
     };
-    Ok((common, identity_history, identity_separation_history))
+    Ok((
+        common,
+        identity_history,
+        identity_separation_history,
+        observations,
+    ))
 }

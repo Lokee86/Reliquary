@@ -1,14 +1,18 @@
 //! Exact owner identity/version cuts at the physical effect prefix.
 use super::identity_receipt::{IdentityHistory, LocalProjection};
 use super::identity_separation::{SeparationHistory, SeparationProjection};
+use super::observations::ObservationPrefix;
 use super::*;
 use crate::records::user_memory::{UserMemoryEffect, UserMemoryRecord};
+use reliquary_perception_store::observation::ObservationStore;
 pub(super) fn validate_graph_prefix(
     container: &Container,
     memory_store: &MemoryStore,
     identity_context: Option<(&PerceptionStore, [u8; 32])>,
     pruned_bodies: &BTreeSet<MemoryBodyId>,
-) -> Result<(IdentityHistory, SeparationHistory), OwnerSessionError> {
+    observation_archive_cuts: &BTreeMap<u64, (u64, u64)>,
+) -> Result<(IdentityHistory, SeparationHistory, ObservationStore), OwnerSessionError> {
+    let mut observations = ObservationStore::default();
     let mut receipts = IdentityHistory::default();
     let mut separations = SeparationHistory::default();
     let mut perception_cut = 0;
@@ -28,6 +32,21 @@ pub(super) fn validate_graph_prefix(
         if let Some((perception, history_generation)) = identity_context {
             let envelope = reliquary_container::decode_publication(frame.payload)?;
             let body = envelope.as_ref().map_or(frame.payload, |entry| entry.body);
+            if body.starts_with(super::observations::PREFIX) {
+                let prefix = ObservationPrefix {
+                    owner: container.owner_id(),
+                    generation: history_generation,
+                    memories: memory_store,
+                    memory_cut: memory_head,
+                    perception,
+                    perception_cut,
+                    retained_ordinal_cut,
+                    observed_bodies: Some(&observed_bodies),
+                    unobserved_suffix_bodies: None,
+                };
+                prefix.admit(&mut observations, frame.payload, observation_archive_cuts)?;
+                continue;
+            }
             if body.starts_with(super::identity_receipt::PREFIX) {
                 let projection = LocalProjection {
                     memories: memory_store,
@@ -361,7 +380,7 @@ pub(super) fn validate_graph_prefix(
             graph_version = relation.graph_version;
         }
     }
-    Ok((receipts, separations))
+    Ok((receipts, separations, observations))
 }
 
 pub(super) fn validate_user_memory_prefix(

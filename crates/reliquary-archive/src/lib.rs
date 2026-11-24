@@ -120,6 +120,11 @@ mod import_receipt_candidate_tests {
     }
 }
 
+/// Select payloads carrying accepted Archive semantics during physical replay.
+pub fn archive_replay_frame(prefix: &[u8]) -> bool {
+    archive::archive_replay_frame(prefix)
+}
+
 /// Owner-session source facts needed to validate a physical Archive prefix.
 pub enum SourcePublication {
     Turn {

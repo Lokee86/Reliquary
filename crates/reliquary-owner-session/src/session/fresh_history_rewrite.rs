@@ -125,6 +125,11 @@ pub fn rewrite_memory_history_copy(
         FileKind::Reliquary => {
             let session = RelSession::open(&source, graph_admission, [], [])
                 .map_err(|error| error.to_string())?;
+            if session.observation_publication_version() != 0 {
+                return Err(
+                    "fresh-history rewrite cannot preserve Observation publications".into(),
+                );
+            }
             if session.identity_separation_history.frontier() != 0 {
                 return Err(
                     "fresh-history rewrite cannot preserve cross-REL Entity separation confirmations"

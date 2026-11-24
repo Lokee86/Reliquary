@@ -12,6 +12,10 @@ pub(super) fn rel(
     freshness: &BTreeMap<FreshnessMemoryId, FreshnessRecord>,
     freshness_evidence: &[FreshnessReplayEntry],
     identity: IdentityAuditHistory<'_>,
+    observations: &[(
+        reliquary_perception_store::observation::ObservationBatchReceipt,
+        reliquary_perception_store::observation::ObservationRecord,
+    )],
     cut: &RelHistoricalCut,
 ) -> [u8; 32] {
     let mut value = json!({
@@ -27,6 +31,20 @@ pub(super) fn rel(
     if !identity.separations.is_empty() {
         value["identity_separation_confirmations"] = json!(identity.separations);
         value["cut"]["separation_version"] = json!(cut.separation_version);
+    }
+    if !observations.is_empty() {
+        // A digest of the lossless wire representation includes exact
+        // receptor float values and private progress without expanding either.
+        value["observation_records"] = json!(
+            observations
+                .iter()
+                .map(|row| {
+                    let bytes = rmp_serde::to_vec_named(row).expect("validated Observation record");
+                    <[u8; 32]>::from(Sha256::digest(bytes))
+                })
+                .collect::<Vec<_>>()
+        );
+        value["cut"]["observation_version"] = json!(cut.observation_version);
     }
     canonical_hash(value)
 }

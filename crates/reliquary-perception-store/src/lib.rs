@@ -2,7 +2,8 @@
 //!
 //! Memory IDs and byte spans are foreign references. This crate records their
 //! coordinates and caller-supplied decisions; it does not read Memory payloads
-//! or synthesize Observations.
+//! or synthesize Observations. The Observation module projects verified claims
+//! and exact evidence references admitted by the owner session.
 
 use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind};
 use sha2::{Digest, Sha256};
@@ -11,6 +12,7 @@ use std::fmt;
 
 pub mod identity;
 pub mod identity_evidence;
+pub mod observation;
 mod retained_resolution;
 pub use retained_resolution::{
     RetainedResolutionDecision, RetainedResolutionRecord, RetainedResolutionRevision,

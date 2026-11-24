@@ -33,7 +33,7 @@ use std::num::NonZeroU64;
 use std::sync::Arc;
 use turn_table::{AcceptedTurn, TurnTable};
 
-fn archive_replay_frame(prefix: &[u8]) -> bool {
+pub(crate) fn archive_replay_frame(prefix: &[u8]) -> bool {
     if prefix.starts_with(b"RELPUB") {
         return match reliquary_container::decode_publication(prefix) {
             Ok(Some(publication)) => {
@@ -137,6 +137,17 @@ impl Archive {
     }
 
     fn open_with_payloads(container: &Container, leased: bool) -> Result<Self, ArchiveError> {
+        Self::open_observing_prefixes(container, leased, archive_replay_frame, |_, _, _| {})
+    }
+
+    /// Observe Archive version and activity at selected physical frames.
+    /// The selector must include all frames selected by `archive_replay_frame`.
+    pub fn open_observing_prefixes(
+        container: &Container,
+        leased: bool,
+        select: fn(&[u8]) -> bool,
+        mut observe: impl FnMut(&[u8], u64, u64),
+    ) -> Result<Self, ArchiveError> {
         let mut archive = Self::empty();
         if leased {
             archive.bind_read_lease(container)?;
@@ -150,8 +161,13 @@ impl Archive {
         let has_project_clock = cursor.next_frame()?.is_some();
         drop(cursor);
         if has_project_clock {
-            let mut frames = container.scan_clocked_matching_frames(archive_replay_frame)?;
+            let mut frames = container.scan_clocked_matching_frames(select)?;
             while let Some(frame) = frames.next_frame()? {
+                observe(
+                    frame.payload,
+                    archive.archive_version,
+                    archive.rel_turn_count,
+                );
                 archive.replay_frame(
                     container,
                     frame.object,
@@ -160,8 +176,13 @@ impl Archive {
                 )?;
             }
         } else {
-            let mut frames = container.scan_matching_frames(archive_replay_frame)?;
+            let mut frames = container.scan_matching_frames(select)?;
             while let Some(frame) = frames.next_frame()? {
+                observe(
+                    frame.payload,
+                    archive.archive_version,
+                    archive.rel_turn_count,
+                );
                 archive.replay_frame(container, frame.object, frame.payload, 0)?;
             }
         }

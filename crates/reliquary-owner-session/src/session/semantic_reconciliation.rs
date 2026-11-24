@@ -158,6 +158,15 @@ pub fn reconcile_divergent_rel_copy(
     if left_records
         .iter()
         .chain(&right_records)
+        .any(|record| record.starts_with(super::observations::PREFIX))
+    {
+        return Err(RelReconciliationError::UnsupportedState(
+            "Observation publications",
+        ));
+    }
+    if left_records
+        .iter()
+        .chain(&right_records)
         .any(|record| record.starts_with(super::identity_separation::PREFIX))
     {
         return Err(RelReconciliationError::UnsupportedState(

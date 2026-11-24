@@ -251,6 +251,9 @@ pub struct RelSession {
     rel_dependencies: RelDependencyDeclaration,
     identity_history: identity_receipt::IdentityHistory,
     identity_separation_history: identity_separation::SeparationHistory,
+    observations: reliquary_perception_store::observation::ObservationStore,
+    observation_scores:
+        BTreeMap<reliquary_perception_store::observation::ObservationId, FreshnessRecord>,
     archive: Archive,
     echo: EchoStore,
     common: CommonState,
@@ -1006,6 +1009,7 @@ mod identity_evidence;
 pub(crate) mod identity_receipt;
 pub(crate) mod identity_separation;
 mod maintenance_prune;
+mod observations;
 pub(crate) mod perception_audit;
 mod perception_lifecycle;
 mod relationship_prune;
