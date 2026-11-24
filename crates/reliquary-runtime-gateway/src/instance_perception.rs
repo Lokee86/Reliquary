@@ -1,5 +1,7 @@
 //! Managed Perception work on the same owner lease and mount fences as live work.
 mod poll;
+#[cfg(test)]
+mod tests;
 
 use super::*;
 use crate::instance_owner::RelMount;
