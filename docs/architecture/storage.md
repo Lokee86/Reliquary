@@ -65,6 +65,7 @@ The physical layer rejects unsupported or mixed headers and identity mismatches 
 
 ## Related docs
 
+- [Reliquary source and binary distribution terms](../../README.md#license)
 - [Owner sessions](owner-session.md)
 - [Application workflows](application.md)
 - [System architecture](system.md)

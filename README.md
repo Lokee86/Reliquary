@@ -42,6 +42,12 @@ Expected result: each successful invocation writes one JSON object to stdout. A 
 
 The normal runtime supports current REL 2.1 and PHY 2.1 files. It does not read REL 2.0/FRS07 or provide the offline converter. Reliquary is an embedded library and local CLI, not a network service or daemon. Provider readiness checks are distinct from provider calls; only `config verify --online` sends synthetic probe requests. Search and display are inspection operations and do not assert that a host consumed a Memory.
 
+## License
+
+Reliquary’s first-party source code, including the library and CLI, is licensed under the [Mozilla Public License 2.0](LICENSE) (SPDX `MPL-2.0`). If you distribute a binary containing Reliquary, tell recipients how to obtain the MPL-covered source for the version you ship, including your changes to covered files. Separate files in a larger application can use their own license.
+
+The vendored Quinn code carries its own [MIT](vendor/quinn-proto/LICENSE-MIT) or [Apache 2.0](vendor/quinn-proto/LICENSE-APACHE) license. Other upstream material, including the [engineering standards snapshot](.standards/README.md), retains its upstream terms.
+
 ## Related docs
 
 - [Documentation index](docs/INDEX.md)

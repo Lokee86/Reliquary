@@ -59,6 +59,7 @@ Add a session operation when the invariant is inherently owner-local: it must ch
 
 ## Related docs
 
+- [Reliquary source and binary distribution terms](../../README.md#license)
 - [Storage and durable state](storage.md)
 - [Application workflows](application.md)
 - [Gateway and host lifecycle](gateway.md)

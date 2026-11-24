@@ -65,6 +65,7 @@ Add owner/domain semantics to Application or the relevant semantic package, not 
 
 ## Related docs
 
+- [Reliquary source and binary distribution terms](../../README.md#license)
 - [Application workflows](application.md)
 - [Owner sessions](owner-session.md)
 - [Switchboard](switchboard.md)

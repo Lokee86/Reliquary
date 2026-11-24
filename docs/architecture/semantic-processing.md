@@ -54,6 +54,7 @@ Add pure or bounded interpretation to the semantic owner for that domain. Add pe
 
 ## Related docs
 
+- [Reliquary source and binary distribution terms](../../README.md#license)
 - [Application workflows](application.md)
 - [Storage and durable state](storage.md)
 - [Switchboard](switchboard.md)

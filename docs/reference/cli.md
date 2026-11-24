@@ -76,6 +76,7 @@ Declared options are accepted once unless explicitly repeatable. Missing values,
 
 ## Related docs
 
+- [License for redistributing the CLI](../../README.md#license)
 - [Reference index](INDEX.md)
 - [Operator workflow](../operator-workflow.md)
 - [Configured runtime](../configured-runtime.md)

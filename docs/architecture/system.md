@@ -52,6 +52,7 @@ Add persistent record behavior to the owning store and expose it through a narro
 
 ## Related docs
 
+- [Reliquary source and binary distribution terms](../../README.md#license)
 - [Storage and durable state](storage.md)
 - [Owner sessions](owner-session.md)
 - [Application workflows](application.md)

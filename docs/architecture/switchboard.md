@@ -38,6 +38,7 @@ Introduce a new credential kind or route slot in Switchboard, with typed validat
 
 ## Related docs
 
+- [Reliquary source and binary distribution terms](../../README.md#license)
 - [System architecture](system.md)
 - [Semantic processing](semantic-processing.md)
 - [Gateway and host lifecycle](gateway.md)

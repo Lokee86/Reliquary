@@ -49,6 +49,7 @@ Put an operation here when it coordinates distinct owners, translates semantic r
 
 ## Related docs
 
+- [Reliquary source and binary distribution terms](../../README.md#license)
 - [Owner sessions](owner-session.md)
 - [Semantic processing](semantic-processing.md)
 - [Gateway and host lifecycle](gateway.md)

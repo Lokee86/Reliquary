@@ -98,6 +98,7 @@ If offline Cargo cannot resolve a required dependency, report the exact command 
 
 ## Related docs
 
+- [First-party licensing and upstream notices](../../README.md#license)
 - [Maintainer map](../architecture/maintainer-map.md)
 - [Coverage map](documentation-coverage.md)
 - [Behavioral contracts](behavioral-contracts.md)
