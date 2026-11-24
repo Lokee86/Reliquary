@@ -44,6 +44,8 @@ Repository-local Pitlord checks both resolved `imports` and Cargo `depends-on` e
 
 The vector store uses Lodestone v0.2.0 for packed row representation and Archive exact cosine ranking. Cargo pins the Lodestone revision across Root, CLI, the external consumer, and the offline history tools. REL and PHY publication continue through their owner sessions. Archive uses the locked Aho-Corasick library to compute substring frequencies when building its session-local lexical index. Retrieval uses the locked `time` and `serde` libraries for checked RFC3339 bounds and manifest-compatible temporal values. Application already depends on Retrieval and Chronos and combines their results with owner-session evidence.
 
+Application uses the locked `chrono` and `chrono-tz` libraries to translate Chronos calendar expressions from the host's IANA timezone into the UTC bounds used by Archive retrieval. Root freezes those bounds for the search and keeps model-visible exact ranges within the admitted turn's authorization.
+
 The native Freshness store uses SHA-256 to bind retained authority bytes. The offline history writer and comparison tool have separate workspaces. The FRS07 source reader runs from an isolated historical checkout outside the production dependency graph.
 
 ## Extension seams

@@ -47,6 +47,8 @@ No arguments, exactly `--help`/`-h`, and exactly `--version`/`-V` are special in
 
 For Archive hybrid search, run `rel search PATH --mode hybrid --scope archive --query TEXT` with a configured embedding route compatible with the REL's active Archive vectors. The response includes the generation, text coverage, lexical and cosine scores, and the conversation and node IDs for each hit. Run `rel archive index PATH` on a writable REL to persist indexes for its active Archive generations. It reports `added_bytes` for each generation and needs only the stored Archive data. Search uses a matching persisted index after reopen. A query on an unindexed generation builds in memory.
 
+The CLI accepts explicit RFC3339 bounds for temporal Archive search. Embedded chat hosts can instead resolve natural-language dates using the Root API with an admitted request time and IANA calendar zone. [Temporal search in the Root API](../public-product-api.md#temporal-search)
+
 ## Configuration commands
 
 - `config credential list`
