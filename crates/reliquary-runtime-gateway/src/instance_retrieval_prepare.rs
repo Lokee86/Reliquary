@@ -70,6 +70,23 @@ impl Instance {
         action: RetrievalAction,
         embed_query: impl FnOnce() -> Result<Option<(CompatibilityProfileId, Vec<f32>)>, GatewayError>,
     ) -> Result<RetrievalOutcome, GatewayError> {
+        self.evaluate_agentic_memory_with_filter(turn, route, action, None, embed_query)
+    }
+
+    pub fn evaluate_agentic_memory_with_filter(
+        &self,
+        turn: &MemoryRetrievalTurn,
+        route: &MemoryRetrievalRoute,
+        action: RetrievalAction,
+        query_filter: Option<TemporalFilter>,
+        embed_query: impl FnOnce() -> Result<Option<(CompatibilityProfileId, Vec<f32>)>, GatewayError>,
+    ) -> Result<RetrievalOutcome, GatewayError> {
+        if query_filter.is_some_and(|filter| {
+            !matches!(&action, RetrievalAction::Query(_))
+                || filter.start_ns >= filter.end_exclusive_ns
+        }) {
+            return Err(GatewayError::InvalidPreparedRetrieval);
+        }
         let owner = turn.owner;
         let turn_id = turn.turn_id.as_str();
         validate_turn_binding(self, turn, owner, turn_id)?;
@@ -98,21 +115,19 @@ impl Instance {
                 "no current Memory vectors for the embedding profile",
             ));
         }
-        let memories = reliquary_application::agentic_memories(&snapshot);
         let authorized_route = AuthorizedDecision {
             instance: self,
             turn,
             generation,
             endpoint: route.0.as_ref(),
         };
-        let evaluation = evaluate_retrieval(
+        let evaluation = evaluate_snapshot_retrieval(
             &authorized_route,
-            owner.as_bytes(),
             &prior,
-            &memories,
-            &snapshot.active_relations,
+            &snapshot,
             action,
             query_vector.as_deref(),
+            query_filter,
         );
         authorized_route.check()?;
         let evaluation = evaluation.map_err(GatewayError::Retrieval)?;
@@ -158,6 +173,7 @@ impl Instance {
             community_generation: snapshot.community.as_ref().map(|c| c.generation),
             community_graph_version: snapshot.community.as_ref().map(|c| c.graph_version),
             query: evaluation.next.query(),
+            temporal_filter: evaluation.next.temporal_filter(),
             searched_ids: evaluation
                 .next
                 .searched()
@@ -186,12 +202,11 @@ impl Instance {
         .map_err(|error| GatewayError::Retrieval(error.to_string()))?;
         let digest: [u8; 32] = Sha256::digest(&payload).into();
         let use_id = stable_memory_use_id(owner, &self.principal, turn_id, digest);
-        let selected_ids = evaluation
+        let body_bindings = evaluation
             .memories
             .iter()
-            .map(|m| m.id)
-            .collect::<BTreeSet<_>>();
-        let body_bindings = memories_for_bindings(&memories, &selected_ids);
+            .map(|m| (m.id, m.revision, m.body_id))
+            .collect();
         state.pending_use_id = Some(use_id.clone());
         state.pending_profile = profile;
         state.handoff_checked = false;

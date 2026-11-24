@@ -8,10 +8,10 @@ pub(super) fn evaluate(
     endpoint: &dyn DecisionEndpoint,
     owner: [u8; 16],
     turn: &RetrievalTurn,
-    next: &RetrievalTurn,
     relations: &[Relation],
     anchors: &[MemoryId],
     by_id: BTreeMap<MemoryId, &AgenticMemory>,
+    temporal: Option<&TemporalOffer>,
 ) -> Result<RetrievalEvaluation, String> {
     struct PreparedAnchor {
         report: RetrievalAnchorReport,
@@ -80,7 +80,7 @@ pub(super) fn evaluate(
         let workers = prepared
             .into_iter()
             .map(|mut anchor| {
-                let query = next.query().unwrap().to_owned();
+                let query = turn.query().unwrap();
                 scope.spawn(move || {
                     let approved = if anchor.offered.is_empty() {
                         Ok(BTreeSet::new())
@@ -89,9 +89,10 @@ pub(super) fn evaluate(
                             endpoint,
                             owner,
                             "traverse_graph",
-                            &query,
+                            query,
                             &anchor.offered,
-                            &by_id,
+                            by_id,
+                            temporal,
                         )
                     }?;
                     anchor.report.approved = approved;
@@ -120,7 +121,7 @@ pub(super) fn evaluate(
         approved_union.extend(report.approved.iter().copied());
         reports.push(report);
     }
-    let mut staged = next.clone();
+    let mut staged = turn.clone();
     staged.record_evaluated(evaluated_union);
     Ok(RetrievalEvaluation {
         next: staged,
@@ -130,5 +131,7 @@ pub(super) fn evaluate(
             .collect(),
         already_provided: BTreeSet::new(),
         anchors: reports,
+        temporal_evidence: BTreeMap::new(),
+        temporal_evidence_truncated: BTreeSet::new(),
     })
 }

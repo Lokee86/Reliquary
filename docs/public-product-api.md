@@ -74,6 +74,16 @@ This table is an orientation map, not a complete list of every public value. Rus
 
 `SearchMode::Semantic` for passive Memory search uses global exact ranking within the active embedding profile. The result reports `semantic_routing = "global_exact"`.
 
+## Temporal search
+
+Pass a checked `TemporalFilter` with the `Source` or `Mentioned` basis. Use `TemporalFilter::new` for signed Unix nanoseconds or `TemporalFilter::from_rfc3339` for offset-qualified bounds. The end is exclusive. Resolve relative query wording in the caller's calendar zone and pass the resolved bounds with the topical query.
+
+- `Instance::search_temporal` supports lexical, hybrid and global exact-semantic Memory search. It filters accepted Memory source timestamps or grounded Chronos evidence before ranking and limiting, then returns the ordinary search result, applied window and matching evidence for each hit. Lexical search needs REL view access and runs locally.
+- `Instance::memory_query_temporal` starts an agentic query with a date window. Refinement, traversal and prepared delivery inherit that window. Start a new query to change or clear it. Inspection and previews are read-only, and approved consumption follows the existing confirmed-use protocol.
+- `Instance::search_archive_temporal` uses a compatible query embedding. `Instance::search_archive_hybrid_temporal` accepts a qualified embedding from the caller. Both project dated evidence from turns on the accepted fragment path. Mixed fragments rank by eligible-turn lexical evidence, and their remaining turns are context.
+
+Source time refers to the accepted source timestamp. Mentioned time refers to the phrase and precision resolved against the original body and source time. [Temporal search specification](planning/temporal-search-spec-2026-11-23.md)
+
 ## Checked user-origin Memory mutations
 
 These mutations require a mounted REL `Instance` with `ManageRel`. The caller first obtains an `InspectionCut`; a cut binds the owner and history generation plus the current Archive, Memory, Perception, Relationship, Graph, and Community versions. A new request must match the current cut at publication. Request identity is derived from the operation, authenticated principal, and caller request ID; its receipt is recorded in the specific owner history. Exact retries replay where the operation supports replay. Reusing an ID with changed evidence or a stale cut is rejected according to that operation's contract.

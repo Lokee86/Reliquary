@@ -5,6 +5,8 @@ edition = "2024"
 publish = false
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
+time = { version = "0.3", features = ["parsing"] }
 reliquary-archive = { path = "../reliquary-archive" }
 reliquary-graph = { path = "../reliquary-graph" }
 reliquary-memory-core = { path = "../reliquary-memory-core" }

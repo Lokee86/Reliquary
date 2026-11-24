@@ -68,6 +68,10 @@ pub struct RetrievalMemory {
 pub struct RetrievalPreview {
     pub cut: RetrievalCut,
     pub query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temporal_filter: Option<TemporalFilter>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temporal_evidence: Option<BTreeMap<String, Vec<TemporalEvidence>>>,
     pub memories: Vec<RetrievalMemory>,
     pub truncated: bool,
 }
@@ -80,11 +84,28 @@ impl RetrievalPreview {
     ) -> Result<Self, GatewayError> {
         let memories =
             project_memories(snapshot, evaluation.memories.iter().map(|memory| memory.id))?;
+        let temporal_filter = evaluation.next.temporal_filter();
+        let temporal_evidence = temporal_filter.map(|_| {
+            evaluation
+                .memories
+                .iter()
+                .take(MAX_RETRIEVAL_RESULTS)
+                .filter_map(|memory| {
+                    evaluation
+                        .temporal_evidence
+                        .get(&memory.id)
+                        .map(|evidence| (hex(&memory.id.0), evidence.clone()))
+                })
+                .collect()
+        });
         Ok(Self {
             cut: RetrievalCut::capture(snapshot, profile),
             query: evaluation.next.query().unwrap_or_default().to_owned(),
+            temporal_filter,
+            temporal_evidence,
             truncated: evaluation.memories.len() > memories.len()
-                || memories.iter().any(|m| m.truncated),
+                || memories.iter().any(|m| m.truncated)
+                || !evaluation.temporal_evidence_truncated.is_empty(),
             memories,
         })
     }

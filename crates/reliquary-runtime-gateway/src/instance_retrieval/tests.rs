@@ -23,9 +23,9 @@ impl Fixture {
             let mut container = Container::open_writer(&path).unwrap();
             let mut memories = MemoryStore::open(&container).unwrap();
             let mut freshness = FreshnessStore::open(&container).unwrap();
-            for (name, content) in [
-                ("one", "needle first exact body"),
-                ("two", "other second exact body"),
+            for (name, content, source_time_ns) in [
+                ("one", "needle first exact body", 100),
+                ("two", "other second exact body", 200),
             ] {
                 let published = memories
                     .publish_versioned_creation(
@@ -49,7 +49,7 @@ impl Fixture {
                             grounding_source_node_id: None,
                             source_episode_id: None,
                             source_ref: None,
-                            source_time_ns: None,
+                            source_time_ns: Some(source_time_ns),
                             temporal_inference: None,
                             mutation_id: format!("fixture-{name}"),
                             created_at_ns: 1,
@@ -259,6 +259,7 @@ fn passive_reads_and_preparation_never_credit_and_confirmed_retry_does_once() {
         "needle first exact body"
     );
     assert_eq!(manifest["memories"][0]["revision"], 1);
+    assert!(manifest.get("temporal_filter").is_none());
     assert_eq!(host.calls.load(Ordering::Relaxed), 1);
     assert!(
         !alice
@@ -632,3 +633,231 @@ fn readonly_preparation_cannot_deliver_and_terminal_rejection_releases_turn() {
 
 #[path = "inspection_tests.rs"]
 mod inspection_tests;
+
+#[test]
+fn temporal_manifest_recovery_restores_its_window_and_preserves_a_newer_frontier() {
+    use reliquary_application::TemporalBasis;
+
+    let fixture = Fixture::new();
+    let alice = fixture.alice();
+    let turn_id = "temporal-replay";
+    let turn = alice
+        .begin_memory_retrieval_turn(fixture.owner, turn_id)
+        .unwrap();
+    let filter = TemporalFilter::new(TemporalBasis::Source, 100, 101).unwrap();
+    let snapshot = alice.retrieval_snapshot(fixture.owner, None).unwrap();
+    let prepared = alice
+        .evaluate_agentic_memory_with_filter(
+            &turn,
+            &route(),
+            RetrievalAction::Query("needle".into()),
+            Some(filter),
+            || Ok(None),
+        )
+        .unwrap()
+        .prepared
+        .unwrap();
+    let preview = alice
+        .preview_agentic_memory_delivery(&turn, &prepared)
+        .unwrap();
+    assert_eq!(preview.temporal_filter, Some(filter));
+    assert_eq!(
+        preview.temporal_evidence.unwrap()[&preview.memories[0].memory_id],
+        [TemporalEvidence::Source {
+            source_time_ns: 100
+        }]
+    );
+    assert_eq!(
+        snapshot,
+        alice.retrieval_snapshot(fixture.owner, None).unwrap()
+    );
+    let operation = MemoryDeliveryOperation {
+        stable_id: prepared.use_id.clone(),
+        payload_digest: prepared.digest,
+        payload: prepared.payload.clone(),
+    };
+    let manifest: DeliveryManifest = serde_json::from_slice(&operation.payload).unwrap();
+    assert_eq!(manifest.temporal_filter, Some(filter));
+
+    let host = Arc::new(Host::default());
+    let router = connect(&fixture.gateway, host.clone());
+    host.deliver_memory(&operation).unwrap();
+    let rebuilt = fixture.alice();
+    let rebuilt_turn = rebuilt
+        .begin_memory_retrieval_turn(fixture.owner, turn_id)
+        .unwrap();
+    let recover =
+        || rebuilt.recover_agentic_memory_delivery(&rebuilt_turn, &operation.stable_id, &router);
+    assert!(recover().unwrap());
+    {
+        let state = rebuilt_turn.state.lock().unwrap();
+        assert_eq!(state.turn.query(), Some("needle"));
+        assert_eq!(state.turn.temporal_filter(), Some(filter));
+        assert_eq!(state.turn.selected().len(), 1);
+    }
+
+    let newer_filter = TemporalFilter::new(TemporalBasis::Source, 101, 200).unwrap();
+    let newer = rebuilt
+        .evaluate_agentic_memory_with_filter(
+            &rebuilt_turn,
+            &route(),
+            RetrievalAction::Query("other".into()),
+            Some(newer_filter),
+            || Ok(None),
+        )
+        .unwrap();
+    let preview = newer.preview.unwrap();
+    assert_eq!(preview.temporal_filter, Some(newer_filter));
+    assert!(preview.memories.is_empty());
+    assert!(preview.temporal_evidence.unwrap().is_empty());
+    assert!(!recover().unwrap());
+    let state = rebuilt_turn.state.lock().unwrap();
+    assert_eq!(state.turn.temporal_filter(), Some(newer_filter));
+    assert_eq!(state.turn.query(), Some("other"));
+    assert!(state.turn.searched().is_empty());
+    assert_eq!(state.turn.selected().len(), 1);
+    assert_eq!(host.calls.load(Ordering::Relaxed), 1);
+}
+
+#[test]
+fn recovery_replays_a_legacy_manifest_without_a_temporal_field() {
+    let fixture = Fixture::new();
+    let alice = fixture.alice();
+    let turn_id = "legacy-replay";
+    let snapshot = alice.retrieval_snapshot(fixture.owner, None).unwrap();
+    let record = &snapshot
+        .memories
+        .iter()
+        .find(|memory| memory.revision.record.source_time_ns == Some(100))
+        .unwrap()
+        .revision
+        .record;
+    let owner_id = hex(&fixture.owner.as_bytes());
+    let memory_id = hex(&record.id.0);
+    let body_id = hex(&record.body_id.0);
+    let accepted_turn = snapshot.rel_turn;
+    let graph_version = snapshot.graph_version;
+    assert!(snapshot.community.is_none());
+
+    // This is the exact old field order and shape, independent of either current
+    // serializer. The legacy operation had no temporal field, including no null.
+    let payload = format!(
+        concat!(
+            r#"{{"principal":"alice","owner_id":"{}","turn_id":"{}","accepted_turn":{},"graph_version":{},"community_generation":null,"community_graph_version":null,"query":"needle","searched_ids":["{}"],"selected_ids":[],"memories":["#,
+            r#"{{"owner_id":"{}","memory_id":"{}","revision":1,"body_id":"{}","title":"one","content":"needle first exact body"}}]}}"#
+        ),
+        owner_id, turn_id, accepted_turn, graph_version, memory_id, owner_id, memory_id, body_id,
+    )
+    .into_bytes();
+    let payload_digest: [u8; 32] = Sha256::digest(&payload).into();
+    let stable_key = Sha256::new()
+        .chain_update(fixture.owner.as_bytes())
+        .chain_update(5u64.to_le_bytes())
+        .chain_update(b"alice")
+        .chain_update((turn_id.len() as u64).to_le_bytes())
+        .chain_update(turn_id.as_bytes())
+        .chain_update(payload_digest)
+        .finalize();
+    let operation = MemoryDeliveryOperation {
+        stable_id: format!("agentic-use-{}", hex(&stable_key)),
+        payload_digest,
+        payload,
+    };
+    let turn = alice
+        .begin_memory_retrieval_turn(fixture.owner, turn_id)
+        .unwrap();
+    let prepared = alice
+        .prepare_agentic_memory_delivery(
+            &turn,
+            &route(),
+            RetrievalAction::Query("needle".into()),
+            None,
+            None,
+        )
+        .unwrap()
+        .prepared
+        .unwrap();
+    assert_eq!(prepared.payload, operation.payload);
+    assert_eq!(prepared.digest, operation.payload_digest);
+    assert_eq!(prepared.stable_id(), operation.stable_id);
+
+    let host = Arc::new(Host::default());
+    let router = connect(&fixture.gateway, host.clone());
+    host.deliver_memory(&operation).unwrap();
+    let rebuilt = fixture.alice();
+    let rebuilt_turn = rebuilt
+        .begin_memory_retrieval_turn(fixture.owner, turn_id)
+        .unwrap();
+    assert!(
+        rebuilt
+            .recover_agentic_memory_delivery(&rebuilt_turn, &operation.stable_id, &router)
+            .unwrap()
+    );
+    let state = rebuilt_turn.state.lock().unwrap();
+    assert_eq!(state.turn.query(), Some("needle"));
+    assert_eq!(state.turn.temporal_filter(), None);
+    assert!(state.turn.searched().contains(&record.id));
+    assert!(state.turn.selected().contains(&record.id));
+}
+
+#[test]
+fn temporal_recovery_rejects_a_manifest_without_an_exact_memory_revision_and_body() {
+    use reliquary_application::TemporalBasis;
+
+    let fixture = Fixture::new();
+    let alice = fixture.alice();
+    let turn_id = "temporal-stale-replay";
+    let turn = alice
+        .begin_memory_retrieval_turn(fixture.owner, turn_id)
+        .unwrap();
+    let filter = TemporalFilter::new(TemporalBasis::Source, 100, 101).unwrap();
+    let prepared = alice
+        .evaluate_agentic_memory_with_filter(
+            &turn,
+            &route(),
+            RetrievalAction::Query("needle".into()),
+            Some(filter),
+            || Ok(None),
+        )
+        .unwrap()
+        .prepared
+        .unwrap();
+    let host = Arc::new(Host::default());
+    let router = connect(&fixture.gateway, host.clone());
+    let rebuilt = fixture.alice();
+    let rebuilt_turn = rebuilt
+        .begin_memory_retrieval_turn(fixture.owner, turn_id)
+        .unwrap();
+    let before = rebuilt.retrieval_snapshot(fixture.owner, None).unwrap();
+
+    for wrong_revision in [true, false] {
+        let mut manifest: DeliveryManifest = serde_json::from_slice(&prepared.payload).unwrap();
+        let memory = &mut manifest.memories[0];
+        if wrong_revision {
+            memory.revision += 1;
+        } else {
+            memory.body_id = hex(&[0; 32]);
+            memory.content = "different content".into();
+        }
+        let payload = serde_json::to_vec(&manifest).unwrap();
+        let payload_digest: [u8; 32] = Sha256::digest(&payload).into();
+        let stable_id = stable_memory_use_id(fixture.owner, "alice", turn_id, payload_digest);
+        host.deliver_memory(&MemoryDeliveryOperation {
+            stable_id: stable_id.clone(),
+            payload_digest,
+            payload,
+        })
+        .unwrap();
+        assert!(matches!(
+            rebuilt.recover_agentic_memory_delivery(&rebuilt_turn, &stable_id, &router),
+            Err(GatewayError::StaleRetrieval)
+        ));
+    }
+    assert_eq!(
+        before,
+        rebuilt.retrieval_snapshot(fixture.owner, None).unwrap()
+    );
+    let state = rebuilt_turn.state.lock().unwrap();
+    assert_eq!(state.turn.query(), None);
+    assert!(state.turn.selected().is_empty());
+}

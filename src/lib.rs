@@ -49,6 +49,7 @@ pub use reliquary_application::{
 };
 pub use reliquary_archive::{EpisodeBoundary, EpisodeId, HERMES_COPIED_SOURCE_FORMAT};
 pub use reliquary_memory_core::{MemoryId, PayloadState};
+pub use reliquary_retrieval::{TemporalBasis, TemporalEvidence, TemporalFilter};
 pub use reliquary_runtime_gateway::{
     ArchiveReceipt, CapabilityRouter, ConversationSubmissionId, DurableGeneration,
     DurableGenerationCheckpoint, DurableGenerationPhase, DurableHostOperation,

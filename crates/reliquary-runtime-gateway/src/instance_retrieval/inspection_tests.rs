@@ -268,3 +268,85 @@ fn projected_search_distinguishes_lexical_hybrid_and_semantic_routing() {
     assert_eq!(turn.state.lock().unwrap().profile, Some(profile));
     assert_eq!(host.calls.load(Ordering::Relaxed), 1);
 }
+
+#[test]
+fn temporal_inspection_refines_without_writing_and_an_unfiltered_query_clears_the_window() {
+    use reliquary_application::TemporalBasis;
+
+    let fixture = Fixture::new();
+    fixture.gateway.quiesce_owner(fixture.owner).unwrap();
+    let bytes_before = std::fs::read(&fixture.path).unwrap();
+    fixture
+        .gateway
+        .mount_writable_reliquary(
+            &fixture.path,
+            &GraphAdmission::for_replay(fixture.owner.as_bytes(), [], [], [], [], []),
+            [],
+            [],
+        )
+        .unwrap();
+    let alice = fixture.alice();
+    let turn = alice
+        .begin_memory_retrieval(fixture.owner, "temporal-inspect", RetrievalMode::Inspect)
+        .unwrap();
+    let route = MemoryRetrievalRoute::from_endpoint(Arc::new(PreviewDecision {
+        invalid: AtomicBool::new(false),
+    }));
+    let filter = TemporalFilter::new(TemporalBasis::Source, 100, 101).unwrap();
+    let stale = alice.evaluate_agentic_memory_with_filter(
+        &turn,
+        &route,
+        RetrievalAction::Query("needle".into()),
+        Some(filter),
+        || {
+            alice.cancel_memory_retrieval(&turn)?;
+            Ok(None)
+        },
+    );
+    assert!(matches!(stale, Err(GatewayError::StaleRetrieval)));
+    assert_eq!(turn.state.lock().unwrap().turn.temporal_filter(), None);
+
+    let first = alice
+        .evaluate_agentic_memory_with_filter(
+            &turn,
+            &route,
+            RetrievalAction::Query("needle".into()),
+            Some(filter),
+            || Ok(None),
+        )
+        .unwrap()
+        .preview
+        .unwrap();
+    assert_eq!(first.temporal_filter, Some(filter));
+    assert_eq!(first.memories.len(), 1);
+    let refined = alice
+        .evaluate_agentic_memory(
+            &turn,
+            &route,
+            RetrievalAction::Refine("be precise".into()),
+            || panic!("refine cannot embed"),
+        )
+        .unwrap()
+        .preview
+        .unwrap();
+    assert_eq!(refined.temporal_filter, Some(filter));
+    assert_eq!(refined.temporal_evidence, first.temporal_evidence);
+    assert_eq!(refined.memories, first.memories);
+
+    let clear = alice
+        .evaluate_agentic_memory(
+            &turn,
+            &route,
+            RetrievalAction::Query("other".into()),
+            || Ok(None),
+        )
+        .unwrap()
+        .preview
+        .unwrap();
+    assert_eq!(clear.memories.len(), 1);
+    let json = serde_json::to_value(clear).unwrap();
+    assert!(json.get("temporal_filter").is_none());
+    assert!(json.get("temporal_evidence").is_none());
+    fixture.gateway.quiesce_owner(fixture.owner).unwrap();
+    assert_eq!(bytes_before, std::fs::read(&fixture.path).unwrap());
+}

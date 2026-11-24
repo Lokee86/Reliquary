@@ -452,7 +452,7 @@ mod instance_native_import;
 mod instance_owner;
 mod instance_passive_retrieval;
 mod instance_rel_dependencies;
-pub use instance_passive_retrieval::{SearchMode, SearchResult};
+pub use instance_passive_retrieval::{MemoryTemporalMatch, SearchMode, SearchResult};
 mod instance_processing;
 mod live_processing;
 mod processing_stages;
@@ -482,8 +482,9 @@ pub use instance_identity::{
 mod instance_perception_lifecycle;
 mod instance_vectors;
 pub use instance_vectors::{
-    ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication, ArchiveVectorHit,
-    ArchiveVectorSearch, PreparedVectorPublication,
+    ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication,
+    ArchiveTurnTemporalEvidence, ArchiveVectorHit, ArchiveVectorSearch, PreparedVectorPublication,
+    TemporalArchiveHitEvidence, TemporalArchiveHybridSearch,
 };
 mod instance_retrieval;
 

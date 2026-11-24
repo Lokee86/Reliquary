@@ -550,3 +550,111 @@ fn lexical_search_and_script_inspection_leave_owner_bytes_unchanged() {
     assert_eq!(replies[4]["request_id"], "quit");
     assert_eq!(fs::read(path).unwrap(), before);
 }
+
+#[test]
+fn temporal_search_flags_require_complete_valid_window_before_opening_owner() {
+    let cases: &[&[&str]] = &[
+        &[
+            "rel",
+            "search",
+            "missing.rel",
+            "--query",
+            "x",
+            "--mode",
+            "lexical",
+            "--time-basis",
+            "source",
+        ],
+        &[
+            "rel",
+            "search",
+            "missing.rel",
+            "--query",
+            "x",
+            "--mode",
+            "lexical",
+            "--from",
+            "2026-11-20T00:00:00Z",
+            "--before",
+            "2026-11-21T00:00:00Z",
+        ],
+        &[
+            "rel",
+            "search",
+            "missing.rel",
+            "--query",
+            "x",
+            "--mode",
+            "lexical",
+            "--time-basis",
+            "future",
+            "--from",
+            "2026-11-20T00:00:00Z",
+            "--before",
+            "2026-11-21T00:00:00Z",
+        ],
+        &[
+            "rel",
+            "search",
+            "missing.rel",
+            "--query",
+            "x",
+            "--mode",
+            "lexical",
+            "--time-basis",
+            "source",
+            "--from",
+            "2026-11-20T00:00:00",
+            "--before",
+            "2026-11-21T00:00:00Z",
+        ],
+        &[
+            "rel",
+            "query",
+            "missing.rel",
+            "--query",
+            "x",
+            "--time-basis",
+            "mentioned",
+            "--from",
+            "2026-11-21T00:00:00Z",
+            "--before",
+            "2026-11-20T00:00:00Z",
+        ],
+    ];
+    for args in cases {
+        let result = command(args);
+        assert!(!result.status.success(), "{args:?}");
+        let error: Value = serde_json::from_slice(&result.stderr).unwrap();
+        assert_eq!(error["error"]["kind"], "invalid_input", "{args:?}");
+    }
+}
+
+#[test]
+fn temporal_archive_flags_are_rejected_for_non_hybrid_mode_before_open() {
+    let result = command(&[
+        "rel",
+        "search",
+        "missing.rel",
+        "--query",
+        "x",
+        "--mode",
+        "lexical",
+        "--scope",
+        "archive",
+        "--time-basis",
+        "source",
+        "--from",
+        "2026-11-20T00:00:00-08:00",
+        "--before",
+        "2026-11-21T00:00:00-08:00",
+    ]);
+    assert!(!result.status.success());
+    let error: Value = serde_json::from_slice(&result.stderr).unwrap();
+    assert!(
+        error["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("--scope archive requires --mode hybrid")
+    );
+}

@@ -78,6 +78,7 @@ impl Instance {
             || manifest.owner_id != hex(&owner.as_bytes())
             || manifest.turn_id != turn.turn_id
             || manifest.turn_id.trim().is_empty()
+            || (manifest.temporal_filter.is_some() && manifest.query.is_none())
             || stable_memory_use_id(
                 owner,
                 &manifest.principal,
@@ -112,7 +113,7 @@ impl Instance {
         }
         if let Some(query) = &manifest.query {
             RetrievalTurn::default()
-                .begin_query(query)
+                .begin_query_with_filter(query, manifest.temporal_filter)
                 .map_err(|_| GatewayError::InvalidHandoffReceipt)?;
         }
         let recorded = self.with_rel_writer(owner, |writer| -> Result<bool, GatewayError> {
@@ -202,14 +203,14 @@ impl Instance {
         state
             .confirm_selected(selected.iter().copied())
             .map_err(|reason| GatewayError::Retrieval(reason.into()))?;
-        let query = if restore_manifest_frontier {
-            manifest.query.as_deref()
+        let (query, filter) = if restore_manifest_frontier {
+            (manifest.query.as_deref(), manifest.temporal_filter)
         } else {
-            old_query.as_deref()
+            (old_query.as_deref(), entry.turn.temporal_filter())
         };
         if let Some(query) = query {
             state
-                .begin_query(query)
+                .begin_query_with_filter(query, filter)
                 .map_err(|reason| GatewayError::Retrieval(reason.into()))?;
         }
         if restore_manifest_frontier {

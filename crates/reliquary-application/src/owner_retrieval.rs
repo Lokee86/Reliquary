@@ -1,5 +1,6 @@
 //! Owner-derived retrieval inputs. Every lane uses the same immutable read cut.
-use crate::{AgenticMemory, OwnerMemorySelection, SelectedMemory};
+use crate::{AgenticMemory, OwnerMemorySelection, SelectedMemory, memory_temporal_evidence};
+use reliquary_owner_session::model::MemoryId;
 use reliquary_owner_session::{RelRetrievalSnapshot, model::PayloadState};
 use reliquary_retrieval::memory_retrieval::{
     MemoryRetrievalConfig, MemoryRetrievalResult, MemoryRetrievalSnapshot, retrieve_memories,
@@ -7,6 +8,8 @@ use reliquary_retrieval::memory_retrieval::{
 use reliquary_retrieval::{
     RetrievalConfig, combine_hybrid_scores, lexical_score, lexical_terms, validate_hybrid_request,
 };
+use reliquary_retrieval::{TemporalEvidence, TemporalFilter};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub fn agentic_memories(snapshot: &RelRetrievalSnapshot) -> Vec<AgenticMemory> {
     snapshot
@@ -27,6 +30,30 @@ pub fn agentic_memories(snapshot: &RelRetrievalSnapshot) -> Vec<AgenticMemory> {
             })
         })
         .collect()
+}
+
+/// Narrow an owner cut to eligible dated evidence before ranking.
+pub fn retain_temporal_memories(
+    snapshot: &mut RelRetrievalSnapshot,
+    filter: &TemporalFilter,
+) -> BTreeMap<MemoryId, Vec<TemporalEvidence>> {
+    let mut evidence = BTreeMap::new();
+    let mut body_ids = BTreeSet::new();
+    snapshot.memories.retain(|memory| {
+        let revision = &memory.revision;
+        let PayloadState::Available(body) = &revision.payload else {
+            return false;
+        };
+        let matches = memory_temporal_evidence(&revision.record, body, filter);
+        if matches.is_empty() {
+            return false;
+        }
+        evidence.insert(revision.record.id, matches);
+        body_ids.insert(revision.record.body_id);
+        true
+    });
+    snapshot.vectors.retain(|id, _| body_ids.contains(id));
+    evidence
 }
 
 /// Hybrid rank over the complete owner-local population, before bounded selection.

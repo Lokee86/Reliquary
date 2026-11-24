@@ -50,7 +50,16 @@ impl EmbeddingEndpoint for TestEmbedding {
         inputs: &[String],
         _max_response_bytes: usize,
     ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
-        Ok(inputs.iter().map(|_| vec![1.0, 0.0]).collect())
+        Ok(inputs
+            .iter()
+            .map(|input| {
+                if input.contains("Gateway rollback on 2026-11-20") {
+                    vec![0.8, 0.6]
+                } else {
+                    vec![1.0, 0.0]
+                }
+            })
+            .collect())
     }
 
     fn embed(
@@ -117,6 +126,27 @@ fn archive_hybrid_search_keeps_lexical_hits_outside_vector_top_k() {
                 )
                 .unwrap();
         }
+        writer
+            .accept_turn_and_advance_branch(
+                TurnInput {
+                    id: "context".into(),
+                    conversation_id: "keyword".into(),
+                    parent_id: Some("source".into()),
+                    role: "assistant".into(),
+                    principal_id: None,
+                    timestamp_ns: 3,
+                    content: "Context about a different topic".into(),
+                    attachments: vec![],
+                    project_attachments: vec![],
+                },
+                Branch {
+                    id: "main".into(),
+                    conversation_id: "keyword".into(),
+                    leaf_node_id: "context".into(),
+                    canonical: true,
+                },
+            )
+            .unwrap();
         let profile = runtime.probe_embedding_profile().unwrap().unwrap();
         let profile = writer.publish_compatibility_profile(profile).unwrap();
         let input = writer.archive_vector_input(profile).unwrap();
@@ -190,7 +220,7 @@ fn archive_hybrid_search_keeps_lexical_hits_outside_vector_top_k() {
     assert_ne!(hit.fragment_id, vector_only.hits[0].fragment_id);
     assert_eq!(hit.conversation_id, "keyword");
     assert_eq!(hit.start_node_id, "source");
-    assert_eq!(hit.end_node_id, "source");
+    assert_eq!(hit.end_node_id, "context");
     assert_eq!(hit.lexical_score, Some(hit.score));
     assert!(hit.semantic_score.is_none());
     assert_eq!(
@@ -200,6 +230,29 @@ fn archive_hybrid_search_keeps_lexical_hits_outside_vector_top_k() {
             .kind(),
         ProductErrorKind::InvalidInput,
     );
+
+    let filter = crate::TemporalFilter::new(crate::TemporalBasis::Source, 1, 2).unwrap();
+    let dated = viewer
+        .search_archive_hybrid_temporal(owner, profile, "quasar", &[1.0, 0.0], 1, filter)
+        .unwrap();
+    assert_eq!(dated.search.hits.len(), 1);
+    assert_eq!(dated.search.hits[0].conversation_id, "keyword");
+    assert_eq!(dated.temporal_evidence[0].turns[0].node_id, "source");
+    assert!(dated.temporal_evidence[0].partial);
+    assert_eq!(dated.temporal_evidence[0].turns.len(), 1);
+    assert!(dated.search.hits[0].lexical_score.is_some());
+    assert!(dated.search.hits[0].semantic_score.is_none());
+    let empty = viewer
+        .search_archive_hybrid_temporal(
+            owner,
+            profile,
+            "quasar",
+            &[1.0, 0.0],
+            1,
+            crate::TemporalFilter::new(crate::TemporalBasis::Source, 3, 4).unwrap(),
+        )
+        .unwrap();
+    assert!(empty.search.hits.is_empty());
     control.revoke(&token).unwrap();
     assert_eq!(
         viewer
@@ -240,7 +293,7 @@ fn root_lexical_search_requires_only_view_and_no_runtime() {
         .unwrap();
     let created = management
         .create_memory(
-            "Needle".into(),
+            "Needle beacon".into(),
             "Exact stored body".into(),
             "fact".into(),
             "note".into(),
@@ -292,6 +345,83 @@ fn root_lexical_search_requires_only_view_and_no_runtime() {
             .unwrap_err();
         assert_eq!(error.kind(), ProductErrorKind::Unavailable);
     }
+
+    let eligible = management
+        .create_memory(
+            "Needle".into(),
+            "Gateway rollback on 2026-11-20".into(),
+            "fact".into(),
+            "note".into(),
+            2,
+        )
+        .unwrap();
+    manager.build_vectors(owner, &runtime, 2).unwrap();
+    let source = crate::TemporalFilter::new(crate::TemporalBasis::Source, 2, 3).unwrap();
+    let mentioned = crate::TemporalFilter::from_rfc3339(
+        crate::TemporalBasis::Mentioned,
+        "2026-11-19T16:00:00-08:00",
+        "2026-11-20T16:00:00-08:00",
+    )
+    .unwrap();
+    let excluded = crate::TemporalFilter::new(crate::TemporalBasis::Source, 3, 4).unwrap();
+    for mode in [
+        SearchMode::Lexical,
+        SearchMode::Hybrid,
+        SearchMode::Semantic,
+    ] {
+        let options = SearchOptions {
+            mode,
+            limit: Some(1),
+            embedding_route: None,
+        };
+        let ordinary = viewer
+            .search(owner, "needle beacon", options.clone(), Some(&runtime))
+            .unwrap();
+        assert_eq!(ordinary.memories[0].memory_id, created.id);
+        for filter in [source, mentioned, excluded] {
+            let result = viewer
+                .search_temporal(
+                    owner,
+                    "needle beacon",
+                    options.clone(),
+                    Some(&runtime),
+                    filter,
+                )
+                .unwrap();
+            assert_eq!(result.temporal_filter, filter);
+            if filter == excluded {
+                assert!(result.search.memories.is_empty());
+                assert!(result.temporal_evidence.is_empty());
+                assert_eq!(
+                    result.search.memories_without_vectors,
+                    (mode != SearchMode::Lexical).then_some(0)
+                );
+            } else {
+                assert_eq!(result.search.memories.len(), 1);
+                assert_eq!(result.search.memories[0].memory_id, eligible.id);
+                assert_eq!(result.temporal_evidence[0].memory_id, eligible.id);
+                assert!(!result.search.truncated);
+                if filter == source {
+                    assert!(matches!(
+                        result.temporal_evidence[0].evidence.as_slice(),
+                        [crate::TemporalEvidence::Source { source_time_ns: 2 }]
+                    ));
+                }
+            }
+        }
+    }
+    let before = viewer
+        .search(
+            owner,
+            "needle beacon",
+            SearchOptions {
+                limit: Some(1),
+                ..SearchOptions::default()
+            },
+            None,
+        )
+        .unwrap();
+    assert_eq!(before.memories[0].memory_id, created.id);
 
     control.revoke(&view_token).unwrap();
     assert_eq!(

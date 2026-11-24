@@ -4,10 +4,11 @@ use crate::instance_retrieval::preview::{MAX_RETRIEVAL_RESULTS, project_memories
 use crate::{RetrievalCut, RetrievalMemory};
 use reliquary_application::{
     MemoryRetrievalConfig, MemoryRetrievalMode, MemoryRetrievalResult, OwnerMemorySelection,
-    RetrievalConfig,
+    RetrievalConfig, TemporalEvidence, TemporalFilter,
 };
 use reliquary_owner_session::model::{CompatibilityProfile, CompatibilityProfileId};
 use serde::Serialize;
+use std::collections::BTreeMap;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -28,6 +29,13 @@ pub struct SearchResult {
     pub memories_without_vectors: Option<usize>,
     pub truncated: bool,
     pub memories: Vec<RetrievalMemory>,
+}
+
+/// Evidence for a returned Memory revision, keyed by its result identifier.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct MemoryTemporalMatch {
+    pub memory_id: String,
+    pub evidence: Vec<TemporalEvidence>,
 }
 
 impl Instance {
@@ -139,11 +147,26 @@ impl Instance {
         mode: SearchMode,
         limit: Option<usize>,
         embedding: Option<(CompatibilityProfileId, Vec<f32>)>,
-        mut policy: RetrievalConfig,
+        policy: RetrievalConfig,
     ) -> Result<SearchResult, GatewayError> {
+        self.search_rel_memories_with_filter(owner, query, mode, limit, embedding, policy, None)
+            .map(|(result, _)| result)
+    }
+
+    pub fn search_rel_memories_with_filter(
+        &self,
+        owner: OwnerId,
+        query: &str,
+        mode: SearchMode,
+        limit: Option<usize>,
+        embedding: Option<(CompatibilityProfileId, Vec<f32>)>,
+        mut policy: RetrievalConfig,
+        filter: Option<TemporalFilter>,
+    ) -> Result<(SearchResult, Vec<MemoryTemporalMatch>), GatewayError> {
         if query.trim().is_empty()
             || query.len() > 512
             || limit.is_some_and(|n| n == 0 || n > MAX_RETRIEVAL_RESULTS)
+            || filter.is_some_and(|f| f.start_ns >= f.end_exclusive_ns)
         {
             return Err(GatewayError::InvalidPreparedRetrieval);
         }
@@ -154,12 +177,18 @@ impl Instance {
         }
         let profile = embedding.as_ref().map(|(id, _)| *id);
         let vector = embedding.as_ref().map(|(_, row)| row.as_slice());
-        let snapshot = self.retrieval_snapshot(owner, profile)?;
-        if vector.is_some() && snapshot.vectors.is_empty() {
+        let mut snapshot = self.retrieval_snapshot(owner, profile)?;
+        if filter.is_none() && vector.is_some() && snapshot.vectors.is_empty() {
             return Err(GatewayError::RetrievalUnavailable(
                 "no current Memory vectors for the embedding profile",
             ));
         }
+        let mut matches: BTreeMap<_, _> = filter
+            .map(|filter| reliquary_application::retain_temporal_memories(&mut snapshot, &filter))
+            .into_iter()
+            .flatten()
+            .map(|(id, evidence)| (hex(&id.0), evidence))
+            .collect();
         let missing = vector.map(|_| {
             snapshot
                 .memories
@@ -173,7 +202,10 @@ impl Instance {
         });
         let mut semantic_routing = None;
         let mut fallback_reason = None;
-        let (memories, more) = if mode == SearchMode::Semantic {
+        let (memories, more) = if mode == SearchMode::Semantic && snapshot.vectors.is_empty() {
+            semantic_routing = Some("global_exact");
+            (Vec::new(), false)
+        } else if mode == SearchMode::Semantic {
             let mut config = MemoryRetrievalConfig::default();
             let limit = limit.unwrap_or(config.seed_limit);
             config.seed_limit = limit + 1;
@@ -215,16 +247,28 @@ impl Instance {
         };
         self.ensure_credential_active()?;
         let truncated = more || memories.iter().any(|memory| memory.truncated);
-        Ok(SearchResult {
-            cut: RetrievalCut::capture(&snapshot, profile),
-            query: query.to_owned(),
-            mode,
-            semantic_routing,
-            fallback_reason,
-            memories_without_vectors: missing,
-            truncated,
-            memories,
-        })
+        let evidence = memories
+            .iter()
+            .filter_map(|memory| {
+                Some(MemoryTemporalMatch {
+                    evidence: matches.remove(&memory.memory_id)?,
+                    memory_id: memory.memory_id.clone(),
+                })
+            })
+            .collect();
+        Ok((
+            SearchResult {
+                cut: RetrievalCut::capture(&snapshot, profile),
+                query: query.to_owned(),
+                mode,
+                semantic_routing,
+                fallback_reason,
+                memories_without_vectors: missing,
+                truncated,
+                memories,
+            },
+            evidence,
+        ))
     }
 
     pub fn rank_rel_memories(

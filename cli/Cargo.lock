@@ -3322,6 +3322,8 @@ dependencies = [
  "reliquary-memory-core",
  "reliquary-vector-store",
  "reliquary-vectors",
+ "serde",
+ "time",
 ]
 
 [[package]]

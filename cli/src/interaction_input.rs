@@ -1,4 +1,5 @@
 use super::{ProductError, Value, invalid, json};
+use reliquary_memory::{TemporalBasis, TemporalFilter};
 use std::io::{self, BufRead, Write};
 
 const MAX_LINE: usize = 16 * 1024;
@@ -7,6 +8,7 @@ const MAX_ID: usize = 128;
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum Command {
     Query(String),
+    TemporalQuery(String, TemporalFilter),
     Refine(String),
     Traverse(Vec<String>),
     Show(String),
@@ -57,6 +59,35 @@ fn command(name: &str, argument: Value) -> Result<Command, ProductError> {
     }
 }
 
+fn json_temporal_filter(value: Value) -> Result<TemporalFilter, ProductError> {
+    let mut fields = value
+        .as_object()
+        .cloned()
+        .ok_or_else(|| invalid("temporal_filter must be an object"))?;
+    let basis = fields
+        .remove("basis")
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .ok_or_else(|| invalid("temporal_filter requires basis"))?;
+    let from = fields
+        .remove("from")
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .ok_or_else(|| invalid("temporal_filter requires from"))?;
+    let before = fields
+        .remove("before")
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .ok_or_else(|| invalid("temporal_filter requires before"))?;
+    if !fields.is_empty() {
+        return Err(invalid("unexpected temporal_filter field"));
+    }
+    let basis = match basis.as_str() {
+        "source" => TemporalBasis::Source,
+        "mentioned" => TemporalBasis::Mentioned,
+        _ => return Err(invalid("temporal_filter basis must be source or mentioned")),
+    };
+    TemporalFilter::from_rfc3339(basis, &from, &before)
+        .ok_or_else(|| invalid("invalid RFC3339 temporal window"))
+}
+
 fn json_command(line: &str) -> (Value, Result<Command, ProductError>) {
     let Ok(Value::Object(mut record)) = serde_json::from_str::<Value>(line) else {
         return (Value::Null, Err(invalid("invalid JSONL command record")));
@@ -80,10 +111,19 @@ fn json_command(line: &str) -> (Value, Result<Command, ProductError>) {
             _ => "",
         };
         let argument = record.remove(field).unwrap_or(Value::Null);
+        let filter = match record.remove("temporal_filter") {
+            Some(value) if name == "query" => Some(json_temporal_filter(value)?),
+            Some(_) => return Err(invalid("temporal_filter is only supported on query")),
+            None => None,
+        };
         if !record.is_empty() {
             return Err(invalid("unexpected command field"));
         }
-        command(name, argument)
+        match (command(name, argument)?, filter) {
+            (Command::Query(text), Some(filter)) => Ok(Command::TemporalQuery(text, filter)),
+            (command, None) => Ok(command),
+            (_, Some(_)) => Err(invalid("temporal_filter is only supported on query")),
+        }
     })();
     (id, result)
 }
@@ -172,6 +212,22 @@ pub(crate) fn run(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn jsonl_query_accepts_only_a_complete_structured_temporal_filter() {
+        let (id, valid) = json_command(
+            r#"{"request_id":"q1","command":"query","text":"gateway","temporal_filter":{"basis":"mentioned","from":"2026-11-20T00:00:00-08:00","before":"2026-11-21T00:00:00-08:00"}}"#,
+        );
+        assert_eq!(id, json!("q1"));
+        assert!(matches!(valid, Ok(Command::TemporalQuery(text, _)) if text == "gateway"));
+        for line in [
+            r#"{"request_id":1,"command":"query","text":"gateway","temporal_filter":{"basis":"source","from":"2026-11-20T00:00:00Z"}}"#,
+            r#"{"request_id":2,"command":"query","text":"gateway","temporal_filter":{"basis":"source","from":"2026-11-20T00:00:00","before":"2026-11-21T00:00:00Z"}}"#,
+            r#"{"request_id":3,"command":"refine","text":"gateway","temporal_filter":{"basis":"source","from":"2026-11-20T00:00:00Z","before":"2026-11-21T00:00:00Z"}}"#,
+        ] {
+            assert!(json_command(line).1.is_err());
+        }
+    }
 
     #[test]
     fn script_recovers_after_bad_record_and_echoes_request_ids_in_order() {

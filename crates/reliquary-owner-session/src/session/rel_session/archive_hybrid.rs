@@ -28,6 +28,7 @@ pub struct ArchiveHybridView {
     pub dimensions: usize,
     sources: Arc<ArchiveHybridSources>,
     vectors: PackedVectorView,
+    turns: Option<Box<[Option<Vec<reliquary_archive::ResolvedTurn>>]>>,
 }
 
 struct ArchiveHybridSources {
@@ -135,6 +136,11 @@ impl ArchiveHybridView {
         &self.sources.fragments
     }
 
+    /// Exact readable turn path captured with this generation.
+    pub fn fragment_turns(&self, ordinal: usize) -> Option<&[reliquary_archive::ResolvedTurn]> {
+        self.turns.as_ref()?.get(ordinal)?.as_deref()
+    }
+
     pub fn fragments_with_text(&self) -> usize {
         self.sources.fragments_with_text
     }
@@ -155,6 +161,43 @@ impl ArchiveHybridView {
 }
 
 impl RelSession {
+    /// Capture exact readable paths only for a temporal request.
+    pub fn archive_temporal_hybrid_view(
+        &self,
+        profile_id: CompatibilityProfileId,
+    ) -> Result<Option<ArchiveHybridView>, OwnerSessionError> {
+        let Some(mut view) = self.archive_hybrid_view(profile_id)? else {
+            return Ok(None);
+        };
+        let mut paths = Vec::with_capacity(view.fragments().len());
+        for fragment in view.fragments() {
+            // This validates the ancestor path and rejects pruned or unavailable text.
+            match self.archive.bounded_fragment_index_text(fragment) {
+                Ok(_) => {}
+                Err(ArchiveError::MissingContent | ArchiveError::EvidenceLimitExceeded) => {
+                    paths.push(None);
+                    continue;
+                }
+                Err(error) => return Err(error.into()),
+            }
+            match self.archive.bounded_conversation_range(
+                &fragment.conversation_id,
+                &fragment.start_node_id,
+                &fragment.end_node_id,
+                reliquary_archive::MAX_EVIDENCE_TURNS,
+                reliquary_archive::MAX_EVIDENCE_RESULT_BYTES,
+            ) {
+                Ok(turns) => paths.push(Some(turns)),
+                Err(ArchiveError::MissingContent | ArchiveError::EvidenceLimitExceeded) => {
+                    paths.push(None)
+                }
+                Err(error) => return Err(error.into()),
+            }
+        }
+        view.turns = Some(paths.into_boxed_slice());
+        Ok(Some(view))
+    }
+
     /// Pin a reusable generation snapshot with its validated persisted index or source text.
     pub fn archive_hybrid_view(
         &self,
@@ -183,6 +226,7 @@ impl RelSession {
             dimensions: view.dimensions,
             sources,
             vectors: view.vectors,
+            turns: None,
         }))
     }
 }

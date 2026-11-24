@@ -14,6 +14,8 @@ pub mod community_routing;
 pub mod graph_traversal;
 pub mod memory_retrieval;
 pub mod semantic_scoring;
+pub mod temporal;
+pub use temporal::{TemporalBasis, TemporalEvidence, TemporalFilter};
 
 pub const DEFAULT_LEXICAL_WEIGHT: f64 = 0.45;
 pub const DEFAULT_SEMANTIC_WEIGHT: f64 = 0.55;

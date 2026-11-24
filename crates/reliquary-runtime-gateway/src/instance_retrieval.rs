@@ -1,8 +1,9 @@
 use super::instance_owner::RelMount;
 use super::*;
 use reliquary_application::{
-    AgenticMemory, RetrievalAction, RetrievalEvaluation, RetrievalTurn, evaluate_retrieval,
+    RetrievalAction, RetrievalEvaluation, RetrievalTurn, evaluate_snapshot_retrieval,
 };
+use reliquary_application::{TemporalEvidence, TemporalFilter};
 use reliquary_owner_session::{
     FreshnessEventProof, FreshnessMemoryId,
     model::{CompatibilityProfileId, MemoryId},
@@ -131,6 +132,8 @@ struct DeliveryPayload<'a> {
     pub(super) community_generation: Option<u64>,
     pub(super) community_graph_version: Option<u64>,
     pub(super) query: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) temporal_filter: Option<TemporalFilter>,
     pub(super) searched_ids: Vec<String>,
     pub(super) selected_ids: Vec<String>,
     pub(super) memories: Vec<DeliveredMemory<'a>>,
@@ -147,6 +150,8 @@ pub(super) struct DeliveryManifest {
     pub(super) community_generation: Option<u64>,
     pub(super) community_graph_version: Option<u64>,
     pub(super) query: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) temporal_filter: Option<TemporalFilter>,
     pub(super) searched_ids: Vec<String>,
     pub(super) selected_ids: Vec<String>,
     pub(super) memories: Vec<ManifestMemory>,
@@ -175,20 +180,6 @@ mod recovery;
 #[cfg(test)]
 #[path = "instance_retrieval/tests.rs"]
 mod tests;
-fn memories_for_bindings(
-    memories: &[AgenticMemory],
-    ids: &BTreeSet<reliquary_owner_session::model::MemoryId>,
-) -> Vec<(
-    reliquary_owner_session::model::MemoryId,
-    u64,
-    reliquary_owner_session::model::MemoryBodyId,
-)> {
-    memories
-        .iter()
-        .filter(|m| ids.contains(&m.id))
-        .map(|m| (m.id, m.revision, m.body_id))
-        .collect()
-}
 pub(super) fn validate_prepared(
     instance: &Instance,
     turn: &MemoryRetrievalTurn,

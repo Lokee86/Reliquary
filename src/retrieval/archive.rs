@@ -1,7 +1,7 @@
 use super::{EmbeddingScope, embedding_endpoint, retrieval_error, unavailable, validate_text};
 use crate::{
     ArchiveHybridSearch, ArchiveLexicalIndexPublication, CompatibilityProfileId, ConfiguredRuntime,
-    Instance, OwnerGrant, OwnerId, ProductError, RetrievalConfig,
+    Instance, OwnerGrant, OwnerId, ProductError, RetrievalConfig, TemporalArchiveHybridSearch,
 };
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -40,6 +40,53 @@ impl Instance {
             .map_err(retrieval_error)?;
         self.inner
             .search_archive_hybrid(owner.into(), profile, text, &query, policy)
+            .map_err(retrieval_error)
+    }
+
+    /// Search the active Archive generation with a source or mentioned-time window.
+    pub fn search_archive_temporal(
+        &self,
+        owner: OwnerId,
+        text: &str,
+        options: ArchiveSearchOptions,
+        runtime: &ConfiguredRuntime,
+        filter: crate::TemporalFilter,
+    ) -> Result<TemporalArchiveHybridSearch, ProductError> {
+        self.require_rel_read(owner)?;
+        let text = validate_text(text)?;
+        if filter.end_exclusive_ns <= filter.start_ns {
+            return Err(ProductError::invalid("invalid temporal filter"));
+        }
+        let policy = archive_policy(runtime.retrieval, options.limit)?;
+        let endpoint = embedding_endpoint(runtime, options.embedding_route.as_deref())
+            .ok_or_else(|| unavailable("requested search embedding route is unavailable"))?;
+        let (profile, query) = self
+            .embed_retrieval_query(owner, text, endpoint, EmbeddingScope::Archive)
+            .map_err(retrieval_error)?;
+        self.inner
+            .search_archive_hybrid_temporal(owner.into(), profile, text, &query, policy, filter)
+            .map_err(retrieval_error)
+    }
+
+    /// Temporal Archive search with an already qualified embedding.
+    pub fn search_archive_hybrid_temporal(
+        &self,
+        owner: OwnerId,
+        profile: CompatibilityProfileId,
+        text: &str,
+        query: &[f32],
+        limit: usize,
+        filter: crate::TemporalFilter,
+    ) -> Result<TemporalArchiveHybridSearch, ProductError> {
+        self.require_rel_read(owner)?;
+        let text = validate_text(text)?;
+        if filter.end_exclusive_ns <= filter.start_ns {
+            return Err(ProductError::invalid("invalid temporal filter"));
+        }
+        validate_archive_vector(query)?;
+        let policy = archive_policy(RetrievalConfig::default(), Some(limit))?;
+        self.inner
+            .search_archive_hybrid_temporal(owner.into(), profile, text, query, policy, filter)
             .map_err(retrieval_error)
     }
 

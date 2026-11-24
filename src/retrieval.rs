@@ -1,7 +1,7 @@
 //! Authenticated REL search, per-turn retrieval, and trusted Memory delivery.
 use crate::{
     CapabilityRouter, CompatibilityProfileId, ConfiguredRuntime, Instance, MemoryId, OwnerGrant,
-    OwnerId, ProductError, ProductErrorKind,
+    OwnerId, ProductError, ProductErrorKind, TemporalFilter,
 };
 use reliquary_application::RetrievalAction;
 use reliquary_runtime_gateway::{GatewayError, MemoryRetrievalRoute, MemoryRetrievalTurn};
@@ -18,9 +18,10 @@ pub use reliquary_application::{
     RetrievalAnchorReport, RetrievalDirection, RetrievalRelationEvidence,
 };
 pub use reliquary_runtime_gateway::{
-    ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication, ArchiveVectorHit,
-    ArchiveVectorSearch, RetrievalCut, RetrievalMemory, RetrievalMode, RetrievalPreview,
-    RetrievalSource, SearchMode, SearchResult,
+    ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication,
+    ArchiveTurnTemporalEvidence, ArchiveVectorHit, ArchiveVectorSearch, MemoryTemporalMatch,
+    RetrievalCut, RetrievalMemory, RetrievalMode, RetrievalPreview, RetrievalSource, SearchMode,
+    SearchResult, TemporalArchiveHitEvidence, TemporalArchiveHybridSearch,
 };
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -28,6 +29,15 @@ pub struct SearchOptions {
     pub mode: SearchMode,
     pub limit: Option<usize>,
     pub embedding_route: Option<String>,
+}
+
+/// Ordinary Memory hits plus the normalized window and each hit's dated evidence.
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct TemporalSearchResult {
+    #[serde(flatten)]
+    pub search: SearchResult,
+    pub temporal_filter: crate::TemporalFilter,
+    pub temporal_evidence: Vec<MemoryTemporalMatch>,
 }
 
 /// Ephemeral controller bound to one authenticated Instance, REL, and external turn.
@@ -86,6 +96,41 @@ impl Instance {
         options: SearchOptions,
         runtime: Option<&ConfiguredRuntime>,
     ) -> Result<SearchResult, ProductError> {
+        self.search_with_filter(owner, query, options, runtime, None)
+            .map(|(search, _)| search)
+    }
+
+    /// Passive Memory search with one explicit date basis and half-open window.
+    pub fn search_temporal(
+        &self,
+        owner: OwnerId,
+        query: &str,
+        options: SearchOptions,
+        runtime: Option<&ConfiguredRuntime>,
+        filter: crate::TemporalFilter,
+    ) -> Result<TemporalSearchResult, ProductError> {
+        if filter.start_ns >= filter.end_exclusive_ns {
+            return Err(ProductError::invalid(
+                "temporal window must have start before end",
+            ));
+        }
+        let (search, temporal_evidence) =
+            self.search_with_filter(owner, query, options, runtime, Some(filter))?;
+        Ok(TemporalSearchResult {
+            search,
+            temporal_filter: filter,
+            temporal_evidence,
+        })
+    }
+
+    fn search_with_filter(
+        &self,
+        owner: OwnerId,
+        query: &str,
+        options: SearchOptions,
+        runtime: Option<&ConfiguredRuntime>,
+        filter: Option<crate::TemporalFilter>,
+    ) -> Result<(SearchResult, Vec<MemoryTemporalMatch>), ProductError> {
         self.require_rel_read(owner)?;
         let query = validate_text(query)?;
         if options
@@ -113,13 +158,14 @@ impl Instance {
             )
         };
         self.inner
-            .search_rel_memories_with_policy(
+            .search_rel_memories_with_filter(
                 owner.into(),
                 query,
                 options.mode,
                 options.limit,
                 embedding,
                 runtime.map(|runtime| runtime.retrieval).unwrap_or_default(),
+                filter,
             )
             .map_err(retrieval_error)
     }
@@ -162,6 +208,26 @@ impl Instance {
             session,
             RetrievalAction::Query(validate_text(query)?.into()),
             runtime,
+            None,
+        )
+    }
+
+    /// Start a new topical query with an explicit normalized time window.
+    pub fn memory_query_temporal(
+        &self,
+        session: &RetrievalSession,
+        query: &str,
+        runtime: &ConfiguredRuntime,
+        filter: TemporalFilter,
+    ) -> Result<RetrievalOutcome, ProductError> {
+        if filter.start_ns >= filter.end_exclusive_ns {
+            return Err(ProductError::invalid("retrieval window must be nonempty"));
+        }
+        self.memory_action(
+            session,
+            RetrievalAction::Query(validate_text(query)?.into()),
+            runtime,
+            Some(filter),
         )
     }
 
@@ -175,6 +241,7 @@ impl Instance {
             session,
             RetrievalAction::Refine(validate_text(feedback)?.into()),
             runtime,
+            None,
         )
     }
 
@@ -193,6 +260,7 @@ impl Instance {
             session,
             RetrievalAction::Traverse(anchors.to_vec()),
             runtime,
+            None,
         )
     }
 
@@ -245,6 +313,7 @@ impl Instance {
         session: &RetrievalSession,
         action: RetrievalAction,
         runtime: &ConfiguredRuntime,
+        filter: Option<TemporalFilter>,
     ) -> Result<RetrievalOutcome, ProductError> {
         self.require_rel_read(session.owner)?;
         let route = runtime
@@ -264,7 +333,7 @@ impl Instance {
             ));
         }
         self.inner
-            .evaluate_agentic_memory(&session.inner, &route, action, || {
+            .evaluate_agentic_memory_with_filter(&session.inner, &route, action, filter, || {
                 query
                     .zip(endpoint)
                     .map(|(query, endpoint)| {

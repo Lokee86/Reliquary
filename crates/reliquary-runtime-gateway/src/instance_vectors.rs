@@ -9,7 +9,10 @@ use reliquary_owner_session::{
     model::{CompatibilityProfileId, MemoryId},
 };
 
-pub use reliquary_application::{ArchiveHybridHit, ArchiveHybridSearch};
+pub use reliquary_application::{
+    ArchiveHybridHit, ArchiveHybridSearch, ArchiveTurnTemporalEvidence, TemporalArchiveHitEvidence,
+    TemporalArchiveHybridSearch,
+};
 pub use reliquary_owner_session::{
     ArchiveLexicalIndexPublication, ArchiveVectorHit, ArchiveVectorSearch,
 };
@@ -71,6 +74,34 @@ impl Instance {
         })??;
         let result = reliquary_application::rank_archive_hybrid(view, text, query, policy)
             .map_err(GatewayError::Retrieval)?;
+        self.authorize_rel_access(owner)?;
+        Ok(result)
+    }
+
+    pub fn search_archive_hybrid_temporal(
+        &self,
+        owner: OwnerId,
+        profile_id: CompatibilityProfileId,
+        text: &str,
+        query: &[f32],
+        policy: reliquary_application::RetrievalConfig,
+        filter: reliquary_application::TemporalFilter,
+    ) -> Result<reliquary_application::TemporalArchiveHybridSearch, GatewayError> {
+        let view = self.with_reliquary(owner, |rel| {
+            if rel
+                .active_compatibility_profile(profile_id)
+                .is_some_and(|profile| query.len() != profile.dimensions as usize)
+            {
+                return Err(GatewayError::InvalidPreparedRetrieval);
+            }
+            rel.archive_temporal_hybrid_view(profile_id)?
+                .ok_or(GatewayError::RetrievalUnavailable(
+                    "no active Archive vectors for the embedding profile",
+                ))
+        })??;
+        let result =
+            reliquary_application::rank_archive_hybrid_temporal(view, text, query, policy, filter)
+                .map_err(GatewayError::Retrieval)?;
         self.authorize_rel_access(owner)?;
         Ok(result)
     }

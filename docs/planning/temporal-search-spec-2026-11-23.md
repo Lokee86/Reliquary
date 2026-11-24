@@ -111,6 +111,7 @@ Perception is the planned owner for claim-validity intervals. A point-in-time qu
 - [Root product API](../public-product-api.md)
 - [CLI reference](../reference/cli.md)
 - [Semantic processing](../architecture/semantic-processing.md)
+- [Windows acceptance and fixture measurements](../acceptance/temporal-search-2026-11-23.md)
 
 ## Notes
 

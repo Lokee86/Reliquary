@@ -551,3 +551,79 @@ fn traversal_accepts_uncapped_anchors_and_deduplicates_in_input_order() {
     );
     assert!(result.next.searched().is_empty());
 }
+
+#[test]
+fn temporal_window_limits_query_refinement_and_traversal_offers() {
+    use reliquary_retrieval::TemporalBasis;
+
+    let memories = (0..14)
+        .map(|index| memory(index, i16::from(index), "needle"))
+        .chain([memory(20, 1, "graph evidence")])
+        .collect::<Vec<_>>();
+    let anchor = memories[0].id;
+    let neighbor = MemoryId([20; 32]);
+    let outside = memories[13].id;
+    let filter = TemporalFilter::new(TemporalBasis::Source, 10, 20).unwrap();
+    let temporal = TemporalOffer {
+        filter,
+        evidence: [anchor, neighbor]
+            .into_iter()
+            .map(|id| {
+                (
+                    id,
+                    (vec![TemporalEvidence::Source { source_time_ns: 10 }], false),
+                )
+            })
+            .collect(),
+    };
+    let edges = [outside, neighbor].map(|id| Relation {
+        source: NodeRef::Memory(anchor.0),
+        target: NodeRef::Memory(id.0),
+        kind: RelationKind::Topical,
+        active: true,
+        origin: RelationOrigin::Dream,
+        graph_version: 1,
+    });
+    let endpoint = Endpoint::with_replies([
+        json!({"version": 1, "approved": []}),
+        json!({"version": 1, "query": "revised topic"}),
+    ]);
+    let run = |turn: &RetrievalTurn, action| {
+        evaluate(
+            &endpoint,
+            [7; 16],
+            turn,
+            &memories,
+            &edges,
+            action,
+            None,
+            Some(&temporal),
+        )
+    };
+    let query = run(
+        &RetrievalTurn::default(),
+        RetrievalAction::Query("needle".into()),
+    )
+    .unwrap();
+    assert!(query.memories.is_empty());
+    assert_eq!(query.next.searched(), &[anchor].into());
+    assert_eq!(approved_ids(&endpoint, 0), [hex(&anchor.0)]);
+    assert_eq!(endpoint.calls()[0].0["temporal_filter"], json!(filter));
+    assert_eq!(
+        endpoint.calls()[0].0["candidates"][0]["temporal_evidence"],
+        json!(temporal.evidence[&anchor].0)
+    );
+
+    let refined = run(&query.next, RetrievalAction::Refine("topic".into())).unwrap();
+    assert_eq!(refined.next.query(), Some("revised topic"));
+    assert_eq!(refined.next.temporal_filter(), Some(filter));
+    assert_eq!(approved_ids(&endpoint, 2), [hex(&anchor.0)]);
+
+    assert!(run(&refined.next, RetrievalAction::Traverse(vec![outside])).is_err());
+    let traversed = run(&refined.next, RetrievalAction::Traverse(vec![anchor])).unwrap();
+    assert_eq!(approved_ids(&endpoint, 3), [hex(&neighbor.0)]);
+    assert_eq!(traversed.anchors[0].unseen_neighbors, 1);
+    assert_eq!(traversed.anchors[0].relations.len(), 1);
+    assert_eq!(traversed.anchors[0].relations[0].neighbor, neighbor);
+    assert_eq!(traversed.next.temporal_filter(), Some(filter));
+}

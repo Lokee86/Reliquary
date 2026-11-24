@@ -24,6 +24,7 @@ Dated measurements and review reports. These records are evidence for their stat
 - [rel-checkpoint-open-2026-11-23.md](rel-checkpoint-open-2026-11-23.md) - Verified REL checkpoint and Hermes startup results on copied workloads.
 - [rel-dependency-port-2026-11-18.md](rel-dependency-port-2026-11-18.md) - REL dependency port compatibility and verification.
 - [rel-homogeneity-2026-11-18.md](rel-homogeneity-2026-11-18.md) - Scope-free creation and legacy REL header verification.
+- [temporal-search-2026-11-23.md](temporal-search-2026-11-23.md) - Memory and Archive temporal search, delivery recovery, and read-only REL measurements.
 <!-- doc-ledger:files:end -->
 
 ## Stub Files

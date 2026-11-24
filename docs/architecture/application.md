@@ -18,6 +18,8 @@ A typical workflow reads a current owner snapshot, prepares bounded work, valida
 
 Archive hybrid ranking gets lexical match counts from the captured generation's inverted index, whether loaded from a sealed REL frame or rebuilt from source. It combines their scores with exact cosine across that generation before selecting the top results. It returns both score components and the fragment's source range. Application projects the current owner's readable Memory candidates before semantic ranking. Default semantic ranking checks all available vectors for the bound compatibility profile. Community routing can be selected explicitly by workflows that want a narrowed candidate set.
 
+For temporal requests, Application applies the source-time or Chronos predicate to the captured population before ranking or offering candidates. The shared adapter verifies stored body-bound interpretations for Dream and search. Archive ranking uses eligible turn text for partial fragments because the packed vector spans the full fragment.
+
 Cross-owner workflows keep each mutable authority local. When an operation affects REL and PHY, it uses explicit receipts, copy/reopen verification, or reconciliation rather than exposing a shared store. Retry behavior uses stable request/owner identities and current cuts; stale preparations are rejected or recomputed instead of applied over newer state.
 
 Inspection projects a Memory summary for one ID at an exact owner cut. It shares the paginated list's lifecycle, canonical status, and Community projection.

@@ -3,9 +3,33 @@ use crate::interaction_input::{self, Command};
 use crate::local_host::{LocalHost, RelAccess};
 use reliquary_memory::{
     ArchiveSearchOptions, ConfiguredRuntime, GraphNode, InspectionQuery, RetrievalMode, SearchMode,
-    SearchOptions,
+    SearchOptions, TemporalBasis, TemporalFilter,
 };
 use std::io::{BufRead, BufReader, Write};
+
+fn temporal_filter_options(args: &[String]) -> Result<Option<TemporalFilter>, ProductError> {
+    let parts = (
+        option(args, "--time-basis"),
+        option(args, "--from"),
+        option(args, "--before"),
+    );
+    match parts {
+        (None, None, None) => Ok(None),
+        (Some(basis), Some(from), Some(before)) => {
+            let basis = match basis {
+                "source" => TemporalBasis::Source,
+                "mentioned" => TemporalBasis::Mentioned,
+                _ => return Err(invalid("--time-basis must be source or mentioned")),
+            };
+            TemporalFilter::from_rfc3339(basis, from, before)
+                .map(Some)
+                .ok_or_else(|| invalid("invalid RFC3339 temporal window"))
+        }
+        _ => Err(invalid(
+            "--time-basis, --from, and --before must be supplied together",
+        )),
+    }
+}
 
 pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
     validate_options(
@@ -16,10 +40,14 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
             ("--mode", false),
             ("--scope", false),
             ("--limit", false),
+            ("--time-basis", false),
+            ("--from", false),
+            ("--before", false),
             ("--config", false),
             ("--embedding-route", false),
         ],
     )?;
+    let temporal_filter = temporal_filter_options(args)?;
     let query = required_option(args, "--query")?;
     let mode = match required_option(args, "--mode")? {
         "lexical" => SearchMode::Lexical,
@@ -39,15 +67,37 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
         }
         let runtime = operational::runtime(operational::config_path(args))?;
         let host = LocalHost::open(&args[0], None, RelAccess::View)?;
-        let result = host.instance.search_archive(
-            host.rel,
-            query,
-            ArchiveSearchOptions {
-                limit,
-                embedding_route: option(args, "--embedding-route").map(str::to_owned),
-            },
-            &runtime,
-        )?;
+        let options = ArchiveSearchOptions {
+            limit,
+            embedding_route: option(args, "--embedding-route").map(str::to_owned),
+        };
+        let (result, temporal_fields) = match temporal_filter {
+            Some(filter) => {
+                let temporal = host
+                    .instance
+                    .search_archive_temporal(host.rel, query, options, &runtime, filter)?;
+                let evidence: Vec<_> = temporal
+                    .temporal_evidence
+                    .iter()
+                    .map(|hit| {
+                        json!({
+                            "fragment_id":hex(&hit.fragment_id),
+                            "partial":hit.partial,
+                            "turns":hit.turns.iter().map(|turn| json!({
+                                "node_id":turn.node_id,
+                                "evidence":turn.evidence,
+                            })).collect::<Vec<_>>()
+                        })
+                    })
+                    .collect();
+                (temporal.search, Some((temporal.temporal_filter, evidence)))
+            }
+            None => (
+                host.instance
+                    .search_archive(host.rel, query, options, &runtime)?,
+                None,
+            ),
+        };
         let hits: Vec<_> = result
             .hits
             .iter()
@@ -64,7 +114,7 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
                 })
             })
             .collect();
-        return Ok(json!({
+        let mut response = json!({
             "operation": "search",
             "result": {
                 "scope": "archive",
@@ -77,7 +127,12 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
                 "truncated": result.truncated,
                 "hits": hits,
             }
-        }));
+        });
+        if let Some((filter, evidence)) = temporal_fields {
+            response["result"]["temporal_filter"] = json!(filter);
+            response["result"]["temporal_evidence"] = json!(evidence);
+        }
+        return Ok(response);
     }
     let configured = if mode == SearchMode::Lexical {
         option(args, "--config")
@@ -92,10 +147,24 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
         embedding_route: option(args, "--embedding-route").map(str::to_owned),
     };
     let host = LocalHost::open(&args[0], None, RelAccess::View)?;
-    let result = host
-        .instance
-        .search(host.rel, query, options, configured.as_ref())?;
-    Ok(json!({"operation":"search","result":result}))
+    match temporal_filter {
+        Some(filter) => {
+            let result = host.instance.search_temporal(
+                host.rel,
+                query,
+                options,
+                configured.as_ref(),
+                filter,
+            )?;
+            Ok(json!({"operation":"search","result":result}))
+        }
+        None => {
+            let result = host
+                .instance
+                .search(host.rel, query, options, configured.as_ref())?;
+            Ok(json!({"operation":"search","result":result}))
+        }
+    }
 }
 
 pub(crate) fn query(args: &[String]) -> Result<Value, ProductError> {
@@ -106,8 +175,12 @@ pub(crate) fn query(args: &[String]) -> Result<Value, ProductError> {
             ("--query", false),
             ("--config", false),
             ("--embedding-route", false),
+            ("--time-basis", false),
+            ("--from", false),
+            ("--before", false),
         ],
     )?;
+    let temporal_filter = temporal_filter_options(args)?;
     let text = required_option(args, "--query")?;
     let configured = operational::runtime(operational::config_path(args))?;
     let host = LocalHost::open(&args[0], None, RelAccess::View)?;
@@ -117,7 +190,12 @@ pub(crate) fn query(args: &[String]) -> Result<Value, ProductError> {
         RetrievalMode::Inspect,
         option(args, "--embedding-route"),
     )?;
-    let result = host.instance.memory_query(&session, text, &configured)?;
+    let result = match temporal_filter {
+        Some(filter) => host
+            .instance
+            .memory_query_temporal(&session, text, &configured, filter)?,
+        None => host.instance.memory_query(&session, text, &configured)?,
+    };
     Ok(json!({"operation":"query","result":result}))
 }
 
@@ -157,6 +235,16 @@ pub(crate) fn interact(
             Command::Query(text) => {
                 let outcome =
                     instance.memory_query(&session, &text, configured_runtime(&configured)?)?;
+                active = true;
+                json!({"operation":"query","outcome":outcome})
+            }
+            Command::TemporalQuery(text, filter) => {
+                let outcome = instance.memory_query_temporal(
+                    &session,
+                    &text,
+                    configured_runtime(&configured)?,
+                    filter,
+                )?;
                 active = true;
                 json!({"operation":"query","outcome":outcome})
             }

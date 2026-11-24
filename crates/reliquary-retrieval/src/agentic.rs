@@ -1,3 +1,4 @@
+use crate::TemporalFilter;
 use reliquary_memory_core::MemoryId;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -8,6 +9,7 @@ pub const MAX_AGENTIC_QUERY_BYTES: usize = 512;
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct RetrievalTurn {
     query: Option<String>,
+    temporal_filter: Option<TemporalFilter>,
     searched: BTreeSet<MemoryId>,
     selected: BTreeSet<MemoryId>,
 }
@@ -23,8 +25,25 @@ impl RetrievalTurn {
         &self.selected
     }
 
+    pub fn temporal_filter(&self) -> Option<TemporalFilter> {
+        self.temporal_filter
+    }
+
     pub fn begin_query(&mut self, query: &str) -> Result<(), &'static str> {
-        self.query = Some(validate_query(query)?.to_owned());
+        self.begin_query_with_filter(query, None)
+    }
+
+    pub fn begin_query_with_filter(
+        &mut self,
+        query: &str,
+        filter: Option<TemporalFilter>,
+    ) -> Result<(), &'static str> {
+        let query = validate_query(query)?;
+        if filter.is_some_and(|filter| filter.start_ns >= filter.end_exclusive_ns) {
+            return Err("retrieval window must be nonempty");
+        }
+        self.query = Some(query.to_owned());
+        self.temporal_filter = filter;
         self.searched.clear();
         Ok(())
     }

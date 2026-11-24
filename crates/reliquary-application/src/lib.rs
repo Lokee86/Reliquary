@@ -28,6 +28,9 @@ mod dream_empty_publication;
 mod dream_publication;
 mod dream_supersession_publication;
 mod dream_temporal;
+mod temporal_search;
+pub use reliquary_retrieval::{TemporalBasis, TemporalEvidence, TemporalFilter};
+pub use temporal_search::{memory_temporal_evidence, text_temporal_evidence};
 mod dream_workflow;
 pub use conversation_workflow::{
     NativeConversationCommit, PublishedNativeTurn, commit_native_conversation_turn,
@@ -1066,7 +1069,7 @@ pub use external_processing::{
 mod agentic_retrieval;
 pub use agentic_retrieval::{
     AgenticMemory, RetrievalAction, RetrievalAnchorReport, RetrievalDirection, RetrievalEvaluation,
-    RetrievalRelationEvidence, evaluate_retrieval,
+    RetrievalRelationEvidence, evaluate_retrieval, evaluate_snapshot_retrieval,
 };
 pub use reliquary_retrieval::RetrievalConfig;
 pub use reliquary_retrieval::agentic::RetrievalTurn;
@@ -1076,5 +1079,10 @@ pub use reliquary_retrieval::memory_retrieval::{
 
 mod archive_search;
 mod owner_retrieval;
-pub use archive_search::{ArchiveHybridHit, ArchiveHybridSearch, rank_archive_hybrid};
-pub use owner_retrieval::{agentic_memories, rank_owner_snapshot, route_owner_snapshot};
+pub use archive_search::{
+    ArchiveHybridHit, ArchiveHybridSearch, ArchiveTurnTemporalEvidence, TemporalArchiveHitEvidence,
+    TemporalArchiveHybridSearch, rank_archive_hybrid, rank_archive_hybrid_temporal,
+};
+pub use owner_retrieval::{
+    agentic_memories, rank_owner_snapshot, retain_temporal_memories, route_owner_snapshot,
+};

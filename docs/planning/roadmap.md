@@ -22,8 +22,6 @@ Core compares two explicitly selected Entities across authorized RELs. The recor
 
 Core supports explicit, reversible operator confirmation for a selected cross-REL pair. Enabling the action in Hermes requires a trusted operator interaction and its own host verification. [Public API](../public-product-api.md#confirm-or-undo-separation)
 
-The [temporal search specification](temporal-search-spec-2026-11-23.md) proposes source-time and mentioned-time filtering for Memory and Archive search, with Chronos evidence and acceptance gates.
-
 ## Implementation sequence and acceptance
 
 The [homogeneity specification](rel-homogeneity-spec-2026-11-18.md) and [execution plan](rel-homogeneity-plan-2026-11-18.md) cover scope-free Core creation, Hermes role admission and legacy file compatibility. The [Core acceptance record](../acceptance/rel-homogeneity-2026-11-18.md) records the creation cut and original header verification.
