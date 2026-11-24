@@ -244,6 +244,7 @@ fn prepares_and_rechecks_a_verified_successor_outside_owner_read_closures() {
         embedding: &script,
         route_identity: [3; 32],
         embedding_profile: [5; 32],
+        memory_vector_profile: None,
     };
     let ProposalEvaluation::Ready(prepared) = evaluate_proposal(
         &Read {

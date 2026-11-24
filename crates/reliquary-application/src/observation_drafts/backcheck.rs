@@ -25,6 +25,7 @@ pub(super) fn optional_hits(
     capture: &mut Capture<'_>,
     claim: &str,
     receptors: &[ObservationReceptor],
+    profile: Option<CompatibilityProfileId>,
     original: &[Excerpt],
     required: Vec<Excerpt>,
 ) -> Result<Vec<Excerpt>> {
@@ -46,10 +47,9 @@ pub(super) fn optional_hits(
         graph.extend(capture.rel.perception_graph_neighbors(id));
     }
     let anchor = anchors.first().copied();
+    let profile = profile.filter(|&id| capture.rel.active_compatibility_profile(id).is_some());
     let mut ranked = Vec::new();
     for receptor in receptors {
-        let profile = CompatibilityProfileId(receptor.embedding_profile);
-        let active = capture.rel.active_compatibility_profile(profile).is_some();
         let mut ids: BTreeMap<MemoryId, f64> = graph.iter().map(|id| (*id, 0.12)).collect();
         for query in [&receptor.description, claim] {
             for (rank, id) in capture
@@ -64,7 +64,7 @@ pub(super) fn optional_hits(
                     .or_insert(lexical);
             }
         }
-        if let Some(anchor) = anchor.filter(|_| active) {
+        if let Some((anchor, profile)) = anchor.zip(profile) {
             match capture
                 .rel
                 .dream_candidate_pool(anchor, profile, &receptor.vector)
@@ -89,7 +89,7 @@ pub(super) fn optional_hits(
         let mut matches = Vec::new();
         for row in eligible {
             let id = row.source.id;
-            let vector_score = if active {
+            let vector_score = if let Some(profile) = profile {
                 capture
                     .rel
                     .memory_vector_row(profile, row.source.body_id)

@@ -96,12 +96,12 @@ pub fn evaluate_review(
                     &work.head.draft.receptors,
                     work.head.policy.general_route,
                 )));
-            canonical.receptors = receptors(read, routes, &draft, reuse)?;
+            canonical.receptors = receptors(routes, &draft, reuse)?;
         }
         let frozen = read.read(|rel| {
             let mut capture = Capture::new(rel);
             work.fence.revalidate(&mut capture)?;
-            freeze(&mut capture, canonical, &work.required)
+            freeze(&mut capture, canonical, &work.required, routes)
         })?;
         let decision = verify(routes.verification, &frozen.state).map_err(Error::Native)?;
         let detected = change_from(decision.hits.values().copied());
@@ -227,6 +227,7 @@ fn capture_review(
             &mut capture,
             &head_draft.proposition,
             &head_draft.receptors,
+            routes.search_profile(&head_draft.receptors),
             &original,
             Vec::new(),
         )?;

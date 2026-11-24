@@ -51,6 +51,17 @@ pub struct ObservationDraftRoutes<'a> {
     pub embedding: &'a dyn EmbeddingEndpoint,
     pub route_identity: [u8; 32],
     pub embedding_profile: [u8; 32],
+    pub memory_vector_profile: Option<CompatibilityProfileId>,
+}
+
+impl ObservationDraftRoutes<'_> {
+    fn search_profile(&self, receptors: &[ObservationReceptor]) -> Option<CompatibilityProfileId> {
+        self.memory_vector_profile.filter(|_| {
+            receptors
+                .iter()
+                .all(|row| row.embedding_profile == self.embedding_profile)
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -100,6 +111,7 @@ pub struct PreparedObservation {
     history_generation: [u8; 32],
     must_be_current: Vec<ObservationCitation>,
     embedding_profile: [u8; 32],
+    memory_vector_profile: Option<CompatibilityProfileId>,
     review: Option<review::ReviewFence>,
 }
 
@@ -110,6 +122,9 @@ impl PreparedObservation {
         if self.policy.general_route != route_identity
             || self.owner_id != capture.cut.owner_id
             || self.history_generation != capture.cut.history_generation
+            || self
+                .memory_vector_profile
+                .is_some_and(|id| rel.active_compatibility_profile(id).is_none())
         {
             return Err(Error::Stale);
         }
@@ -229,14 +244,14 @@ pub fn evaluate_proposal(
             return Ok(duplicate(target, &draft));
         }
         canonical.receptors = receptors(
-            read,
             routes,
             &draft,
             previous
                 .as_ref()
                 .map(|(draft, rows)| (draft, rows.as_slice(), routes.route_identity)),
         )?;
-        let frozen = read.read(|rel| freeze(&mut Capture::new(rel), canonical, &required))?;
+        let frozen =
+            read.read(|rel| freeze(&mut Capture::new(rel), canonical, &required, routes))?;
         let decision = verify(routes.verification, &frozen.state).map_err(Error::Native)?;
         match decision.verdict {
             VerificationVerdict::StandsAsWritten => {
@@ -437,7 +452,6 @@ fn grounded_validity(
 }
 
 fn receptors(
-    read: &impl ScopedObservationRead,
     routes: &ObservationDraftRoutes<'_>,
     draft: &SynthesisDraft,
     prior: Option<(&SynthesisDraft, &[ObservationReceptor], [u8; 32])>,
@@ -458,17 +472,6 @@ fn receptors(
         }
     }
     if routes.embedding_profile == [0; 32] || !routes.embedding.supports_bounded_embedding() {
-        return Err(Error::Embedding);
-    }
-    let profile = read.read(|rel| {
-        Ok(rel
-            .active_compatibility_profile(CompatibilityProfileId(routes.embedding_profile))
-            .cloned())
-    })?;
-    if profile
-        .as_ref()
-        .is_some_and(|p| p.dimensions != routes.embedding.dimensions())
-    {
         return Err(Error::Embedding);
     }
     let set = generate_receptors(
@@ -494,10 +497,6 @@ fn receptors(
             crate::vector_workflow::MAX_EMBEDDING_RESPONSE_BYTES,
         )
         .map_err(|_| Error::Embedding)?;
-    if let Some(profile) = &profile {
-        reliquary_vectors::validate_embedding_batch(profile, &rows, inputs.len())
-            .map_err(|_| Error::Embedding)?;
-    }
     if rows.len() != inputs.len()
         || rows.iter().any(|row| {
             row.len() != routes.embedding.dimensions() as usize
@@ -536,6 +535,7 @@ fn freeze(
     capture: &mut Capture<'_>,
     mut draft: ObservationDraft,
     required: &[ObservationCitation],
+    routes: &ObservationDraftRoutes<'_>,
 ) -> Result<FrozenDraft> {
     let mut cites = Vec::new();
     let mut seen = BTreeSet::new();
@@ -564,7 +564,14 @@ fn freeze(
         return Err(Error::EvidenceLimit);
     }
     fit_context(&mut hits, backcheck::MAX_HIT_BYTES)?;
-    hits = backcheck::optional_hits(capture, &draft.proposition, &draft.receptors, &cites, hits)?;
+    hits = backcheck::optional_hits(
+        capture,
+        &draft.proposition,
+        &draft.receptors,
+        routes.search_profile(&draft.receptors),
+        &cites,
+        hits,
+    )?;
     draft.reviewed = reviewed(&[
         required,
         &hits.iter().map(|row| row.citation).collect::<Vec<_>>(),
@@ -700,6 +707,7 @@ fn prepared(
         cut.owner_id,
         cut.history_generation,
         routes.embedding_profile,
+        routes.memory_vector_profile,
         policy,
         draft_id,
         current,
@@ -713,6 +721,7 @@ fn prepared(
         history_generation: cut.history_generation,
         must_be_current: current,
         embedding_profile: routes.embedding_profile,
+        memory_vector_profile: routes.memory_vector_profile,
         review,
     }
 }
