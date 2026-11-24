@@ -124,6 +124,9 @@ pub(super) fn removable_backing(
             if !publication
                 .body
                 .starts_with(super::super::identity_receipt::MARKER)
+                && !publication
+                    .body
+                    .starts_with(super::super::identity_separation::MARKER)
                 && !memory_history_record(publication.body)
                 && !reliquary_archive::is_archive_publication_body(publication.body)
                     .map_err(|e| e.to_string())?

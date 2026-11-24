@@ -11,7 +11,7 @@ pub(super) fn rel(
     archive: &reliquary_archive::ArchiveHistorySnapshot,
     freshness: &BTreeMap<FreshnessMemoryId, FreshnessRecord>,
     freshness_evidence: &[FreshnessReplayEntry],
-    identities: &[super::super::identity_receipt::StoredReceipt],
+    identity: IdentityAuditHistory<'_>,
     cut: &RelHistoricalCut,
 ) -> [u8; 32] {
     let mut value = json!({
@@ -20,9 +20,13 @@ pub(super) fn rel(
         "archive": archive_value(archive),
         "freshness": freshness_value(freshness, freshness_evidence),
     });
-    if !identities.is_empty() {
-        value["identity_receipts"] = json!(identities);
+    if !identity.receipts.is_empty() {
+        value["identity_receipts"] = json!(identity.receipts);
         value["cut"]["identity_version"] = json!(cut.identity_version);
+    }
+    if !identity.separations.is_empty() {
+        value["identity_separation_confirmations"] = json!(identity.separations);
+        value["cut"]["separation_version"] = json!(cut.separation_version);
     }
     canonical_hash(value)
 }

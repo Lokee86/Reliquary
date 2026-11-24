@@ -271,3 +271,6 @@ fn identity_receipts_restore_from_exact_checkpoint_and_validate_the_suffix() {
         first_proof
     );
 }
+
+#[path = "tests_identity_separation.rs"]
+mod tests_identity_separation;

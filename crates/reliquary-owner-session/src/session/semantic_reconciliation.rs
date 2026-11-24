@@ -158,6 +158,15 @@ pub fn reconcile_divergent_rel_copy(
     if left_records
         .iter()
         .chain(&right_records)
+        .any(|record| record.starts_with(super::identity_separation::PREFIX))
+    {
+        return Err(RelReconciliationError::UnsupportedState(
+            "cross-REL Entity separation confirmations",
+        ));
+    }
+    if left_records
+        .iter()
+        .chain(&right_records)
         .any(|record| record.starts_with(super::identity_receipt::PREFIX))
     {
         return Err(RelReconciliationError::UnsupportedState(

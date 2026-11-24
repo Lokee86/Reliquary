@@ -1,6 +1,8 @@
 use super::super::{
     GraphAdmission, MemoryId, OwnerSessionError, RelSession,
-    rel_dependencies::REL_DEPENDENCY_MAGIC, replay, replay_prefix,
+    identity_separation::{PREFIX as SEPARATION_PREFIX, SeparationProjection},
+    rel_dependencies::REL_DEPENDENCY_MAGIC,
+    replay, replay_prefix,
 };
 use crate::records::user_memory::UserMemoryRecord;
 use reliquary_container::{Container, PhysicalCheckpoint};
@@ -27,6 +29,7 @@ pub(super) fn replay(
     }
     let mut frames = container.scan_frames_from(checkpoint.covered_end)?;
     let mut memory_changed = false;
+    let mut separation_changed = false;
     while let Some(frame) = frames.next_frame()? {
         let payload = frame.payload;
         if payload.starts_with(b"RELVERS1") || payload.starts_with(b"RELVERS2") {
@@ -49,6 +52,10 @@ pub(super) fn replay(
         if body.starts_with(super::super::identity_receipt::PREFIX) {
             return Ok(false);
         }
+        if body.starts_with(SEPARATION_PREFIX) {
+            separation_changed = true;
+            continue;
+        }
         if let Some(id) = body_id_in_frame(body)?
             && session.common.memories.references_body(id)
             && !session.common.memories.contains_body_payload(id)
@@ -64,8 +71,8 @@ pub(super) fn replay(
         }
     }
 
-    if memory_changed {
-        return replay_memory_suffix(session, container, checkpoint.covered_end);
+    if memory_changed || separation_changed {
+        return replay_typed_suffix(session, container, checkpoint.covered_end, memory_changed);
     }
     Ok(true)
 }
@@ -80,24 +87,27 @@ fn management_frame(payload: &[u8]) -> bool {
     payload.starts_with(b"RELMCOR") || payload.starts_with(b"RELMRET")
 }
 
-fn replay_memory_suffix(
+fn replay_typed_suffix(
     session: &mut RelSession,
     container: &Container,
     covered_end: u64,
+    memory_changed: bool,
 ) -> Result<bool, OwnerSessionError> {
     let common = &mut session.common;
     let mut memory_head = common.memories.memory_version();
     let mut touched = BTreeSet::new();
-    common.memories = replay::replay_memories(
-        container,
-        MemoryReplayStart::Checkpoint {
-            store: std::mem::take(&mut common.memories),
-            covered_end,
-        },
-        true,
-        &mut BTreeSet::new(),
-        &mut common.user_memory_requests,
-    )?;
+    if memory_changed {
+        common.memories = replay::replay_memories(
+            container,
+            MemoryReplayStart::Checkpoint {
+                store: std::mem::take(&mut common.memories),
+                covered_end,
+            },
+            true,
+            &mut BTreeSet::new(),
+            &mut common.user_memory_requests,
+        )?;
+    }
 
     let mut frames = container.scan_frames_from(covered_end)?;
     while let Some(frame) = frames.next_frame()? {
@@ -126,11 +136,24 @@ fn replay_memory_suffix(
             }
         } else {
             let envelope = reliquary_container::decode_publication(frame.payload)?;
-            track_memory_change(
-                envelope.as_ref().map_or(frame.payload, |value| value.body),
-                &mut memory_head,
-                &mut touched,
-            )?;
+            let body = envelope.as_ref().map_or(frame.payload, |value| value.body);
+            if body.starts_with(SEPARATION_PREFIX) {
+                if !session.identity_separation_history.replay(
+                    frame.payload,
+                    SeparationProjection {
+                        owner: session.owner_id,
+                        history_generation: session.history_generation,
+                        receipts: &session.identity_history,
+                        perception: &common.perception,
+                        memory_cut: memory_head,
+                        perception_cut: common.perception.version(),
+                    },
+                )? {
+                    return Ok(false);
+                }
+            } else if memory_changed {
+                track_memory_change(body, &mut memory_head, &mut touched)?;
+            }
         }
     }
     if memory_head != common.memories.memory_version() {
@@ -152,7 +175,9 @@ fn replay_memory_suffix(
     }) {
         return Ok(false);
     }
-    common.refresh_dream_index(&touched.into_iter().collect::<Vec<_>>())?;
+    if memory_changed {
+        common.refresh_dream_index(&touched.into_iter().collect::<Vec<_>>())?;
+    }
     Ok(true)
 }
 
