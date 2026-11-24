@@ -2,17 +2,31 @@ use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};
 
+// Existing Windows cache directories may have inherited a group owner.
+#[cfg(windows)]
+const CACHE_DIRECTORY: &str = "reliquary-owner-checkpoints-v2";
+#[cfg(not(windows))]
+const CACHE_DIRECTORY: &str = "reliquary-owner-checkpoints";
+
 pub(super) fn root() -> io::Result<PathBuf> {
     let base = directories::BaseDirs::new().ok_or(io::ErrorKind::NotFound)?;
     let cache = base.cache_dir();
     fs::create_dir_all(cache)?;
-    let root = cache.canonicalize()?.join("reliquary-owner-checkpoints");
+    let root = cache.canonicalize()?.join(CACHE_DIRECTORY);
     platform::ensure_directory(&root)?;
     Ok(root)
 }
 
 pub(super) fn open(path: &Path) -> io::Result<File> {
     platform::open_file(path)
+}
+
+pub(super) fn stage(parent: &Path) -> io::Result<tempfile::NamedTempFile> {
+    #[cfg(windows)]
+    return platform::stage_file(parent);
+
+    #[cfg(not(windows))]
+    tempfile::NamedTempFile::new_in(parent)
 }
 
 #[cfg(test)]
@@ -70,7 +84,7 @@ mod platform {
     use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
     use std::path::Path;
     use std::ptr::{addr_of, null_mut};
-    use windows_sys::Win32::Foundation::{ERROR_SUCCESS, LocalFree};
+    use windows_sys::Win32::Foundation::{ERROR_SUCCESS, INVALID_HANDLE_VALUE, LocalFree};
     use windows_sys::Win32::Security::Authorization::{
         ConvertSidToStringSidW, ConvertStringSecurityDescriptorToSecurityDescriptorW,
         GetSecurityInfo, SE_FILE_OBJECT,
@@ -81,8 +95,10 @@ mod platform {
         TOKEN_USER, TokenUser, WinLocalSystemSid,
     };
     use windows_sys::Win32::Storage::FileSystem::{
-        CreateDirectoryW, FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS,
-        FILE_FLAG_OPEN_REPARSE_POINT, FILE_GENERIC_READ, READ_CONTROL,
+        CREATE_NEW, CreateDirectoryW, CreateFileW, FILE_ATTRIBUTE_REPARSE_POINT,
+        FILE_ATTRIBUTE_TEMPORARY, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
+        FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_SHARE_DELETE, FILE_SHARE_READ,
+        FILE_SHARE_WRITE, READ_CONTROL,
     };
     use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
@@ -139,7 +155,7 @@ mod platform {
         value.encode_wide().chain([0]).collect()
     }
 
-    fn create_directory(path: &Path, user: &UserSid) -> io::Result<()> {
+    fn private_descriptor(user: &UserSid, inheritance: &str) -> io::Result<LocalAllocation> {
         let mut sid_text = null_mut();
         // SAFETY: the SID lives in user and Win32 allocates the result.
         if unsafe { ConvertSidToStringSidW(user.sid(), &mut sid_text) } == 0 {
@@ -151,7 +167,9 @@ mod platform {
             let len = (0..).find(|&i| *sid_text.add(i) == 0).unwrap();
             String::from_utf16_lossy(std::slice::from_raw_parts(sid_text, len))
         };
-        let sddl = format!("D:P(A;OICI;FA;;;{sid_text})(A;OICI;FA;;;SY)");
+        // The token's default owner can be a group. Use the account checked on reopen.
+        let sddl =
+            format!("O:{sid_text}D:P(A;{inheritance};FA;;;{sid_text})(A;{inheritance};FA;;;SY)");
         let mut descriptor = null_mut();
         // SAFETY: the input is NUL terminated and the descriptor out parameter is valid.
         if unsafe {
@@ -165,12 +183,20 @@ mod platform {
         {
             return Err(io::Error::last_os_error());
         }
-        let _descriptor_allocation = LocalAllocation(descriptor);
-        let attributes = SECURITY_ATTRIBUTES {
+        Ok(LocalAllocation(descriptor))
+    }
+
+    fn security_attributes(descriptor: &LocalAllocation) -> SECURITY_ATTRIBUTES {
+        SECURITY_ATTRIBUTES {
             nLength: size_of::<SECURITY_ATTRIBUTES>() as u32,
-            lpSecurityDescriptor: descriptor,
+            lpSecurityDescriptor: descriptor.0,
             bInheritHandle: 0,
-        };
+        }
+    }
+
+    fn create_directory(path: &Path, user: &UserSid) -> io::Result<()> {
+        let descriptor = private_descriptor(user, "OICI")?;
+        let attributes = security_attributes(&descriptor);
         // SAFETY: Win32 receives the path and security descriptor for this call only.
         if unsafe { CreateDirectoryW(utf16(path.as_os_str()).as_ptr(), &attributes) } != 0 {
             return Ok(());
@@ -181,6 +207,31 @@ mod platform {
         } else {
             Err(err)
         }
+    }
+
+    pub(super) fn stage_file(parent: &Path) -> io::Result<tempfile::NamedTempFile> {
+        let descriptor = private_descriptor(&UserSid::process()?, "")?;
+        let attributes = security_attributes(&descriptor);
+        tempfile::Builder::new().make_in(parent, |path| {
+            // SAFETY: The path and attributes remain live for the call. CREATE_NEW
+            // refuses an existing path so tempfile can retry name collisions.
+            let handle = unsafe {
+                CreateFileW(
+                    utf16(path.as_os_str()).as_ptr(),
+                    FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    &attributes,
+                    CREATE_NEW,
+                    FILE_ATTRIBUTE_TEMPORARY,
+                    null_mut(),
+                )
+            };
+            if handle == INVALID_HANDLE_VALUE {
+                return Err(io::Error::last_os_error());
+            }
+            // SAFETY: The successful call returned an owned file handle.
+            Ok(unsafe { File::from_raw_handle(handle) })
+        })
     }
 
     fn private(file: &File, user: &UserSid) -> io::Result<()> {
