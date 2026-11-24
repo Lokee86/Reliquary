@@ -115,7 +115,7 @@ def main() -> int:
             manifest.write_bytes(original)
             return result
 
-        content = original.decode("utf-8")
+        content = manifest.read_text(encoding="utf-8")
         architecture_result(content.replace(
             "[dev-dependencies]",
             'leaky = { package = "reliquary-container", path = "crates/reliquary-container" }\n\n[dev-dependencies]',

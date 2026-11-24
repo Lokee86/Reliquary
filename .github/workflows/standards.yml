@@ -16,9 +16,11 @@ jobs:
     defaults:
       run:
         shell: pwsh
+        working-directory: reliquary
     steps:
       - uses: actions/checkout@v6
         with:
+          path: reliquary
           fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
@@ -38,41 +40,41 @@ jobs:
           "GOCACHE=$pwd/.go-cache" >> $env:GITHUB_ENV
           "$pwd/work/bin" >> $env:GITHUB_PATH
       # Tool source pins match the executable source reviewed locally.
-      # A token is needed if these repositories are private; no sibling checkout is used.
+      # Separate checkouts keep the pinned Rust tools outside Reliquary's Cargo workspace.
       - uses: actions/checkout@v6
         with:
           repository: Lokee86/demon-docs
           ref: 45318a8f2602aeebaeea4828894769256773f4f4
-          path: target/standards-tool-sources/demon-docs
+          path: standards-tool-sources/demon-docs
           token: ${{ secrets.STANDARDS_TOOLS_TOKEN || github.token }}
       - uses: actions/checkout@v6
         with:
           repository: Lokee86/pitlord
           ref: 9dedd4b556b9e54de514e4cafe4d94093780178f
-          path: target/standards-tool-sources/pitlord
+          path: standards-tool-sources/pitlord
           token: ${{ secrets.STANDARDS_TOOLS_TOKEN || github.token }}
       - uses: actions/checkout@v6
         with:
           repository: Lokee86/lexicon-arcana
           ref: f09517262fdfad98fcede2ad93a947ccee8406ff
-          path: target/standards-tool-sources/lexicon-arcana
+          path: standards-tool-sources/lexicon-arcana
           token: ${{ secrets.STANDARDS_TOOLS_TOKEN || github.token }}
       - name: Build pinned documentation and policy tools
         run: |
           $bin = Join-Path $pwd 'work/bin'
-          Push-Location target/standards-tool-sources/demon-docs
+          Push-Location ../standards-tool-sources/demon-docs
           go build -o "$bin/ddocs.exe" ./cmd/ddocs
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Pop-Location
-          Push-Location target/standards-tool-sources/pitlord
+          Push-Location ../standards-tool-sources/pitlord
           go build -o "$bin/pitlord.exe" ./cmd/pitlord
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Pop-Location
-          Push-Location target/standards-tool-sources/lexicon-arcana/lexicon
+          Push-Location ../standards-tool-sources/lexicon-arcana/lexicon
           go build -o "$bin/lexicon.exe" ./cmd/lexicon
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Pop-Location
-          cargo build --release --locked --manifest-path target/standards-tool-sources/lexicon-arcana/arcana/Cargo.toml --target-dir target/standards-tools -j 1
+          cargo build --release --locked --manifest-path ../standards-tool-sources/lexicon-arcana/arcana/Cargo.toml --target-dir target/standards-tools -j 1
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Copy-Item target/standards-tools/release/arcana.exe "$bin/arcana.exe"
       - name: Verify synchronized standards provenance
@@ -125,7 +127,7 @@ jobs:
       - name: Check exact Cargo package DAG
         run: python scripts/check_architecture.py
       - name: Validate and check current semantic architecture evidence
-        run: python scripts/check_policy_tools.py --adapters target/standards-tool-sources/lexicon-arcana/lexicon/adapters
+        run: python scripts/check_policy_tools.py --adapters ../standards-tool-sources/lexicon-arcana/lexicon/adapters
 
   rust-and-consumers:
     runs-on: windows-latest
