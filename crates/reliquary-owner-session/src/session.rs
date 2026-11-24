@@ -1009,7 +1009,7 @@ mod identity_evidence;
 pub(crate) mod identity_receipt;
 pub(crate) mod identity_separation;
 mod maintenance_prune;
-mod observations;
+pub(crate) mod observations;
 pub(crate) mod perception_audit;
 mod perception_lifecycle;
 mod relationship_prune;

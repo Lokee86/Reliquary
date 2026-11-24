@@ -83,6 +83,7 @@ Unless otherwise stated, crate code roots are `crates/<package>/`. Vendored `qui
 | External source authorization, snapshot/change feed/hydration and project binding | [Application](../architecture/application.md), [Gateway](../architecture/gateway.md) | Dual-authorization retained-host external/project-source tests |
 | Rewrite/prune/reclaim/reconcile, source freeze, destination collision, unsupported authority and independent reopen | [Application](../architecture/application.md), [operator](../operator-workflow.md) | Root maintenance, workflow negative/reopen and CLI copy tests |
 | Config per-path write exclusion, stale handles, OS key protection, missing credentials and readiness | [Switchboard](../architecture/switchboard.md), [config](../configured-runtime.md) | Switchboard `protected_config/tests/key_lock.rs` exclusion test, stale-handle/key/crypto/provider tests and offline consumer; full concurrent credential-writer/migration interleavings remain outside that primitive-level proof |
+| REL Observation publication and recovery | [Owner sessions](../architecture/owner-session.md) | [Owner-session tests](../../crates/reliquary-owner-session/src/session/checkpoint/tests_observations.rs) cover lineage and standing, retry, historical proofs, exact and suffix reopen, verified copy, and refusal of unclocked carriers. |
 
 ## Related docs
 

@@ -79,8 +79,10 @@ pub struct ObservationStore {
     source_dependents: BTreeMap<ObservationSource, BTreeSet<ObservationId>>,
     participant_dependents: BTreeMap<EntityId, BTreeSet<ObservationId>>,
     historical_dependencies: BTreeMap<ObservationId, BTreeSet<ObservationId>>,
-    comparisons: BTreeMap<(ObservationId, u64, ObservationCitation), ObservationComparisonOutcome>,
-    awards: BTreeMap<(ObservationId, ObservationActivity), u8>,
+    comparisons:
+        BTreeMap<(ObservationId, u64, ObservationCitation, u32), ObservationComparisonOutcome>,
+    awards: BTreeMap<(ObservationId, u64), u8>,
+    semantic_matches: BTreeMap<(ObservationId, ObservationActivity), u8>,
     progress: Option<ObservationAuditProgress>,
 }
 
@@ -193,11 +195,86 @@ impl ObservationStore {
         &self,
         comparison: &ObservationComparison,
     ) -> Option<ObservationComparisonOutcome> {
-        self.comparisons.get(&comparison_key(comparison)).copied()
+        self.comparison_at_policy(comparison, 1)
+    }
+
+    pub fn comparison_at_policy(
+        &self,
+        comparison: &ObservationComparison,
+        policy: u32,
+    ) -> Option<ObservationComparisonOutcome> {
+        self.comparisons
+            .get(&comparison_key(comparison, policy))
+            .copied()
+    }
+
+    pub fn explicitly_pending_after(
+        &self,
+        after: Option<ObservationId>,
+        limit: usize,
+    ) -> impl Iterator<Item = ObservationId> {
+        self.pending
+            .range((after.map_or(Unbounded, Excluded), Unbounded))
+            .take(limit)
+            .map(|(&id, _)| id)
+    }
+
+    pub fn source_dependents_after(
+        &self,
+        source: ObservationSource,
+        after: Option<ObservationId>,
+        limit: usize,
+    ) -> impl Iterator<Item = ObservationId> {
+        self.source_dependents
+            .get(&source)
+            .into_iter()
+            .flat_map(move |ids| ids.range((after.map_or(Unbounded, Excluded), Unbounded)))
+            .take(limit)
+            .copied()
+    }
+
+    pub fn participant_dependents_after(
+        &self,
+        entity: EntityId,
+        after: Option<ObservationId>,
+        limit: usize,
+    ) -> impl Iterator<Item = ObservationId> {
+        self.participant_dependents
+            .get(&entity)
+            .into_iter()
+            .flat_map(move |ids| ids.range((after.map_or(Unbounded, Excluded), Unbounded)))
+            .take(limit)
+            .copied()
+    }
+
+    pub fn requires_memory_body(&self, bodies: &BTreeSet<[u8; 32]>) -> bool {
+        self.records.iter().any(|(_, record)| {
+            record.batch.operations.iter().any(|operation| {
+                let includes = |cite: &ObservationCitation| {
+                    matches!(cite.source, ObservationSource::Memory(_))
+                        && bodies.contains(&cite.body_id)
+                };
+                match operation {
+                    ObservationOperation::Create { draft }
+                    | ObservationOperation::Successor { draft, .. } => {
+                        draft.citations.iter().chain(&draft.reviewed).any(includes)
+                    }
+                    ObservationOperation::Pending { evidence, .. } => evidence.iter().any(includes),
+                    ObservationOperation::Reaffirm { reviewed, .. }
+                    | ObservationOperation::Withdraw { reviewed, .. } => {
+                        reviewed.iter().any(includes)
+                    }
+                    ObservationOperation::Comparison { comparison } => {
+                        includes(&comparison.citation)
+                    }
+                    ObservationOperation::SemanticAward { evidence, .. } => includes(evidence),
+                }
+            })
+        })
     }
 
     pub fn award_total(&self, id: ObservationId, activity: ObservationActivity) -> Option<u8> {
-        self.awards.get(&(id, activity)).copied()
+        self.awards.get(&(id, activity.turn)).copied()
     }
 
     /// Plan a bounded transaction without cloning the full owner projection.
@@ -238,7 +315,7 @@ impl ObservationStore {
         let mut lifecycles = BTreeSet::new();
         let mut claims = BTreeSet::new();
         let mut comparisons = BTreeSet::new();
-        let mut awards = BTreeSet::new();
+        let mut awards = BTreeMap::new();
         for (operation, lineage) in batch.operations.iter().zip(&record.lineages) {
             match operation {
                 ObservationOperation::Create { draft } => {
@@ -280,6 +357,7 @@ impl ObservationStore {
                     if !lifecycles.insert(*id)
                         || !valid_reviewed(reviewed)
                         || !self.pending.contains_key(id)
+                        || !self.retains_pending_evidence(*id, reviewed.iter())
                     {
                         return Err(invalid("Observation reaffirmation"));
                     }
@@ -298,6 +376,10 @@ impl ObservationStore {
                         || !claims.insert(ClaimKey::new(draft))
                         || !requires_review(*id)
                         || head.draft.same_verified_claim(draft)
+                        || !self.retains_pending_evidence(
+                            *id,
+                            draft.citations.iter().chain(&draft.reviewed),
+                        )
                     {
                         return Err(invalid("Observation successor"));
                     }
@@ -313,20 +395,12 @@ impl ObservationStore {
                                 return Err(invalid("Observation review award"));
                             }
                         };
-                        let previous = self.award_total(*id, *activity).ok_or_else(|| {
-                            invalid("Observation review activity missing semantic match")
-                        })?;
-                        if total > previous {
-                            if !awards.insert((*id, *activity)) {
-                                return Err(invalid("duplicate Observation award"));
-                            }
-                            receipt.awards.push(ObservationAwardReceipt {
-                                id: *id,
-                                activity: *activity,
-                                previous,
-                                total,
-                            });
+                        if !self.semantic_matches.contains_key(&(*id, *activity)) {
+                            return Err(invalid(
+                                "Observation review activity missing semantic match",
+                            ));
                         }
+                        self.plan_award(&mut awards, *id, *activity, total);
                     }
                 }
                 ObservationOperation::Withdraw {
@@ -336,7 +410,10 @@ impl ObservationStore {
                     ..
                 } => {
                     self.require_head(*id, *expected_revision)?;
-                    if !lifecycles.insert(*id) || !valid_reviewed(reviewed) || !requires_review(*id)
+                    if !lifecycles.insert(*id)
+                        || !valid_reviewed(reviewed)
+                        || !requires_review(*id)
+                        || !self.retains_pending_evidence(*id, reviewed.iter())
                     {
                         return Err(invalid("Observation withdrawal"));
                     }
@@ -344,10 +421,20 @@ impl ObservationStore {
                 }
                 ObservationOperation::Comparison { comparison } => {
                     self.require_head(comparison.id, comparison.target_revision)?;
-                    if self.comparison(comparison).is_some()
-                        || !comparisons.insert(comparison_key(comparison))
+                    if self
+                        .comparison_at_policy(comparison, batch.policy.version)
+                        .is_some()
+                        || !comparisons.insert(comparison_key(comparison, batch.policy.version))
                     {
                         return Err(invalid("duplicate Observation comparison"));
+                    }
+                    if matches!(comparison.outcome, ObservationComparisonOutcome::MaterialChallenge | ObservationComparisonOutcome::MaterialQualification)
+                        && !self.pending.get(&comparison.id).is_some_and(|p| p.evidence.contains(&comparison.citation))
+                        && !batch.operations.iter().any(|operation| matches!(operation,
+                            ObservationOperation::Pending { id, expected_revision, reason: ObservationPendingReason::NewEvidence, evidence }
+                            if *id == comparison.id && *expected_revision == comparison.target_revision && evidence.contains(&comparison.citation)))
+                    {
+                        return Err(invalid("material comparison lacks pending marker and evidence"));
                     }
                 }
                 ObservationOperation::SemanticAward {
@@ -358,22 +445,56 @@ impl ObservationStore {
                     ..
                 } => {
                     self.require_head(*id, *expected_revision)?;
-                    if !(1..=10).contains(amount) || !awards.insert((*id, *activity)) {
+                    if !(1..=10).contains(amount) {
                         return Err(invalid("Observation semantic award"));
                     }
-                    let previous = self.award_total(*id, *activity).unwrap_or(0);
-                    if *amount > previous {
-                        receipt.awards.push(ObservationAwardReceipt {
-                            id: *id,
-                            activity: *activity,
-                            previous,
-                            total: *amount,
-                        });
-                    }
+                    self.plan_award(&mut awards, *id, *activity, *amount);
                 }
             }
         }
+        receipt.awards.extend(awards.into_values());
         Ok(receipt)
+    }
+
+    fn retains_pending_evidence<'a>(
+        &self,
+        id: ObservationId,
+        supplied: impl Iterator<Item = &'a ObservationCitation>,
+    ) -> bool {
+        self.pending.get(&id).is_none_or(|pending| {
+            let supplied = supplied.collect::<BTreeSet<_>>();
+            pending
+                .evidence
+                .iter()
+                .all(|citation| supplied.contains(citation))
+        })
+    }
+
+    fn plan_award(
+        &self,
+        awards: &mut BTreeMap<(ObservationId, u64), ObservationAwardReceipt>,
+        id: ObservationId,
+        activity: ObservationActivity,
+        total: u8,
+    ) {
+        let previous = self.award_total(id, activity).unwrap_or(0);
+        if total <= previous {
+            return;
+        }
+        let key = (id, activity.turn);
+        if awards.get(&key).is_none_or(|old| {
+            total > old.total || (total == old.total && activity.source < old.activity.source)
+        }) {
+            awards.insert(
+                key,
+                ObservationAwardReceipt {
+                    id,
+                    activity,
+                    previous,
+                    total,
+                },
+            );
+        }
     }
 
     fn require_head(
@@ -478,14 +599,28 @@ impl ObservationStore {
                     self.withdrawals.insert(*id, *reason);
                 }
                 ObservationOperation::Comparison { comparison } => {
-                    self.comparisons
-                        .insert(comparison_key(comparison), comparison.outcome);
+                    self.comparisons.insert(
+                        comparison_key(comparison, batch.policy.version),
+                        comparison.outcome,
+                    );
                 }
-                ObservationOperation::SemanticAward { .. } => {}
+                ObservationOperation::SemanticAward {
+                    id,
+                    activity,
+                    amount,
+                    ..
+                } => {
+                    let entry = self
+                        .semantic_matches
+                        .entry((*id, *activity))
+                        .or_insert(*amount);
+                    *entry = (*entry).max(*amount);
+                }
             }
         }
         for award in &receipt.awards {
-            self.awards.insert((award.id, award.activity), award.total);
+            self.awards
+                .insert((award.id, award.activity.turn), award.total);
         }
         if let Some(progress) = &record.batch.progress {
             self.progress = Some(progress.clone());
@@ -576,11 +711,15 @@ fn remove_dependent<K: Ord>(
     }
 }
 
-fn comparison_key(comparison: &ObservationComparison) -> (ObservationId, u64, ObservationCitation) {
+fn comparison_key(
+    comparison: &ObservationComparison,
+    policy: u32,
+) -> (ObservationId, u64, ObservationCitation, u32) {
     (
         comparison.id,
         comparison.target_revision,
         comparison.citation,
+        policy,
     )
 }
 

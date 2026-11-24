@@ -302,6 +302,9 @@ pub(crate) fn safe_memory_only_frames(
                 && !envelope
                     .body
                     .starts_with(crate::session::identity_separation::MARKER)
+                && !envelope
+                    .body
+                    .starts_with(crate::session::observations::MARKER)
                 && !memory_history_record(envelope.body)
                 && !reliquary_archive::is_archive_publication_body(envelope.body)
                     .map_err(|e| e.to_string())?

@@ -101,15 +101,15 @@ fn transform_terminal_memory_copy(
         return Err("repeated destructive pruning requires a new lineage contract".into());
     }
     safe_memory_only_frames(&source, false)?;
-    let source_state = match plan.file_kind() {
+    let (source_state, observations) = match plan.file_kind() {
         FileKind::Reliquary => {
             let rel =
                 RelSession::open(&source, graph_admission, [], []).map_err(|e| e.to_string())?;
-            rel.common
+            (rel.common, Some(rel.observations))
         }
         FileKind::Phylactery => {
             let phy = PhySession::open(&source, graph_admission, []).map_err(|e| e.to_string())?;
-            phy.common
+            (phy.common, None)
         }
     };
     let selected: BTreeSet<_> = selected_memory_ids.iter().copied().collect();
@@ -163,6 +163,12 @@ fn transform_terminal_memory_copy(
             retained_structure_digest: memory_structure_digest(&source, id)?,
             payloads: vec![PrunedPayload::MemoryBody(body.0)],
         });
+    }
+    if observations.is_some_and(|store| {
+        let ids = bodies.iter().map(|id| id.0).collect();
+        store.requires_memory_body(&ids)
+    }) {
+        return Err("selected Memory body is required by retained Observation evidence".into());
     }
     descriptors.sort_by(|a, b| a.target.cmp(&b.target));
     let manifest = HistoryPruneManifest {

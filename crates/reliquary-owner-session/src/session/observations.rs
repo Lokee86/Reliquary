@@ -1,10 +1,10 @@
-use super::perception_lifecycle::support::{has_direct_source, text_field};
+use super::perception_lifecycle::support::{has_direct_source, owner_hex, text_field};
 use super::*;
 use reliquary_perception_store::RetainedResolutionRecord;
 use reliquary_perception_store::observation::*;
 
-pub(super) const PREFIX: &[u8] = b"RELOBS";
-pub(super) const MARKER: &[u8; 8] = b"RELOBS01";
+pub(crate) const PREFIX: &[u8] = b"RELOBS";
+pub(crate) const MARKER: &[u8; 8] = b"RELOBS01";
 const MAX_RECORD_BYTES: usize = 4 * 1024 * 1024;
 const MAX_STANDING_CHECK: usize = 512;
 const MAX_STANDING_DEPTH: usize = 64;
@@ -113,6 +113,10 @@ impl ObservationPrefix<'_> {
                 !record.archived
                     && record.superseded_by.is_none()
                     && has_direct_source(record)
+                    && record
+                        .source_ref
+                        .as_ref()
+                        .is_some_and(|source| source.owner_id == owner_hex(&self.owner))
                     && matches!(record.lifecycle_state.as_str(), "knowledge" | "canonical")
                     && self.body_in_prefix(record.body_id)
             })
@@ -160,7 +164,7 @@ impl ObservationPrefix<'_> {
             .iter()
             .find(|cite| cite.source == ObservationSource::Memory(mention.key.memory_id))
             .ok_or_else(|| invalid("participant lacks exact source evidence"))?;
-        self.current_memory_text(
+        let surface = self.current_memory_text(
             &ObservationCitation {
                 field: mention.key.field,
                 start_byte: mention.key.start_byte,
@@ -169,16 +173,23 @@ impl ObservationPrefix<'_> {
             },
             mention.key.memory_id,
         )?;
-        if !self
+        let entity = self
             .perception
             .entity_at_cut(participant.entity_id, self.perception_cut)
-            .is_some_and(|entity| {
+            .filter(|entity| {
                 entity.revision == participant.revision
                     && entity.kind != reliquary_perception_store::PRINCIPAL_ENTITY_KIND
                     && !entity.kind.eq_ignore_ascii_case("generic")
             })
-        {
-            return Err(invalid("participant Entity changed or is ineligible"));
+            .ok_or_else(|| invalid("participant Entity changed or is ineligible"))?;
+        if !super::identity_evidence::quote_names_entity(
+            &surface,
+            &entity.canonical_name,
+            &entity.aliases,
+        ) {
+            return Err(invalid(
+                "participant mention does not name the cited Entity",
+            ));
         }
         let matches = match self
             .perception
@@ -233,12 +244,15 @@ impl ObservationPrefix<'_> {
             .collect::<BTreeSet<_>>();
         // A transaction may publish independent claims and comparisons. Its
         // proposed revisions must not rely on another head it is invalidating.
-        if record.batch.operations.iter().any(|operation| match operation {
-            ObservationOperation::Create { draft } | ObservationOperation::Successor { draft, .. } =>
-                draft.citations.iter().any(|cite| matches!(cite.source, ObservationSource::Observation(id) if changes.contains(&id))),
-            _ => false,
-        }) {
-            return Err(invalid("batch invalidates one of its own citations"));
+        if !changes.is_empty() {
+            for operation in &record.batch.operations {
+                if let ObservationOperation::Create { draft }
+                | ObservationOperation::Successor { draft, .. } = operation
+                    && invalidated_by_batch(store, &draft.citations, &changes)
+                {
+                    return Err(invalid("batch invalidates one of its own citations"));
+                }
+            }
         }
         Ok(store.prepare(record, version, |id| checker.requires_own_review(id))?)
     }
@@ -345,6 +359,35 @@ impl ObservationPrefix<'_> {
         store.apply(record, receipt);
         Ok(true)
     }
+}
+
+fn invalidated_by_batch(
+    store: &ObservationStore,
+    citations: &[ObservationCitation],
+    changes: &BTreeSet<ObservationId>,
+) -> bool {
+    let sources = |citations: &[ObservationCitation]| {
+        citations
+            .iter()
+            .filter_map(|citation| match citation.source {
+                ObservationSource::Observation(id) => Some(id),
+                ObservationSource::Memory(_) => None,
+            })
+            .collect::<Vec<_>>()
+    };
+    let mut queue = sources(citations);
+    let mut visited = BTreeSet::new();
+    while let Some(id) = queue.pop() {
+        if changes.contains(&id) || visited.len() >= MAX_STANDING_CHECK {
+            return true;
+        }
+        if visited.insert(id)
+            && let Some(row) = store.head(id)
+        {
+            queue.extend(sources(&row.draft.citations));
+        }
+    }
+    false
 }
 
 struct StandingCheck<'a> {
@@ -606,6 +649,47 @@ impl RelSession {
         comparison: &ObservationComparison,
     ) -> Option<ObservationComparisonOutcome> {
         self.observations.comparison(comparison)
+    }
+
+    pub fn observation_comparison_at_policy(
+        &self,
+        comparison: &ObservationComparison,
+        policy: u32,
+    ) -> Option<ObservationComparisonOutcome> {
+        self.observations.comparison_at_policy(comparison, policy)
+    }
+
+    pub fn observation_pending_after(
+        &self,
+        after: Option<ObservationId>,
+        limit: usize,
+    ) -> Vec<ObservationInspection<'_>> {
+        self.observation_page_for_ids(
+            self.observations
+                .explicitly_pending_after(after, limit.min(MAX_PAGE)),
+        )
+    }
+
+    pub fn observation_dependents_after(
+        &self,
+        source: ObservationSource,
+        after: Option<ObservationId>,
+        limit: usize,
+    ) -> Vec<ObservationId> {
+        self.observations
+            .source_dependents_after(source, after, limit.min(MAX_PAGE))
+            .collect()
+    }
+
+    pub fn observation_participant_dependents_after(
+        &self,
+        entity: EntityId,
+        after: Option<ObservationId>,
+        limit: usize,
+    ) -> Vec<ObservationId> {
+        self.observations
+            .participant_dependents_after(entity, after, limit.min(MAX_PAGE))
+            .collect()
     }
 
     pub fn observation_dependents(&self, source: ObservationSource) -> Vec<ObservationId> {

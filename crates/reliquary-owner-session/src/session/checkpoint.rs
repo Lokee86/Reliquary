@@ -5,6 +5,8 @@ mod private_cache;
 mod suffix;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_observations;
 
 use super::{OwnerSessionError, RelSession};
 use reliquary_container::{Container, FileKind, PhysicalCheckpoint, VerifiedPrefix};
