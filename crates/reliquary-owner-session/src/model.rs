@@ -30,5 +30,5 @@ pub use reliquary_vector_store::{CompatibilityProfile, CompatibilityProfileId, E
 
 pub use reliquary_perception_store::{EntityResolutionReason, MemoryEntityResolutionStatus};
 
-pub use reliquary_perception_store::identity;
+pub mod identity;
 pub use reliquary_perception_store::identity_evidence;

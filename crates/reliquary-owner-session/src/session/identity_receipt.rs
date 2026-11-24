@@ -42,7 +42,11 @@ impl IdentityHistory {
         self.entries.get(..usize::try_from(frontier).ok()?)
     }
 
-    fn get(&self, pair: &IdentityPair, revision: Option<u64>) -> Option<&IdentityReceipt> {
+    pub(super) fn get(
+        &self,
+        pair: &IdentityPair,
+        revision: Option<u64>,
+    ) -> Option<&IdentityReceipt> {
         let history = self.by_pair.get(pair)?;
         let offset = match revision {
             Some(revision) => history.get(usize::try_from(revision.checked_sub(1)?).ok()?)?,

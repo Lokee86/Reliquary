@@ -139,18 +139,21 @@ impl RelSession {
                 "external Memory reference points to the local REL owner".into(),
             ));
         }
-        let (mut common, identity_history) = super::replay::open_common_replaying(
-            container,
-            graph_admission.owner_id().ok_or(GraphError::WrongOwner)?,
-            dream_admissions,
-            true,
-            if leased {
-                reliquary_memory_core::MemoryReplayStart::Leased
-            } else {
-                reliquary_memory_core::MemoryReplayStart::Detached
-            },
-            replay.has_identity_receipts,
-        )?;
+        let history_generation = owner_history_generation_from_container(container)
+            .map_err(OwnerSessionError::Record)?;
+        let (mut common, identity_history, identity_separation_history) =
+            super::replay::open_common_replaying(
+                container,
+                graph_admission.owner_id().ok_or(GraphError::WrongOwner)?,
+                dream_admissions,
+                true,
+                if leased {
+                    reliquary_memory_core::MemoryReplayStart::Leased
+                } else {
+                    reliquary_memory_core::MemoryReplayStart::Detached
+                },
+                replay.has_identity_history.then_some(history_generation),
+            )?;
         if archive
             .project_correlations()
             .iter()
@@ -307,8 +310,6 @@ impl RelSession {
         let external_memories = ExternalMemoryStore::open(container, &common.memories)
             .map_err(OwnerSessionError::Record)?;
         let container_path = canonical_container_path(container)?;
-        let history_generation = owner_history_generation_from_container(container)
-            .map_err(OwnerSessionError::Record)?;
         let container_file_identity = container.physical_file_identity()?;
         let writer_lease_proof = container.writer_lease_proof();
         if leased {
@@ -318,6 +319,7 @@ impl RelSession {
             owner_id: container.owner_id(),
             rel_dependencies: replay.dependencies,
             identity_history,
+            identity_separation_history,
             archive,
             echo,
             common,

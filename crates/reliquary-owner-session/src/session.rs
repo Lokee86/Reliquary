@@ -250,6 +250,7 @@ pub struct RelSession {
     owner_id: [u8; 16],
     rel_dependencies: RelDependencyDeclaration,
     identity_history: identity_receipt::IdentityHistory,
+    identity_separation_history: identity_separation::SeparationHistory,
     archive: Archive,
     echo: EchoStore,
     common: CommonState,
@@ -1003,6 +1004,7 @@ mod gm_parity_regressions;
 mod historical_proof;
 mod identity_evidence;
 pub(crate) mod identity_receipt;
+pub(crate) mod identity_separation;
 mod maintenance_prune;
 mod perception_lifecycle;
 mod relationship_prune;

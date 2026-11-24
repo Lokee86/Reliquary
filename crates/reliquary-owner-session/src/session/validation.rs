@@ -57,7 +57,7 @@ pub(super) struct RelReplayAdmission {
     pub import_epochs: BTreeMap<(WorkEpisodeId, u32), String>,
     pub dependencies: RelDependencyDeclaration,
     pub has_archive_lexical_indexes: bool,
-    pub has_identity_receipts: bool,
+    pub has_identity_history: bool,
 }
 
 pub(super) fn validate_rel_replay_admission(
@@ -97,8 +97,10 @@ pub(super) fn validate_rel_replay_admission(
         }
         let envelope = reliquary_container::decode_publication(frame.payload)?;
         let body = envelope.as_ref().map_or(frame.payload, |value| value.body);
-        if body.starts_with(super::identity_receipt::PREFIX) {
-            admission.has_identity_receipts = true;
+        if body.starts_with(super::identity_receipt::PREFIX)
+            || body.starts_with(super::identity_separation::PREFIX)
+        {
+            admission.has_identity_history = true;
             continue;
         }
         if body.starts_with(ARCHIVE_LEXICAL_INDEX_MAGIC) {
@@ -329,6 +331,11 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
         if length >= 6 && prefix.starts_with(super::identity_receipt::PREFIX) {
             return Err(OwnerSessionError::RelOnlyRecordInPhylactery(
                 "cross-REL identity receipt",
+            ));
+        }
+        if length >= 6 && prefix.starts_with(super::identity_separation::PREFIX) {
+            return Err(OwnerSessionError::RelOnlyRecordInPhylactery(
+                "cross-REL Entity separation",
             ));
         }
         if length >= 6 && &prefix[..6] == b"RELAPB" {

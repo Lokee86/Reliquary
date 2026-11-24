@@ -30,9 +30,9 @@ pub(super) fn open_common_for_owner(
         dream_admissions,
         replay_grouped_insomnia,
         reliquary_memory_core::MemoryReplayStart::Detached,
-        false,
+        None,
     )
-    .map(|(common, _)| common)
+    .map(|(common, _, _)| common)
 }
 
 pub(super) fn replay_memories(
@@ -133,8 +133,15 @@ pub(super) fn open_common_replaying(
     dream_admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     replay_grouped_insomnia: bool,
     memory_start: reliquary_memory_core::MemoryReplayStart,
-    has_identity_receipts: bool,
-) -> Result<(CommonState, super::identity_receipt::IdentityHistory), OwnerSessionError> {
+    identity_generation: Option<[u8; 32]>,
+) -> Result<
+    (
+        CommonState,
+        super::identity_receipt::IdentityHistory,
+        super::identity_separation::SeparationHistory,
+    ),
+    OwnerSessionError,
+> {
     if expected_owner_id != container.owner_id() {
         return Err(OwnerSessionError::Graph(GraphError::WrongOwner));
     }
@@ -260,12 +267,13 @@ pub(super) fn open_common_replaying(
         &maintenance,
         &grouped_body_ids,
     )?;
-    let identity_history = super::replay_prefix::validate_graph_prefix(
-        container,
-        &memories,
-        has_identity_receipts.then_some(&perception),
-        &pruned_bodies,
-    )?;
+    let (identity_history, identity_separation_history) =
+        super::replay_prefix::validate_graph_prefix(
+            container,
+            &memories,
+            identity_generation.map(|generation| (&perception, generation)),
+            &pruned_bodies,
+        )?;
     memories.retain_pruned_body_fence(pruned_bodies);
     let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
     let mut frames = container
@@ -384,5 +392,5 @@ pub(super) fn open_common_replaying(
         dream_pairs,
         dream_read_index,
     };
-    Ok((common, identity_history))
+    Ok((common, identity_history, identity_separation_history))
 }

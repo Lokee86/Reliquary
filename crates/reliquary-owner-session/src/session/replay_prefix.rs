@@ -1,14 +1,16 @@
 //! Exact owner identity/version cuts at the physical effect prefix.
 use super::identity_receipt::{IdentityHistory, LocalProjection};
+use super::identity_separation::{SeparationHistory, SeparationProjection};
 use super::*;
 use crate::records::user_memory::{UserMemoryEffect, UserMemoryRecord};
 pub(super) fn validate_graph_prefix(
     container: &Container,
     memory_store: &MemoryStore,
-    perception: Option<&PerceptionStore>,
+    identity_context: Option<(&PerceptionStore, [u8; 32])>,
     pruned_bodies: &BTreeSet<MemoryBodyId>,
-) -> Result<IdentityHistory, OwnerSessionError> {
+) -> Result<(IdentityHistory, SeparationHistory), OwnerSessionError> {
     let mut receipts = IdentityHistory::default();
+    let mut separations = SeparationHistory::default();
     let mut perception_cut = 0;
     let mut observed_bodies = BTreeSet::new();
     let mut memories = std::collections::BTreeSet::new();
@@ -22,20 +24,33 @@ pub(super) fn validate_graph_prefix(
     let mut frames = container
         .scan_matching_frames(crate::records::frame_selection::without_archive_publications)?;
     while let Some(frame) = frames.next_frame()? {
-        if let Some(perception) = perception {
-            let projection = LocalProjection {
-                memories: memory_store,
-                memory_cut: memory_head,
-                observed_bodies: Some(&observed_bodies),
-                pruned_bodies,
-                perception,
-                perception_cut,
-            };
-            if receipts.replay(frame.payload, container.owner_id(), projection)? {
-                continue;
-            }
+        if let Some((perception, history_generation)) = identity_context {
             let envelope = reliquary_container::decode_publication(frame.payload)?;
             let body = envelope.as_ref().map_or(frame.payload, |entry| entry.body);
+            if body.starts_with(super::identity_receipt::PREFIX) {
+                let projection = LocalProjection {
+                    memories: memory_store,
+                    memory_cut: memory_head,
+                    observed_bodies: Some(&observed_bodies),
+                    pruned_bodies,
+                    perception,
+                    perception_cut,
+                };
+                receipts.replay(frame.payload, container.owner_id(), projection)?;
+                continue;
+            }
+            if body.starts_with(super::identity_separation::PREFIX) {
+                let projection = SeparationProjection {
+                    owner: container.owner_id(),
+                    history_generation,
+                    receipts: &receipts,
+                    perception,
+                    memory_cut: memory_head,
+                    perception_cut,
+                };
+                separations.replay(frame.payload, projection)?;
+                continue;
+            }
             if let Some(id) = reliquary_memory_core::body_id_in_frame(body)? {
                 observed_bodies.insert(id);
             }
@@ -169,7 +184,7 @@ pub(super) fn validate_graph_prefix(
             } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
                 let completion = GroupedInsomniaCompletion::decode(payload)
                     .map_err(OwnerSessionError::Record)?;
-                if perception.is_some() {
+                if identity_context.is_some() {
                     observed_bodies.extend(completion.bodies.iter().map(|body| body.id));
                 }
                 for record in completion.memory_records {
@@ -339,7 +354,7 @@ pub(super) fn validate_graph_prefix(
             graph_version = relation.graph_version;
         }
     }
-    Ok(receipts)
+    Ok((receipts, separations))
 }
 
 pub(super) fn validate_user_memory_prefix(
