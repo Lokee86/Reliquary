@@ -4,7 +4,7 @@
 //! concrete store access, and replay/repair entry points remain owner-local.
 
 pub use reliquary_archive::{
-    Branch, ContentId, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin,
+    Branch, ContentId, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin, FragmentPassage,
     HERMES_COPIED_SOURCE_FORMAT, ImportReceipt, ImportedArtifact, ImportedBranch,
     ImportedConversation, ImportedMessage, ImportedSourceAuthor, ProjectAttachmentInput,
     ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef, ResolvedTurn,

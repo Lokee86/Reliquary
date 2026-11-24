@@ -1,5 +1,8 @@
 //! Hybrid ranking over one owner-qualified Archive generation.
-use reliquary_owner_session::{ArchiveHybridView, model::CompatibilityProfileId};
+use reliquary_owner_session::{
+    ArchiveHybridView,
+    model::{CompatibilityProfileId, FragmentPassage},
+};
 use reliquary_retrieval::{
     RetrievalConfig, combine_hybrid_scores, lexical_score_from_counts, lexical_terms,
     semantic_scoring::{cosine_f32_row, vector_norm},
@@ -14,6 +17,7 @@ pub struct ArchiveHybridHit {
     pub conversation_id: String,
     pub start_node_id: String,
     pub end_node_id: String,
+    pub passage: Option<FragmentPassage>,
     pub lexical_score: Option<f64>,
     pub semantic_score: Option<f64>,
     pub score: f64,
@@ -180,6 +184,7 @@ fn rank_archive(
             conversation_id: fragment.conversation_id.clone(),
             start_node_id: fragment.start_node_id.clone(),
             end_node_id: fragment.end_node_id.clone(),
+            passage: fragment.passage,
             lexical_score: (hit.lexical > 0.0).then_some(hit.lexical),
             semantic_score: (hit.semantic > 0.0).then_some(hit.semantic),
             score: hit.combined,

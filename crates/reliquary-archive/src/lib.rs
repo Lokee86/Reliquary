@@ -26,7 +26,8 @@ pub use archive::{
 pub use echo_model::{EchoError, EchoEvent, EchoEventKind};
 pub use echo_store::EchoStore;
 pub use fragment::{
-    Fragment, FragmentConfig, FragmentDefinition, FragmentId, fragment_id, path_fragment_windows,
+    Fragment, FragmentConfig, FragmentDefinition, FragmentId, FragmentPassage, fragment_id,
+    path_fragment_windows,
 };
 pub use lexical::{
     FragmentLexicalIndex, FragmentLexicalIndexStats, LEXICAL_FREQUENCY_CAP, LexicalMatchCounts,

@@ -17,6 +17,15 @@ pub use reliquary_owner_session::{
     ArchiveLexicalIndexPublication, ArchiveVectorHit, ArchiveVectorSearch,
 };
 
+/// Receipt for one complete Archive vector generation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct ArchiveVectorPublication {
+    pub profile_id: CompatibilityProfileId,
+    pub generation_id: [u8; 32],
+    pub source_archive_version: u64,
+    pub fragment_count: usize,
+}
+
 pub struct PreparedVectorPublication {
     instance: Uuid,
     owner: OwnerId,
@@ -140,19 +149,68 @@ impl Instance {
         profile: CompatibilityProfileId,
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<Option<reliquary_owner_session::VectorGeneration>, GatewayError> {
-        let input =
-            self.with_rel_writer(owner, |writer| writer.archive_vector_input(profile))??;
+        self.publish_archive_vectors_for_scope(owner, None, profile, endpoint)
+            .map(|(generation, _)| generation)
+    }
+
+    /// Publish a complete owner Archive generation through its accepted import
+    /// epoch. The writer rechecks the epoch and cut after provider calls.
+    pub fn publish_native_import_archive_vectors(
+        &self,
+        owner: OwnerId,
+        import_id: &str,
+        endpoint: &impl EmbeddingEndpoint,
+    ) -> Result<ArchiveVectorPublication, GatewayError> {
+        self.with_rel_writer(owner, |writer| {
+            writer.validate_native_import_archive_publication(import_id)
+        })??;
+        let profile = prepare_compatibility_profile(endpoint).map_err(vector_error)?;
+        let profile = self.with_rel_writer(owner, |writer| {
+            writer.publish_native_import_archive_profile(import_id, profile)
+        })??;
+        let (generation, fragment_count) =
+            self.publish_archive_vectors_for_scope(owner, Some(import_id), profile, endpoint)?;
+        let generation =
+            generation.ok_or_else(|| vector_error("Archive vector generation missing"))?;
+        Ok(ArchiveVectorPublication {
+            profile_id: profile,
+            generation_id: generation.id.0,
+            source_archive_version: generation.source_archive_version,
+            fragment_count,
+        })
+    }
+
+    fn publish_archive_vectors_for_scope(
+        &self,
+        owner: OwnerId,
+        import_id: Option<&str>,
+        profile: CompatibilityProfileId,
+        endpoint: &impl EmbeddingEndpoint,
+    ) -> Result<(Option<reliquary_owner_session::VectorGeneration>, usize), GatewayError> {
+        let input = self.with_rel_writer(owner, |writer| match import_id {
+            Some(import_id) => writer.native_import_archive_vector_input(import_id, profile),
+            None => writer.archive_vector_input(profile),
+        })??;
         let rows = reliquary_application::evaluate_archive_vectors(&input, endpoint)
             .map_err(vector_error)?;
-        Ok(self.with_rel_writer(owner, |writer| {
-            writer.publish_archive_vector_batch(
+        let generation = self.with_rel_writer(owner, |writer| match import_id {
+            Some(import_id) => writer.publish_native_import_archive_vector_batch(
+                import_id,
                 input.owner_id(),
                 profile,
                 input.source_archive_version(),
                 &rows,
-            )
-        })??)
+            ),
+            None => writer.publish_archive_vector_batch(
+                input.owner_id(),
+                profile,
+                input.source_archive_version(),
+                &rows,
+            ),
+        })??;
+        Ok((generation, input.fragments().len()))
     }
+
     fn require_vector_writer(&self, owner: OwnerId) -> Result<(), GatewayError> {
         self.authorize_vector_owner(owner)?;
         if self.rel_grants.contains(&owner) {

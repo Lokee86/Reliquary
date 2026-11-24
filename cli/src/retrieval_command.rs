@@ -102,7 +102,7 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
             .hits
             .iter()
             .map(|hit| {
-                json!({
+                let mut value = json!({
                     "fragment_id": hex(&hit.fragment_id),
                     "ordinal": hit.ordinal,
                     "conversation_id": hit.conversation_id,
@@ -111,7 +111,15 @@ pub(crate) fn search(args: &[String]) -> Result<Value, ProductError> {
                     "lexical_score": hit.lexical_score,
                     "semantic_score": hit.semantic_score,
                     "score": hit.score,
-                })
+                });
+                if let Some(passage) = hit.passage {
+                    value["passage"] = json!({
+                        "parent_fragment_id": hex(&passage.parent_id.0),
+                        "start_byte": passage.start_byte,
+                        "end_byte": passage.end_byte,
+                    });
+                }
+                value
             })
             .collect();
         let mut response = json!({

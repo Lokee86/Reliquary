@@ -483,8 +483,8 @@ mod instance_perception_lifecycle;
 mod instance_vectors;
 pub use instance_vectors::{
     ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication,
-    ArchiveTurnTemporalEvidence, ArchiveVectorHit, ArchiveVectorSearch, PreparedVectorPublication,
-    TemporalArchiveHitEvidence, TemporalArchiveHybridSearch,
+    ArchiveTurnTemporalEvidence, ArchiveVectorHit, ArchiveVectorPublication, ArchiveVectorSearch,
+    PreparedVectorPublication, TemporalArchiveHitEvidence, TemporalArchiveHybridSearch,
 };
 mod instance_retrieval;
 

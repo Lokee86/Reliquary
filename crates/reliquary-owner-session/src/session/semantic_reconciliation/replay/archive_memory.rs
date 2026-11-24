@@ -89,7 +89,11 @@ pub(super) fn replay_archive(
             .map_err(conflict)?;
         counts.archive += usize::from(destination.import_receipts().len() > before);
     }
-    for definition in source.fragment_definitions() {
+    let definitions = source.fragment_definitions();
+    for definition in definitions
+        .iter()
+        .filter(|definition| definition.fragment.passage.is_none())
+    {
         let before = destination.fragment_definitions().len();
         destination
             .define_branch_fragments(
@@ -101,6 +105,20 @@ pub(super) fn replay_archive(
             )
             .map_err(conflict)?;
         counts.archive += usize::from(destination.fragment_definitions().len() > before);
+    }
+    let parents = definitions
+        .iter()
+        .filter_map(|definition| definition.fragment.passage)
+        .map(|passage| passage.parent_id)
+        .filter(|id| destination.fragment_definition(*id).is_some())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    for parents in parents.chunks(64) {
+        let inserted = destination
+            .define_fragment_passages(target, parents)
+            .map_err(conflict)?;
+        counts.archive += usize::from(inserted > 0);
     }
     Ok(())
 }

@@ -3,6 +3,7 @@
 //! This crate owns accepted turn, branch, and Episode semantics. Container owns
 //! framing and bytes; Archive does not depend on the application or other owners.
 
+mod fragment_passages;
 mod history;
 mod payload;
 mod publications;
@@ -568,6 +569,14 @@ impl Archive {
                 close_tail,
             })
             .collect::<Vec<_>>();
+        self.put_fragment_definitions(container, proposed)
+    }
+
+    fn put_fragment_definitions(
+        &mut self,
+        container: &mut Container,
+        proposed: Vec<crate::FragmentDefinition>,
+    ) -> Result<Vec<crate::FragmentDefinition>, ArchiveError> {
         let mut output = Vec::with_capacity(proposed.len());
         let mut new_definitions = Vec::new();
         for definition in proposed {
@@ -1156,22 +1165,46 @@ impl Archive {
                     ));
                 }
                 let mut expected = BTreeMap::new();
+                let mut branch_windows = BTreeMap::new();
                 for definition in &definitions {
                     if definition.archive_cut != archive_cut {
                         return Err(ArchiveError::CorruptRecord("fragment cut mismatch"));
                     }
-                    let fragments = self.branch_fragment_windows(
-                        &definition.fragment.conversation_id,
-                        &definition.branch_id,
-                        definition.config,
-                        definition.close_tail,
-                    )?;
-                    if !fragments.contains(&definition.fragment)
-                        || expected
-                            .insert(definition.fragment.id, definition)
-                            .is_some()
+                    if definition.fragment.passage.is_some() {
+                        self.validate_passage_definition(definition)?;
+                    } else {
+                        let key = (
+                            definition.fragment.conversation_id.as_str(),
+                            definition.branch_id.as_str(),
+                            definition.config.turns,
+                            definition.config.overlap,
+                            definition.close_tail,
+                        );
+                        let windows = match branch_windows.entry(key) {
+                            std::collections::btree_map::Entry::Occupied(entry) => entry.into_mut(),
+                            std::collections::btree_map::Entry::Vacant(entry) => {
+                                let windows = self
+                                    .branch_fragment_windows(
+                                        key.0,
+                                        key.1,
+                                        definition.config,
+                                        key.4,
+                                    )?
+                                    .into_iter()
+                                    .map(|window| (window.id, window))
+                                    .collect::<BTreeMap<_, _>>();
+                                entry.insert(windows)
+                            }
+                        };
+                        if windows.get(&definition.fragment.id) != Some(&definition.fragment) {
+                            return Err(ArchiveError::CorruptRecord("invalid fragment definition"));
+                        }
+                    }
+                    if expected
+                        .insert(definition.fragment.id, definition)
+                        .is_some()
                     {
-                        return Err(ArchiveError::CorruptRecord("invalid fragment definition"));
+                        return Err(ArchiveError::CorruptRecord("duplicate fragment definition"));
                     }
                 }
                 if expected.len() != definitions.len()

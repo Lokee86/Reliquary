@@ -560,6 +560,7 @@ fn copy_archive_state(
     let mut fragment_jobs = source
         .fragment_definitions()
         .into_iter()
+        .filter(|definition| definition.fragment.passage.is_none())
         .filter(|definition| {
             request.archive == FreshHistoryArchive::All
                 || (required.contains(&(
@@ -584,6 +585,19 @@ fn copy_archive_state(
     for (conversation, branch, config, close_tail) in fragment_jobs {
         destination
             .define_branch_fragments(target, &conversation, &branch, config, close_tail)
+            .map_err(|error| error.to_string())?;
+    }
+    let passage_parents = source
+        .fragment_passage_definitions()
+        .filter_map(|definition| definition.fragment.passage)
+        .map(|passage| passage.parent_id)
+        .filter(|id| destination.fragment_definition(*id).is_some())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    for parents in passage_parents.chunks(64) {
+        destination
+            .define_fragment_passages(target, parents)
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -818,6 +832,12 @@ fn copy_archive_vectors(
     if definitions.is_empty() {
         return Ok(());
     }
+    let mut passages = std::collections::BTreeMap::<_, Vec<_>>::new();
+    for (&id, definition) in &definitions {
+        if let Some(span) = definition.fragment.passage {
+            passages.entry(span.parent_id).or_default().push(id);
+        }
+    }
     let mut target_mappings =
         ArchiveVectorStore::open(target, target_packed).map_err(|error| error.to_string())?;
     let mut target_generations =
@@ -853,7 +873,20 @@ fn copy_archive_vectors(
                     .map_err(|error| error.to_string())?,
             );
         }
-        if fragment_ids.len() != definitions.len() {
+        let covered = fragment_ids
+            .iter()
+            .map(|id| reliquary_archive::FragmentId(id.0))
+            .collect::<std::collections::BTreeSet<_>>();
+        if definitions
+            .iter()
+            .filter(|(_, definition)| definition.fragment.passage.is_none())
+            .any(|(id, _)| {
+                !covered.contains(id)
+                    && passages
+                        .get(id)
+                        .is_none_or(|parts| parts.iter().any(|part| !covered.contains(part)))
+            })
+        {
             return Err("selected embedding profile lacks retained Archive-vector coverage".into());
         }
         let packed = target_packed

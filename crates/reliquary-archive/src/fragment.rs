@@ -13,6 +13,18 @@ pub struct Fragment {
     pub conversation_id: String,
     pub start_node_id: String,
     pub end_node_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub passage: Option<FragmentPassage>,
+}
+
+/// Source bytes in the first and last turns of a searchable passage.
+/// The start is inclusive and the end is exclusive.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FragmentPassage {
+    pub parent_id: FragmentId,
+    pub start_byte: u64,
+    pub end_byte: u64,
 }
 
 /// Immutable proof that a deterministic fragment was published from one
@@ -76,6 +88,7 @@ pub fn path_fragment_windows(
             conversation_id: first.conversation_id.clone(),
             start_node_id: first.id.clone(),
             end_node_id: last.id.clone(),
+            passage: None,
         }
     };
     let mut windows = Vec::new();

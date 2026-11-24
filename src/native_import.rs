@@ -1,9 +1,11 @@
 //! Authenticated native source import.
 
-use crate::{Instance, OwnerGrant, OwnerId, ProductError};
+use crate::{EmbeddingEndpoint, Instance, OwnerGrant, OwnerId, ProductError};
 use reliquary_application::native_import_source as source;
-use std::path::Path;
+use reliquary_vectors::SwitchboardEmbeddingEndpoint;
+use std::{path::Path, sync::Arc};
 
+pub use reliquary_runtime_gateway::ArchiveVectorPublication;
 pub use source::{
     HermesCopiedAuthor, HermesCopiedMessage, HermesCopiedRole, HermesCopiedSnapshot,
     HermesCopyScope, NativeImportCoverage, NativeImportFormat, NativeImportParentMapping,
@@ -92,6 +94,23 @@ impl Instance {
             .tombstone_hermes_copy(owner.into(), scope, source_sha256)?)
     }
 
+    /// Embed the current accepted Archive while the named native import is open.
+    /// The Archive generation is independent of the semantic import plan.
+    pub fn publish_native_import_archive_vectors(
+        &self,
+        owner: OwnerId,
+        import_id: &str,
+        endpoint: Arc<dyn EmbeddingEndpoint>,
+    ) -> Result<ArchiveVectorPublication, ProductError> {
+        self.require(OwnerGrant::OperateRel(owner))?;
+        validate_import_id(import_id)?;
+        Ok(self.inner.publish_native_import_archive_vectors(
+            owner.into(),
+            import_id,
+            &SwitchboardEmbeddingEndpoint::new(endpoint),
+        )?)
+    }
+
     /// Read durable staging state through the currently mounted REL projection.
     pub fn native_import_status(
         &self,
@@ -99,13 +118,18 @@ impl Instance {
         import_id: &str,
     ) -> Result<Option<NativeImportStatus>, ProductError> {
         self.require_rel_read(owner)?;
-        if import_id.len() != 64
-            || !import_id
-                .bytes()
-                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-        {
-            return Err(ProductError::invalid("invalid native import ID"));
-        }
+        validate_import_id(import_id)?;
         Ok(self.inner.native_import_status(owner.into(), import_id)?)
     }
+}
+
+fn validate_import_id(import_id: &str) -> Result<(), ProductError> {
+    if import_id.len() != 64
+        || !import_id
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(ProductError::invalid("invalid native import ID"));
+    }
+    Ok(())
 }

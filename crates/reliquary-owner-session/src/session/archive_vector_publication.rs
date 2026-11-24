@@ -1,7 +1,7 @@
 //! Bounded source reads and owner-authorized Archive-vector publication.
 
 use super::*;
-use reliquary_archive::{FragmentConfig, FragmentDefinition};
+use reliquary_archive::{FragmentConfig, FragmentDefinition, FragmentId};
 use reliquary_vector_store::{
     AcceptedArchiveMapping, ArchiveFragmentId, CompatibilityProfileId, VectorGeneration,
     VectorNormalization,
@@ -80,6 +80,22 @@ impl RelWriter {
         profile_id: CompatibilityProfileId,
     ) -> Result<ArchiveVectorInput, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.archive_vector_input_after_fence(profile_id)
+    }
+
+    pub fn native_import_archive_vector_input(
+        &mut self,
+        import_id: &str,
+        profile_id: CompatibilityProfileId,
+    ) -> Result<ArchiveVectorInput, OwnerSessionError> {
+        self.validate_native_import_archive_publication(import_id)?;
+        self.archive_vector_input_after_fence(profile_id)
+    }
+
+    fn archive_vector_input_after_fence(
+        &mut self,
+        profile_id: CompatibilityProfileId,
+    ) -> Result<ArchiveVectorInput, OwnerSessionError> {
         check_archive_vector_lease(self)?;
         if self
             .session
@@ -117,6 +133,38 @@ impl RelWriter {
         rows: &[ArchiveVectorRow],
     ) -> Result<Option<VectorGeneration>, OwnerSessionError> {
         self.ensure_write_ready()?;
+        self.publish_archive_vector_batch_after_fence(
+            owner_id,
+            profile_id,
+            source_archive_version,
+            rows,
+        )
+    }
+
+    pub fn publish_native_import_archive_vector_batch(
+        &mut self,
+        import_id: &str,
+        owner_id: [u8; 16],
+        profile_id: CompatibilityProfileId,
+        source_archive_version: u64,
+        rows: &[ArchiveVectorRow],
+    ) -> Result<Option<VectorGeneration>, OwnerSessionError> {
+        self.validate_native_import_archive_publication(import_id)?;
+        self.publish_archive_vector_batch_after_fence(
+            owner_id,
+            profile_id,
+            source_archive_version,
+            rows,
+        )
+    }
+
+    fn publish_archive_vector_batch_after_fence(
+        &mut self,
+        owner_id: [u8; 16],
+        profile_id: CompatibilityProfileId,
+        source_archive_version: u64,
+        rows: &[ArchiveVectorRow],
+    ) -> Result<Option<VectorGeneration>, OwnerSessionError> {
         check_archive_vector_lease(self)?;
         let result = publish_archive_vector_batch(
             &mut self.session,
@@ -150,6 +198,15 @@ pub(super) fn archive_vector_input(
     }
 
     let current_generation = generations.current_generation(profile_id);
+    let replaced_parents = fragments
+        .iter()
+        .filter_map(|(_, definition)| {
+            definition
+                .fragment
+                .passage
+                .map(|span| ArchiveFragmentId(span.parent_id.0))
+        })
+        .collect::<BTreeSet<_>>();
     let mut existing_rows = BTreeMap::new();
     let mut existing_max_fragment_archive_version = 0;
     if let Some(generation) = current_generation {
@@ -173,7 +230,6 @@ pub(super) fn archive_vector_input(
                 "current Archive vector rows do not match profile",
             ));
         }
-        existing_max_fragment_archive_version = info.max_fragment_archive_version;
         let mut verified_max = 0;
         for (row, fragment_id) in binding.fragment_ids.into_iter().enumerate() {
             let version = archive
@@ -192,6 +248,11 @@ pub(super) fn archive_vector_input(
             }
             let vector = packed.read_f32_row(binding.packed_vector_id, row as u64)?;
             validate_archive_vector_row(&profile, &vector)?;
+            if replaced_parents.contains(&fragment_id) {
+                continue;
+            }
+            existing_max_fragment_archive_version =
+                existing_max_fragment_archive_version.max(version);
             existing_rows.insert(
                 fragment_id,
                 ArchiveVectorRow {
@@ -201,7 +262,7 @@ pub(super) fn archive_vector_input(
                 },
             );
         }
-        if verified_max != existing_max_fragment_archive_version {
+        if verified_max != info.max_fragment_archive_version {
             return Err(vector_invalid(
                 "accepted vector source version does not match its mapping",
             ));
@@ -220,10 +281,8 @@ pub(super) fn archive_vector_input(
     let sources = missing
         .into_iter()
         .map(|(fragment, definition)| {
-            let text = render_definition(archive, &definition)?;
-            if text.len() > MAX_ARCHIVE_FRAGMENT_TEXT_BYTES {
-                return Err(vector_invalid("Archive fragment exceeds source byte limit"));
-            }
+            let text = archive
+                .fragment_embedding_text(&definition.fragment, MAX_ARCHIVE_FRAGMENT_TEXT_BYTES)?;
             Ok(ArchiveVectorSource {
                 fragment_id: fragment.id,
                 max_archive_version: fragment.max_archive_version,
@@ -259,16 +318,24 @@ fn ensure_fragment_definitions(
             .cmp(&right.conversation_id)
             .then_with(|| left.id.cmp(&right.id))
     });
+    let mut parents = BTreeSet::new();
     for branch in branches {
-        archive
-            .define_branch_fragments(
-                container,
-                &branch.conversation_id,
-                &branch.id,
-                FragmentConfig::default(),
-                true,
-            )
-            .map_err(|error| OwnerSessionError::Record(error.to_string()))?;
+        let definitions = archive.define_branch_fragments(
+            container,
+            &branch.conversation_id,
+            &branch.id,
+            FragmentConfig::default(),
+            true,
+        )?;
+        parents.extend(
+            definitions
+                .into_iter()
+                .map(|definition| definition.fragment.id),
+        );
+    }
+    let parents = parents.into_iter().collect::<Vec<_>>();
+    for batch in parents.chunks(64) {
+        archive.define_fragment_passages(container, batch)?;
     }
     Ok(())
 }
@@ -282,6 +349,11 @@ fn archive_fragment_versions(
             .cmp(&right.conversation_id)
             .then_with(|| left.id.cmp(&right.id))
     });
+    let mut passages = BTreeMap::<FragmentId, Vec<&FragmentDefinition>>::new();
+    for definition in archive.fragment_passage_definitions() {
+        let span = definition.fragment.passage.expect("passage definition");
+        passages.entry(span.parent_id).or_default().push(definition);
+    }
     let mut definitions =
         BTreeMap::<ArchiveFragmentId, (ArchiveFragmentVersion, FragmentDefinition)>::new();
     for branch in branches {
@@ -296,52 +368,39 @@ fn archive_fragment_versions(
         for fragment in fragments {
             let definition = archive
                 .fragment_definition(fragment.id)
-                .ok_or_else(|| vector_invalid("Archive fragment definition is unavailable"))?
-                .clone();
+                .ok_or_else(|| vector_invalid("Archive fragment definition is unavailable"))?;
             if definition.fragment != fragment {
                 return Err(vector_invalid(
                     "Archive fragment definition conflicts with branch",
                 ));
             }
-            // The end node is the last accepted node on this immutable path.
-            let max_archive_version = archive
-                .node_archive_version(&fragment.conversation_id, &fragment.end_node_id)
-                .ok_or_else(|| vector_invalid("fragment source has no Archive version"))?;
-            let id = ArchiveFragmentId(fragment.id.0);
-            let pair = (
-                ArchiveFragmentVersion {
-                    id,
-                    max_archive_version,
-                },
-                definition,
-            );
-            if let Some(prior) = definitions.insert(id, pair.clone())
-                && prior != pair
-            {
-                return Err(vector_invalid("conflicting Archive fragment source"));
+            let selected = passages
+                .get(&fragment.id)
+                .map(Vec::as_slice)
+                .unwrap_or(std::slice::from_ref(&definition));
+            for &source in selected {
+                let fragment = &source.fragment;
+                // The end node fixes the accepted source version for this passage.
+                let max_archive_version = archive
+                    .node_archive_version(&fragment.conversation_id, &fragment.end_node_id)
+                    .ok_or_else(|| vector_invalid("fragment source has no Archive version"))?;
+                let id = ArchiveFragmentId(fragment.id.0);
+                let pair = (
+                    ArchiveFragmentVersion {
+                        id,
+                        max_archive_version,
+                    },
+                    source.clone(),
+                );
+                if let Some(prior) = definitions.insert(id, pair.clone())
+                    && prior != pair
+                {
+                    return Err(vector_invalid("conflicting Archive fragment source"));
+                }
             }
         }
     }
     Ok(definitions.into_values().collect())
-}
-
-fn render_definition(
-    archive: &Archive,
-    definition: &FragmentDefinition,
-) -> Result<String, OwnerSessionError> {
-    let fragment = &definition.fragment;
-    let turns = archive.bounded_conversation_range(
-        &fragment.conversation_id,
-        &fragment.start_node_id,
-        &fragment.end_node_id,
-        reliquary_archive::MAX_EVIDENCE_TURNS,
-        MAX_ARCHIVE_FRAGMENT_TEXT_BYTES.min(reliquary_archive::MAX_EVIDENCE_RESULT_BYTES),
-    )?;
-    Ok(turns
-        .iter()
-        .map(|turn| format!("{}: {}", turn.role, turn.content))
-        .collect::<Vec<_>>()
-        .join("\n"))
 }
 
 fn publish_archive_vector_batch(

@@ -60,28 +60,30 @@ impl Archive {
         &self,
         fragment: &crate::Fragment,
     ) -> Result<Vec<(ContentId, Arc<String>)>, ArchiveError> {
-        let nodes = self.bounded_ancestor_range(
-            &fragment.conversation_id,
-            &fragment.start_node_id,
-            &fragment.end_node_id,
-            MAX_EVIDENCE_TURNS,
-            MAX_EVIDENCE_RESULT_BYTES,
-        )?;
-        nodes
+        Ok(self
+            .fragment_source_text(fragment, MAX_EVIDENCE_RESULT_BYTES)?
             .into_iter()
-            .map(|node| {
-                if self
-                    .turns
-                    .get(&node.conversation_id, &node.id)
-                    .is_some_and(|turn| turn.prune.is_some())
-                {
-                    return Err(ArchiveError::MissingContent);
-                }
-                self.read_text(node.content_id)?
-                    .map(|text| (node.content_id, text))
-                    .ok_or(ArchiveError::MissingContent)
+            .map(|(node, text)| (node.content_id, text))
+            .collect())
+    }
+
+    /// Resolve an accepted fragment's exact passage without loading a full turn
+    /// into the result when only a byte span is part of the fragment.
+    pub fn bounded_fragment_turns(
+        &self,
+        fragment: &crate::Fragment,
+    ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+        Ok(self
+            .fragment_source_text(fragment, MAX_EVIDENCE_RESULT_BYTES)?
+            .into_iter()
+            .map(|(node, text)| ResolvedTurn {
+                node_id: node.id.clone(),
+                role: node.role.clone(),
+                principal_id: node.principal_id.clone(),
+                timestamp_ns: node.timestamp_ns,
+                content: text.as_ref().clone(),
             })
-            .collect()
+            .collect())
     }
 
     /// Search accepted turns in first-accept order with a fixed scan and output
@@ -206,6 +208,18 @@ impl Archive {
         if max_turns > MAX_EVIDENCE_TURNS || max_bytes > MAX_EVIDENCE_RESULT_BYTES {
             return Err(ArchiveError::EvidenceLimitExceeded);
         }
+        let nodes = self.ancestor_range(conversation_id, start_node_id, end_node_id, max_turns)?;
+        self.validate_evidence_nodes(&nodes, max_turns, max_bytes)?;
+        Ok(nodes)
+    }
+
+    pub(super) fn ancestor_range(
+        &self,
+        conversation_id: &str,
+        start_node_id: &str,
+        end_node_id: &str,
+        max_turns: usize,
+    ) -> Result<Vec<&Node>, ArchiveError> {
         let mut reverse = Vec::with_capacity(max_turns.min(8));
         let mut current = Some(end_node_id);
         while let Some(node_id) = current {
@@ -213,7 +227,9 @@ impl Archive {
             reverse.push(node);
             if node.id == start_node_id {
                 reverse.reverse();
-                self.validate_evidence_nodes(&reverse, max_turns, max_bytes)?;
+                if reverse.len() > max_turns {
+                    return Err(ArchiveError::EvidenceLimitExceeded);
+                }
                 return Ok(reverse);
             }
             if reverse.len() > max_turns {

@@ -171,22 +171,7 @@ impl RelSession {
         };
         let mut paths = Vec::with_capacity(view.fragments().len());
         for fragment in view.fragments() {
-            // This validates the ancestor path and rejects pruned or unavailable text.
-            match self.archive.bounded_fragment_index_text(fragment) {
-                Ok(_) => {}
-                Err(ArchiveError::MissingContent | ArchiveError::EvidenceLimitExceeded) => {
-                    paths.push(None);
-                    continue;
-                }
-                Err(error) => return Err(error.into()),
-            }
-            match self.archive.bounded_conversation_range(
-                &fragment.conversation_id,
-                &fragment.start_node_id,
-                &fragment.end_node_id,
-                reliquary_archive::MAX_EVIDENCE_TURNS,
-                reliquary_archive::MAX_EVIDENCE_RESULT_BYTES,
-            ) {
+            match self.archive.bounded_fragment_turns(fragment) {
                 Ok(turns) => paths.push(Some(turns)),
                 Err(ArchiveError::MissingContent | ArchiveError::EvidenceLimitExceeded) => {
                     paths.push(None)

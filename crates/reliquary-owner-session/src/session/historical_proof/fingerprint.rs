@@ -515,7 +515,7 @@ fn import_receipt_value(value: &reliquary_archive::ImportReceipt) -> Value {
 }
 
 fn fragment_value(value: &reliquary_archive::FragmentDefinition) -> Value {
-    json!({
+    let mut encoded = json!({
         "fragment": {"id": value.fragment.id.0,
             "conversation_id": value.fragment.conversation_id,
             "start_node_id": value.fragment.start_node_id,
@@ -523,7 +523,15 @@ fn fragment_value(value: &reliquary_archive::FragmentDefinition) -> Value {
         "branch_id": value.branch_id, "archive_cut": value.archive_cut,
         "config": {"turns": value.config.turns, "overlap": value.config.overlap},
         "close_tail": value.close_tail,
-    })
+    });
+    if let Some(passage) = value.fragment.passage {
+        encoded["fragment"]["passage"] = json!({
+            "parent_id": passage.parent_id.0,
+            "start_byte": passage.start_byte,
+            "end_byte": passage.end_byte,
+        });
+    }
+    encoded
 }
 
 fn freshness_value(

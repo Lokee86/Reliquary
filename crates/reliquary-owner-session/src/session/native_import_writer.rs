@@ -86,6 +86,33 @@ impl RelWriter {
         Ok(ImportEpochStatus::Open(start))
     }
 
+    /// Authorize Archive-only derivation after source staging, before settlement.
+    /// This uses the accepted owner cut without binding the semantic work plan.
+    pub fn validate_native_import_archive_publication(
+        &self,
+        import_id: &str,
+    ) -> Result<(), OwnerSessionError> {
+        self.ensure_import_scope(import_id)?;
+        let start = self.session.imports.open_epoch().expect("scope checked");
+        let key = decode_import_key(&start.import_key)
+            .ok_or_else(|| OwnerSessionError::Record("invalid native import key".into()))?;
+        let accepted = self
+            .session
+            .native_import_receipt(&key)
+            .is_some_and(|receipt| {
+                receipt.owner_uuid == self.session.owner_id
+                    && receipt.source_digest == key
+                    && receipt.source_namespace == start.source_namespace
+                    && receipt.source_format == start.source_format
+            });
+        if !accepted {
+            return Err(OwnerSessionError::Record(
+                "Archive vector publication requires a staged import receipt".into(),
+            ));
+        }
+        Ok(())
+    }
+
     /// Admit one prepared import turn and advance its named native branch.
     /// The epoch ID is required on every scoped mutation; ordinary writers
     /// remain fenced until a completion coordinator settles the epoch.

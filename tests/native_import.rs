@@ -177,3 +177,212 @@ fn authenticated_normalized_import_preserves_forks_and_replays_after_reopen() {
     assert_eq!(fs::read(&rel_path).unwrap(), staged_bytes);
     fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn archive_vectors_publish_through_a_staged_import_without_processing() {
+    use reliquary_memory::{
+        EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingNormalization, SwitchboardEmbeddingMode,
+    };
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+
+    #[derive(Default)]
+    struct Endpoint {
+        calls: AtomicUsize,
+        archive_calls: AtomicUsize,
+    }
+    impl EmbeddingEndpoint for Endpoint {
+        fn dimensions(&self) -> u32 {
+            2
+        }
+
+        fn normalization(&self) -> EmbeddingNormalization {
+            EmbeddingNormalization::L2
+        }
+
+        fn supports_bounded_embedding(&self) -> bool {
+            true
+        }
+
+        fn embed(
+            &self,
+            _: SwitchboardEmbeddingMode,
+            _: &[String],
+        ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+            panic!("Archive inference must be bounded")
+        }
+
+        fn embed_bounded(
+            &self,
+            mode: SwitchboardEmbeddingMode,
+            texts: &[String],
+            bound: usize,
+        ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+            self.calls.fetch_add(1, Ordering::Relaxed);
+            assert!(bound >= texts.len() * 8);
+            for text in texts {
+                if text.starts_with("user: ") {
+                    assert_eq!(mode, SwitchboardEmbeddingMode::Document);
+                    assert!(text.len() <= 12_000);
+                    self.archive_calls.fetch_add(1, Ordering::Relaxed);
+                }
+            }
+            Ok(vec![vec![1.0, 0.0]; texts.len()])
+        }
+    }
+
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(".test-tmp")
+        .join(format!("staged-archive-vectors-{}", std::process::id()));
+    fs::create_dir_all(&dir).unwrap();
+    let source = dir.join("source.json");
+    let rel_path = dir.join("owner.rel");
+    let turn = format!(
+        "{} quasar {} {}",
+        "prefix ".repeat(2_200),
+        "λ ".repeat(44 * 1024),
+        "end"
+    );
+    let quasar = turn.find("quasar").unwrap() as u64;
+    let turn_bytes = turn.len() as u64;
+    fs::write(
+        &source,
+        serde_json::to_vec(&serde_json::json!({
+            "schema": "reliquary-native-live-2day-v1",
+            "window_start": "1970-01-01T00:00:01Z",
+            "window_end_exclusive": "1970-01-01T00:00:04Z",
+            "conversations": [{"id": "conversation"}],
+            "turns": [{
+                "conversation_id": "conversation", "id": "a", "role": "user",
+                "timestamp_ns": 1_000_000_001_i64, "content": turn, "branch_id": "main",
+                "canonical": true
+            }],
+            "branches": [{
+                "conversation_id": "conversation", "id": "main",
+                "leaf_node_id": "a", "canonical": true
+            }],
+            "episodes": [{
+                "conversation_id": "conversation", "start_node_id": "a",
+                "end_node_id": "a", "turn_count": 1
+            }]
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let plan = NativeImportPlan::from_path(&source, NativeImportFormat::Normalized, None).unwrap();
+    let rel = Rel::create(&rel_path).unwrap();
+    let endpoint = Arc::new(Endpoint::default());
+    let (publication, staged_id) = {
+        let gateway = Gateway::new();
+        let owner = gateway.mount_rel(&rel, true).unwrap();
+        let (adapter, _) = TrustedHostAdmission::new([
+            HostCredentialBinding::new(
+                "reliquary-cli-local",
+                &"o".repeat(48),
+                [OwnerGrant::OperateRel(owner)],
+            ),
+            HostCredentialBinding::new("viewer", &"v".repeat(48), [OwnerGrant::ViewRel(owner)]),
+        ])
+        .install(&gateway)
+        .unwrap();
+        let operator = adapter.authenticate(&"o".repeat(48)).unwrap();
+        let viewer = adapter.authenticate(&"v".repeat(48)).unwrap();
+        let staged = operator.stage_native_import(owner, plan).unwrap();
+        assert_eq!(
+            viewer
+                .publish_native_import_archive_vectors(owner, &staged.import_id, endpoint.clone())
+                .unwrap_err()
+                .kind(),
+            ProductErrorKind::Unauthorized
+        );
+        assert!(
+            operator
+                .publish_native_import_archive_vectors(owner, &"1".repeat(64), endpoint.clone())
+                .is_err()
+        );
+        assert_eq!(endpoint.calls.load(Ordering::Relaxed), 0);
+        let published = operator
+            .publish_native_import_archive_vectors(owner, &staged.import_id, endpoint.clone())
+            .unwrap();
+        assert!(published.fragment_count > 1);
+        assert_eq!(
+            operator
+                .native_import_status(owner, &staged.import_id)
+                .unwrap()
+                .unwrap()
+                .state,
+            NativeImportState::Staged
+        );
+        (published, staged.import_id)
+    };
+
+    drop(rel);
+    let gateway = Gateway::new();
+    let owner = gateway
+        .mount_rel(&Rel::open(&rel_path).unwrap(), true)
+        .unwrap();
+    let (adapter, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
+        "reliquary-cli-local",
+        &"o".repeat(48),
+        [OwnerGrant::OperateRel(owner)],
+    )])
+    .install(&gateway)
+    .unwrap();
+    let operator = adapter.authenticate(&"o".repeat(48)).unwrap();
+    let hits = operator
+        .search_archive_hybrid(owner, publication.profile_id, "quasar", &[0.8, 0.6], 32)
+        .unwrap();
+    assert_eq!(hits.generation_id, publication.generation_id);
+    assert_eq!(hits.hits.len(), publication.fragment_count);
+    let matched = hits.hits[0].passage.expect("exact matched passage");
+    assert!(hits.hits[0].lexical_score.is_some());
+    assert!(matched.start_byte <= quasar && quasar + 6 <= matched.end_byte);
+    assert!(matched.start_byte > 0);
+    let mut passages = hits
+        .hits
+        .iter()
+        .map(|hit| {
+            assert_eq!((&*hit.start_node_id, &*hit.end_node_id), ("a", "a"));
+            hit.passage.expect("passage source")
+        })
+        .collect::<Vec<_>>();
+    passages.sort_by_key(|passage| passage.start_byte);
+    let mut cursor = 0;
+    for passage in passages {
+        assert_eq!(passage.parent_id, matched.parent_id);
+        assert_eq!(passage.start_byte, cursor);
+        cursor = passage.end_byte;
+    }
+    assert_eq!(cursor, turn_bytes);
+    let before = fs::metadata(&rel_path).unwrap().len();
+    assert_eq!(
+        operator
+            .publish_native_import_archive_vectors(owner, &staged_id, endpoint.clone())
+            .unwrap(),
+        publication
+    );
+    assert_eq!(fs::metadata(&rel_path).unwrap().len(), before);
+    assert_eq!(
+        endpoint.archive_calls.load(Ordering::Relaxed),
+        publication.fragment_count
+    );
+    assert_eq!(
+        operator
+            .native_import_status(owner, &staged_id)
+            .unwrap()
+            .unwrap()
+            .state,
+        NativeImportState::Staged
+    );
+    drop(operator);
+    drop(adapter);
+    drop(gateway);
+    let info = Rel::open(&rel_path).unwrap().info().unwrap();
+    assert_eq!(info.memory_version, 0);
+    assert_eq!(info.graph_version, 0);
+    fs::remove_file(rel_path).unwrap();
+    fs::remove_file(source).unwrap();
+    fs::remove_dir(dir).unwrap();
+}

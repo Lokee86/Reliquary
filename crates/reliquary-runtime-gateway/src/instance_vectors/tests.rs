@@ -350,3 +350,43 @@ fn rel_phy_vectors_are_source_bound_private_durable_and_retry_without_inference(
     drop(gateway);
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn archive_import_writer_requires_a_receipt_and_keeps_the_ordinary_fence() {
+    use reliquary_owner_session::records::ImportEpochStatus;
+
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join(format!("archive-import-fence-{}.rel", Uuid::new_v4()));
+    let raw = [165; 16];
+    let mut writer = RelWriter::create_path(&path, ReliquaryScope::Project, raw).unwrap();
+    let ImportEpochStatus::Open(start) = writer
+        .start_native_import(&"21".repeat(32), "fixture", "fixture-v1", 1)
+        .unwrap()
+    else {
+        panic!("expected an open import epoch");
+    };
+    drop(writer);
+
+    let admission = GraphAdmission::for_replay(raw, [], [], [], [], []);
+    let gateway = Gateway::new();
+    let owner = gateway
+        .mount_writable_reliquary(&path, &admission, [], [])
+        .unwrap();
+    let operator = gateway.instance("operator", [owner], []).unwrap();
+    let endpoint = Endpoint::new();
+    assert!(matches!(
+        operator.publish_archive_vectors(owner, CompatibilityProfileId([0; 32]), &endpoint),
+        Err(GatewayError::OwnerSession(OwnerSessionError::Record(message)))
+            if message.contains("fenced by an open import epoch")
+    ));
+    assert!(matches!(
+        operator.publish_native_import_archive_vectors(owner, &start.import_id, &endpoint),
+        Err(GatewayError::OwnerSession(OwnerSessionError::Record(message)))
+            if message.contains("requires a staged import receipt")
+    ));
+    assert_eq!(endpoint.calls.get(), 0);
+    drop(operator);
+    drop(gateway);
+    fs::remove_file(path).unwrap();
+}

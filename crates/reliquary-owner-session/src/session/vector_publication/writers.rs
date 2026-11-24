@@ -19,6 +19,15 @@ impl RelWriter {
         self.publish_compatibility_profile_after_fence(profile)
     }
 
+    pub fn publish_native_import_archive_profile(
+        &mut self,
+        import_id: &str,
+        profile: reliquary_vector_store::CompatibilityProfile,
+    ) -> Result<CompatibilityProfileId, OwnerSessionError> {
+        self.validate_native_import_archive_publication(import_id)?;
+        self.publish_compatibility_profile_after_fence(profile)
+    }
+
     fn publish_compatibility_profile_after_fence(
         &mut self,
         profile: reliquary_vector_store::CompatibilityProfile,

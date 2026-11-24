@@ -100,6 +100,7 @@ impl Archive {
                 if self
                     .conversation_tombstones
                     .contains_key(&fragment.conversation_id)
+                    || fragment.passage.is_some()
                     || self.retained_fragment_index.contains_key(&fragment.id)
                     || self.fragment_definitions.contains_key(&fragment.id)
                     || fragment.id
