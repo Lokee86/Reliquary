@@ -130,7 +130,10 @@ fn confirmation_chain_reopens_without_peer_and_exact_retry_returns_original() {
         .tombstone_entity(&mut writer.container, left.id, left.revision)
         .unwrap();
     writer.session.writer_lease_proof = writer.container.writer_lease_proof();
-    let undo_second = undo(&second);
+    let undo_second = IdentitySeparationEvent {
+        action_id: first.action_id,
+        ..undo(&second)
+    };
     assert_eq!(
         writer
             .publish_identity_separation(undo_second.clone())
@@ -157,6 +160,7 @@ fn confirmation_chain_reopens_without_peer_and_exact_retry_returns_original() {
     assert!(writer.publish_identity_separation(undo_again).is_err());
     assert_eq!(writer.container.extent().unwrap(), bytes);
     drop(writer);
+    fs::remove_file(peer).unwrap();
 
     let reopened = RelSession::open_path(&source, &admission(OWNER), [], []).unwrap();
     assert_eq!(reopened.identity_receipt(&first.pair, None), Some(&receipt));
@@ -172,11 +176,11 @@ fn confirmation_chain_reopens_without_peer_and_exact_retry_returns_original() {
         reopened.identity_separation_by_action(first.action_id, &first.operator_id),
         Some(&first)
     );
-    assert!(
-        reopened
-            .identity_separation_by_action(first.action_id, &undo_second.operator_id)
-            .is_none()
+    assert_eq!(
+        reopened.identity_separation_by_action(first.action_id, &undo_second.operator_id),
+        Some(&undo_second)
     );
+    assert!(!reopened.identity_endpoint_active(left.id));
     assert!(reopened.identity_endpoint_proof(left.id, None).is_none());
     let IdentitySeparationAction::Confirm { left: original, .. } = first.action else {
         unreachable!()
@@ -202,6 +206,7 @@ fn endpoint_proofs_require_the_reviewed_history_after_remount() {
     drop(writer);
 
     let reopened = RelSession::open_path(&source, &admission(PEER), [], []).unwrap();
+    assert!(reopened.identity_endpoint_active(entity.id));
     assert_eq!(
         reopened.identity_endpoint_proof(entity.id, Some(1)),
         Some(original)
@@ -310,6 +315,68 @@ fn cold_replay_rejects_forged_separation_carriers() {
             .unwrap();
         assert!(error.to_string().contains(reason), "{case}: {error}");
     }
+}
+
+#[test]
+fn phylactery_rejects_separation_publications() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("owner.phy");
+    let mut writer = PhyWriter::create_path(&source, OWNER).unwrap();
+    writer
+        .container
+        .append_publication_envelope(MARKER, None)
+        .unwrap();
+    writer.container.sync().unwrap();
+    drop(writer);
+    let error = PhySession::open_path(&source, &admission(OWNER), [], [])
+        .err()
+        .unwrap();
+    assert!(matches!(
+        error,
+        OwnerSessionError::RelOnlyRecordInPhylactery("cross-REL Entity separation")
+    ));
+}
+
+#[test]
+fn separation_proof_survives_verified_entity_description_pruning() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("recording.rel");
+    let pruned = directory.path().join("pruned.rel");
+    let (right, proof) = create_peer(&directory.path().join("peer.rel"));
+    let mut writer = RelWriter::create_current_path(&source, OWNER).unwrap();
+    let (left, _, event) = prepare(&mut writer, right.id, proof);
+    writer.publish_identity_separation(event.clone()).unwrap();
+    writer
+        .session
+        .common
+        .perception
+        .tombstone_entity(&mut writer.container, left.id, left.revision)
+        .unwrap();
+    drop(writer);
+
+    let admission = admission(OWNER);
+    let plan = crate::VerifiedOwnerCopyPlan::prepare(&source).unwrap();
+    prune_terminal_entity_descriptions_copy(&plan, &source, &pruned, &[left.id], &admission)
+        .unwrap();
+    let reopened = RelSession::open_path(&pruned, &admission, [], []).unwrap();
+    assert!(
+        reopened
+            .entity_revision(left.id, left.revision)
+            .unwrap()
+            .summary
+            .is_empty()
+    );
+    let IdentitySeparationAction::Confirm { left: proof, .. } = event.action else {
+        unreachable!()
+    };
+    assert_eq!(
+        reopened.identity_endpoint_proof(left.id, Some(left.revision)),
+        Some(proof)
+    );
+    assert_eq!(
+        reopened.identity_separation(&event.pair, None),
+        Some(&event)
+    );
 }
 
 #[test]

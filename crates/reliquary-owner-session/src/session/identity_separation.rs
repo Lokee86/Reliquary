@@ -201,6 +201,14 @@ impl RelSession {
             .by_action(action_id, operator_id)
     }
 
+    /// Check whether the selected endpoint remains available for a pair decision.
+    pub fn identity_endpoint_active(&self, entity: EntityId) -> bool {
+        self.common
+            .perception
+            .entity(entity)
+            .is_some_and(|entity| entity.kind != PRINCIPAL_ENTITY_KIND)
+    }
+
     /// Resolve the current active Entity or a particular retained revision.
     pub fn identity_endpoint_proof(
         &self,
