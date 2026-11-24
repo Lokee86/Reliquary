@@ -58,6 +58,7 @@ pub use reliquary_vector_store::VectorGeneration;
 pub use session::EntityMentionCommit;
 pub use session::MemoryAssociationCut;
 pub use session::identity_receipt::IdentityPublicationProof;
+pub use session::perception_audit::*;
 pub use session::{
     ArchiveHybridView, ArchiveLexicalIndexInput, ArchiveLexicalIndexPublication, ArchiveVectorHit,
     ArchiveVectorSearch, ArchiveVectorView, PreparedArchiveLexicalIndex,

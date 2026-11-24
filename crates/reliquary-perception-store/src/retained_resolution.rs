@@ -95,6 +95,22 @@ impl History {
         self.current.values().map(|&index| &self.records[index])
     }
 
+    pub(super) fn records_for_memory(
+        &self,
+        memory_id: [u8; 32],
+    ) -> impl Iterator<Item = &RetainedResolutionRecord> {
+        let start = MemoryEntityMentionKey {
+            memory_id,
+            field: MemoryTextField::Title,
+            start_byte: 0,
+            end_byte: 0,
+        };
+        self.current
+            .range(start..)
+            .take_while(move |(key, _)| key.memory_id == memory_id)
+            .map(|(_, &index)| &self.records[index])
+    }
+
     pub(super) fn at_cut(
         &self,
         key: MemoryEntityMentionKey,

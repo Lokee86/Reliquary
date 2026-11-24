@@ -8,6 +8,7 @@ impl DreamEvidenceStore {
         settlement.validate()?;
         if settlement.owner != self.owner_uuid
             || self.initial_settlements.contains_key(&settlement.pass_id)
+            || self.settlement_positions.contains_key(&settlement.source)
         {
             return Err("duplicate or foreign initial Dream settlement".into());
         }
@@ -55,6 +56,9 @@ impl DreamEvidenceStore {
         let settled = staged.settled_payload(&settlement.pass_id)?;
         staged.ingest(&settled)?;
         self.journal = staged;
+        self.settled_sources.push(settlement.source);
+        self.settlement_positions
+            .insert(settlement.source, self.settled_sources.len() as u64);
         self.initial_settlements
             .insert(settlement.pass_id.clone(), settlement);
         Ok(())
@@ -84,6 +88,8 @@ impl DreamEvidenceStore {
         container.sync().map_err(|error| error.to_string())?;
         self.journal = staged.journal;
         self.initial_settlements = staged.initial_settlements;
+        self.settled_sources = staged.settled_sources;
+        self.settlement_positions = staged.settlement_positions;
         Ok(true)
     }
 
@@ -94,6 +100,8 @@ impl DreamEvidenceStore {
             begins: self.begins.clone(),
             journal: self.journal.clone(),
             initial_settlements: self.initial_settlements.clone(),
+            settled_sources: self.settled_sources.clone(),
+            settlement_positions: self.settlement_positions.clone(),
             frontiers: self.frontiers.clone(),
         }
     }
@@ -131,6 +139,30 @@ impl DreamEvidenceStore {
     }
     pub(crate) fn initial_settlements(&self) -> impl Iterator<Item = &InitialDreamSettlement> {
         self.initial_settlements.values()
+    }
+
+    pub(crate) fn settlement_count(&self) -> u64 {
+        self.settled_sources.len() as u64
+    }
+
+    pub(crate) fn settlement_position(&self, source: MemoryId) -> Option<u64> {
+        self.settlement_positions.get(&source).copied()
+    }
+
+    /// First settlements in physical owner order, without reading source bodies.
+    pub(crate) fn settlements_after(
+        &self,
+        after: u64,
+        through: u64,
+        limit: usize,
+    ) -> impl Iterator<Item = (u64, MemoryId)> + '_ {
+        let end = through.min(self.settlement_count()) as usize;
+        let start = after.min(end as u64) as usize;
+        self.settled_sources[start..end]
+            .iter()
+            .take(limit)
+            .enumerate()
+            .map(move |(offset, id)| ((start + offset + 1) as u64, *id))
     }
     pub(crate) fn append_initial_begin(
         &mut self,

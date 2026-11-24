@@ -247,6 +247,13 @@ pub struct ResolvedIdentityMention {
     pub retained_ordinal: Option<u64>,
 }
 
+/// An Entity or mention change that can affect owner-local evidence selection.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum EntityEvidenceChange {
+    Entity(EntityId),
+    Mention(MemoryEntityMentionKey),
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoricalEntityRevision {
     pub perception_version: u64,
@@ -598,6 +605,7 @@ pub struct PerceptionStore {
     resolved_mentions: std::sync::OnceLock<BTreeMap<EntityId, BTreeSet<MemoryEntityMentionKey>>>,
     mention_history: BTreeMap<(MemoryEntityMentionKey, u32), MemoryEntityResolution>,
     mention_versions: BTreeMap<(MemoryEntityMentionKey, u32), u64>,
+    evidence_changes: BTreeMap<u64, EntityEvidenceChange>,
     retained_resolution: retained_resolution::History,
 }
 
@@ -626,6 +634,7 @@ impl PerceptionStore {
             resolved_mentions: Default::default(),
             mention_history: BTreeMap::new(),
             mention_versions: BTreeMap::new(),
+            evidence_changes: BTreeMap::new(),
             retained_resolution: retained_resolution::History::default(),
         };
         let mut frames = container.scan_clocked_matching_frames(perception_replay_frame)?;
@@ -792,6 +801,60 @@ impl PerceptionStore {
 
     pub fn mentions(&self) -> impl Iterator<Item = &MemoryEntityResolution> {
         self.mentions.values()
+    }
+
+    pub fn evidence_changes_after(
+        &self,
+        after: u64,
+        through: u64,
+        limit: usize,
+    ) -> impl Iterator<Item = (u64, EntityEvidenceChange)> + '_ {
+        self.evidence_changes
+            .range((std::ops::Bound::Excluded(after), std::ops::Bound::Unbounded))
+            .take_while(move |(version, _)| **version <= through)
+            .take(limit)
+            .map(|(&version, &change)| (version, change))
+    }
+
+    /// Current resolved participants anchored to this Memory. Runtime
+    /// decisions, including non-resolutions, shadow retained decisions.
+    pub fn resolved_mentions_in_memory(
+        &self,
+        memory_id: [u8; 32],
+    ) -> impl Iterator<Item = (EntityId, ResolvedIdentityMention)> {
+        let runtime = self.mentions_for_memory(memory_id).filter_map(|mention| {
+            let MemoryEntityResolutionStatus::Resolved { entity_id, .. } = mention.status else {
+                return None;
+            };
+            Some((
+                entity_id,
+                ResolvedIdentityMention {
+                    key: mention.key,
+                    revision: mention.revision,
+                    retained_ordinal: None,
+                },
+            ))
+        });
+        let retained = self
+            .retained_resolution
+            .records_for_memory(memory_id)
+            .filter_map(|row| {
+                let (mention, entity_id) = row.resolved()?;
+                if self.mentions.contains_key(&mention.key) {
+                    return None;
+                }
+                Some((
+                    entity_id,
+                    ResolvedIdentityMention {
+                        key: mention.key,
+                        revision: mention.revision,
+                        retained_ordinal: Some(row.source_ordinal),
+                    },
+                ))
+            });
+        runtime
+            .chain(retained)
+            .filter(|(id, _)| self.entities.contains_key(id))
     }
 
     /// Resolved mentions of an active local Entity, in mention-key order.
@@ -1100,6 +1163,8 @@ impl PerceptionStore {
                 self.entity_versions
                     .insert((value.id, value.revision), expected);
                 self.entities.insert(value.id, value.clone());
+                self.evidence_changes
+                    .insert(expected, EntityEvidenceChange::Entity(value.id));
             }
             Record::Mention { value, .. } => {
                 validate_key(value.key)?;
@@ -1116,6 +1181,8 @@ impl PerceptionStore {
                     .insert((value.key, value.revision), value.clone());
                 self.mention_versions
                     .insert((value.key, value.revision), expected);
+                self.evidence_changes
+                    .insert(expected, EntityEvidenceChange::Mention(value.key));
                 let previous = self.mentions.insert(value.key, value.clone());
                 if let Some(index) = self.resolved_mentions.get_mut() {
                     let previous_target = match previous {
@@ -1175,6 +1242,8 @@ impl PerceptionStore {
             index.remove(&tombstone.id);
         }
         self.entity_tombstones.insert(tombstone.id, tombstone);
+        self.evidence_changes
+            .insert(expected, EntityEvidenceChange::Entity(tombstone.id));
         self.version = expected;
         Ok(())
     }

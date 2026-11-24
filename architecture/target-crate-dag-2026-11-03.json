@@ -185,6 +185,24 @@
       "boundary": "Git/Lore project authority and exact source revision correlation; Archive types only"
     },
     {
+      "id": "reliquary-memory-audit",
+      "layer": "semantic-workflow",
+      "depends_on": ["reliquary-switchboard"],
+      "boundary": "Bounded combined discovery over caller-supplied evidence and authorized lookup"
+    },
+    {
+      "id": "reliquary-ego",
+      "layer": "semantic-workflow",
+      "depends_on": ["reliquary-memory-audit"],
+      "boundary": "Fresh-only Ego extraction and evidence selection"
+    },
+    {
+      "id": "reliquary-perception",
+      "layer": "semantic-workflow",
+      "depends_on": ["reliquary-switchboard"],
+      "boundary": "Observation discovery, synthesis, receptor descriptions, and native decision contracts"
+    },
+    {
       "id": "reliquary-application",
       "layer": "application-workflows",
       "depends_on": [
@@ -192,6 +210,9 @@
         "reliquary-insomnia",
         "reliquary-dream",
         "reliquary-entity-resolution",
+        "reliquary-memory-audit",
+        "reliquary-ego",
+        "reliquary-perception",
         "reliquary-freshness",
         "reliquary-retrieval",
         "reliquary-chronos",

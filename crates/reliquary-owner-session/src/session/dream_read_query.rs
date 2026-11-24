@@ -1,5 +1,27 @@
 use super::*;
 impl DreamReadIndex {
+    /// Reuse owner-local index buckets for a bounded evidence lookup.
+    pub(in crate::session) fn lexical_candidates(
+        &self,
+        query: &str,
+        limit: usize,
+    ) -> Vec<MemoryId> {
+        let mut terms = super::tokens(query)
+            .into_iter()
+            .filter_map(|term| self.terms.get(&term).map(|ids| (term, ids)))
+            .collect::<Vec<_>>();
+        terms.sort_by(|(a, a_ids), (b, b_ids)| (a_ids.len(), a).cmp(&(b_ids.len(), b)));
+        let mut scores = BTreeMap::<MemoryId, usize>::new();
+        for (_, ids) in terms.into_iter().take(16) {
+            for id in ids.iter().take(32) {
+                *scores.entry(*id).or_default() += 1;
+            }
+        }
+        let mut matches = scores.into_iter().collect::<Vec<_>>();
+        matches.sort_unstable_by_key(|&(id, score)| (std::cmp::Reverse(score), id));
+        matches.into_iter().take(limit).map(|(id, _)| id).collect()
+    }
+
     pub fn query(
         &self,
         source: MemoryId,

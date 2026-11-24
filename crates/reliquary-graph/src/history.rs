@@ -1,6 +1,24 @@
 use super::*;
 
 impl GraphStore {
+    /// Seek relation publications in an exact Graph version range, including
+    /// removals. A version used only for Community metadata adds no relation.
+    pub fn relation_changes_after(
+        &self,
+        after: u64,
+        through: u64,
+        limit: usize,
+    ) -> impl Iterator<Item = Relation> + '_ {
+        let start = self
+            .history
+            .partition_point(|relation| relation.graph_version <= after);
+        self.history[start..]
+            .iter()
+            .take_while(move |relation| relation.graph_version <= through)
+            .take(limit)
+            .copied()
+    }
+
     /// Return every accepted Graph publication through an exact owner-local
     /// version. Unlike `relations_at`, this preserves inactive and superseded
     /// relation states for historical proof.

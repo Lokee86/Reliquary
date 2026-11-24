@@ -60,6 +60,7 @@ struct State {
     body_memories: HashMap<MemoryBodyId, BTreeSet<MemoryId>>,
     mutations: HashMap<String, (MemoryId, usize)>,
     tombstones: HashMap<MemoryId, TerminalTombstone>,
+    changes: Vec<MemoryId>,
     next_memory_version: u64,
 }
 
@@ -71,6 +72,7 @@ impl Default for State {
             body_memories: HashMap::new(),
             mutations: HashMap::new(),
             tombstones: HashMap::new(),
+            changes: Vec::new(),
             next_memory_version: 1,
         }
     }
@@ -709,6 +711,23 @@ impl MemoryStore {
     pub fn memory_ids(&self) -> impl Iterator<Item = MemoryId> + '_ {
         self.state.revisions.keys().copied()
     }
+
+    /// Source identities changed in an exact range of owner Memory versions.
+    /// Includes terminal tombstones and never reads a body.
+    pub fn changes_after(
+        &self,
+        after: u64,
+        through: u64,
+        limit: usize,
+    ) -> impl Iterator<Item = (u64, MemoryId)> + '_ {
+        let end = through.min(self.memory_version()) as usize;
+        let start = after.min(end as u64) as usize;
+        self.state.changes[start..end]
+            .iter()
+            .take(limit)
+            .enumerate()
+            .map(move |(offset, id)| ((start + offset + 1) as u64, *id))
+    }
     /// Whether retained owner history names this body, even if its payload is unavailable.
     pub fn references_body(&self, body_id: MemoryBodyId) -> bool {
         self.state.body_memories.contains_key(&body_id)
@@ -942,6 +961,7 @@ impl MemoryStore {
         self.state
             .mutations
             .insert(draft.mutation_id, (target, revision_index));
+        self.state.changes.push(target);
         self.state.next_memory_version = next_version;
         Ok(PublishResult {
             revision: revision_with_body(&record, Some(body)),
@@ -992,6 +1012,7 @@ impl MemoryStore {
             memory_version,
         };
         self.state.tombstones.insert(id, tombstone);
+        self.state.changes.push(id);
         self.state.next_memory_version = next;
         Ok(tombstone)
     }
@@ -1157,6 +1178,7 @@ impl MemoryStore {
                 .entry(record.body_id)
                 .or_default()
                 .insert(record.id);
+            self.state.changes.push(record.id);
             self.state.revisions.insert(record.id, vec![record]);
             self.state.next_memory_version = self
                 .state
@@ -1297,6 +1319,7 @@ impl MemoryStore {
                 .mutations
                 .insert(record.mutation_id.clone(), (delta.id, index));
             history.push(record);
+            self.state.changes.push(delta.id);
             self.state.next_memory_version = self
                 .state
                 .next_memory_version
@@ -1325,6 +1348,7 @@ impl MemoryStore {
                     memory_version,
                 },
             );
+            self.state.changes.push(id);
             self.state.next_memory_version = self
                 .state
                 .next_memory_version

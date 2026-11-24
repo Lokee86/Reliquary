@@ -5,30 +5,9 @@ impl FreshnessStore {
     /// Return the complete semantic boundary through one REL turn, including
     /// accepted-use events that are represented by an atomic grouped receipt.
     pub fn cut_through_turn(&self, rel_turn: u64) -> FreshnessEventCut {
-        let event_id_inclusive = self
-            .events
-            .values()
-            .filter(|event| event.accepted_turn == rel_turn)
-            .map(|event| event.event_id.clone())
-            .chain(
-                self.uses
-                    .values()
-                    .filter(|(receipt, _)| receipt.accepted_turn == rel_turn)
-                    .flat_map(|(receipt, proof)| {
-                        accepted_use_events(
-                            self.owner_uuid.unwrap_or([0; 16]),
-                            receipt,
-                            *proof,
-                            &self.policy,
-                        )
-                        .into_iter()
-                        .map(|event| event.event_id)
-                    }),
-            )
-            .max();
         FreshnessEventCut {
             rel_turn,
-            event_id_inclusive,
+            event_id_inclusive: self.last_event_by_turn.get(&rel_turn).cloned(),
         }
     }
 
