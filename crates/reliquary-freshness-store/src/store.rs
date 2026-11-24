@@ -46,6 +46,7 @@ pub struct FreshnessStore {
     uses: BTreeMap<String, (FreshnessUseReceipt, FreshnessEventProof)>,
     journal: Vec<JournalEntry>,
     journal_by_memory: BTreeMap<FreshnessMemoryId, Vec<usize>>,
+    changed_memories: Vec<FreshnessMemoryId>,
     last_event_by_turn: BTreeMap<u64, String>,
     historical_snapshots: Vec<HistoricalFreshnessSnapshot>,
     retained_authority: Option<crate::RetainedFreshnessAuthority>,
@@ -70,6 +71,7 @@ impl FreshnessStore {
             uses: BTreeMap::new(),
             journal: Vec::new(),
             journal_by_memory: BTreeMap::new(),
+            changed_memories: Vec::new(),
             last_event_by_turn: BTreeMap::new(),
             historical_snapshots: Vec::new(),
             retained_authority: None,
@@ -529,6 +531,27 @@ impl FreshnessStore {
         self.project_selected(Some(cut), Some(&memories.into_iter().collect()))
     }
 
+    pub fn memory_change_position(&self) -> u64 {
+        self.changed_memories.len() as u64
+    }
+
+    /// Bounded continuation by affected Memory, including a journal entry
+    /// that reinforces more than one Memory.
+    pub fn memory_changes_after(
+        &self,
+        after: u64,
+        through: u64,
+        limit: usize,
+    ) -> impl Iterator<Item = (u64, FreshnessMemoryId)> + '_ {
+        let end = through.min(self.memory_change_position()) as usize;
+        let start = after.min(end as u64) as usize;
+        self.changed_memories[start..end]
+            .iter()
+            .take(limit)
+            .enumerate()
+            .map(move |(offset, id)| ((start + offset + 1) as u64, *id))
+    }
+
     /// Project all accepted events through the given turn, including events
     /// accepted on that turn. An event cut without an ID instead selects the
     /// boundary before that turn's events.
@@ -800,6 +823,7 @@ impl FreshnessStore {
                     .entry(*memory_id)
                     .or_default()
                     .push(position);
+                self.changed_memories.push(*memory_id);
             }
             JournalEntry::Admission {
                 memory_id,
@@ -817,6 +841,7 @@ impl FreshnessStore {
                     .entry(*memory_id)
                     .or_default()
                     .push(position);
+                self.changed_memories.push(*memory_id);
             }
             JournalEntry::Event(event) => {
                 if let Some(old) = self.events.get(&event.event_id) {
@@ -828,6 +853,7 @@ impl FreshnessStore {
                 }
                 for id in event.effects.keys() {
                     journal_by_memory.entry(*id).or_default().push(position);
+                    self.changed_memories.push(*id);
                 }
                 self.events.insert(event.event_id.clone(), event.clone());
                 note_turn_event(&mut self.last_event_by_turn, event);
@@ -847,6 +873,7 @@ impl FreshnessStore {
                     .ok_or("Freshness owner identity is required")?;
                 for source in &receipt.sources {
                     journal_by_memory.entry(*source).or_default().push(position);
+                    self.changed_memories.push(*source);
                     let event = FreshnessEvent {
                         event_id: accepted_event_id(owner, &receipt.use_id, *source),
                         accepted_turn: receipt.accepted_turn,

@@ -24,9 +24,17 @@ Core supports explicit, reversible operator confirmation for a selected cross-RE
 
 ## Shared Memory Web audit
 
-Ego and Perception will use the same audit code for bounded batches, coverage of selected Memories, optional authorized REL search and source references. One structured discovery call returns two lists under separate extraction contracts. Ego extracts candidate subjects from Fresh evidence. Perception extracts candidate propositions, including Relationships between Entities, then verifies them separately before publication.
+Ego and Perception will use the same audit code for bounded batches, coverage of selected Memories, optional authorized REL search and source references. One structured discovery call returns two lists under separate extraction contracts. Ego extracts candidate subjects from Fresh evidence. Perception extracts candidate propositions, including Relationships between Entities.
 
-Perception periodically includes a small, rotating sample of Stale and Dormant Memories directly in its audit batches, even when recent Memories could fill the budget. Either feature can search for older evidence when following a lead. [Historical Ego audit plan](https://github.com/Lokee86/Reliquary/blob/2b5bd0eabfbac0a85f899d7d730220b5e8e93efa/docs/ego-service-crate-extraction-spec-2026-10-28.md#L55-L65) · [Shared audit and Observation specification](memory-web-audit-spec-2026-11-24.md) · [Implementation plan](memory-web-audit-plan-2026-11-24.md)
+The first audit publishes from a bounded working set. A recurring audit runs after each 25 newly settled Memories and examines the changed sources and affected graph endpoints, with local context as needed. Each discovery request holds up to 125 distinct Memories. Each run adds up to 15 Stale and five Dormant inputs for Perception, with independent rotation. The samples also route to existing Observation receptors. Ego keeps its Fresh-only evidence boundary. [Historical Ego audit plan](https://github.com/Lokee86/Reliquary/blob/2b5bd0eabfbac0a85f899d7d730220b5e8e93efa/docs/ego-service-crate-extraction-spec-2026-10-28.md#L55-L65) · [Shared audit and Observation specification](memory-web-audit-spec-2026-11-24.md) · [Implementation plan](memory-web-audit-plan-2026-11-24.md)
+
+## Observation creation
+
+Perception will synthesize the proposed claim and its citations, generate draft receptors, back-check the REL, verify the exact draft in one Jev request, and finalize through the owner writer. The live verification contract passed the publication decision on 24 fresh authored drafts. [Creation specification and implementation plan](observation-creation-spec-2026-11-24.md)
+
+## Observation reconsideration
+
+The complete same-REL Observation lifecycle ships as one release. After an Observation is published, Perception uses one batched Jev request to decide whether new evidence warrants review. Review and initial creation share the tested Jev Verify contract for exact drafts. The plan defines pending retrieval and how upstream revisions affect claims that cite them. The contract passed a fresh live rerun on both authored sets, spanning 30 Observations and 150 hits. [Reconsideration specification](observation-reconsideration-spec-2026-11-24.md) · [Integrated same-REL implementation plan](perception-implementation-plan-2026-11-24.md)
 
 ## Implementation sequence and acceptance
 

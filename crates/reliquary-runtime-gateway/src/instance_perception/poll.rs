@@ -4,16 +4,17 @@ use reliquary_application::observation_drafts::{
     ScopedObservationRead, evaluate_proposal, evaluate_review,
 };
 use reliquary_application::perception_workflow::{
-    EgoCandidate, ListResult, LookupError, audit_lookups, audit_owner_cut, capture_contribution,
+    ListResult, LookupError, audit_lookups, audit_owner_cut, capture_contribution,
     capture_discovery, capture_duplicate_contribution, discover, evaluate_contribution,
     retain_current_ego_evidence,
 };
+use reliquary_application::{SwitchboardEmbeddingEndpoint, verify_compatibility_profile};
 use reliquary_owner_session::observation::{
     ObservationAuditProgress, ObservationBatch, ObservationChange, ObservationOperation,
     ObservationPendingReason, ObservationPolicy, ObservationStanding,
 };
 use reliquary_owner_session::{
-    PerceptionAuditAdvance, PerceptionAuditPage, PerceptionAuditProgress, PerceptionSourceCut,
+    PerceptionAuditAdvance, PerceptionAuditProgress, PerceptionSourceCut,
 };
 use sha2::{Digest, Sha256};
 
@@ -66,13 +67,15 @@ pub(super) fn tick(owner: &OwnerWork<'_>, state: &mut WorkerState) -> Result<boo
             }
             PerceptionAuditAdvance::Ready => audit_page(owner, state, previous, progress),
             PerceptionAuditAdvance::LiveContributionReady => {
-                live_contribution(owner, previous, progress)
+                live_contribution(owner, state, previous, progress)
             }
         },
         TickInput::Review(id) => {
             let result = (|| {
+                let profile = resolve_memory_profile(owner, state)?;
                 if let Some(review) =
-                    evaluate_review(owner, &draft_routes(owner.routes), id).map_err(draft_error)?
+                    evaluate_review(owner, &draft_routes(owner.routes, profile), id)
+                        .map_err(draft_error)?
                 {
                     let previous =
                         owner.read(|rel| rel.observation_progress().map(|row| row.fingerprint))?;
@@ -100,6 +103,10 @@ fn prepare(rel: &RelSession, state: &mut WorkerState) -> Result<TickInput, Owner
         )));
     };
     let cut = rel.perception_source_cut();
+    if !state.ego_candidates.is_empty() && state.ego_cut.as_ref() != Some(&cut) {
+        retain_current_ego_evidence(rel, &mut state.ego_candidates)?;
+        state.ego_cut = Some(cut.clone());
+    }
     let changes = (cut.memory, cut.entity, rel.perception_review_version());
     let now = Instant::now();
     state.review_deferred.retain(|id, _| {
@@ -164,8 +171,14 @@ fn audit_page(
         .as_mut()
         .ok_or(OwnerSessionError::ManagementStale)?;
     if usize::from(page.contribution_cursor) < page.sources.len() {
-        let work = owner.read(|rel| capture_contribution(rel, page, true))??;
-        let operations = evaluate_contribution(&work, owner.routes)?;
+        let profile = if page.sources.iter().any(|source| source.sampled) {
+            resolve_memory_profile(owner, state)?
+        } else {
+            None
+        };
+        let work = owner.read(|rel| capture_contribution(rel, page, true, profile))??;
+        let operations =
+            evaluate_contribution(&work, owner.routes, &mut state.contribution_vectors)?;
         page.contribution_cursor = work.next_source;
         page.contribution_target_after = work.next_target;
         publish(
@@ -244,7 +257,12 @@ fn audit_page(
                 changed = true;
             }
             ListResult::Accepted { candidates, .. } => {
-                match proposals(owner, &page.cut, candidates) {
+                let profile = if candidates.is_empty() {
+                    None
+                } else {
+                    resolve_memory_profile(owner, state)?
+                };
+                match proposals(owner, state, &page.cut, profile, candidates) {
                     Ok((prepared, contribution)) => {
                         drafts = prepared;
                         operations = contribution;
@@ -289,6 +307,7 @@ fn audit_page(
 
 fn live_contribution(
     owner: &OwnerWork<'_>,
+    state: &mut WorkerState,
     previous: [u8; 32],
     mut progress: PerceptionAuditProgress,
 ) -> Result<bool, GatewayError> {
@@ -297,8 +316,10 @@ fn live_contribution(
         .as_mut()
         .ok_or(OwnerSessionError::ManagementStale)?;
     let operations = if usize::from(page.contribution_cursor) < page.sources.len() {
-        let work = owner.read(|rel| capture_contribution(rel, page, false))??;
-        let operations = evaluate_contribution(&work, owner.routes)?;
+        let profile = resolve_memory_profile(owner, state)?;
+        let work = owner.read(|rel| capture_contribution(rel, page, false, profile))??;
+        let operations =
+            evaluate_contribution(&work, owner.routes, &mut state.contribution_vectors)?;
         page.contribution_cursor = work.next_source;
         page.contribution_target_after = work.next_target;
         operations
@@ -319,18 +340,25 @@ fn live_contribution(
 
 fn proposals(
     owner: &OwnerWork<'_>,
+    state: &mut WorkerState,
     cut: &PerceptionSourceCut,
+    memory_profile: Option<CompatibilityProfileId>,
     candidates: Vec<reliquary_application::perception_workflow::ProposedClaim>,
 ) -> Result<(Vec<PreparedObservation>, Vec<ObservationOperation>), GatewayError> {
-    let routes = draft_routes(owner.routes);
+    let routes = draft_routes(owner.routes, memory_profile);
     let mut drafts = Vec::new();
     let mut operations = Vec::new();
     let mut seen = BTreeSet::new();
     let mut duplicate_targets = BTreeMap::<_, BTreeSet<_>>::new();
     for candidate in candidates {
-        match evaluate_proposal(owner, &routes, audit_owner_cut(cut), &candidate)
-            .map_err(draft_error)?
-        {
+        let evaluated = match evaluate_proposal(owner, &routes, audit_owner_cut(cut), &candidate) {
+            Ok(value) => value,
+            Err(
+                ObservationWorkflowError::InvalidDraft | ObservationWorkflowError::EvidenceLimit,
+            ) => continue,
+            Err(error) => return Err(draft_error(error)),
+        };
+        match evaluated {
             ProposalEvaluation::Abstained | ProposalEvaluation::Unresolved => {}
             ProposalEvaluation::Ready(draft) => {
                 let identity = match &draft.operation {
@@ -353,19 +381,61 @@ fn proposals(
         let evidence = evidence.into_iter().collect::<Vec<_>>();
         let work = owner
             .read(|rel| capture_duplicate_contribution(rel, target, revision, &evidence))??;
-        operations.extend(evaluate_contribution(&work, owner.routes)?);
+        operations.extend(evaluate_contribution(
+            &work,
+            owner.routes,
+            &mut state.contribution_vectors,
+        )?);
     }
     Ok((drafts, operations))
 }
 
-fn draft_routes(routes: &PerceptionRoutes) -> ObservationDraftRoutes<'_> {
+fn draft_routes(
+    routes: &PerceptionRoutes,
+    memory_vector_profile: Option<CompatibilityProfileId>,
+) -> ObservationDraftRoutes<'_> {
     ObservationDraftRoutes {
         general: routes.general.as_ref(),
         verification: routes.verification.as_ref(),
         embedding: routes.embedding.as_ref(),
         route_identity: routes.identity,
         embedding_profile: routes.embedding_profile(),
+        memory_vector_profile,
     }
+}
+
+/// Reuse only existing owner vectors whose recorded probe profile the
+/// configured route has verified. The cache lives with the route and mount.
+fn resolve_memory_profile(
+    owner: &OwnerWork<'_>,
+    state: &mut WorkerState,
+) -> Result<Option<CompatibilityProfileId>, GatewayError> {
+    if !owner.routes.embedding.supports_bounded_embedding() {
+        return Ok(None);
+    }
+    if let Some(id) = state.memory_profile {
+        if owner.read(|rel| rel.active_compatibility_profile(id).is_some())? {
+            return Ok(Some(id));
+        }
+        state.memory_profile = None;
+    }
+    let candidate = owner.read(|rel| {
+        rel.memory_vector_infos()
+            .into_iter()
+            .map(|info| info.compatibility_profile_id)
+            .filter(|id| !state.probed_profiles.contains(id))
+            .filter_map(|id| rel.active_compatibility_profile(id))
+            .find(|profile| profile.dimensions == owner.routes.embedding.dimensions())
+            .cloned()
+    })?;
+    if let Some(profile) = candidate {
+        state.probed_profiles.insert(profile.id);
+        let endpoint = SwitchboardEmbeddingEndpoint::new(owner.routes.embedding.clone());
+        if verify_compatibility_profile(&profile, &endpoint).is_ok() {
+            state.memory_profile = Some(profile.id);
+        }
+    }
+    Ok(state.memory_profile)
 }
 
 fn publish(

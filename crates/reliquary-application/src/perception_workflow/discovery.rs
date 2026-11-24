@@ -16,6 +16,8 @@ const MAX_CAPTURE_TEXT_BYTES: usize = 96 * 1024;
 const MAX_PARTICIPANT_SLOTS: usize = 16;
 const MAX_LOOKUP_INPUTS: usize = 32;
 const MAX_LOOKUP_PASSAGE_BYTES: usize = 2 * 1024;
+const MAX_LOCAL_SOURCES: usize = 8;
+const MAX_LOCAL_PASSAGE_BYTES: usize = 1024;
 
 pub struct AuditDiscovery {
     pub key: [u8; 32],
@@ -43,6 +45,7 @@ pub fn capture_discovery(
     let mut work: Vec<WorkItem> = Vec::new();
     let mut participants = Vec::new();
     let mut participant_ids = BTreeSet::new();
+    let mut local_sources = BTreeSet::new();
     let mut bytes = 0usize;
     let total = page.sources.len() + page.derived.len();
     while usize::from(cursor.source) < total && bytes + 4 <= MAX_CAPTURE_TEXT_BYTES {
@@ -55,13 +58,21 @@ pub fn capture_discovery(
                 cursor = next_source(cursor);
                 continue;
             };
-            take_participants(
-                rel,
-                &page.cut,
-                evidence.metadata.source,
-                &mut participant_ids,
-                &mut participants,
-            )?;
+            if !source.ego_only {
+                take_participants(
+                    rel,
+                    &page.cut,
+                    evidence.metadata.source,
+                    &mut participant_ids,
+                    &mut participants,
+                )?;
+                for neighbor in rel.perception_graph_neighbors(source.memory) {
+                    if local_sources.len() == MAX_LOCAL_SOURCES {
+                        break;
+                    }
+                    local_sources.insert(neighbor);
+                }
+            }
             // A single source may have another field or extend past the
             // capture budget; continue it at the exact byte on the next poll.
             let text = match cursor.field {
@@ -74,7 +85,7 @@ pub fn capture_discovery(
             if end < start || !text.is_char_boundary(start) {
                 return Err(OwnerSessionError::ManagementStale);
             }
-            if let Some(passage) = memory_passage(
+            if let Some(mut passage) = memory_passage(
                 &page.cut,
                 &evidence,
                 cursor.field,
@@ -82,6 +93,9 @@ pub fn capture_discovery(
                 end,
                 source.sampled,
             ) {
+                if source.ego_only {
+                    passage.eligible = Eligibility::EGO;
+                }
                 bytes += passage.text.len();
                 work.push(WorkItem {
                     mandatory: passage.eligible,
@@ -122,6 +136,54 @@ pub fn capture_discovery(
                 bytes += text.len();
             }
             cursor = next_source(cursor);
+        }
+    }
+    let captured_sources = work
+        .iter()
+        .map(|item| item.passage.citation.source)
+        .collect::<BTreeSet<_>>();
+    for entity in &participants {
+        for neighbor in rel.perception_relationship_sources(
+            reliquary_owner_session::model::EntityId(entity.entity_id),
+        ) {
+            if local_sources.len() == MAX_LOCAL_SOURCES {
+                break;
+            }
+            local_sources.insert(neighbor);
+        }
+    }
+    for id in local_sources {
+        if bytes + MAX_LOCAL_PASSAGE_BYTES > MAX_CAPTURE_TEXT_BYTES
+            || captured_sources.contains(&SourceId::Memory(id.0))
+        {
+            continue;
+        }
+        let Some(evidence) = rel.perception_memory_evidence(&page.cut, &[id])?.pop() else {
+            continue;
+        };
+        let end = evidence
+            .content
+            .floor_char_boundary(MAX_LOCAL_PASSAGE_BYTES.min(evidence.content.len()));
+        if let Some(passage) = memory_passage(
+            &page.cut,
+            &evidence,
+            MemoryTextField::Content,
+            0,
+            end,
+            false,
+        ) {
+            take_participants(
+                rel,
+                &page.cut,
+                evidence.metadata.source,
+                &mut participant_ids,
+                &mut participants,
+            )?;
+            bytes += passage.text.len();
+            work.push(WorkItem {
+                mandatory: Eligibility::NONE,
+                passage,
+            });
         }
     }
     let profile = if participants.len() >= 2 {

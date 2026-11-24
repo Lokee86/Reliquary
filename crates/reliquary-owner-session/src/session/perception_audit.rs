@@ -5,7 +5,8 @@ use reliquary_freshness_store::FreshnessEventCut;
 pub use reliquary_freshness_store::FreshnessState as PerceptionSourceGrade;
 use reliquary_memory_core::{MemoryBody, MemoryRecord};
 use reliquary_perception_store::observation::{
-    ObservationActivity, ObservationCitation, ObservationId, ObservationSource, ObservationStanding,
+    ObservationActivity, ObservationCitation, ObservationDraft, ObservationId, ObservationSource,
+    ObservationStanding,
 };
 use reliquary_perception_store::{EntityEvidenceChange, PRINCIPAL_ENTITY_KIND};
 use serde::{Deserialize, Serialize};
@@ -29,6 +30,7 @@ pub struct PerceptionSourceCut {
     pub graph: u64,
     pub entity: u64,
     pub observation: u64,
+    pub freshness: u64,
     pub settlements: u64,
     pub rel_turn: u64,
     pub freshness_event: Option<String>,
@@ -72,10 +74,12 @@ pub struct PerceptionParticipantEvidence {
 pub struct PerceptionSourceChanges {
     pub memories: Vec<MemoryId>,
     pub derived: Vec<ObservationId>,
+    pub ego_memories: Vec<MemoryId>,
     pub memory_through: u64,
     pub graph_through: u64,
     pub entity_through: u64,
     pub observation_through: u64,
+    pub freshness_through: u64,
 }
 
 impl RelSession {
@@ -87,7 +91,8 @@ impl RelSession {
             memory: self.memory_version(),
             graph: self.graph_version(),
             entity: self.common.perception.version(),
-            observation: self.observation_publication_version(),
+            observation: self.perception_review_version(),
+            freshness: self.freshness.memory_change_position(),
             settlements: self.common.dreams.settlement_count(),
             rel_turn,
             freshness_event: self.freshness.cut_through_turn(rel_turn).event_id_inclusive,
@@ -96,24 +101,7 @@ impl RelSession {
 
     /// A progress-only audit publication doesn't invalidate the standing sweep.
     pub fn perception_review_version(&self) -> u64 {
-        use reliquary_perception_store::observation::ObservationOperation;
-        self.observations
-            .records()
-            .iter()
-            .rev()
-            .find(|(_, record)| {
-                record.batch.operations.iter().any(|op| {
-                    matches!(
-                        op,
-                        ObservationOperation::Pending { .. }
-                            | ObservationOperation::Create { .. }
-                            | ObservationOperation::Successor { .. }
-                            | ObservationOperation::Withdraw { .. }
-                            | ObservationOperation::Reaffirm { .. }
-                    )
-                })
-            })
-            .map_or(0, |(receipt, _)| receipt.publication_version)
+        self.observations.semantic_frontier()
     }
 
     pub fn perception_settlements_page(
@@ -225,10 +213,12 @@ impl RelSession {
         &self,
         after: &PerceptionSourceCut,
         through: &PerceptionSourceCut,
+        previous_run: &PerceptionSourceCut,
         per_stream: usize,
     ) -> Result<PerceptionSourceChanges, OwnerSessionError> {
         self.check_perception_source_cut(after)?;
         self.check_perception_source_cut(through)?;
+        self.check_perception_source_cut(previous_run)?;
         let limit = per_stream.clamp(1, MAX_CAPTURE_PAGE);
         let memory = self
             .common
@@ -245,9 +235,26 @@ impl RelSession {
             .perception
             .evidence_changes_after(after.entity, through.entity, limit + 1)
             .collect::<Vec<_>>();
+        let freshness = self
+            .freshness
+            .memory_changes_after(after.freshness, through.freshness, limit + 1)
+            .collect::<Vec<_>>();
         let mut sources = BTreeSet::new();
-        for &(_, id) in memory.iter().take(limit) {
-            sources.insert(id);
+        for &(version, id) in memory.iter().take(limit) {
+            let latest = self
+                .common
+                .memories
+                .terminal_at_cut(id, through.memory)
+                .map(|record| record.memory_version)
+                .or_else(|| {
+                    self.common
+                        .memories
+                        .record_at_cut(id, through.memory)
+                        .map(|record| record.memory_version)
+                });
+            if latest == Some(version) {
+                sources.insert(id);
+            }
         }
         for relation in graph.iter().take(limit) {
             for endpoint in [relation.source, relation.target] {
@@ -296,9 +303,33 @@ impl RelSession {
                 }
             }
         }
+        let freshness_ids = freshness
+            .iter()
+            .take(limit)
+            .map(|(_, id)| MemoryId(id.0))
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let previously_fresh = self
+            .perception_source_metadata(previous_run, &freshness_ids)?
+            .into_iter()
+            .filter(|row| row.grade == PerceptionSourceGrade::Fresh)
+            .map(|row| row.source.id)
+            .collect::<BTreeSet<_>>();
+        let ego_memories = self
+            .perception_source_metadata(through, &freshness_ids)?
+            .into_iter()
+            .filter(|row| {
+                row.grade == PerceptionSourceGrade::Fresh
+                    && !sources.contains(&row.source.id)
+                    && !previously_fresh.contains(&row.source.id)
+            })
+            .map(|row| row.source.id)
+            .collect();
         Ok(PerceptionSourceChanges {
             memories: sources.into_iter().collect(),
             derived: derived.into_iter().collect(),
+            ego_memories,
             memory_through: if memory.len() > limit {
                 memory[limit - 1].0
             } else {
@@ -315,6 +346,11 @@ impl RelSession {
                 through.entity
             },
             observation_through,
+            freshness_through: if freshness.len() > limit {
+                freshness[limit - 1].0
+            } else {
+                through.freshness
+            },
         })
     }
 
@@ -352,6 +388,35 @@ impl RelSession {
             .map(|reference| MemoryId(reference.memory_id))
             .take(MAX_NEIGHBORS)
             .collect()
+    }
+
+    pub fn has_equivalent_manual_relationship(&self, draft: &ObservationDraft) -> bool {
+        let participants = draft.profile.participants();
+        let Some(first) = participants.first() else {
+            return false;
+        };
+        let owner = owner_hex(&self.owner_id);
+        let proposition = normalized_summary(&draft.proposition);
+        self.common
+            .perception
+            .relationships_for_local_participant(first.entity_id)
+            .any(|row| {
+                row.participants.len() == participants.len()
+                    && normalized_summary(&row.summary) == proposition
+                    && row.participants.iter().all(|prior| {
+                        prior.entity.owner_id == owner
+                            && participants.iter().any(|current| {
+                                current.entity_id == prior.entity.entity_id
+                                    && prior
+                                        .role
+                                        .as_deref()
+                                        .zip(current.role.as_deref())
+                                        .is_none_or(|(a, b)| {
+                                            normalized_summary(a) == normalized_summary(b)
+                                        })
+                            })
+                    })
+            })
     }
 
     pub fn perception_source_activity(
@@ -453,6 +518,7 @@ impl RelSession {
             || cut.graph > self.graph_version()
             || cut.entity > self.common.perception.version()
             || cut.observation > self.observation_publication_version()
+            || cut.freshness > self.freshness.memory_change_position()
             || cut.settlements > self.common.dreams.settlement_count()
             || cut.rel_turn > self.rel_turn_count()
         {
@@ -530,4 +596,13 @@ fn perception_lineage(record: &MemoryRecord) -> [u8; 32] {
     hash.update(namespace.as_bytes());
     hash.update(node.as_bytes());
     hash.finalize().into()
+}
+
+fn normalized_summary(value: &str) -> String {
+    value
+        .split(|character: char| !character.is_alphanumeric())
+        .filter(|token| !token.is_empty())
+        .map(str::to_lowercase)
+        .collect::<Vec<_>>()
+        .join(" ")
 }

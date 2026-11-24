@@ -67,7 +67,7 @@ fn normalize(value: &str) -> String {
 }
 
 impl ObservationDraft {
-    /// Identity used to coalesce simultaneous proposes of an equivalent claim.
+    /// Identity used to coalesce simultaneous proposals for an equivalent claim.
     pub fn claim_digest(&self) -> [u8; 32] {
         let key = serde_json::to_vec(&ClaimKey::new(self))
             .expect("Observation claim key is serializable");
@@ -78,6 +78,7 @@ impl ObservationDraft {
 #[derive(Default, Serialize, Deserialize)]
 pub struct ObservationStore {
     records: Vec<(ObservationBatchReceipt, ObservationRecord)>,
+    semantic_frontier: u64,
     receipts: BTreeMap<[u8; 32], usize>,
     revisions: BTreeMap<(ObservationId, u64), ObservationRevision>,
     heads: BTreeMap<ObservationId, u64>,
@@ -100,6 +101,10 @@ impl ObservationStore {
         self.records
             .last()
             .map_or(0, |(receipt, _)| receipt.publication_version)
+    }
+
+    pub fn semantic_frontier(&self) -> u64 {
+        self.semantic_frontier
     }
 
     pub fn records(&self) -> &[(ObservationBatchReceipt, ObservationRecord)] {
@@ -563,6 +568,16 @@ impl ObservationStore {
     pub fn apply(&mut self, record: ObservationRecord, receipt: ObservationBatchReceipt) {
         for (operation, lineage) in record.batch.operations.iter().zip(&record.lineages) {
             let batch = &record.batch;
+            if matches!(
+                operation,
+                ObservationOperation::Create { .. }
+                    | ObservationOperation::Pending { .. }
+                    | ObservationOperation::Reaffirm { .. }
+                    | ObservationOperation::Successor { .. }
+                    | ObservationOperation::Withdraw { .. }
+            ) {
+                self.semantic_frontier = receipt.publication_version;
+            }
             match operation {
                 ObservationOperation::Create { draft } => {
                     self.publish_revision(

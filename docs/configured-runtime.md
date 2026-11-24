@@ -14,6 +14,8 @@ Hosts that own inference transports can use `ConfiguredRuntime::hosted(general, 
 
 `Gateway::set_runtime(Some(&runtime))` supplies the Entity route for both initial and automatic cross-REL comparisons. A trusted caller can replace the binding or clear it with `None`. Eligible sessions can complete locally decidable work before inference becomes available. [Cross-REL Entity identity](public-product-api.md#cross-rel-entity-identity)
 
+The same runtime binding starts Perception for authenticated `ManageRel` sessions on writable RELs. Configure General, Embedding and `general-decision` with model `typesafe/jev-1.13`. Observation contribution and Verify use the native shared decision endpoint. Hosted General adapters leave those consumers unavailable. [Same-REL Observations](public-product-api.md#same-rel-observations)
+
 ```rust
 let identity = HostedInferenceIdentity::new(
     "host-runtime", "general-model", "host-runtime", "embedding-model", 1024,
@@ -74,6 +76,7 @@ The standard profile does not create credentials for those IDs. Switchboard sele
 | Chronos decision | General Decision, then adapted General, then unavailable |
 | Entity-resolution decision | dedicated route, then General Decision, then adapted General, then unavailable |
 | Memory-retrieval decision | dedicated route, then General Decision, then adapted General, then unavailable |
+| Observation contribution and Verify | native General Decision with `typesafe/jev-1.13`, then unavailable |
 | Embedding | explicit compatible Embedding route only |
 
 Entity extraction is its own general route and is not an Entity-resolution decision route. A selected route's provider failure is reported; Switchboard does not silently step down to another route after a request fails. Do not infer route readiness from a stored model label alone.

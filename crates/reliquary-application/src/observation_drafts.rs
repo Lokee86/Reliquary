@@ -229,6 +229,9 @@ pub fn evaluate_proposal(
     for attempt in 0..2 {
         let mut canonical =
             read.read(|rel| canonical_claim(&mut Capture::new(rel), &draft.claim))?;
+        if read.read(|rel| Ok(rel.has_equivalent_manual_relationship(&canonical)))? {
+            return Ok(ProposalEvaluation::Abstained);
+        }
         if let Some(target) = read.read(|rel| {
             Ok(rel
                 .matching_observation(&canonical)

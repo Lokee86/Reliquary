@@ -90,7 +90,7 @@ impl ObservationReadCut {
             generation: cut.generation,
             memory: cut.memory,
             perception: cut.perception,
-            publication: rel.observation_publication_version(),
+            publication: rel.perception_review_version(),
         }
     }
 

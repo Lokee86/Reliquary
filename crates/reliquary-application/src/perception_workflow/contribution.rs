@@ -1,5 +1,6 @@
 use super::*;
 use reliquary_freshness::semantic_policy::{SemanticPolicy, cosine_similarity};
+use reliquary_owner_session::model::CompatibilityProfileId;
 use reliquary_owner_session::observation::{
     ObservationActivity, ObservationComparison, ObservationComparisonOutcome,
     ObservationInspection, ObservationOperation, ObservationPendingReason, ObservationReceptorKind,
@@ -13,6 +14,12 @@ use std::collections::{BTreeMap, BTreeSet};
 const MAX_HITS: usize = 5;
 const MAX_PASSAGE_BYTES: usize = 4 * 1024;
 const MAX_EMBEDDING_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
+
+/// Short-lived exact passage vectors for one owner and configured route.
+#[derive(Default)]
+pub struct ContributionEmbeddingCache {
+    rows: BTreeMap<ObservationCitation, Vec<f32>>,
+}
 
 pub struct ContributionWork {
     pub next_source: u16,
@@ -30,6 +37,7 @@ struct ContributionEvidence {
     text: String,
     activity: Option<ObservationActivity>,
     structural: bool,
+    vector: Option<Vec<f32>>,
 }
 
 /// One bounded source group and one exact target head, with independent
@@ -39,6 +47,7 @@ pub fn capture_contribution(
     rel: &RelSession,
     page: &PerceptionAuditPage,
     samples_only: bool,
+    profile: Option<CompatibilityProfileId>,
 ) -> Result<ContributionWork, OwnerSessionError> {
     let position = usize::from(page.contribution_cursor);
     let end = (position + MAX_HITS).min(page.sources.len());
@@ -86,7 +95,7 @@ pub fn capture_contribution(
             else {
                 continue;
             };
-            if !seen_lineage.insert(row.source_lineage) {
+            if seen_lineage.contains(&row.source_lineage) {
                 continue;
             }
             let passage_end = row
@@ -114,6 +123,7 @@ pub fn capture_contribution(
             if let Some(passage) = passage {
                 let cite = owner_citation(passage.citation);
                 if can_compare(rel, &inspection, cite) {
+                    seen_lineage.insert(row.source_lineage);
                     let neighbors = rel.perception_graph_neighbors(source.memory);
                     let structural =
                         inspection.revision.draft.citations.iter().any(|prior| {
@@ -132,11 +142,17 @@ pub fn capture_contribution(
                         .newly_settled
                         .then(|| rel.perception_source_activity(&cite))
                         .flatten();
+                    let vector = if let Some(profile) = profile.filter(|_| source.sampled) {
+                        rel.memory_vector_row(profile, row.metadata.source.body_id)?
+                    } else {
+                        None
+                    };
                     evidence.push(ContributionEvidence {
                         cite,
                         text: passage.text,
                         activity,
                         structural,
+                        vector,
                     });
                 }
             }
@@ -166,12 +182,9 @@ pub fn capture_duplicate_contribution(
         .filter(|head| head.revision.revision == revision && accepts_contribution(head.standing))
         .map(|head| {
             let mut unique = BTreeSet::new();
-            let available = evidence
-                .iter()
-                .copied()
-                .filter(|cite| unique.insert(*cite) && can_compare(rel, &head, *cite))
-                .take(MAX_HITS)
-                .map(|cite| {
+            let mut available = Vec::new();
+            for &cite in evidence {
+                if can_compare(rel, &head, cite) {
                     let mut text = rel.observation_citation_text(&cite)?;
                     let len = text.floor_char_boundary(MAX_PASSAGE_BYTES.min(text.len()));
                     text.truncate(len);
@@ -179,14 +192,23 @@ pub fn capture_duplicate_contribution(
                         end_byte: cite.start_byte + len as u32,
                         ..cite
                     };
-                    Ok(ContributionEvidence {
-                        cite,
-                        text,
-                        activity: None,
-                        structural: true,
-                    })
-                })
-                .collect::<Result<Vec<_>, OwnerSessionError>>()?;
+                    if !text.trim().is_empty()
+                        && unique.insert(cite)
+                        && can_compare(rel, &head, cite)
+                    {
+                        available.push(ContributionEvidence {
+                            cite,
+                            text,
+                            activity: None,
+                            structural: true,
+                            vector: None,
+                        });
+                        if available.len() == MAX_HITS {
+                            break;
+                        }
+                    }
+                }
+            }
             Ok::<_, OwnerSessionError>(ContributionTarget {
                 revision: head.revision.clone(),
                 available,
@@ -227,6 +249,7 @@ fn can_compare(
 pub fn evaluate_contribution(
     work: &ContributionWork,
     routes: &PerceptionRoutes,
+    cache: &mut ContributionEmbeddingCache,
 ) -> Result<Vec<ObservationOperation>, OwnerSessionError> {
     let Some(target) = &work.target else {
         return Ok(Vec::new());
@@ -248,16 +271,38 @@ pub fn evaluate_contribution(
     } else {
         None
     };
-    let input = target
+    if cache.rows.len() >= MAX_HITS * 4 {
+        cache.rows.clear();
+    }
+    let missing = target
         .available
         .iter()
-        .map(|item| item.text.clone())
+        .filter(|item| item.vector.is_none() && !cache.rows.contains_key(&item.cite))
         .collect::<Vec<_>>();
-    let vectors = embed(routes, EmbeddingMode::Document, &input)?;
+    if !missing.is_empty() {
+        let documents = missing
+            .iter()
+            .map(|item| item.text.clone())
+            .collect::<Vec<_>>();
+        let vectors = embed(routes, EmbeddingMode::Document, &documents)?;
+        cache.rows.extend(
+            missing
+                .iter()
+                .zip(vectors)
+                .map(|(item, vector)| (item.cite, vector)),
+        );
+    }
     let policy = SemanticPolicy::default();
     let mut matches = Vec::new();
     let mut model_hits = BTreeMap::new();
-    for (index, (evidence, vector)) in target.available.iter().zip(&vectors).enumerate() {
+    for (index, evidence) in target.available.iter().enumerate() {
+        let vector = evidence
+            .vector
+            .as_ref()
+            .or_else(|| cache.rows.get(&evidence.cite))
+            .ok_or_else(|| {
+                OwnerSessionError::Record("missing Perception passage embedding".into())
+            })?;
         let mut strength = 0i16;
         let mut review = evidence.structural;
         for (receptor_index, receptor) in receptors.iter().enumerate() {

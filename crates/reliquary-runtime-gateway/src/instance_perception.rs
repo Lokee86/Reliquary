@@ -3,6 +3,7 @@ mod poll;
 
 use super::*;
 use crate::instance_owner::RelMount;
+use reliquary_owner_session::model::CompatibilityProfileId;
 use reliquary_owner_session::observation::ObservationId;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -140,6 +141,10 @@ struct WorkerState {
     review_exhausted: bool,
     review_deferred: BTreeMap<ObservationId, Instant>,
     ego_candidates: Vec<reliquary_application::perception_workflow::EgoCandidate>,
+    ego_cut: Option<reliquary_owner_session::PerceptionSourceCut>,
+    contribution_vectors: reliquary_application::perception_workflow::ContributionEmbeddingCache,
+    probed_profiles: BTreeSet<CompatibilityProfileId>,
+    memory_profile: Option<CompatibilityProfileId>,
     failures: usize,
     retry_at: Option<Instant>,
     route: Option<Weak<PerceptionRoutes>>,

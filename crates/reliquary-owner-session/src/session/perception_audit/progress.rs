@@ -8,12 +8,12 @@ pub const AUDIT_WORK_PAGE_SIZE: usize = 125;
 const MAX_PROGRESS_BYTES: usize = 32 * 1024;
 const PROGRESS_VERSION: u8 = 1;
 const LIVE_CONTRIBUTION_GROUP: usize = 5;
-// A Memory change contributes at most one source, a Graph change at most two
-// and an Entity change up to MAX_NEIGHBORS. Reserve room for the cadence group
-// and both sample bands before moving any of the three change cursors.
+// Reserve room for the cadence group and both sample bands. Each source
+// change adds at most one Memory, each Graph change two, and each Entity
+// change can add up to MAX_NEIGHBORS.
 const CHANGES_PER_STREAM: usize =
     (AUDIT_WORK_PAGE_SIZE - AUDIT_CADENCE - AUDIT_STALE_SAMPLES - AUDIT_DORMANT_SAMPLES)
-        / (1 + 2 + MAX_NEIGHBORS);
+        / (1 + 2 + MAX_NEIGHBORS + 1);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct AuditWorkSource {
@@ -21,6 +21,7 @@ pub struct AuditWorkSource {
     pub sampled: bool,
     /// First settlements can contribute local Freshness credit when routed.
     pub newly_settled: bool,
+    pub ego_only: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -113,6 +114,7 @@ pub struct PerceptionAuditProgress {
 #[serde(deny_unknown_fields)]
 struct AuditRun {
     cut: PerceptionSourceCut,
+    previous: PerceptionSourceCut,
     due: Vec<MemoryId>,
     stale: SampleRotation,
     dormant: SampleRotation,
@@ -244,6 +246,7 @@ impl PerceptionAuditProgress {
         let cuts = std::iter::once(&parsed.after)
             .chain(&parsed.bootstrap_cut)
             .chain(parsed.run.as_ref().map(|run| &run.cut))
+            .chain(parsed.run.as_ref().map(|run| &run.previous))
             .chain(parsed.page.as_ref().map(|page| &page.cut))
             .chain(parsed.live_contribution.as_ref().map(|page| &page.cut));
         for cut in cuts {
@@ -339,6 +342,7 @@ impl PerceptionAuditProgress {
                 memory,
                 sampled: false,
                 newly_settled,
+                ego_only: false,
             })
             .collect::<Vec<_>>();
         if !sources.is_empty() {
@@ -366,6 +370,7 @@ impl PerceptionAuditProgress {
                         memory: row.source.id,
                         sampled: false,
                         newly_settled: false,
+                        ego_only: false,
                     })
                     .collect(),
                 Vec::new(),
@@ -402,6 +407,7 @@ impl PerceptionAuditProgress {
                 cut.settlements = position;
                 self.run = Some(AuditRun {
                     cut,
+                    previous: self.after.clone(),
                     due: std::mem::take(&mut self.due),
                     stale: SampleRotation::new(self.stale_after),
                     dormant: SampleRotation::new(self.dormant_after),
@@ -438,7 +444,12 @@ impl PerceptionAuditProgress {
                 AUDIT_DORMANT_SAMPLES,
             );
         }
-        let changes = rel.perception_source_changes(&self.after, &run.cut, CHANGES_PER_STREAM)?;
+        let changes = rel.perception_source_changes(
+            &self.after,
+            &run.cut,
+            &run.previous,
+            CHANGES_PER_STREAM,
+        )?;
         let mut sources = Vec::with_capacity(AUDIT_WORK_PAGE_SIZE);
         let mut seen = run
             .due
@@ -452,6 +463,7 @@ impl PerceptionAuditProgress {
                 memory,
                 sampled: false,
                 newly_settled: true,
+                ego_only: false,
             }));
             sources.extend(
                 run.stale
@@ -462,6 +474,7 @@ impl PerceptionAuditProgress {
                         memory,
                         sampled: true,
                         newly_settled: false,
+                        ego_only: false,
                     }),
             );
             run.placed_inputs = true;
@@ -477,6 +490,19 @@ impl PerceptionAuditProgress {
                     memory,
                     sampled: false,
                     newly_settled: false,
+                    ego_only: false,
+                }),
+        );
+        sources.extend(
+            changes
+                .ego_memories
+                .into_iter()
+                .filter(|id| seen.insert(*id))
+                .map(|memory| AuditWorkSource {
+                    memory,
+                    sampled: false,
+                    newly_settled: false,
+                    ego_only: true,
                 }),
         );
         self.after = PerceptionSourceCut {
@@ -484,6 +510,7 @@ impl PerceptionAuditProgress {
             graph: changes.graph_through,
             entity: changes.entity_through,
             observation: changes.observation_through,
+            freshness: changes.freshness_through,
             ..run.cut.clone()
         };
         if !sources.is_empty() || !changes.derived.is_empty() {
@@ -505,6 +532,7 @@ impl PerceptionAuditProgress {
                 .is_some_and(|cut| !valid_cut(cut))
             || self.run.as_ref().is_some_and(|run| {
                 !valid_cut(&run.cut)
+                    || !valid_cut(&run.previous)
                     || run.due.len() != AUDIT_CADENCE
                     || run.stale.selected.len() > AUDIT_STALE_SAMPLES
                     || run.dormant.selected.len() > AUDIT_DORMANT_SAMPLES

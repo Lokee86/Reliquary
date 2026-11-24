@@ -499,6 +499,65 @@ fn observation_freshness_uses_the_largest_match_and_credits_only_a_verified_upgr
         writer.session.observation_comparison(&comparison),
         Some(ObservationComparisonOutcome::MaterialQualification)
     );
+
+    let correction = self::source(
+        &mut writer,
+        "correction",
+        "The contractor approves orders. The team never approves them.",
+    );
+    let ObservationSource::Memory(source) = correction.source else {
+        unreachable!()
+    };
+    let corrected_activity = ObservationActivity {
+        turn: writer.session.rel_turn_count(),
+        source,
+    };
+    let trigger = batch(
+        &writer,
+        6,
+        vec![
+            ObservationOperation::SemanticAward {
+                id,
+                expected_revision: 2,
+                activity: corrected_activity,
+                evidence: correction,
+                amount: 6,
+            },
+            ObservationOperation::Pending {
+                id,
+                expected_revision: 2,
+                reason: ObservationPendingReason::NewEvidence,
+                evidence: vec![correction],
+            },
+        ],
+    );
+    writer.publish_observation_batch(trigger).unwrap();
+    let corrected = batch(
+        &writer,
+        7,
+        vec![ObservationOperation::Successor {
+            id,
+            expected_revision: 2,
+            draft: draft("The contractor approves orders.", vec![correction]),
+            change: ObservationChange::Correction,
+            credited_activity: Some(corrected_activity),
+        }],
+    );
+    let accepted = writer.publish_observation_batch(corrected.clone()).unwrap();
+    assert_eq!(
+        accepted.awards,
+        vec![ObservationAwardReceipt {
+            id,
+            activity: corrected_activity,
+            previous: 6,
+            total: 50,
+        }]
+    );
+    assert_eq!(writer.session.observation_freshness(id), Some(100));
+    assert_eq!(
+        writer.publish_observation_batch(corrected).unwrap(),
+        accepted
+    );
 }
 
 #[test]

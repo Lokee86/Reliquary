@@ -3,7 +3,8 @@ mod contribution;
 mod discovery;
 
 pub use contribution::{
-    ContributionWork, capture_contribution, capture_duplicate_contribution, evaluate_contribution,
+    ContributionEmbeddingCache, ContributionWork, capture_contribution,
+    capture_duplicate_contribution, evaluate_contribution,
 };
 pub use discovery::retain_current_ego_evidence;
 pub use discovery::{
