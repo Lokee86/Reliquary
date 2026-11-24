@@ -61,6 +61,7 @@ Validate new records at their physical publication prefix. Version the private c
 ## Related docs
 
 - [Implementation plan and focused acceptance](memory-web-audit-plan-2026-11-24.md)
+- [Combined and separate inference call trial](memory-web-audit-call-trial-2026-11-24.md)
 - [Roadmap](roadmap.md#shared-memory-web-audit)
 - [Development workflow](../development/workflow.md)
 
