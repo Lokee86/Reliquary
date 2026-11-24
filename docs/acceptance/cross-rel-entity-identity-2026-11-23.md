@@ -152,6 +152,12 @@ For the expanded same-model comparison, run the same Cargo command with `same_mo
 
 To run policy 3 alone on the 24 comparison cases, six reused examples and four new cases, use the same configured pilot settings and the filter `one_call_on_synthetic_pairs`. Set `RELIQUARY_TRIAL_CASES` to select a subset. The default offline package suite replays the saved responses without contacting any model.
 
+## Operator confirmation and undo
+
+At Core `0556fc9d`, all nine public Entity identity tests passed, including three cases for operator review. A confirmation kept the pair separate after the worker returned `SameIdentity`. A second designated operator withdrew the latest confirmation. After reopening, inspection returned the evaluator’s answer and preserved both operators’ IDs. A further withdrawal with a stale evaluator receipt returned `Pending`. The tests also verified that a superseded confirmation could not be withdrawn and that a replacement REL reusing the same Entity ID did not inherit the decision. [Public review tests](../../tests/entity_identity/separation.rs)
+
+The Gateway regression covered an expired preview, a retry after a successful commit, and reuse of an action ID with different inputs. Owner-session tests covered reopening the recording REL without its peer, incomplete-tail recovery, checkpoints and verified copies. Hermes operator interaction remains a separate integration. [Gateway regression](../../crates/reliquary-runtime-gateway/src/instance_identity/separation/tests.rs) · [Event recovery](../../crates/reliquary-owner-session/src/session/identity_separation/tests.rs) · [Checkpoint and copy tests](../../crates/reliquary-owner-session/src/session/checkpoint/tests_identity_separation.rs)
+
 ## Related docs
 
 - [Public comparison and inspection API](../public-product-api.md)
