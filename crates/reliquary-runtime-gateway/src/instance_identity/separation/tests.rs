@@ -141,6 +141,20 @@ fn expiration_and_action_conflict_preserve_only_the_durable_result() {
     assert_eq!(retry.event, committed.event);
     assert_eq!(retry.state, IdentitySeparationState::Historical);
 
+    control
+        .commit_separation(&identity, &instance, &prepare([4; 16]))
+        .unwrap();
+    let replacement_path = path.join("replacement.rel");
+    drop(RelWriter::create_current_path(&replacement_path, pair.peer_owner).unwrap());
+    gateway.quiesce_owner(peer).unwrap();
+    gateway.mount_reliquary_current(&replacement_path).unwrap();
+    let view = identity.inspect(&instance, pair, None).unwrap().unwrap();
+    assert_eq!(
+        view.separation.unwrap().state,
+        IdentitySeparationState::Historical
+    );
+    assert_eq!(view.effective, IdentityEffectiveDecision::Unavailable);
+
     drop(instance);
     drop(gateway);
     std::fs::remove_dir_all(path).unwrap();

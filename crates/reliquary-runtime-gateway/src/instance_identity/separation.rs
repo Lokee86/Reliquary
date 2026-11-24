@@ -94,16 +94,17 @@ pub(super) fn separation_inspection(
             (IdentitySeparationState::Historical, None)
         }
         IdentitySeparationAction::Confirm { left, right, .. } => {
-            let state = if !local.identity_endpoint_active(local_entity)
-                || !peer.identity_endpoint_active(peer_entity)
+            let state = if local.identity_endpoint_proof(local_entity, Some(left.revision))
+                != Some(left)
+                || peer.identity_endpoint_proof(peer_entity, Some(right.revision)) != Some(right)
             {
-                IdentitySeparationState::Unavailable
-            } else if local.identity_endpoint_proof(local_entity, Some(left.revision)) == Some(left)
-                && peer.identity_endpoint_proof(peer_entity, Some(right.revision)) == Some(right)
+                IdentitySeparationState::Historical
+            } else if local.identity_endpoint_active(local_entity)
+                && peer.identity_endpoint_active(peer_entity)
             {
                 IdentitySeparationState::Applies
             } else {
-                IdentitySeparationState::Historical
+                IdentitySeparationState::Unavailable
             };
             (state, None)
         }
@@ -168,9 +169,12 @@ impl IdentitySeparationControl {
         action_id: [u8; 16],
     ) -> Result<PreparedIdentitySeparation, GatewayError> {
         self.authorize(instance)?;
-        instance.with_identity_pair(&pair, true, |local, peer, stamp| {
+        instance.with_identity_pair(&pair, false, |local, peer, stamp| {
             let _publication = instance.fence_identity_access(&pair)?;
-            let local = local.session();
+            let HeldRel::Writer(local) = local else {
+                return Err(GatewayError::WriterUnavailable);
+            };
+            let local = local.read_session();
             let operator_id = instance.principal();
             validate_principal(operator_id)?;
             if operator_id.len() > MAX_IDENTITY_SEPARATION_OPERATOR_ID_BYTES
