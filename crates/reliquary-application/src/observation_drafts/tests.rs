@@ -175,6 +175,19 @@ impl EmbeddingEndpoint for Script<'_> {
 fn prepares_and_rechecks_a_verified_successor_outside_owner_read_closures() {
     let path = Path::new();
     let mut writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, [13; 16]).unwrap();
+    crate::commit_native_conversation_turn(
+        &mut writer,
+        crate::NativeConversationCommit {
+            node_id: "turn".into(),
+            conversation_id: "observation-fixture".into(),
+            parent_node_id: None,
+            branch_id: "main".into(),
+            principal_id: "fixture".into(),
+            committed_timestamp_ns: 1,
+            content: "Accepted gallery policy source.".into(),
+        },
+    )
+    .unwrap();
     let content = format!("{CLAIM}\n{EXCEPTION}");
     crate::create_direct_memory(
         &mut writer,
