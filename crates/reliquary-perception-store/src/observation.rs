@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 
 pub const MAX_OBSERVATION_OPERATIONS: usize = 32;
 pub const MAX_OBSERVATION_LINEAGE: usize = 64;
+pub const MAX_OBSERVATION_DEPENDENCIES: usize = 4096;
 const MAX_CITATIONS: usize = 8;
 const MAX_REVIEWED: usize = 11;
 

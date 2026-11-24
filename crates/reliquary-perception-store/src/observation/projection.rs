@@ -2,8 +2,6 @@ use super::*;
 use std::collections::BTreeMap;
 use std::ops::Bound::{Excluded, Unbounded};
 
-const MAX_DEPENDENCY_CHECK: usize = 4096;
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ObservationRecord {
     pub batch: ObservationBatch,
@@ -549,10 +547,13 @@ impl ObservationStore {
         let mut dependencies = direct_observations(draft).collect::<Vec<_>>();
         let mut visited = BTreeSet::new();
         while let Some(source) = dependencies.pop() {
-            if source == id || visited.len() >= MAX_DEPENDENCY_CHECK {
+            if source == id {
                 return Err(invalid("Observation cycle or dependency limit"));
             }
             if visited.insert(source) {
+                if visited.len() > MAX_OBSERVATION_DEPENDENCIES {
+                    return Err(invalid("Observation cycle or dependency limit"));
+                }
                 dependencies.extend(
                     self.historical_dependencies
                         .get(&source)

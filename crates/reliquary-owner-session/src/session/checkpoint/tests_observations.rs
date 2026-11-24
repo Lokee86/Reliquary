@@ -155,6 +155,71 @@ fn create(writer: &mut RelWriter, fingerprint: u8, draft: ObservationDraft) -> O
 }
 
 #[test]
+fn deep_verified_chain_remains_current_and_follows_upstream_standing() {
+    let directory = tempfile::tempdir().unwrap();
+    let owner = directory.path().join("deep-claims.rel");
+    let mut writer = RelWriter::create_current_path(&owner, OWNER).unwrap();
+    let support = source(
+        &mut writer,
+        "foundation",
+        "Team records support each premise.",
+    );
+    let root = create(
+        &mut writer,
+        1,
+        draft("Team records are available.", vec![support]),
+    );
+    let mut tip = root;
+    for step in 2..=70 {
+        let preceding = writer
+            .session
+            .observation(tip)
+            .unwrap()
+            .revision
+            .full_citation();
+        tip = create(
+            &mut writer,
+            step,
+            draft(&format!("Verified premise {step}."), vec![preceding]),
+        );
+    }
+    assert_eq!(
+        writer.session.observation(tip).unwrap().standing,
+        ObservationStanding::Current
+    );
+    let trigger = source(&mut writer, "trigger", "The team is auditing its records.");
+    let pending = batch(
+        &writer,
+        71,
+        vec![ObservationOperation::Pending {
+            id: root,
+            expected_revision: 1,
+            reason: ObservationPendingReason::NewEvidence,
+            evidence: vec![trigger],
+        }],
+    );
+    writer.publish_observation_batch(pending).unwrap();
+    assert_eq!(
+        writer.session.observation(tip).unwrap().standing,
+        ObservationStanding::Pending(ObservationPendingReason::UpstreamReview),
+    );
+    let reaffirmed = batch(
+        &writer,
+        72,
+        vec![ObservationOperation::Reaffirm {
+            id: root,
+            expected_revision: 1,
+            reviewed: vec![trigger],
+        }],
+    );
+    writer.publish_observation_batch(reaffirmed).unwrap();
+    assert_eq!(
+        writer.session.observation(tip).unwrap().standing,
+        ObservationStanding::Current
+    );
+}
+
+#[test]
 fn observation_dependency_review_and_suffix_replay_preserve_exact_history() {
     let directory = tempfile::tempdir().unwrap();
     let owner = directory.path().join("claim.rel");

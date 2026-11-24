@@ -6,8 +6,7 @@ use reliquary_perception_store::observation::*;
 pub(crate) const PREFIX: &[u8] = b"RELOBS";
 pub(crate) const MARKER: &[u8; 8] = b"RELOBS01";
 const MAX_RECORD_BYTES: usize = 4 * 1024 * 1024;
-const MAX_STANDING_CHECK: usize = 512;
-const MAX_STANDING_DEPTH: usize = 64;
+const MAX_STANDING_CHECK: usize = MAX_OBSERVATION_DEPENDENCIES + 1;
 const MAX_PAGE: usize = 128;
 
 fn is_observation(prefix: &[u8]) -> bool {
@@ -389,12 +388,15 @@ fn invalidated_by_batch(
     let mut queue = sources(citations);
     let mut visited = BTreeSet::new();
     while let Some(id) = queue.pop() {
-        if changes.contains(&id) || visited.len() >= MAX_STANDING_CHECK {
+        if changes.contains(&id) {
             return true;
         }
         if visited.insert(id)
             && let Some(row) = store.head(id)
         {
+            if visited.len() > MAX_STANDING_CHECK {
+                return true;
+            }
             queue.extend(sources(&row.draft.citations));
         }
     }
@@ -405,7 +407,6 @@ struct StandingCheck<'a> {
     prefix: ObservationPrefix<'a>,
     store: &'a ObservationStore,
     memo: BTreeMap<ObservationId, ObservationStanding>,
-    remaining: usize,
 }
 
 impl<'a> StandingCheck<'a> {
@@ -414,52 +415,90 @@ impl<'a> StandingCheck<'a> {
             prefix,
             store,
             memo: BTreeMap::new(),
-            remaining: MAX_STANDING_CHECK,
         }
     }
 
-    fn standing(&mut self, id: ObservationId, depth: usize) -> ObservationStanding {
-        if let Some(&standing) = self.memo.get(&id) {
-            return standing;
+    fn standing(&mut self, id: ObservationId) -> ObservationStanding {
+        // Evaluate dependencies before their children using a stack. The
+        // bound matches publication admission and applies to one claim.
+        let mut stack = vec![(id, false)];
+        let mut visited = BTreeSet::new();
+        while let Some((candidate, expanded)) = stack.pop() {
+            if self.memo.contains_key(&candidate) {
+                continue;
+            }
+            if expanded {
+                let inherited = self
+                    .dependencies(candidate)
+                    .any(|source| self.memo.get(&source) != Some(&ObservationStanding::Current));
+                let standing = if inherited {
+                    ObservationStanding::Pending(ObservationPendingReason::UpstreamReview)
+                } else {
+                    ObservationStanding::Current
+                };
+                self.memo.insert(candidate, standing);
+                continue;
+            }
+            if !visited.insert(candidate) || visited.len() > MAX_STANDING_CHECK {
+                // Admitted histories cannot contain this cycle or exceed the
+                // bound. A read of an unavailable proof fails closed.
+                return ObservationStanding::Pending(ObservationPendingReason::UpstreamReview);
+            }
+            if let Some(standing) = self.local_standing(candidate) {
+                self.memo.insert(candidate, standing);
+            } else {
+                stack.push((candidate, true));
+                stack.extend(self.dependencies(candidate).map(|source| (source, false)));
+            }
         }
-        if depth >= MAX_STANDING_DEPTH || self.remaining == 0 {
-            return ObservationStanding::Pending(ObservationPendingReason::UpstreamReview);
+        self.memo[&id]
+    }
+
+    fn dependencies(&self, id: ObservationId) -> impl Iterator<Item = ObservationId> + '_ {
+        self.store
+            .head(id)
+            .into_iter()
+            .flat_map(|row| &row.draft.citations)
+            .filter_map(|cite| match cite.source {
+                ObservationSource::Observation(source) => Some(source),
+                ObservationSource::Memory(_) => None,
+            })
+    }
+
+    fn local_standing(&self, id: ObservationId) -> Option<ObservationStanding> {
+        if let Some(reason) = self.store.withdrawal(id) {
+            return Some(ObservationStanding::Withdrawn(reason));
         }
-        self.remaining -= 1;
-        let standing = if let Some(reason) = self.store.withdrawal(id) {
-            ObservationStanding::Withdrawn(reason)
-        } else if let Some((reason, _)) = self.store.pending(id) {
-            ObservationStanding::Pending(reason)
-        } else if let Some(head) = self.store.head(id) {
-            self.invalid_support(head, depth)
-                .map_or(ObservationStanding::Current, ObservationStanding::Pending)
-        } else {
-            ObservationStanding::Pending(ObservationPendingReason::ChangedSupport)
-        };
-        self.memo.insert(id, standing);
-        standing
+        if let Some((reason, _)) = self.store.pending(id) {
+            return Some(ObservationStanding::Pending(reason));
+        }
+        if self
+            .store
+            .head(id)
+            .is_none_or(|head| self.has_invalid_support(head))
+        {
+            return Some(ObservationStanding::Pending(
+                ObservationPendingReason::ChangedSupport,
+            ));
+        }
+        None
     }
 
     fn requires_own_review(&mut self, id: ObservationId) -> bool {
         matches!(
-            self.standing(id, 0),
+            self.standing(id),
             ObservationStanding::Pending(
                 ObservationPendingReason::NewEvidence | ObservationPendingReason::ChangedSupport
             )
         ) || self.store.pending(id).is_some()
     }
 
-    fn invalid_support(
-        &mut self,
-        row: &ObservationRevision,
-        depth: usize,
-    ) -> Option<ObservationPendingReason> {
-        let mut inherited = false;
+    fn has_invalid_support(&self, row: &ObservationRevision) -> bool {
         for cite in &row.draft.citations {
             match cite.source {
                 ObservationSource::Memory(id) => {
                     if self.prefix.current_memory_text(cite, id).is_err() {
-                        return Some(ObservationPendingReason::ChangedSupport);
+                        return true;
                     }
                 }
                 ObservationSource::Observation(id) => {
@@ -469,20 +508,16 @@ impl<'a> StandingCheck<'a> {
                         .is_some_and(|source| source.revision == cite.revision)
                         || self.store.withdrawal(id).is_some()
                     {
-                        return Some(ObservationPendingReason::ChangedSupport);
+                        return true;
                     }
-                    inherited |= self.standing(id, depth + 1) != ObservationStanding::Current;
                 }
             }
         }
-        if row.draft.profile.participants().iter().any(|p| {
+        row.draft.profile.participants().iter().any(|p| {
             self.prefix
                 .check_participant(p, &row.draft.citations)
                 .is_err()
-        }) {
-            return Some(ObservationPendingReason::ChangedSupport);
-        }
-        inherited.then_some(ObservationPendingReason::UpstreamReview)
+        })
     }
 
     fn current_lineage(
@@ -506,7 +541,7 @@ impl<'a> StandingCheck<'a> {
                     .filter(|revision| cite.revision == revision.revision)
                     .ok_or_else(|| invalid("cited Observation revision changed"))?;
                 observation_text(revision, cite)?;
-                if self.standing(id, 0) != ObservationStanding::Current {
+                if self.standing(id) != ObservationStanding::Current {
                     return Err(invalid("cited Observation is pending or withdrawn"));
                 }
                 Ok(revision.lineage.clone())
@@ -610,7 +645,7 @@ impl RelSession {
                 let revision = self.observations.head(id)?;
                 Some(ObservationInspection {
                     revision,
-                    standing: checker.standing(id, 0),
+                    standing: checker.standing(id),
                     triggering_evidence: self
                         .observations
                         .pending(id)

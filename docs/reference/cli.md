@@ -59,6 +59,8 @@ For Archive hybrid search, run `rel search PATH --mode hybrid --scope archive --
 - Decision routes (`general-decision`, `entity-resolution-decision`, `memory-retrieval-decision`) require `--model`, `--credential` and `--url`.
 - For each supported route, `config model clear-ROUTE` removes it. Route names are `general`, `insomnia`, `insomnia-metadata`, `entity-extraction`, `general-decision`, `entity-resolution-decision`, `memory-retrieval-decision`, `entity-resolution`, `dream`, `embedding`.
 
+For a managed Perception session, use `config model set-general-decision --model typesafe/jev-1.13 --credential ID --url URL` with the host's native decision endpoint. The general and embedding routes supply discovery, synthesis and receptors. [Configured runtime](../configured-runtime.md)
+
 ## Interactive JSONL
 
 `rel interact PATH [--config FILE] [--commands JSONL]` reads one JSON object per line and emits one reply per request. Records require `request_id` and `command`. Commands are `query`/`refine` with `text`; a JSONL query may also include `temporal_filter` with `basis`, `from` and `before` RFC3339 offset values. Commands also include `traverse` with one to ten `memory_ids`, `show`/`source`/`neighbors` with `memory_id`, plus `status`, `new-turn` and `quit`. Temporal CLI options must be supplied together; the upper `--before` bound is exclusive. Extra fields are rejected. Input lines are bounded at 16 KiB; invalid UTF-8/JSON, missing fields and unknown commands produce per-request errors. Query/refine/traverse share process-local state; ending the process ends that session.
