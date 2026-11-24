@@ -208,7 +208,7 @@ pub(super) fn archive_vector_input(
                 },
             );
         }
-        if verified_max != existing_max_fragment_archive_version {
+        if verified_max != info.max_fragment_archive_version {
             return Err(vector_invalid(
                 "accepted vector source version does not match its mapping",
             ));
