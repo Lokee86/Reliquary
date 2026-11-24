@@ -265,7 +265,7 @@ fn cold_replay_rejects_forged_separation_carriers() {
         ("duplicate", "action ID already used"),
         ("raw", "missing allocating publication envelope"),
     ] {
-        let source = directory.path().join(format!("{case}.rel"));
+        let source = directory.path().join(format!("invalid-{case}.rel"));
         let mut writer = RelWriter::create_current_path(&source, OWNER).unwrap();
         let (_, receipt, mut event) = prepare(&mut writer, right.id, proof);
         match case {
