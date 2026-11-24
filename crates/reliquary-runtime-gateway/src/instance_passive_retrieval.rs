@@ -1,5 +1,8 @@
 //! Authorized passive retrieval over the same owner cut used by agentic selection.
 use super::*;
+use crate::instance_observation_reads::{
+    ObservationReadCut, observations_are_current, rank_current_observations,
+};
 use crate::instance_retrieval::preview::{MAX_RETRIEVAL_RESULTS, project_memories};
 use crate::{RetrievalCut, RetrievalMemory};
 use reliquary_application::{
@@ -29,6 +32,8 @@ pub struct SearchResult {
     pub memories_without_vectors: Option<usize>,
     pub truncated: bool,
     pub memories: Vec<RetrievalMemory>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub observations: Vec<RetrievalObservation>,
 }
 
 /// Evidence for a returned Memory revision, keyed by its result identifier.
@@ -97,12 +102,7 @@ impl Instance {
         include_vectors: bool,
     ) -> Result<reliquary_owner_session::RelRetrievalSnapshot, GatewayError> {
         self.with_reliquary(owner, |rel| {
-            if profile.is_some_and(|id| rel.active_compatibility_profile(id).is_none()) {
-                return Err(GatewayError::RetrievalUnavailable(
-                    "embedding profile is unavailable",
-                ));
-            }
-            Ok(rel.retrieval_snapshot(if include_vectors { profile } else { None })?)
+            capture_memory_snapshot(rel, profile, include_vectors)
         })?
     }
 
@@ -177,7 +177,23 @@ impl Instance {
         }
         let profile = embedding.as_ref().map(|(id, _)| *id);
         let vector = embedding.as_ref().map(|(_, row)| row.as_slice());
-        let mut snapshot = self.retrieval_snapshot(owner, profile)?;
+        let observation_limit = limit.unwrap_or(policy.result_limit.min(MAX_RETRIEVAL_RESULTS));
+        let (mut snapshot, observation_cut, (observations, observations_truncated)) = self
+            .with_reliquary(owner, |rel| -> Result<_, GatewayError> {
+                let snapshot = capture_memory_snapshot(rel, profile, true)?;
+                let observations = if mode == SearchMode::Semantic {
+                    (Vec::new(), false)
+                } else {
+                    rank_current_observations(
+                        rel,
+                        query,
+                        filter,
+                        &BTreeSet::new(),
+                        observation_limit,
+                    )
+                };
+                Ok((snapshot, ObservationReadCut::capture(rel), observations))
+            })??;
         if filter.is_none() && vector.is_some() && snapshot.vectors.is_empty() {
             return Err(GatewayError::RetrievalUnavailable(
                 "no current Memory vectors for the embedding profile",
@@ -245,8 +261,17 @@ impl Instance {
             }
             (memories, ranked.selected.len() > limit)
         };
+        if !observations.is_empty()
+            && !self.with_reliquary(owner, |rel| {
+                ObservationReadCut::capture(rel) == observation_cut
+                    && observations_are_current(rel, &observations)
+            })?
+        {
+            return Err(GatewayError::StaleRetrieval);
+        }
         self.ensure_credential_active()?;
-        let truncated = more || memories.iter().any(|memory| memory.truncated);
+        let truncated =
+            more || observations_truncated || memories.iter().any(|memory| memory.truncated);
         let evidence = memories
             .iter()
             .filter_map(|memory| {
@@ -258,7 +283,7 @@ impl Instance {
             .collect();
         Ok((
             SearchResult {
-                cut: RetrievalCut::capture(&snapshot, profile),
+                cut: RetrievalCut::capture(&snapshot, profile, observation_cut.publication),
                 query: query.to_owned(),
                 mode,
                 semantic_routing,
@@ -266,6 +291,7 @@ impl Instance {
                 memories_without_vectors: missing,
                 truncated,
                 memories,
+                observations,
             },
             evidence,
         ))
@@ -299,4 +325,17 @@ impl Instance {
         self.ensure_credential_active()?;
         Ok(result)
     }
+}
+
+pub(crate) fn capture_memory_snapshot(
+    rel: &RelSession,
+    profile: Option<CompatibilityProfileId>,
+    include_vectors: bool,
+) -> Result<reliquary_owner_session::RelRetrievalSnapshot, GatewayError> {
+    if profile.is_some_and(|id| rel.active_compatibility_profile(id).is_none()) {
+        return Err(GatewayError::RetrievalUnavailable(
+            "embedding profile is unavailable",
+        ));
+    }
+    Ok(rel.retrieval_snapshot(if include_vectors { profile } else { None })?)
 }

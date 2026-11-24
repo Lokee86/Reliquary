@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 
 mod entity_identity;
 pub use entity_identity::*;
+mod observation;
+pub use observation::*;
 
 pub use reliquary_application::inspection::{
     CommunityMetadata, CommunityNameOrigin, CreateRelationshipRequest, EntityRetirementRequest,

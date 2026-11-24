@@ -12,6 +12,8 @@ pub struct RetrievalCut {
     pub rel_turn: u64,
     pub memory_version: u64,
     pub graph_version: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub observation_version: Option<u64>,
     pub community_generation: Option<u64>,
     pub community_graph_version: Option<u64>,
     pub profile_id: Option<String>,
@@ -21,6 +23,7 @@ impl RetrievalCut {
     pub(crate) fn capture(
         snapshot: &RelRetrievalSnapshot,
         profile: Option<CompatibilityProfileId>,
+        observation_version: u64,
     ) -> Self {
         Self {
             owner_id: hex(&snapshot.owner_id),
@@ -28,6 +31,7 @@ impl RetrievalCut {
             rel_turn: snapshot.rel_turn,
             memory_version: snapshot.memory_version,
             graph_version: snapshot.graph_version,
+            observation_version: (observation_version > 0).then_some(observation_version),
             community_generation: snapshot.community.as_ref().map(|c| c.generation),
             community_graph_version: snapshot.community.as_ref().map(|c| c.graph_version),
             profile_id: profile.map(|id| hex(&id.0)),
@@ -73,6 +77,8 @@ pub struct RetrievalPreview {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temporal_evidence: Option<BTreeMap<String, Vec<TemporalEvidence>>>,
     pub memories: Vec<RetrievalMemory>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub observations: Vec<RetrievalObservation>,
     pub truncated: bool,
 }
 
@@ -81,6 +87,8 @@ impl RetrievalPreview {
         snapshot: &RelRetrievalSnapshot,
         profile: Option<CompatibilityProfileId>,
         evaluation: &RetrievalEvaluation,
+        observation_version: u64,
+        (observations, observations_truncated): (Vec<RetrievalObservation>, bool),
     ) -> Result<Self, GatewayError> {
         let memories =
             project_memories(snapshot, evaluation.memories.iter().map(|memory| memory.id))?;
@@ -99,14 +107,16 @@ impl RetrievalPreview {
                 .collect()
         });
         Ok(Self {
-            cut: RetrievalCut::capture(snapshot, profile),
+            cut: RetrievalCut::capture(snapshot, profile, observation_version),
             query: evaluation.next.query().unwrap_or_default().to_owned(),
             temporal_filter,
             temporal_evidence,
             truncated: evaluation.memories.len() > memories.len()
                 || memories.iter().any(|m| m.truncated)
-                || !evaluation.temporal_evidence_truncated.is_empty(),
+                || !evaluation.temporal_evidence_truncated.is_empty()
+                || observations_truncated,
             memories,
+            observations,
         })
     }
 }

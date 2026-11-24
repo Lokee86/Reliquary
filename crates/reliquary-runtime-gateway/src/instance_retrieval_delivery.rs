@@ -30,7 +30,18 @@ impl Instance {
             return Ok(false);
         }
         crate::host_memory_delivery::require_delivery_contract(router, self.gateway_binding())?;
-        self.validate_pending(turn, prepared)?;
+        if !self.pending_matches(turn, prepared)? {
+            if sources.is_empty()
+                && matches!(
+                    router.adapter().memory_delivery_status(&prepared.use_id).map_err(GatewayError::HostAdapter)?,
+                    MemoryDeliveryStatus::Confirmed(confirmed) if matches_operation(prepared, &confirmed)
+                )
+            {
+                validate_prepared(self, turn, prepared)?;
+                return Ok(false);
+            }
+            return Err(GatewayError::InvalidPreparedRetrieval);
+        }
         // Establish writer availability before the external receiver can
         // consume content; a read-only mount may prepare, but cannot deliver.
         self.with_rel_writer(prepared.owner, |_| ())?;
@@ -53,9 +64,7 @@ impl Instance {
             .map_err(GatewayError::HostAdapter)?;
         match status {
             MemoryDeliveryStatus::Confirmed(confirmed)
-                if confirmed.payload_digest == prepared.digest
-                    && confirmed.payload == prepared.payload
-                    && confirmed.stable_id == prepared.use_id => {}
+                if matches_operation(prepared, &confirmed) => {}
             MemoryDeliveryStatus::Confirmed(_) => {
                 return Err(GatewayError::InvalidHandoffReceipt);
             }
@@ -94,6 +103,12 @@ impl Instance {
         // Host consumption is known even if the durable Freshness write fails.
         // Retain the pending exact manifest until its receipt is reconciled.
         self.mark_confirmed_consumption(turn, prepared, false)?;
+        // An Observation has its own activity-based scoring. This confirmed
+        // host operation remains recoverable without a Memory Freshness write.
+        if sources.is_empty() {
+            self.commit_selected(turn, prepared)?;
+            return Ok(false);
+        }
         let recorded =
             self.with_rel_writer(prepared.owner, |writer| -> Result<bool, GatewayError> {
                 validate_prepared(self, turn, prepared)?;
@@ -114,12 +129,15 @@ impl Instance {
         prepared: &PreparedMemoryDelivery,
     ) -> Result<(), GatewayError> {
         validate_prepared(self, turn, prepared)?;
-        let snapshot = self
-            .retrieval_cut_snapshot(prepared.owner, prepared.profile, false)
-            .map_err(|error| match error {
+        let snapshot = self.with_reliquary(prepared.owner, |rel| {
+            if !observations_are_current(rel, &prepared.preview.observations) {
+                return Err(GatewayError::StaleRetrieval);
+            }
+            capture_memory_snapshot(rel, prepared.profile, false).map_err(|error| match error {
                 GatewayError::RetrievalUnavailable(_) => GatewayError::StaleRetrieval,
                 other => other,
-            })?;
+            })
+        })??;
         if snapshot.owner_id != prepared.owner.as_bytes()
             || prepared
                 .body_bindings
@@ -207,6 +225,13 @@ impl Instance {
         next.confirm_selected(prepared.evaluation.memories.iter().map(|memory| memory.id))
             .map_err(|reason| GatewayError::Retrieval(reason.into()))?;
         state.turn = next;
+        state.provided_observations.extend(
+            prepared
+                .preview
+                .observations
+                .iter()
+                .map(|hit| hit.claim.citation),
+        );
         state.profile = prepared.profile;
         state.consumption_confirmed = !recorded;
         if recorded {
@@ -253,4 +278,13 @@ impl Instance {
             Err(error) => Err(error),
         }
     }
+}
+
+fn matches_operation(
+    prepared: &PreparedMemoryDelivery,
+    confirmed: &MemoryDeliveryOperation,
+) -> bool {
+    confirmed.payload_digest == prepared.digest
+        && confirmed.payload == prepared.payload
+        && confirmed.stable_id == prepared.use_id
 }

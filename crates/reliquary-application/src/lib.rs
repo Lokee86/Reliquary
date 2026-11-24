@@ -1085,5 +1085,6 @@ pub use archive_search::{
     TemporalArchiveHybridSearch, rank_archive_hybrid, rank_archive_hybrid_temporal,
 };
 pub use owner_retrieval::{
-    agentic_memories, rank_owner_snapshot, retain_temporal_memories, route_owner_snapshot,
+    ObservationLexicalQuery, agentic_memories, rank_owner_snapshot, retain_temporal_memories,
+    route_owner_snapshot,
 };

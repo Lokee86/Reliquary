@@ -633,6 +633,8 @@ fn readonly_preparation_cannot_deliver_and_terminal_rejection_releases_turn() {
 
 #[path = "inspection_tests.rs"]
 mod inspection_tests;
+#[path = "observation_tests.rs"]
+mod observation_tests;
 
 #[test]
 fn temporal_manifest_recovery_restores_its_window_and_preserves_a_newer_frontier() {

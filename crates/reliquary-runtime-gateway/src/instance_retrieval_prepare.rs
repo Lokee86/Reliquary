@@ -33,6 +33,7 @@ impl Instance {
             state: Mutex::new(TurnState {
                 turn: RetrievalTurn::default(),
                 generation: 0,
+                provided_observations: BTreeSet::new(),
                 pending_use_id: None,
                 pending_profile: None,
                 handoff_checked: false,
@@ -90,7 +91,7 @@ impl Instance {
         let owner = turn.owner;
         let turn_id = turn.turn_id.as_str();
         validate_turn_binding(self, turn, owner, turn_id)?;
-        let (prior, generation, prior_profile) = {
+        let (prior, generation, prior_profile, provided_observations) = {
             let state = turn
                 .state
                 .lock()
@@ -98,7 +99,12 @@ impl Instance {
             if state.pending_use_id.is_some() {
                 return Err(GatewayError::HostStatusUnknown);
             }
-            (state.turn.clone(), state.generation, state.profile)
+            (
+                state.turn.clone(),
+                state.generation,
+                state.profile,
+                state.provided_observations.clone(),
+            )
         };
         let (profile, query_vector) = match &action {
             RetrievalAction::Query(_) => match embed_query()? {
@@ -109,7 +115,13 @@ impl Instance {
         };
         validate_turn_binding(self, turn, owner, turn_id)?;
         let include_vectors = query_vector.is_some();
-        let snapshot = self.retrieval_cut_snapshot(owner, profile, include_vectors)?;
+        let (snapshot, observation_cut) =
+            self.with_reliquary(owner, |rel| -> Result<_, GatewayError> {
+                Ok((
+                    capture_memory_snapshot(rel, profile, include_vectors)?,
+                    ObservationReadCut::capture(rel),
+                ))
+            })??;
         if query_vector.is_some() && snapshot.vectors.is_empty() {
             return Err(GatewayError::RetrievalUnavailable(
                 "no current Memory vectors for the embedding profile",
@@ -121,6 +133,7 @@ impl Instance {
             generation,
             endpoint: route.0.as_ref(),
         };
+        let offer_observations = !matches!(action, RetrievalAction::Traverse(_));
         let evaluation = evaluate_snapshot_retrieval(
             &authorized_route,
             &prior,
@@ -131,16 +144,44 @@ impl Instance {
         );
         authorized_route.check()?;
         let evaluation = evaluation.map_err(GatewayError::Retrieval)?;
-        let current = self
-            .retrieval_cut_snapshot(owner, profile, include_vectors)
-            .map_err(|error| match error {
-                GatewayError::RetrievalUnavailable(_) => GatewayError::StaleRetrieval,
-                other => other,
-            })?;
-        if snapshot != current {
-            return Err(GatewayError::StaleRetrieval);
-        }
-        let preview = RetrievalPreview::from_evaluation(&snapshot, profile, &evaluation)?;
+        let observations = self.with_reliquary(owner, |rel| {
+            let current = capture_memory_snapshot(rel, profile, include_vectors).map_err(
+                |error| match error {
+                    GatewayError::RetrievalUnavailable(_) => GatewayError::StaleRetrieval,
+                    other => other,
+                },
+            )?;
+            let current_cut = ObservationReadCut::capture(rel);
+            if snapshot != current
+                || (current_cut.publication.max(observation_cut.publication) > 0
+                    && observation_cut != current_cut)
+            {
+                return Err(GatewayError::StaleRetrieval);
+            }
+            Ok(if offer_observations {
+                evaluation
+                    .next
+                    .query()
+                    .map_or((Vec::new(), false), |query| {
+                        rank_current_observations(
+                            rel,
+                            query,
+                            evaluation.next.temporal_filter(),
+                            &provided_observations,
+                            MAX_AGENTIC_OBSERVATIONS,
+                        )
+                    })
+            } else {
+                (Vec::new(), false)
+            })
+        })??;
+        let preview = RetrievalPreview::from_evaluation(
+            &snapshot,
+            profile,
+            &evaluation,
+            observation_cut.publication,
+            observations,
+        )?;
         let _delivery = turn
             .delivery
             .try_lock()
@@ -153,7 +194,9 @@ impl Instance {
         if state.generation != generation || state.pending_use_id.is_some() {
             return Err(GatewayError::StaleRetrieval);
         }
-        if turn.mode == RetrievalMode::Inspect || evaluation.memories.is_empty() {
+        if turn.mode == RetrievalMode::Inspect
+            || (evaluation.memories.is_empty() && preview.observations.is_empty())
+        {
             state.turn = evaluation.next;
             state.profile = profile;
             state.generation = state.generation.saturating_add(1);
@@ -198,6 +241,8 @@ impl Instance {
                     content: &memory.body.content,
                 })
                 .collect(),
+            selected_observations: provided_observations.into_iter().collect(),
+            observations: preview.observations.iter().map(|hit| &hit.claim).collect(),
         })
         .map_err(|error| GatewayError::Retrieval(error.to_string()))?;
         let digest: [u8; 32] = Sha256::digest(&payload).into();

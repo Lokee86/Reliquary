@@ -1,6 +1,7 @@
 //! Owner-derived retrieval inputs. Every lane uses the same immutable read cut.
 use crate::{AgenticMemory, OwnerMemorySelection, SelectedMemory, memory_temporal_evidence};
 use reliquary_owner_session::model::MemoryId;
+use reliquary_owner_session::observation::ObservationDraft;
 use reliquary_owner_session::{RelRetrievalSnapshot, model::PayloadState};
 use reliquary_retrieval::memory_retrieval::{
     MemoryRetrievalConfig, MemoryRetrievalResult, MemoryRetrievalSnapshot, retrieve_memories,
@@ -8,7 +9,7 @@ use reliquary_retrieval::memory_retrieval::{
 use reliquary_retrieval::{
     RetrievalConfig, combine_hybrid_scores, lexical_score, lexical_terms, validate_hybrid_request,
 };
-use reliquary_retrieval::{TemporalEvidence, TemporalFilter};
+use reliquary_retrieval::{TemporalBasis, TemporalEvidence, TemporalFilter};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub fn agentic_memories(snapshot: &RelRetrievalSnapshot) -> Vec<AgenticMemory> {
@@ -122,6 +123,37 @@ pub fn route_owner_snapshot(
             .collect(),
     };
     retrieve_memories(&input, query, config, snapshot.graph_version).map_err(|e| format!("{e:?}"))
+}
+
+/// Query terms and a supported time window for the typed Observation lane.
+pub struct ObservationLexicalQuery {
+    terms: Vec<String>,
+    filter: Option<TemporalFilter>,
+}
+
+impl ObservationLexicalQuery {
+    pub fn new(query: &str, filter: Option<TemporalFilter>) -> Self {
+        Self {
+            terms: lexical_terms(query),
+            filter,
+        }
+    }
+
+    pub fn score(&self, draft: &ObservationDraft) -> Option<f64> {
+        if let Some(filter) = self.filter {
+            let validity = draft.validity?;
+            if filter.basis != TemporalBasis::Mentioned
+                || validity
+                    .start_ns
+                    .is_some_and(|start| start >= filter.end_exclusive_ns)
+                || validity.end_ns.is_some_and(|end| end <= filter.start_ns)
+            {
+                return None;
+            }
+        }
+        let score = lexical_score(&draft.proposition, &self.terms);
+        (score > 0.0).then_some(score)
+    }
 }
 
 #[cfg(test)]

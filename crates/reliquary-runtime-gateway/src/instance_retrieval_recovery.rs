@@ -94,8 +94,28 @@ impl Instance {
             .iter()
             .map(|memory| parse_memory_id(&memory.memory_id))
             .collect::<Result<Vec<_>, _>>()?;
-        if manifest.memories.is_empty()
+        let observation_ids = manifest
+            .observations
+            .iter()
+            .filter_map(|claim| match claim.citation.source {
+                ObservationSource::Observation(id) => Some(id),
+                ObservationSource::Memory(_) => None,
+            })
+            .collect::<BTreeSet<_>>();
+        if (manifest.memories.is_empty() && manifest.observations.is_empty())
             || ids.iter().copied().collect::<BTreeSet<_>>().len() != ids.len()
+            || manifest.observations.len() > MAX_AGENTIC_OBSERVATIONS
+            || observation_ids.len() != manifest.observations.len()
+            || manifest
+                .selected_observations
+                .windows(2)
+                .any(|pair| pair[0] >= pair[1])
+            || manifest.observations.iter().any(|claim| {
+                manifest
+                    .selected_observations
+                    .binary_search(&claim.citation)
+                    .is_ok()
+            })
             || manifest
                 .memories
                 .iter()
@@ -125,6 +145,20 @@ impl Instance {
                 }
                 return Ok(false);
             }
+            let observation_cut = ObservationReadCut::capture(rel);
+            if manifest.selected_observations.iter().any(|cite| !observation_cut.contains(cite)) {
+                return Err(GatewayError::InvalidHandoffReceipt);
+            }
+            for claim in &manifest.observations {
+                let ObservationSource::Observation(id) = claim.citation.source else {
+                    return Err(GatewayError::InvalidHandoffReceipt);
+                };
+                let exact = rel.observation_revision(id, claim.citation.revision)
+                    .is_some_and(|row| ObservationClaim::from(row.revision) == *claim);
+                if !exact {
+                    return Err(GatewayError::StaleRetrieval);
+                }
+            }
             for (memory, id) in manifest.memories.iter().zip(&ids) {
                 let exact = rel.memory_history(*id)?.is_some_and(|history| {
                     history.revisions.iter().any(|revision| {
@@ -136,6 +170,9 @@ impl Instance {
                 if !exact {
                     return Err(GatewayError::StaleRetrieval);
                 }
+            }
+            if sources.is_empty() {
+                return Ok(false);
             }
             Ok(writer.record_external_accepted_use(
                 &use_id,
@@ -225,6 +262,12 @@ impl Instance {
             entry.profile = entry.pending_profile;
         }
         entry.turn = state;
+        entry
+            .provided_observations
+            .extend(manifest.selected_observations.iter().copied());
+        entry
+            .provided_observations
+            .extend(manifest.observations.iter().map(|claim| claim.citation));
         entry.generation = entry.generation.saturating_add(1);
         entry.pending_use_id = None;
         entry.pending_profile = None;

@@ -1,9 +1,14 @@
 use super::instance_owner::RelMount;
 use super::*;
+use crate::instance_observation_reads::{
+    ObservationReadCut, observations_are_current, rank_current_observations,
+};
+use crate::instance_passive_retrieval::capture_memory_snapshot;
 use reliquary_application::{
     RetrievalAction, RetrievalEvaluation, RetrievalTurn, evaluate_snapshot_retrieval,
 };
 use reliquary_application::{TemporalEvidence, TemporalFilter};
+use reliquary_owner_session::observation::{ObservationCitation, ObservationSource};
 use reliquary_owner_session::{
     FreshnessEventProof, FreshnessMemoryId,
     model::{CompatibilityProfileId, MemoryId},
@@ -16,6 +21,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
+
+const MAX_AGENTIC_OBSERVATIONS: usize = 8;
 
 /// Opaque proposal bound to one authenticated Instance, REL, turn, and exact
 /// body revisions. It grants no delivery or Freshness authority by itself.
@@ -92,6 +99,7 @@ pub enum RetrievalMode {
 pub(super) struct TurnState {
     pub(super) turn: reliquary_application::RetrievalTurn,
     pub(super) generation: u64,
+    pub(super) provided_observations: BTreeSet<ObservationCitation>,
     pub(super) pending_use_id: Option<String>,
     pub(super) pending_profile: Option<CompatibilityProfileId>,
     pub(super) handoff_checked: bool,
@@ -137,6 +145,10 @@ struct DeliveryPayload<'a> {
     pub(super) searched_ids: Vec<String>,
     pub(super) selected_ids: Vec<String>,
     pub(super) memories: Vec<DeliveredMemory<'a>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) selected_observations: Vec<ObservationCitation>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) observations: Vec<&'a ObservationClaim>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -155,6 +167,10 @@ pub(super) struct DeliveryManifest {
     pub(super) searched_ids: Vec<String>,
     pub(super) selected_ids: Vec<String>,
     pub(super) memories: Vec<ManifestMemory>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(super) selected_observations: Vec<ObservationCitation>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(super) observations: Vec<ObservationClaim>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

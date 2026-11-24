@@ -20,8 +20,9 @@ pub use reliquary_application::{
 pub use reliquary_runtime_gateway::{
     ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication,
     ArchiveTurnTemporalEvidence, ArchiveVectorHit, ArchiveVectorSearch, MemoryTemporalMatch,
-    RetrievalCut, RetrievalMemory, RetrievalMode, RetrievalPreview, RetrievalSource, SearchMode,
-    SearchResult, TemporalArchiveHitEvidence, TemporalArchiveHybridSearch,
+    RetrievalCut, RetrievalMemory, RetrievalMode, RetrievalObservation, RetrievalPreview,
+    RetrievalSource, SearchMode, SearchResult, TemporalArchiveHitEvidence,
+    TemporalArchiveHybridSearch,
 };
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]

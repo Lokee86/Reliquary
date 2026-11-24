@@ -488,7 +488,12 @@ pub use instance_vectors::{
     ArchiveTurnTemporalEvidence, ArchiveVectorHit, ArchiveVectorPublication, ArchiveVectorSearch,
     PreparedVectorPublication, TemporalArchiveHitEvidence, TemporalArchiveHybridSearch,
 };
+mod instance_observation_reads;
 mod instance_retrieval;
+pub use instance_observation_reads::{
+    InspectedObservation, ObservationClaim, ObservationCursor, ObservationPage,
+    RetrievalObservation,
+};
 
 mod instance_external_source;
 
