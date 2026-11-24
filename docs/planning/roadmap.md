@@ -22,6 +22,12 @@ Core discovers Entity pairs across authorized RELs from matching names, aliases 
 
 Core supports explicit, reversible operator confirmation for a selected cross-REL pair. Enabling the action in Hermes requires a trusted operator interaction and its own host verification. [Public API](../public-product-api.md#confirm-or-undo-separation)
 
+## Shared Memory Web audit
+
+Ego and Perception will use the same audit code for bounded batches, coverage of selected Memories, optional authorized REL search and source references. Each crate supplies its own extraction contract. Ego extracts candidate subjects for summaries. Perception extracts candidate propositions for evidence review before publication, including Relationships between Entities.
+
+Perception periodically includes a small, rotating sample of Stale and Dormant Memories directly in its audit batches, even when recent Memories could fill the budget. Either feature can search for older evidence when following a lead. [Historical Ego audit plan](https://github.com/Lokee86/Reliquary/blob/2b5bd0eabfbac0a85f899d7d730220b5e8e93efa/docs/ego-service-crate-extraction-spec-2026-10-28.md#L55-L65)
+
 ## Implementation sequence and acceptance
 
 The [homogeneity specification](rel-homogeneity-spec-2026-11-18.md) and [execution plan](rel-homogeneity-plan-2026-11-18.md) cover scope-free Core creation, Hermes role admission and legacy file compatibility. The [Core acceptance record](../acceptance/rel-homogeneity-2026-11-18.md) records the creation cut and original header verification.
