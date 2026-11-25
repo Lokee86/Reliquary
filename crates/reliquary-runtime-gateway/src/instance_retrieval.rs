@@ -1,11 +1,13 @@
 use super::instance_owner::RelMount;
 use super::*;
 use crate::instance_observation_reads::{
-    ObservationReadCut, observations_are_current, rank_current_observations,
+    ObservationReadCut, observation_retrieval_candidates, observation_retrieval_id,
+    observations_are_current,
 };
 use crate::instance_passive_retrieval::capture_memory_snapshot;
 use reliquary_application::{
-    RetrievalAction, RetrievalEvaluation, RetrievalTurn, evaluate_snapshot_retrieval,
+    RetrievalAction, RetrievalEvaluation, RetrievalTurn,
+    evaluate_snapshot_retrieval_with_observations,
 };
 use reliquary_application::{TemporalEvidence, TemporalFilter};
 use reliquary_owner_session::observation::{ObservationCitation, ObservationSource};
@@ -22,7 +24,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
-const MAX_AGENTIC_OBSERVATIONS: usize = 8;
+const MAX_AGENTIC_OBSERVATIONS: usize = reliquary_application::MAX_AGENTIC_CANDIDATES;
 
 /// Opaque proposal bound to one authenticated Instance, REL, turn, and exact
 /// body revisions. It grants no delivery or Freshness authority by itself.

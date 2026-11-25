@@ -11,6 +11,7 @@ pub(super) fn validate_graph_prefix(
     identity_context: Option<(&PerceptionStore, [u8; 32])>,
     pruned_bodies: &BTreeSet<MemoryBodyId>,
     observation_archive_cuts: &BTreeMap<u64, (u64, u64)>,
+    compatibility_profiles: &CompatibilityProfileStore,
 ) -> Result<(IdentityHistory, SeparationHistory, ObservationStore), OwnerSessionError> {
     let mut observations = ObservationStore::default();
     let mut receipts = IdentityHistory::default();
@@ -22,6 +23,7 @@ pub(super) fn validate_graph_prefix(
     let mut memory_bodies = std::collections::BTreeSet::new();
     let mut birth_bodies = std::collections::BTreeMap::new();
     let mut profiles = std::collections::BTreeSet::new();
+    let mut active_profiles = std::collections::BTreeSet::new();
     let mut packed_vectors = std::collections::BTreeSet::new();
     let mut entities = std::collections::BTreeSet::new();
     let mut graph_version = 0;
@@ -37,6 +39,7 @@ pub(super) fn validate_graph_prefix(
                     owner: container.owner_id(),
                     generation: history_generation,
                     memories: memory_store,
+                    profiles: compatibility_profiles,
                     memory_cut: memory_head,
                     perception,
                     perception_cut,
@@ -44,7 +47,12 @@ pub(super) fn validate_graph_prefix(
                     observed_bodies: Some(&observed_bodies),
                     unobserved_suffix_bodies: None,
                 };
-                prefix.admit(&mut observations, frame.payload, observation_archive_cuts)?;
+                prefix.admit(
+                    &mut observations,
+                    frame.payload,
+                    observation_archive_cuts,
+                    &active_profiles,
+                )?;
                 continue;
             }
             if body.starts_with(super::identity_receipt::PREFIX) {
@@ -236,8 +244,13 @@ pub(super) fn validate_graph_prefix(
                         .1;
                 }
             }
-            if let Some(profile) = reliquary_vector_store::profile::decode_profile(payload)? {
-                profiles.insert(profile.id.0);
+            if let Some(profile) = reliquary_vector_store::profile::decode_profile(payload)?
+                && profiles.insert(profile.id.0)
+            {
+                active_profiles.insert(profile.id.0);
+            }
+            if let Some(retired) = reliquary_vector_store::profile::decode_retirement(payload)? {
+                active_profiles.remove(&retired.0);
             }
             if let Some(packed) = reliquary_vector_store::store::packed_id_in_frame(payload)? {
                 packed_vectors.insert(packed.0);

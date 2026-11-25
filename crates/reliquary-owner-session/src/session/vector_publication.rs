@@ -117,18 +117,7 @@ impl CommonState {
             if row.revision != source.record.revision || row.body_id != source.record.body_id {
                 return Err(invalid("vector source revision changed"));
             }
-            let norm = row
-                .vector
-                .iter()
-                .map(|v| f64::from(*v).powi(2))
-                .sum::<f64>()
-                .sqrt();
-            if row.vector.len() != input.profile.dimensions as usize
-                || row.vector.iter().any(|v| !v.is_finite())
-                || !norm.is_finite()
-                || (input.profile.normalization == VectorNormalization::L2
-                    && (norm - 1.0).abs() > 1e-4)
-            {
+            if !valid_profile_vector(&input.profile, &row.vector) {
                 return Err(invalid("vector row is incompatible with its profile"));
             }
             if let Some(existing) = existing {
@@ -181,6 +170,22 @@ impl CommonState {
         Ok(true)
     }
 }
+pub(super) fn valid_profile_vector(
+    profile: &reliquary_vector_store::CompatibilityProfile,
+    vector: &[f32],
+) -> bool {
+    if vector.len() != profile.dimensions as usize || vector.iter().any(|v| !v.is_finite()) {
+        return false;
+    }
+    let norm = vector
+        .iter()
+        .map(|v| f64::from(*v).powi(2))
+        .sum::<f64>()
+        .sqrt();
+    norm.is_finite()
+        && (profile.normalization != VectorNormalization::L2 || (norm - 1.0).abs() <= 1e-4)
+}
+
 fn invalid(message: &str) -> OwnerSessionError {
     OwnerSessionError::Record(message.into())
 }

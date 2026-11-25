@@ -230,10 +230,16 @@ impl Instance {
             .iter()
             .map(|id| parse_memory_id(id))
             .collect::<Result<Vec<_>, _>>()?;
+        let observation_ids = manifest
+            .observations
+            .iter()
+            .map(|claim| observation_retrieval_id(&claim.citation))
+            .collect::<Vec<_>>();
         let selected = old_selected
             .into_iter()
             .chain(selected)
             .chain(ids.iter().copied())
+            .chain(observation_ids.iter().copied())
             .collect::<BTreeSet<_>>();
         let mut state = RetrievalTurn::default();
         state.record_evaluated(selected.iter().copied());
@@ -252,7 +258,7 @@ impl Instance {
         }
         if restore_manifest_frontier {
             state.record_evaluated(searched);
-            state.record_evaluated(ids.iter().copied());
+            state.record_evaluated(ids.iter().chain(&observation_ids).copied());
         } else {
             // Preserve the current query frontier exactly. The recovered
             // delivery remains selected, but its old declines cannot leak in.

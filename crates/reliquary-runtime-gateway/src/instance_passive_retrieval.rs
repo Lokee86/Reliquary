@@ -1,13 +1,14 @@
 //! Authorized passive retrieval over the same owner cut used by agentic selection.
 use super::*;
 use crate::instance_observation_reads::{
-    ObservationReadCut, observations_are_current, rank_current_observations,
+    ObservationReadCut, observation_retrieval_candidates, observations_are_current,
 };
 use crate::instance_retrieval::preview::{MAX_RETRIEVAL_RESULTS, project_memories};
 use crate::{RetrievalCut, RetrievalMemory};
 use reliquary_application::{
     MemoryRetrievalConfig, MemoryRetrievalMode, MemoryRetrievalResult, OwnerMemorySelection,
-    RetrievalConfig, TemporalEvidence, TemporalFilter,
+    RetrievalConfig, TemporalEvidence, TemporalFilter, agentic_memories,
+    observation_matches_temporal, rank_retrieval_candidates, route_retrieval_candidates,
 };
 use reliquary_owner_session::model::{CompatibilityProfile, CompatibilityProfileId};
 use serde::Serialize;
@@ -53,7 +54,9 @@ impl Instance {
                     rel.active_compatibility_profile(info.compatibility_profile_id)
                         .is_some()
                 });
-                memory || rel.has_active_archive_vectors()
+                memory
+                    || rel.observation_claim_profiles().next().is_some()
+                    || rel.has_active_archive_vectors()
             };
             match self.reliquary(owner) {
                 Ok(rel) => Ok(has_vectors(&rel)),
@@ -112,10 +115,16 @@ impl Instance {
         owner: OwnerId,
     ) -> Result<Vec<CompatibilityProfile>, GatewayError> {
         self.with_reliquary(owner, |rel| {
-            rel.memory_vector_infos()
+            let mut profiles = rel
+                .memory_vector_infos()
                 .into_iter()
                 .map(|info| info.compatibility_profile_id)
-                .collect::<BTreeSet<_>>()
+                .filter(|id| rel.active_compatibility_profile(*id).is_some())
+                .collect::<BTreeSet<_>>();
+            if profiles.is_empty() {
+                profiles.extend(rel.observation_claim_profiles());
+            }
+            profiles
                 .into_iter()
                 .filter_map(|id| rel.active_compatibility_profile(id).cloned())
                 .collect()
@@ -177,27 +186,29 @@ impl Instance {
         }
         let profile = embedding.as_ref().map(|(id, _)| *id);
         let vector = embedding.as_ref().map(|(_, row)| row.as_slice());
-        let observation_limit = limit.unwrap_or(policy.result_limit.min(MAX_RETRIEVAL_RESULTS));
-        let (mut snapshot, observation_cut, (observations, observations_truncated)) = self
-            .with_reliquary(owner, |rel| -> Result<_, GatewayError> {
-                let snapshot = capture_memory_snapshot(rel, profile, true)?;
-                let observations = if mode == SearchMode::Semantic {
-                    (Vec::new(), false)
-                } else {
-                    rank_current_observations(
-                        rel,
-                        query,
-                        filter,
-                        &BTreeSet::new(),
-                        observation_limit,
-                    )
-                };
-                Ok((snapshot, ObservationReadCut::capture(rel), observations))
+        let (mut snapshot, observation_cut, mut observation_candidates) =
+            self.with_reliquary(owner, |rel| -> Result<_, GatewayError> {
+                Ok((
+                    capture_memory_snapshot(rel, profile, true)?,
+                    ObservationReadCut::capture(rel),
+                    observation_retrieval_candidates(rel, profile, &BTreeSet::new())?,
+                ))
             })??;
-        if filter.is_none() && vector.is_some() && snapshot.vectors.is_empty() {
+        let has_vectors = !snapshot.vectors.is_empty()
+            || observation_candidates
+                .values()
+                .any(|row| row.input.candidate.vector.is_some());
+        if filter.is_none() && vector.is_some() && !has_vectors {
             return Err(GatewayError::RetrievalUnavailable(
                 "no current Memory vectors for the embedding profile",
             ));
+        }
+        if let Some(filter) = &filter {
+            observation_candidates.retain(|_, row| {
+                row.input
+                    .validity
+                    .is_some_and(|validity| observation_matches_temporal(validity, filter))
+            });
         }
         let mut matches: BTreeMap<_, _> = filter
             .map(|filter| reliquary_application::retain_temporal_memories(&mut snapshot, &filter))
@@ -218,48 +229,77 @@ impl Instance {
         });
         let mut semantic_routing = None;
         let mut fallback_reason = None;
-        let (memories, more) = if mode == SearchMode::Semantic && snapshot.vectors.is_empty() {
+        let candidates = agentic_memories(&snapshot)
+            .into_iter()
+            .chain(
+                observation_candidates
+                    .values()
+                    .map(|row| row.input.candidate.clone()),
+            )
+            .collect::<Vec<_>>();
+        let mut observations = Vec::new();
+        let mut memories = Vec::new();
+        let more = if mode == SearchMode::Semantic {
             semantic_routing = Some("global_exact");
-            (Vec::new(), false)
-        } else if mode == SearchMode::Semantic {
             let mut config = MemoryRetrievalConfig::default();
             let limit = limit.unwrap_or(config.seed_limit);
             config.seed_limit = limit + 1;
-            let result =
-                reliquary_application::route_owner_snapshot(&snapshot, vector.unwrap(), config)
-                    .map_err(GatewayError::Retrieval)?;
-            semantic_routing = Some(if result.mode_used == MemoryRetrievalMode::GlobalExact {
-                "global_exact"
+            if candidates.iter().any(|row| row.vector.is_some()) {
+                let result =
+                    route_retrieval_candidates(&snapshot, candidates, vector.unwrap(), config)
+                        .map_err(GatewayError::Retrieval)?;
+                if result.mode_used == MemoryRetrievalMode::CommunityRouted {
+                    semantic_routing = Some("community_routed");
+                }
+                if result.used_global_fallback {
+                    fallback_reason =
+                        Some("community routing unavailable for this graph and vector cut");
+                }
+                let mut memory_hits = Vec::new();
+                for hit in result.seeds.iter().take(limit) {
+                    if let Some(row) = observation_candidates.remove(&hit.memory_id) {
+                        let mut observation = row.result;
+                        observation.semantic_score = Some(hit.score);
+                        observations.push(observation);
+                    } else {
+                        memory_hits.push(hit);
+                    }
+                }
+                memories =
+                    project_memories(&snapshot, memory_hits.iter().map(|hit| hit.memory_id))?;
+                for (memory, hit) in memories.iter_mut().zip(memory_hits) {
+                    memory.semantic_score = Some(hit.score);
+                }
+                result.seeds.len() > limit
             } else {
-                "community_routed"
-            });
-            if result.used_global_fallback {
-                fallback_reason =
-                    Some("community routing unavailable for this graph and vector cut");
+                false
             }
-            let mut memories =
-                project_memories(&snapshot, result.memories.iter().copied().take(limit))?;
-            for (memory, hit) in memories.iter_mut().zip(&result.seeds) {
-                memory.semantic_score = Some(hit.score);
-            }
-            (memories, result.memories.len() > limit)
         } else {
             let limit = limit.unwrap_or(policy.result_limit.min(MAX_RETRIEVAL_RESULTS));
             policy.result_limit = limit + 1;
             policy.candidate_limit = policy.candidate_limit.max(policy.result_limit);
             let ranked =
-                reliquary_application::rank_owner_snapshot(&snapshot, query, vector, policy)
+                rank_retrieval_candidates(snapshot.owner_id, candidates, query, vector, policy)
                     .map_err(GatewayError::Retrieval)?;
-            let mut memories = project_memories(
-                &snapshot,
-                ranked.selected.iter().take(limit).map(|hit| hit.memory_id),
-            )?;
-            for (memory, hit) in memories.iter_mut().zip(&ranked.selected) {
+            let mut memory_hits = Vec::new();
+            for hit in ranked.selected.iter().take(limit) {
+                if let Some(row) = observation_candidates.remove(&hit.memory_id) {
+                    let mut observation = row.result;
+                    observation.lexical_score = hit.lexical_score.unwrap_or_default();
+                    observation.semantic_score = hit.semantic_score;
+                    observation.combined_score = Some(hit.combined_score);
+                    observations.push(observation);
+                } else {
+                    memory_hits.push(hit);
+                }
+            }
+            memories = project_memories(&snapshot, memory_hits.iter().map(|hit| hit.memory_id))?;
+            for (memory, hit) in memories.iter_mut().zip(memory_hits) {
                 memory.lexical_score = hit.lexical_score;
                 memory.semantic_score = hit.semantic_score;
                 memory.combined_score = Some(hit.combined_score);
             }
-            (memories, ranked.selected.len() > limit)
+            ranked.selected.len() > limit
         };
         if !observations.is_empty()
             && !self.with_reliquary(owner, |rel| {
@@ -270,8 +310,7 @@ impl Instance {
             return Err(GatewayError::StaleRetrieval);
         }
         self.ensure_credential_active()?;
-        let truncated =
-            more || observations_truncated || memories.iter().any(|memory| memory.truncated);
+        let truncated = more || memories.iter().any(|memory| memory.truncated);
         let evidence = memories
             .iter()
             .filter_map(|memory| {

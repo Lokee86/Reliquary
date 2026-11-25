@@ -1,11 +1,14 @@
 use super::*;
-use reliquary_application::{ObservationLexicalQuery, TemporalFilter, inspection::inspection_cut};
+use reliquary_application::{AgenticMemory, AgenticObservation, inspection::inspection_cut};
+use reliquary_owner_session::model::{CompatibilityProfileId, MemoryBody, MemoryBodyId, MemoryId};
 use reliquary_owner_session::observation::{
     ObservationCitation, ObservationId, ObservationInspection, ObservationMemoryLineage,
     ObservationProfile, ObservationRevision, ObservationSource, ObservationStanding,
     ObservationStatus, ObservationTimeScope, ObservationValidity,
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 
 const PAGE_SIZE: usize = 128;
 
@@ -109,6 +112,10 @@ pub struct RetrievalObservation {
     pub claim: ObservationClaim,
     pub standing: ObservationStanding,
     pub lexical_score: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub semantic_score: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub combined_score: Option<f64>,
     pub freshness: i16,
 }
 
@@ -236,50 +243,79 @@ pub(crate) fn observations_are_current(rel: &RelSession, hits: &[RetrievalObserv
 }
 
 /// Check standing before scoring. Retain only a bounded ranked result across keyset pages.
-pub(crate) fn rank_current_observations(
+pub(crate) struct ObservationRetrievalCandidate {
+    pub(crate) input: AgenticObservation,
+    pub(crate) result: RetrievalObservation,
+}
+
+/// A private retrieval key. It is never returned as a Memory ID or graph seed.
+pub(crate) fn observation_retrieval_id(cite: &ObservationCitation) -> MemoryId {
+    let mut key = Sha256::new();
+    key.update(b"reliquary/observation-retrieval/v1\0");
+    key.update(cite.owner_id);
+    key.update(cite.history_generation);
+    match cite.source {
+        ObservationSource::Memory(id) => key.update(id),
+        ObservationSource::Observation(id) => key.update(id.0),
+    }
+    key.update(cite.revision.to_le_bytes());
+    key.update(cite.body_id);
+    MemoryId(key.finalize().into())
+}
+
+/// Project verified heads into the normal retrieval population. The typed result
+/// remains bound to its canonical claim and citations.
+pub(crate) fn observation_retrieval_candidates(
     rel: &RelSession,
-    query: &str,
-    filter: Option<TemporalFilter>,
+    profile: Option<CompatibilityProfileId>,
     excluded: &BTreeSet<ObservationCitation>,
-    limit: usize,
-) -> (Vec<RetrievalObservation>, bool) {
-    let query = ObservationLexicalQuery::new(query, filter);
+) -> Result<BTreeMap<MemoryId, ObservationRetrievalCandidate>, GatewayError> {
     let mut after = None;
-    let mut hits = Vec::new();
-    let mut truncated = false;
+    let mut candidates = BTreeMap::new();
     loop {
         let rows = rel.observations_after(after, PAGE_SIZE);
         let Some(last) = rows.last() else { break };
         after = Some(last.revision.id);
-        let more = rows.len() == PAGE_SIZE;
-        for row in rows {
+        for row in &rows {
             if row.standing != ObservationStanding::Current
                 || excluded.contains(&row.revision.full_citation())
             {
                 continue;
             }
-            let Some(lexical_score) = query.score(&row.revision.draft) else {
-                continue;
+            let claim = ObservationClaim::from(row.revision);
+            let id = observation_retrieval_id(&claim.citation);
+            let freshness = rel.observation_freshness(row.revision.id).unwrap_or(0);
+            let vector = profile
+                .map(|profile| rel.observation_claim_vector(profile, row.revision))
+                .transpose()?
+                .flatten();
+            let input = AgenticObservation {
+                candidate: AgenticMemory {
+                    id,
+                    revision: claim.citation.revision,
+                    body_id: MemoryBodyId(claim.citation.body_id),
+                    body: MemoryBody {
+                        title: String::new(),
+                        content: claim.proposition.clone(),
+                    },
+                    freshness,
+                    vector,
+                },
+                validity: claim.validity,
             };
-            hits.push(RetrievalObservation {
-                claim: row.revision.into(),
+            let result = RetrievalObservation {
+                claim,
                 standing: row.standing,
-                lexical_score,
-                freshness: rel.observation_freshness(row.revision.id).unwrap_or(0),
-            });
+                lexical_score: 0.0,
+                semantic_score: None,
+                combined_score: None,
+                freshness,
+            };
+            candidates.insert(id, ObservationRetrievalCandidate { input, result });
         }
-        hits.sort_by(|left, right| {
-            right
-                .lexical_score
-                .total_cmp(&left.lexical_score)
-                .then_with(|| right.freshness.cmp(&left.freshness))
-                .then_with(|| left.claim.citation.cmp(&right.claim.citation))
-        });
-        truncated |= hits.len() > limit;
-        hits.truncate(limit);
-        if !more {
+        if rows.len() < PAGE_SIZE {
             break;
         }
     }
-    (hits, truncated)
+    Ok(candidates)
 }

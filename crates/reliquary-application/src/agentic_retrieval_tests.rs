@@ -111,6 +111,72 @@ fn query_freshness_ranks_complete_union_before_ten_candidate_cut() {
 }
 
 #[test]
+fn semantic_observation_uses_query_window_and_refines_only_evaluated_candidates() {
+    let snapshot = RelRetrievalSnapshot {
+        owner_id: [7; 16],
+        rel_turn: 0,
+        memory_version: 0,
+        graph_version: 0,
+        memories: Vec::new(),
+        active_relations: Vec::new(),
+        community: None,
+        vectors: Default::default(),
+    };
+    let mut paraphrase = memory(1, 20, "Permission granted for dispatch.");
+    paraphrase.vector = Some(vec![1.0, 0.0]);
+    let matching = ObservationValidity {
+        start_ns: Some(12),
+        end_ns: None,
+    };
+    let observations = [
+        AgenticObservation {
+            candidate: paraphrase.clone(),
+            validity: Some(matching),
+        },
+        AgenticObservation {
+            candidate: memory(2, 99, "handoff approved"),
+            validity: Some(ObservationValidity {
+                start_ns: None,
+                end_ns: Some(10),
+            }),
+        },
+    ];
+    let endpoint = Endpoint::with_replies([
+        json!({"version":1,"approved":[]}),
+        json!({"version":1,"query":"Was dispatch authorized?"}),
+    ]);
+    let query_result = evaluate_snapshot_retrieval_with_observations(
+        &endpoint,
+        &RetrievalTurn::default(),
+        &snapshot,
+        RetrievalAction::Query("handoff approved".into()),
+        Some(&[1.0, 0.0]),
+        TemporalFilter::new(TemporalBasis::Mentioned, 10, 20),
+        &observations,
+    )
+    .unwrap();
+    assert!(query_result.memories.is_empty());
+    assert_eq!(query_result.next.searched(), &[paraphrase.id].into());
+    assert_eq!(
+        endpoint.calls()[0].0["candidates"][0]["observation_validity"],
+        json!(matching)
+    );
+
+    let refined = evaluate_snapshot_retrieval_with_observations(
+        &endpoint,
+        &query_result.next,
+        &snapshot,
+        RetrievalAction::Refine("about dispatch".into()),
+        None,
+        None,
+        &observations,
+    )
+    .unwrap();
+    assert_eq!(approved_ids(&endpoint, 2), [hex(&paraphrase.id.0)]);
+    assert_eq!(refined.memories, [paraphrase]);
+}
+
+#[test]
 fn selected_raw_match_is_reported_only_when_no_new_candidate_is_approved() {
     let selected = memory(1, 0, "needle already delivered");
     let mut turn = RetrievalTurn::default();
@@ -575,6 +641,7 @@ fn temporal_window_limits_query_refinement_and_traversal_offers() {
                 )
             })
             .collect(),
+        observation_validity: BTreeMap::new(),
     };
     let edges = [outside, neighbor].map(|id| Relation {
         source: NodeRef::Memory(anchor.0),

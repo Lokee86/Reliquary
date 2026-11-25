@@ -150,6 +150,7 @@ struct WorkerState {
     contribution_vectors: reliquary_application::perception_workflow::ContributionEmbeddingCache,
     probed_profiles: BTreeSet<CompatibilityProfileId>,
     memory_profile: Option<CompatibilityProfileId>,
+    claim_vectors: poll::claim_vectors::ClaimVectorIndex,
     failures: usize,
     retry_at: Option<Instant>,
     route: Option<Weak<PerceptionRoutes>>,

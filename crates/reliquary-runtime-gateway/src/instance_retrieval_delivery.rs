@@ -252,8 +252,21 @@ impl Instance {
             return Err(GatewayError::InvalidPreparedRetrieval);
         }
         let mut next = prepared.evaluation.next.clone();
-        next.confirm_selected(prepared.evaluation.memories.iter().map(|memory| memory.id))
-            .map_err(|reason| GatewayError::Retrieval(reason.into()))?;
+        next.confirm_selected(
+            prepared
+                .evaluation
+                .memories
+                .iter()
+                .map(|memory| memory.id)
+                .chain(
+                    prepared
+                        .preview
+                        .observations
+                        .iter()
+                        .map(|row| observation_retrieval_id(&row.claim.citation)),
+                ),
+        )
+        .map_err(|reason| GatewayError::Retrieval(reason.into()))?;
         state.turn = next;
         state.provided_observations.extend(
             prepared

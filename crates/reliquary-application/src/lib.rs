@@ -1074,14 +1074,16 @@ pub use external_processing::{
 
 mod agentic_retrieval;
 pub use agentic_retrieval::{
-    AgenticMemory, RetrievalAction, RetrievalAnchorReport, RetrievalDirection, RetrievalEvaluation,
-    RetrievalRelationEvidence, evaluate_retrieval, evaluate_snapshot_retrieval,
+    AgenticMemory, AgenticObservation, RetrievalAction, RetrievalAnchorReport, RetrievalDirection,
+    RetrievalEvaluation, RetrievalRelationEvidence, evaluate_retrieval,
+    evaluate_snapshot_retrieval, evaluate_snapshot_retrieval_with_observations,
+    observation_matches_temporal,
 };
-pub use reliquary_retrieval::RetrievalConfig;
-pub use reliquary_retrieval::agentic::RetrievalTurn;
+pub use reliquary_retrieval::agentic::{MAX_AGENTIC_CANDIDATES, RetrievalTurn};
 pub use reliquary_retrieval::memory_retrieval::{
     MemoryRetrievalConfig, MemoryRetrievalMode, MemoryRetrievalResult,
 };
+pub use reliquary_retrieval::{RetrievalConfig, lexical_score, lexical_terms};
 
 mod archive_search;
 mod owner_retrieval;
@@ -1090,6 +1092,6 @@ pub use archive_search::{
     TemporalArchiveHybridSearch, rank_archive_hybrid, rank_archive_hybrid_temporal,
 };
 pub use owner_retrieval::{
-    ObservationLexicalQuery, agentic_memories, rank_owner_snapshot, retain_temporal_memories,
-    route_owner_snapshot,
+    agentic_memories, rank_owner_snapshot, rank_retrieval_candidates, retain_temporal_memories,
+    route_owner_snapshot, route_retrieval_candidates,
 };

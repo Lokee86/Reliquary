@@ -1,7 +1,6 @@
 //! Owner-derived retrieval inputs. Every lane uses the same immutable read cut.
 use crate::{AgenticMemory, OwnerMemorySelection, SelectedMemory, memory_temporal_evidence};
 use reliquary_owner_session::model::MemoryId;
-use reliquary_owner_session::observation::ObservationDraft;
 use reliquary_owner_session::{RelRetrievalSnapshot, model::PayloadState};
 use reliquary_retrieval::memory_retrieval::{
     MemoryRetrievalConfig, MemoryRetrievalResult, MemoryRetrievalSnapshot, retrieve_memories,
@@ -9,7 +8,7 @@ use reliquary_retrieval::memory_retrieval::{
 use reliquary_retrieval::{
     RetrievalConfig, combine_hybrid_scores, lexical_score, lexical_terms, validate_hybrid_request,
 };
-use reliquary_retrieval::{TemporalBasis, TemporalEvidence, TemporalFilter};
+use reliquary_retrieval::{TemporalEvidence, TemporalFilter};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub fn agentic_memories(snapshot: &RelRetrievalSnapshot) -> Vec<AgenticMemory> {
@@ -64,6 +63,23 @@ pub fn rank_owner_snapshot(
     vector: Option<&[f32]>,
     config: RetrievalConfig,
 ) -> Result<OwnerMemorySelection, String> {
+    rank_retrieval_candidates(
+        snapshot.owner_id,
+        agentic_memories(snapshot),
+        query,
+        vector,
+        config,
+    )
+}
+
+/// Rank the shared retrieval population, including eligible derived Memory claims.
+pub fn rank_retrieval_candidates(
+    owner_id: [u8; 16],
+    candidates: impl IntoIterator<Item = AgenticMemory>,
+    query: &str,
+    vector: Option<&[f32]>,
+    config: RetrievalConfig,
+) -> Result<OwnerMemorySelection, String> {
     let weights = validate_hybrid_request(query, config).map_err(|e| format!("{e:?}"))?;
     if vector.is_some_and(|v| {
         v.is_empty() || v.iter().any(|x| !x.is_finite()) || v.iter().all(|x| *x == 0.0)
@@ -72,7 +88,7 @@ pub fn rank_owner_snapshot(
     }
     let terms = lexical_terms(query);
     let mut selected = Vec::new();
-    for memory in agentic_memories(snapshot) {
+    for memory in candidates {
         let lexical = lexical_score(
             &format!("{}\n{}", memory.body.title, memory.body.content),
             &terms,
@@ -101,10 +117,7 @@ pub fn rank_owner_snapshot(
     });
     selected.truncate(config.candidate_limit);
     selected.truncate(config.result_limit);
-    Ok(OwnerMemorySelection {
-        owner_id: snapshot.owner_id,
-        selected,
-    })
+    Ok(OwnerMemorySelection { owner_id, selected })
 }
 
 pub fn route_owner_snapshot(
@@ -112,48 +125,26 @@ pub fn route_owner_snapshot(
     query: &[f32],
     config: MemoryRetrievalConfig,
 ) -> Result<MemoryRetrievalResult, String> {
-    let memories = agentic_memories(snapshot);
+    route_retrieval_candidates(snapshot, agentic_memories(snapshot), query, config)
+}
+
+/// Use the same semantic route and candidate limits for the shared population.
+pub fn route_retrieval_candidates(
+    snapshot: &RelRetrievalSnapshot,
+    candidates: Vec<AgenticMemory>,
+    query: &[f32],
+    config: MemoryRetrievalConfig,
+) -> Result<MemoryRetrievalResult, String> {
     let input = MemoryRetrievalSnapshot {
         graph_version: snapshot.graph_version,
         community_snapshot: snapshot.community.clone(),
-        searchable: memories.iter().map(|m| m.id).collect(),
-        vectors: memories
+        searchable: candidates.iter().map(|m| m.id).collect(),
+        vectors: candidates
             .into_iter()
             .filter_map(|m| m.vector.map(|v| (m.id, v)))
             .collect(),
     };
     retrieve_memories(&input, query, config, snapshot.graph_version).map_err(|e| format!("{e:?}"))
-}
-
-/// Query terms and a supported time window for the typed Observation lane.
-pub struct ObservationLexicalQuery {
-    terms: Vec<String>,
-    filter: Option<TemporalFilter>,
-}
-
-impl ObservationLexicalQuery {
-    pub fn new(query: &str, filter: Option<TemporalFilter>) -> Self {
-        Self {
-            terms: lexical_terms(query),
-            filter,
-        }
-    }
-
-    pub fn score(&self, draft: &ObservationDraft) -> Option<f64> {
-        if let Some(filter) = self.filter {
-            let validity = draft.validity?;
-            if filter.basis != TemporalBasis::Mentioned
-                || validity
-                    .start_ns
-                    .is_some_and(|start| start >= filter.end_exclusive_ns)
-                || validity.end_ns.is_some_and(|end| end <= filter.start_ns)
-            {
-                return None;
-            }
-        }
-        let score = lexical_score(&draft.proposition, &self.terms);
-        (score > 0.0).then_some(score)
-    }
 }
 
 #[cfg(test)]

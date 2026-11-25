@@ -2,6 +2,7 @@
 
 mod backcheck;
 mod capture;
+mod claim_vectors;
 mod review;
 #[cfg(test)]
 mod tests;
@@ -32,6 +33,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use ObservationWorkflowError as Error;
+pub use claim_vectors::{
+    MAX_CLAIM_VECTOR_BATCH_BYTES, evaluate_claim_vectors, select_claim_vector_profile,
+};
 pub use review::evaluate_review;
 type Result<T> = std::result::Result<T, Error>;
 

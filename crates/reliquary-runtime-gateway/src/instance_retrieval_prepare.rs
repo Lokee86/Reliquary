@@ -154,14 +154,29 @@ impl Instance {
         };
         validate_turn_binding(self, turn, owner, turn_id)?;
         let include_vectors = query_vector.is_some();
-        let (snapshot, observation_cut) =
+        let (snapshot, observation_cut, mut observation_candidates) =
             self.with_reliquary(owner, |rel| -> Result<_, GatewayError> {
+                let candidates = if matches!(action, RetrievalAction::Traverse(_)) {
+                    Default::default()
+                } else {
+                    observation_retrieval_candidates(
+                        rel,
+                        profile.filter(|_| include_vectors),
+                        &provided_observations,
+                    )?
+                };
                 Ok((
                     capture_memory_snapshot(rel, profile, include_vectors)?,
                     ObservationReadCut::capture(rel),
+                    candidates,
                 ))
             })??;
-        if query_vector.is_some() && snapshot.vectors.is_empty() {
+        if query_vector.is_some()
+            && snapshot.vectors.is_empty()
+            && observation_candidates
+                .values()
+                .all(|row| row.input.candidate.vector.is_none())
+        {
             return Err(GatewayError::RetrievalUnavailable(
                 "no current Memory vectors for the embedding profile",
             ));
@@ -172,18 +187,22 @@ impl Instance {
             generation,
             endpoint: route.0.as_ref(),
         };
-        let offer_observations = !matches!(action, RetrievalAction::Traverse(_));
-        let evaluation = evaluate_snapshot_retrieval(
+        let observation_inputs = observation_candidates
+            .values()
+            .map(|row| row.input.clone())
+            .collect::<Vec<_>>();
+        let evaluation = evaluate_snapshot_retrieval_with_observations(
             &authorized_route,
             &prior,
             &snapshot,
             action,
             query_vector.as_deref(),
             query_filter,
+            &observation_inputs,
         );
         authorized_route.check()?;
-        let evaluation = evaluation.map_err(GatewayError::Retrieval)?;
-        let observations = self.with_reliquary(owner, |rel| {
+        let mut evaluation = evaluation.map_err(GatewayError::Retrieval)?;
+        self.with_reliquary(owner, |rel| {
             let current = capture_memory_snapshot(rel, profile, include_vectors).map_err(
                 |error| match error {
                     GatewayError::RetrievalUnavailable(_) => GatewayError::StaleRetrieval,
@@ -197,22 +216,25 @@ impl Instance {
             {
                 return Err(GatewayError::StaleRetrieval);
             }
-            Ok(if offer_observations {
-                evaluation.next.query().map_or_else(Vec::new, |query| {
-                    // The ranked shortlist is the exact set offered for delivery.
-                    rank_current_observations(
-                        rel,
-                        query,
-                        evaluation.next.temporal_filter(),
-                        &provided_observations,
-                        MAX_AGENTIC_OBSERVATIONS,
-                    )
-                    .0
-                })
-            } else {
-                Vec::new()
-            })
+            Ok(())
         })??;
+        let mut observations = Vec::new();
+        let terms =
+            reliquary_application::lexical_terms(evaluation.next.query().unwrap_or_default());
+        evaluation.memories.retain(|row| {
+            if let Some(candidate) = observation_candidates.remove(&row.id) {
+                let mut result = candidate.result;
+                result.lexical_score =
+                    reliquary_application::lexical_score(&result.claim.proposition, &terms);
+                observations.push(result);
+                false
+            } else {
+                true
+            }
+        });
+        evaluation
+            .already_provided
+            .retain(|id| !observation_candidates.contains_key(id));
         let preview = RetrievalPreview::from_evaluation(
             &snapshot,
             profile,

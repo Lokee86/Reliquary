@@ -277,6 +277,7 @@ pub(super) fn open_common_replaying(
             identity_generation.map(|generation| (&perception, generation)),
             &pruned_bodies,
             observation_archive_cuts,
+            &profiles,
         )?;
     memories.retain_pruned_body_fence(pruned_bodies);
     let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();

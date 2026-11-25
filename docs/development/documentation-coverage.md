@@ -72,6 +72,7 @@ Unless otherwise stated, crate code roots are `crates/<package>/`. Vendored `qui
 
 | Boundary | Canonical owner | Behavioral verification route |
 | --- | --- | --- |
+| Current Observations share Memory retrieval and retain exact citations | [Semantic processing](../architecture/semantic-processing.md), [Owner-session](../architecture/owner-session.md) | [Paraphrase, shared limit, review and reopen](behavioral-contracts.md) |
 | Single writer, immutable reads, accepted evidence, grouped durable commit and typed reopen | [Owner-session](../architecture/owner-session.md) | [Atomicity, authority and history contracts](behavioral-contracts.md) |
 | Ingest/import epochs, pinned processing profiles, REL/PHY routed writes, idempotent stage completion | [Application](../architecture/application.md), [Gateway workers](../architecture/gateway.md) | Native import source/publication/postprocessing and mixed-route interruption tests |
 | Checked user Memory creation/correction/retirement/association and Community naming | [API](../public-product-api.md), [Application](../architecture/application.md) | Root management tests and external checked/mixed-write consumer suites |

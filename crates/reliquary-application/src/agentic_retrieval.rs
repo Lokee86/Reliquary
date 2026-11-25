@@ -1,9 +1,10 @@
 use reliquary_owner_session::{
     RelRetrievalSnapshot,
     model::{MemoryBody, MemoryBodyId, MemoryId, PayloadState, Relation},
+    observation::ObservationValidity,
 };
 use reliquary_retrieval::{
-    TemporalEvidence, TemporalFilter,
+    TemporalBasis, TemporalEvidence, TemporalFilter,
     agentic::{RetrievalTurn, freshness_candidates, validate_query},
     lexical_score, lexical_terms,
 };
@@ -25,6 +26,13 @@ pub struct AgenticMemory {
     pub body: MemoryBody,
     pub freshness: i16,
     pub vector: Option<Vec<f32>>,
+}
+
+/// A current Observation projected for agentic selection with its own validity.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AgenticObservation {
+    pub candidate: AgenticMemory,
+    pub validity: Option<ObservationValidity>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -98,10 +106,38 @@ pub fn evaluate_snapshot_retrieval(
     query_vector: Option<&[f32]>,
     query_filter: Option<TemporalFilter>,
 ) -> Result<RetrievalEvaluation, String> {
+    evaluate_snapshot_retrieval_with_observations(
+        endpoint,
+        turn,
+        snapshot,
+        action,
+        query_vector,
+        query_filter,
+        &[],
+    )
+}
+
+/// Evaluate current derived Memories together with ordinary Memories from the owner cut.
+pub fn evaluate_snapshot_retrieval_with_observations(
+    endpoint: &dyn DecisionEndpoint,
+    turn: &RetrievalTurn,
+    snapshot: &RelRetrievalSnapshot,
+    action: RetrievalAction,
+    query_vector: Option<&[f32]>,
+    query_filter: Option<TemporalFilter>,
+    observations: &[AgenticObservation],
+) -> Result<RetrievalEvaluation, String> {
     let active_filter = match &action {
         RetrievalAction::Query(_) => query_filter,
         _ => turn.temporal_filter(),
     };
+    let observations = if matches!(action, RetrievalAction::Traverse(_)) {
+        &[]
+    } else {
+        observations
+    };
+    let mut candidates = crate::agentic_memories(snapshot);
+    candidates.extend(observations.iter().map(|row| row.candidate.clone()));
     let mut temporal = active_filter.map(|filter| TemporalOffer {
         filter,
         evidence: snapshot
@@ -116,12 +152,20 @@ pub fn evaluate_snapshot_retrieval(
                 (!evidence.is_empty()).then(|| (revision.record.id, bound_evidence(evidence)))
             })
             .collect(),
+        observation_validity: observations
+            .iter()
+            .filter_map(|row| {
+                let validity = row.validity?;
+                observation_matches_temporal(validity, &filter)
+                    .then_some((row.candidate.id, validity))
+            })
+            .collect(),
     });
     let mut evaluation = evaluate(
         endpoint,
         snapshot.owner_id,
         turn,
-        &crate::agentic_memories(snapshot),
+        &candidates,
         &snapshot.active_relations,
         action,
         query_vector,
@@ -143,9 +187,22 @@ pub fn evaluate_snapshot_retrieval(
     Ok(evaluation)
 }
 
+/// Observation validity represents the claim's time, and supports a Mentioned window.
+pub fn observation_matches_temporal(
+    validity: ObservationValidity,
+    filter: &TemporalFilter,
+) -> bool {
+    filter.basis == TemporalBasis::Mentioned
+        && validity
+            .start_ns
+            .is_none_or(|start| start < filter.end_exclusive_ns)
+        && validity.end_ns.is_none_or(|end| end > filter.start_ns)
+}
+
 struct TemporalOffer {
     filter: TemporalFilter,
     evidence: BTreeMap<MemoryId, (Vec<TemporalEvidence>, bool)>,
+    observation_validity: BTreeMap<MemoryId, ObservationValidity>,
 }
 
 fn bound_evidence(mut evidence: Vec<TemporalEvidence>) -> (Vec<TemporalEvidence>, bool) {
@@ -179,7 +236,9 @@ fn evaluate(
         return Err("duplicate retrieval Memory identity".into());
     }
     if let Some(temporal) = temporal {
-        by_id.retain(|id, _| temporal.evidence.contains_key(id));
+        by_id.retain(|id, _| {
+            temporal.evidence.contains_key(id) || temporal.observation_validity.contains_key(id)
+        });
     } else if !matches!(&action, RetrievalAction::Query(_)) && turn.temporal_filter().is_some() {
         return Err("temporal retrieval requires owner evidence".into());
     }
@@ -327,10 +386,13 @@ fn decide(
                 "title":memories[id].body.title,"content":memories[id].body.content,
             });
             if let Some(temporal) = temporal {
-                let (evidence, truncated) = &temporal.evidence[id];
-                candidate["temporal_evidence"] = json!(evidence);
-                if *truncated {
-                    candidate["temporal_evidence_truncated"] = json!(true);
+                if let Some((evidence, truncated)) = temporal.evidence.get(id) {
+                    candidate["temporal_evidence"] = json!(evidence);
+                    if *truncated {
+                        candidate["temporal_evidence_truncated"] = json!(true);
+                    }
+                } else if let Some(validity) = temporal.observation_validity.get(id) {
+                    candidate["observation_validity"] = json!(validity);
                 }
             }
             candidate

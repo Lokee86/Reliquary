@@ -11,6 +11,8 @@ pub struct ObservationRecord {
     pub rel_turn: u64,
     /// Derived once per operation and checked again against its publication prefix.
     pub lineages: Vec<Vec<ObservationMemoryLineage>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claim_vectors: Option<ObservationClaimVectors>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -92,6 +94,8 @@ pub struct ObservationStore {
     awards: BTreeMap<(ObservationId, u64), u8>,
     semantic_matches: BTreeMap<(ObservationId, ObservationActivity), u8>,
     progress: Option<ObservationAuditProgress>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    claim_vectors: BTreeMap<[u8; 32], BTreeMap<ObservationCitation, (usize, usize)>>,
 }
 
 impl ObservationStore {
@@ -125,6 +129,29 @@ impl ObservationStore {
 
     pub fn progress(&self) -> Option<&ObservationAuditProgress> {
         self.progress.as_ref()
+    }
+
+    pub fn claim_vector_profiles(&self) -> impl Iterator<Item = [u8; 32]> + '_ {
+        self.claim_vectors.keys().copied()
+    }
+
+    pub fn claim_vector(
+        &self,
+        profile: [u8; 32],
+        citation: &ObservationCitation,
+    ) -> Option<&[f32]> {
+        let &(record, row) = self.claim_vectors.get(&profile)?.get(citation)?;
+        Some(
+            &self
+                .records
+                .get(record)?
+                .1
+                .claim_vectors
+                .as_ref()?
+                .rows
+                .get(row)?
+                .vector,
+        )
     }
 
     pub fn head(&self, id: ObservationId) -> Option<&ObservationRevision> {
@@ -307,7 +334,9 @@ impl ObservationStore {
             || publication_version <= self.frontier()
             || record.lineages.len() != batch.operations.len()
             || batch.operations.len() > MAX_OBSERVATION_OPERATIONS
-            || (batch.operations.is_empty() && batch.progress.is_none())
+            || (batch.operations.is_empty()
+                && batch.progress.is_none()
+                && record.claim_vectors.is_none())
             || self.receipts.contains_key(&batch.input_fingerprint)
         {
             return Err(invalid("Observation publication"));
@@ -320,6 +349,24 @@ impl ObservationStore {
                 || progress.bytes.len() > 512 * 1024)
         {
             return Err(invalid("Observation audit progress predecessor or bounds"));
+        }
+
+        if let Some(vectors) = &record.claim_vectors
+            && (!batch.operations.is_empty()
+                || batch.progress.is_some()
+                || vectors.profile == [0; 32]
+                || vectors.rows.is_empty()
+                || vectors.rows.len() > MAX_OBSERVATION_CLAIM_VECTOR_ROWS
+                || vectors
+                    .rows
+                    .windows(2)
+                    .any(|rows| rows[0].citation >= rows[1].citation)
+                || vectors
+                    .rows
+                    .iter()
+                    .any(|row| self.claim_vector(vectors.profile, &row.citation).is_some()))
+        {
+            return Err(invalid("Observation claim vector publication"));
         }
 
         let mut receipt = ObservationBatchReceipt {
@@ -567,6 +614,12 @@ impl ObservationStore {
 
     /// Install an already validated transaction after its native frame is durable.
     pub fn apply(&mut self, record: ObservationRecord, receipt: ObservationBatchReceipt) {
+        if let Some(vectors) = &record.claim_vectors {
+            let index = self.claim_vectors.entry(vectors.profile).or_default();
+            for (row, vector) in vectors.rows.iter().enumerate() {
+                index.insert(vector.citation, (self.records.len(), row));
+            }
+        }
         for (operation, lineage) in record.batch.operations.iter().zip(&record.lineages) {
             let batch = &record.batch;
             if matches!(

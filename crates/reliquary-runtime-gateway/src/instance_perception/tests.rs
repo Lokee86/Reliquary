@@ -418,6 +418,18 @@ impl Fixture {
         written
     }
 
+    fn install_embedding_profile(&self) -> CompatibilityProfileId {
+        let endpoint = reliquary_application::SwitchboardEmbeddingEndpoint::new(Arc::new(Script {
+            phase: 0,
+            calls: Arc::new(Mutex::new(Vec::new())),
+        }));
+        let profile = reliquary_application::prepare_compatibility_profile(&endpoint).unwrap();
+        RelWriter::open_path_current(&self.path)
+            .unwrap()
+            .publish_compatibility_profile(profile)
+            .unwrap()
+    }
+
     fn mount(&self) -> (Gateway, OwnerId, Arc<Instance>) {
         let gateway = Gateway::new();
         let owner = gateway
@@ -510,7 +522,23 @@ fn run(
         let items = instance.list_observations(owner, None, 16).unwrap().items;
         if items.len() == count
             && complete(&items)
-            && instance.with_reliquary(owner, audit_idle).unwrap()
+            && instance
+                .with_reliquary(owner, |rel| {
+                    audit_idle(rel)
+                        && rel
+                            .observation_claim_index_profiles()
+                            .first()
+                            .is_none_or(|profile| {
+                                rel.observations_after(None, 16).iter().all(|head| {
+                                    head.standing != ObservationStanding::Current
+                                        || rel
+                                            .observation_claim_vector(profile.id, head.revision)
+                                            .unwrap()
+                                            .is_some()
+                                })
+                            })
+                })
+                .unwrap()
         {
             break items;
         }
@@ -565,11 +593,29 @@ fn mounted_worker_publishes_ordinary_relational_and_derived_claims_and_reviews_n
     assert_eq!(a.claim.profile, ObservationProfile::Ordinary);
     assert_eq!(a.claim.lineage.len(), 1);
 
+    let profile = fixture.install_embedding_profile();
+    let previous = RelSession::open_path_current(&fixture.path).unwrap();
+    assert!(previous.observation_claim_profiles().next().is_none());
+    drop(previous);
+
     fixture.append(&window("second-group", Some(PAIR)), 0);
     let second = run(&fixture, 2, 3, &calls, |_| true);
     let b = claim(&second, B);
     assert_eq!(b.claim.support, vec![a.claim.citation]);
     assert_eq!(b.claim.lineage, a.claim.lineage);
+    let indexed = RelSession::open_path_current(&fixture.path).unwrap();
+    for claim in [a, b] {
+        let head = indexed
+            .observation(observation_id(claim.claim.citation))
+            .unwrap();
+        assert_eq!(
+            indexed
+                .observation_claim_vector(profile, head.revision)
+                .unwrap(),
+            Some(vec![0.0, 1.0])
+        );
+    }
+    drop(indexed);
     let relational = claim(&second, RELATIONAL);
     assert!(
         matches!(&relational.claim.profile, ObservationProfile::Relational(participants)

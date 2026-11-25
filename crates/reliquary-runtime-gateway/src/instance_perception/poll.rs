@@ -1,4 +1,6 @@
 use super::*;
+
+pub(super) mod claim_vectors;
 use reliquary_application::observation_drafts::{
     ObservationDraftRoutes, ObservationWorkflowError, PreparedObservation, ProposalEvaluation,
     ScopedObservationRead, evaluate_proposal, evaluate_review,
@@ -43,6 +45,12 @@ enum TickInput {
 }
 
 pub(super) fn tick(owner: &OwnerWork<'_>, state: &mut WorkerState) -> Result<bool, GatewayError> {
+    let progressed = tick_perception(owner, state)?;
+    let indexed = state.claim_vectors.tick(owner);
+    Ok(progressed || indexed)
+}
+
+fn tick_perception(owner: &OwnerWork<'_>, state: &mut WorkerState) -> Result<bool, GatewayError> {
     let input = owner.read(|rel| prepare(rel, state))??;
     match input {
         TickInput::Initialize(progress) => {

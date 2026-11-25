@@ -3,9 +3,10 @@ use reliquary_archive::{Archive, TurnInput};
 use reliquary_memory_core::MemorySourceRef;
 use reliquary_owner_session::model::MemoryTextField;
 use reliquary_owner_session::observation::{
-    ObservationBatch, ObservationCitation, ObservationDraft, ObservationId, ObservationOperation,
-    ObservationPendingReason, ObservationPolicy, ObservationProfile, ObservationReceptor,
-    ObservationReceptorKind, ObservationStanding, ObservationStatus, ObservationTimeScope,
+    ObservationBatch, ObservationCitation, ObservationClaimVector, ObservationDraft, ObservationId,
+    ObservationOperation, ObservationPendingReason, ObservationPolicy, ObservationProfile,
+    ObservationReceptor, ObservationReceptorKind, ObservationStanding, ObservationStatus,
+    ObservationTimeScope,
 };
 
 const POLICY: ObservationPolicy = ObservationPolicy {
@@ -483,4 +484,120 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
             .iter()
             .all(|hit| hit.claim.citation.revision == 1)
     );
+}
+
+#[test]
+fn paraphrase_uses_the_shared_memory_search_until_observation_review() {
+    let fixture = Fixture::new();
+    let support = source(&fixture);
+    let (id, citation) = create_observation(&fixture, support, 16, "Zephyr delivery was approved.");
+    let alice = fixture.alice();
+    let endpoint = crate::g4_retrieval_acceptance::Embed {
+        calls: Default::default(),
+        dimensions: 2,
+    };
+    let profile = alice
+        .publish_embedding_profile(fixture.owner, &endpoint)
+        .unwrap();
+    let memories: Vec<_> = alice
+        .retrieval_snapshot(fixture.owner, None)
+        .unwrap()
+        .memories
+        .iter()
+        .map(|row| row.revision.record.id)
+        .collect();
+    let vectors = alice
+        .prepare_owner_memory_vectors(fixture.owner, profile, &memories, &endpoint)
+        .unwrap();
+    alice.publish_owner_memory_vectors(&vectors).unwrap();
+    alice
+        .with_rel_writer(fixture.owner, |writer| {
+            writer.publish_observation_claim_vectors(
+                profile,
+                vec![ObservationClaimVector {
+                    citation,
+                    vector: vec![1.0, 0.0],
+                }],
+            )
+        })
+        .unwrap()
+        .unwrap();
+    fixture.gateway.quiesce_owner(fixture.owner).unwrap();
+    fixture
+        .gateway
+        .mount_writable_reliquary(
+            &fixture.path,
+            &GraphAdmission::for_replay(fixture.owner.as_bytes(), [], [], [], [], []),
+            [],
+            [],
+        )
+        .unwrap();
+    let alice = fixture.alice();
+
+    // "Needle" supplies a competing lexical Memory. None of these words
+    // occur in the Observation. Its claim vector must win the same limit.
+    let paraphrase = "needle freight authorization";
+    let search = |mode, embedding| {
+        alice
+            .search_rel_memories(fixture.owner, paraphrase, mode, Some(1), embedding)
+            .unwrap()
+    };
+    let embedding = || Some((profile, vec![1.0, 0.0]));
+    let lexical = search(SearchMode::Lexical, None);
+    assert!(lexical.observations.is_empty());
+    assert_eq!(lexical.memories.len(), 1);
+
+    let before = search(SearchMode::Hybrid, embedding());
+    assert!(before.memories.is_empty());
+    assert!(before.truncated);
+    let [observation] = before.observations.as_slice() else {
+        panic!("expected only the Observation to win the shared result limit");
+    };
+    assert_eq!(observation.lexical_score, 0.0);
+    assert_eq!(observation.semantic_score, Some(1.0));
+    assert_eq!(observation.claim.citation, citation);
+    assert_eq!(observation.claim.support, vec![support]);
+    let semantic = search(SearchMode::Semantic, embedding());
+    assert_eq!(semantic.observations[0].claim.citation, citation);
+
+    let recall = |turn_id| {
+        let turn = alice
+            .begin_memory_retrieval(fixture.owner, turn_id, RetrievalMode::Inspect)
+            .unwrap();
+        alice
+            .evaluate_agentic_memory(
+                &turn,
+                &route(),
+                RetrievalAction::Query(paraphrase.into()),
+                || Ok(embedding()),
+            )
+            .unwrap()
+            .preview
+            .unwrap()
+    };
+    assert_eq!(
+        recall("paraphrase-current").observations[0].claim.support,
+        vec![support]
+    );
+
+    publish(
+        &fixture,
+        support,
+        17,
+        ObservationOperation::Pending {
+            id,
+            expected_revision: citation.revision,
+            reason: ObservationPendingReason::ChangedSupport,
+            evidence: Vec::new(),
+        },
+    );
+    let after = search(SearchMode::Hybrid, embedding());
+    assert!(after.observations.is_empty());
+    assert_eq!(after.memories.len(), 1);
+    assert!(
+        search(SearchMode::Semantic, embedding())
+            .observations
+            .is_empty()
+    );
+    assert!(recall("paraphrase-in-review").observations.is_empty());
 }

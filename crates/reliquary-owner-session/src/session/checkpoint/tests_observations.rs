@@ -646,6 +646,7 @@ fn clocked_observation_rejects_archive_evidence_from_outside_its_prefix() {
         memory_cut: 0,
         perception_cut: 0,
         lineages: vec![],
+        claim_vectors: None,
     };
     let mut body = observations::MARKER.to_vec();
     body.extend(rmp_serde::to_vec_named(&record).unwrap());

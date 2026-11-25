@@ -9,6 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 pub const MAX_OBSERVATION_OPERATIONS: usize = 32;
+pub const MAX_OBSERVATION_CLAIM_VECTOR_ROWS: usize = 16;
 pub const MAX_OBSERVATION_LINEAGE: usize = 64;
 pub const MAX_OBSERVATION_DEPENDENCIES: usize = 4096;
 const MAX_CITATIONS: usize = 8;
@@ -289,6 +290,18 @@ pub enum ObservationOperation {
         evidence: ObservationCitation,
         amount: u8,
     },
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ObservationClaimVector {
+    pub citation: ObservationCitation,
+    pub vector: Vec<f32>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ObservationClaimVectors {
+    pub profile: [u8; 32],
+    pub rows: Vec<ObservationClaimVector>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

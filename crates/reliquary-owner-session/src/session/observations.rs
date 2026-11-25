@@ -2,9 +2,11 @@ use super::perception_lifecycle::support::{has_direct_source, owner_hex, text_fi
 use super::*;
 use reliquary_perception_store::RetainedResolutionRecord;
 use reliquary_perception_store::observation::*;
+use sha2::{Digest, Sha256};
 
 pub(crate) const PREFIX: &[u8] = b"RELOBS";
 pub(crate) const MARKER: &[u8; 8] = b"RELOBS01";
+const CLAIM_VECTOR_MARKER: &[u8; 8] = b"RELOBS02";
 const MAX_RECORD_BYTES: usize = 4 * 1024 * 1024;
 const MAX_STANDING_CHECK: usize = MAX_OBSERVATION_DEPENDENCIES + 1;
 const MAX_PAGE: usize = 128;
@@ -53,7 +55,9 @@ pub(super) fn decode(frame: &[u8]) -> Result<Option<(u64, ObservationRecord)>, O
     let envelope = envelope
         .filter(|entry| entry.transaction_time_ns.is_none() && !entry.bound_reservation)
         .ok_or_else(|| invalid("expected an untimed REL publication envelope"))?;
-    if !body.starts_with(MARKER) || body.len() > MAX_RECORD_BYTES {
+    if (!body.starts_with(MARKER) && !body.starts_with(CLAIM_VECTOR_MARKER))
+        || body.len() > MAX_RECORD_BYTES
+    {
         return Err(invalid("unsupported Observation publication"));
     }
     let record = rmp_serde::from_slice(&body[MARKER.len()..]).map_err(|_| invalid("encoding"))?;
@@ -64,7 +68,12 @@ pub(super) fn decode(frame: &[u8]) -> Result<Option<(u64, ObservationRecord)>, O
 }
 
 fn encode(record: &ObservationRecord) -> Result<Vec<u8>, OwnerSessionError> {
-    let mut body = MARKER.to_vec();
+    let marker = if record.claim_vectors.is_some() {
+        CLAIM_VECTOR_MARKER
+    } else {
+        MARKER
+    };
+    let mut body = marker.to_vec();
     body.extend(rmp_serde::to_vec_named(record).map_err(|_| invalid("encoding"))?);
     if body.len() > MAX_RECORD_BYTES {
         return Err(invalid("record size"));
@@ -77,6 +86,7 @@ pub(super) struct ObservationPrefix<'a> {
     pub owner: [u8; 16],
     pub generation: [u8; 32],
     pub memories: &'a MemoryStore,
+    pub profiles: &'a CompatibilityProfileStore,
     pub memory_cut: u64,
     pub perception: &'a PerceptionStore,
     pub perception_cut: u64,
@@ -241,6 +251,26 @@ impl ObservationPrefix<'_> {
             )?;
         }
         let mut checker = StandingCheck::new(*self, store);
+        if let Some(vectors) = &record.claim_vectors {
+            let profile = self
+                .profiles
+                .get(CompatibilityProfileId(vectors.profile))
+                .ok_or_else(|| invalid("unknown claim vector profile"))?;
+            for row in &vectors.rows {
+                let ObservationSource::Observation(id) = row.citation.source else {
+                    return Err(invalid("claim vector source is not an Observation"));
+                };
+                let head = store
+                    .head(id)
+                    .ok_or_else(|| invalid("claim vector source is missing"))?;
+                if head.full_citation() != row.citation
+                    || !super::vector_publication::valid_profile_vector(profile, &row.vector)
+                {
+                    return Err(invalid("claim vector source or profile differs"));
+                }
+                checker.current_lineage(&row.citation)?;
+            }
+        }
         let changes = record
             .batch
             .operations
@@ -363,12 +393,22 @@ impl ObservationPrefix<'_> {
         store: &mut ObservationStore,
         frame: &[u8],
         archive_cuts: &BTreeMap<u64, (u64, u64)>,
+        active_profiles: &BTreeSet<[u8; 32]>,
     ) -> Result<bool, OwnerSessionError> {
         let Some((version, record)) = decode(frame)? else {
             return Ok(false);
         };
         if archive_cuts.get(&version).copied() != Some((record.archive_cut, record.rel_turn)) {
             return Err(invalid("physical Archive cut differs"));
+        }
+        if record
+            .claim_vectors
+            .as_ref()
+            .is_some_and(|vectors| !active_profiles.contains(&vectors.profile))
+        {
+            return Err(invalid(
+                "claim vector profile is inactive at its publication",
+            ));
         }
         let receipt = self.check_record(store, &record, version)?;
         store.apply(record, receipt);
@@ -611,6 +651,7 @@ impl RelSession {
             owner: self.owner_id,
             generation: self.history_generation,
             memories: &self.common.memories,
+            profiles: &self.common.profiles,
             memory_cut: self.common.memories.memory_version(),
             perception: &self.common.perception,
             perception_cut: self.common.perception.version(),
@@ -618,6 +659,54 @@ impl RelSession {
             observed_bodies: None,
             unobserved_suffix_bodies: None,
         }
+    }
+
+    pub fn observation_claim_index_profiles(
+        &self,
+    ) -> Vec<reliquary_vector_store::CompatibilityProfile> {
+        let active = || {
+            self.common
+                .profiles
+                .iter()
+                .filter(|profile| !self.common.profiles.is_retired(profile.id))
+        };
+        let memory_profiles: Vec<_> = active()
+            .filter(|profile| self.common.memory_vectors.binding_count(profile.id) != 0)
+            .cloned()
+            .collect();
+        if memory_profiles.is_empty() {
+            active().cloned().collect()
+        } else {
+            memory_profiles
+        }
+    }
+
+    pub fn observation_claim_profiles(&self) -> impl Iterator<Item = CompatibilityProfileId> + '_ {
+        self.observations
+            .claim_vector_profiles()
+            .map(CompatibilityProfileId)
+            .filter(|id| self.active_compatibility_profile(*id).is_some())
+    }
+
+    pub fn observation_claim_vector(
+        &self,
+        profile: CompatibilityProfileId,
+        revision: &ObservationRevision,
+    ) -> Result<Option<Vec<f32>>, OwnerSessionError> {
+        if self.active_compatibility_profile(profile).is_none() {
+            return Err(invalid("claim vector profile is unavailable"));
+        }
+        let citation = revision.full_citation();
+        let Some(vector) = self.observations.claim_vector(profile.0, &citation) else {
+            return Ok(None);
+        };
+        Ok(self
+            .observation(revision.id)
+            .filter(|head| {
+                head.standing == ObservationStanding::Current
+                    && head.revision.full_citation() == citation
+            })
+            .map(|_| vector.to_vec()))
     }
 
     pub fn observation_progress(&self) -> Option<&ObservationAuditProgress> {
@@ -790,6 +879,77 @@ impl RelWriter {
         &mut self,
         batch: ObservationBatch,
     ) -> Result<ObservationBatchReceipt, OwnerSessionError> {
+        self.publish_observation_record(batch, None)
+    }
+
+    pub fn publish_observation_claim_vectors(
+        &mut self,
+        profile: CompatibilityProfileId,
+        mut rows: Vec<ObservationClaimVector>,
+    ) -> Result<(), OwnerSessionError> {
+        self.ensure_write_ready()?;
+        if rows.is_empty()
+            || rows.len() > MAX_OBSERVATION_CLAIM_VECTOR_ROWS
+            || self.session.active_compatibility_profile(profile).is_none()
+        {
+            return Err(invalid("claim vector batch or profile is unavailable"));
+        }
+        rows.sort_by_key(|row| row.citation);
+        if rows
+            .windows(2)
+            .any(|pair| pair[0].citation == pair[1].citation)
+        {
+            return Err(invalid("claim vector batch repeats a citation"));
+        }
+        let rel = &self.session;
+        rows.retain(|row| {
+            rel.observations
+                .claim_vector(profile.0, &row.citation)
+                .is_none()
+        });
+        let Some(first) = rows.first() else {
+            return Ok(());
+        };
+        let ObservationSource::Observation(id) = first.citation.source else {
+            return Err(invalid("claim vector source is not an Observation"));
+        };
+        let policy = rel
+            .observations
+            .head(id)
+            .ok_or_else(|| invalid("claim vector source is missing"))?
+            .policy;
+        let mut fingerprint = Sha256::new();
+        fingerprint.update(b"reliquary-observation-claim-vector-batch-v1");
+        fingerprint.update(profile.0);
+        for row in &rows {
+            fingerprint.update(
+                rmp_serde::to_vec_named(&row.citation)
+                    .map_err(|_| invalid("claim vector citation encoding"))?,
+            );
+        }
+        let batch = ObservationBatch {
+            owner_id: rel.owner_id,
+            history_generation: rel.history_generation,
+            input_fingerprint: fingerprint.finalize().into(),
+            policy,
+            operations: Vec::new(),
+            progress: None,
+        };
+        self.publish_observation_record(
+            batch,
+            Some(ObservationClaimVectors {
+                profile: profile.0,
+                rows,
+            }),
+        )?;
+        Ok(())
+    }
+
+    fn publish_observation_record(
+        &mut self,
+        batch: ObservationBatch,
+        claim_vectors: Option<ObservationClaimVectors>,
+    ) -> Result<ObservationBatchReceipt, OwnerSessionError> {
         self.ensure_write_ready()?;
         let before = self.container.writer_lease_proof();
         if before.is_none() || before != self.session.writer_lease_proof {
@@ -812,6 +972,7 @@ impl RelWriter {
             perception_cut: prefix.perception_cut,
             archive_cut: self.session.archive.archive_version(),
             rel_turn: self.session.archive.rel_turn_count(),
+            claim_vectors,
         };
         let receipt = prefix.check_record(store, &record, version)?;
         let scores = self.session.prepare_observation_scores(&record, &receipt)?;
@@ -1002,6 +1163,15 @@ pub(super) fn admit_suffix(
         || record.rel_turn != session.archive.rel_turn_count()
     {
         return Err(invalid("checkpoint suffix Archive cut differs"));
+    }
+    if record.claim_vectors.as_ref().is_some_and(|vectors| {
+        session
+            .active_compatibility_profile(CompatibilityProfileId(vectors.profile))
+            .is_none()
+    }) {
+        return Err(invalid(
+            "claim vector profile is inactive at its publication",
+        ));
     }
     let receipt = prefix.check_record(&session.observations, &record, version)?;
     let scores = session.prepare_observation_scores(&record, &receipt)?;
