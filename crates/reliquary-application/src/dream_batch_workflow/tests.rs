@@ -2,6 +2,7 @@ use crate::*;
 use reliquary_container::Container;
 use reliquary_dream::{DreamClassifier, DreamVerificationPolicy, DreamVerifier};
 use reliquary_memory_core::{MemoryDraft, MemoryId, MemoryStore};
+use reliquary_owner_session::model::RelationKind;
 use reliquary_owner_session::{
     DreamMemoryCut, GraphAdmission, PhySession, PhyWriter, RelSession, RelWriter,
 };
@@ -10,7 +11,10 @@ use serde_json::{Value, json};
 use std::{
     fs,
     path::PathBuf,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 static NEXT: AtomicU64 = AtomicU64::new(1);
 struct Temp(PathBuf);
@@ -234,6 +238,87 @@ fn settle(
             &empty,
             501,
         )
+    }
+}
+
+#[test]
+fn native_import_retries_lifecycle_conflicts_in_candidate_order() {
+    struct ConflictingProposal {
+        calls: Arc<Mutex<Vec<i64>>>,
+        persists: bool,
+    }
+
+    impl GeneralEndpoint for ConflictingProposal {
+        fn model(&self) -> &str {
+            "batch-model"
+        }
+
+        fn complete_json(
+            &self,
+            system: &str,
+            payload: &str,
+            schema: &str,
+            definition: &Value,
+        ) -> Result<Value, GeneralEndpointError> {
+            let data: Value = serde_json::from_str(payload).unwrap();
+            let candidate = data["a"]["source_timestamp_ns"]
+                .as_i64()
+                .unwrap()
+                .min(data["b"]["source_timestamp_ns"].as_i64().unwrap());
+            let mut calls = self.calls.lock().unwrap();
+            let relation = match candidate {
+                1 => "supersedes",
+                2 if self.persists || calls.len() < 2 => "duplicate_of",
+                2 => "none",
+                _ => panic!("unexpected candidate"),
+            };
+            calls.push(candidate);
+            Endpoint {
+                relation,
+                verdict: "yes",
+            }
+            .complete_json(system, payload, schema, definition)
+        }
+    }
+
+    for persists in [false, true] {
+        let (path, owner, source, candidates) = fixture(true);
+        let ids: Vec<_> = candidates.iter().map(|candidate| candidate.id).collect();
+        begin(&path, owner, true, source, candidates);
+        let calls = Arc::new(Mutex::new(Vec::new()));
+        let draft = {
+            let rel = RelSession::open_path(&path.0, &graph(owner), [], []).unwrap();
+            super::prepare_dream_batch(&EntityOwnerSession::Rel(&rel), owner, source.id, &ids)
+                .unwrap()
+                .evaluate_import(
+                    &DreamClassifier::new(ConflictingProposal {
+                        calls: calls.clone(),
+                        persists,
+                    }),
+                    Some(&DreamVerifier::new(Endpoint {
+                        relation: "none",
+                        verdict: "yes",
+                    })),
+                    DreamVerificationPolicy::default(),
+                )
+                .unwrap()
+        };
+
+        let expected = if persists {
+            &[1, 2, 1, 2, 1, 2][..]
+        } else {
+            &[1, 2, 1, 2][..]
+        };
+        assert_eq!(calls.lock().unwrap().as_slice(), expected);
+        let publication = [15; 32];
+        let cut = super::prepare_dream_batch_cut(owner, publication, &draft, 100).unwrap();
+        assert_eq!(cut.pairs.len(), 2);
+        assert_eq!(cut.pairs[0].kind, Some(RelationKind::Supersedes));
+        assert!(!cut.pairs[0].rejected);
+        assert_eq!(cut.pairs[1].kind, None);
+        assert_eq!(cut.pairs[1].rejected, persists);
+        assert!(publish(&path, owner, true, publication, &draft).unwrap());
+        assert!(!publish(&path, owner, true, publication, &draft).unwrap());
     }
 }
 #[path = "completion.rs"]

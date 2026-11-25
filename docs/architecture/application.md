@@ -22,6 +22,8 @@ For temporal requests, Application applies the source-time or Chronos predicate 
 
 Cross-owner workflows keep each mutable authority local. When an operation affects REL and PHY, it uses explicit receipts, copy/reopen verification, or reconciliation rather than exposing a shared store. Retry behavior uses stable request/owner identities and current cuts; stale preparations are rejected or recomputed instead of applied over newer state.
 
+Native import Dream retries a conflicting lifecycle proposal up to twice on the same pinned Memory frontier before any later Memory can publish. If the conflict persists, Application evaluates the final judgments in pinned candidate order, retains the compatible decisions, and records each incompatible pair as rejected. The validated effects and pair outcomes are published through the same grouped owner commit before the next Memory advances. Provider errors and stale owner evidence still follow their existing failure paths.
+
 Inspection projects a Memory summary for one ID at an exact owner cut. It shares the paginated list's lifecycle, canonical status, and Community projection.
 
 Inspection selects the retained revision metadata before loading its payload. Application propagates a failed leased Memory or Archive read as a verification error. A recorded tombstone or pruned body retains its typed availability.
