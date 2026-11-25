@@ -145,6 +145,8 @@ Perception discovers ordinary and relational claims in one authorized, writable 
 
 Use `WorkspaceManagement::list_observations`, `inspect_observation`, `observation_history`, and `inspect_observation_evidence` with the owner REL's read grant. Page continuations bind exact owner state. A pending claim shows its last verified wording and status in inspection. Current lexical and hybrid results and agentic context can contain typed Observations. Each result retains its own stable identity, revision and exact evidence. New delivery and new derivation require current standing. Previously accepted manifests can recover the exact retained revision.
 
+`Instance::deliver_retrieval_confirmed` confirms the exact prepared selection through the trusted host. `RetrievalDeliveryOutcome::Confirmed { recorded_memory_use }` reports a newly completed delivery. The flag is false for an Observation-only selection, which earns no Memory Freshness credit. `RetrievalDeliveryOutcome::Replay` reports an exact operation that already completed. The existing `deliver_retrieval` method returns whether it added a durable Memory-use receipt.
+
 Observation claims and manual Relationships have distinct identities and histories. A relational Observation publishes through the same native Perception writer as an ordinary Observation. Existing 2.1 owners can open with an empty Observation history. Owner files with Observation publications require a reader that supports the new carrier. [Owner replay and maintenance](architecture/owner-session.md)
 
 ## Cross-REL Entity identity

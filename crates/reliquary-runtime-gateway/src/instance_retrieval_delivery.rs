@@ -1,14 +1,25 @@
 use super::*;
 
 impl Instance {
-    /// Idempotently deliver selected content, then persist accepted use. A
-    /// Pending/unknown host response never updates turn selection or Freshness.
+    /// Returns whether the exact confirmed Memory use was newly recorded.
     pub fn deliver_agentic_memory(
         &self,
         turn: &MemoryRetrievalTurn,
         prepared: &PreparedMemoryDelivery,
         router: &CapabilityRouter,
     ) -> Result<bool, GatewayError> {
+        self.deliver_agentic_memory_confirmed(turn, prepared, router)
+            .map(RetrievalDeliveryOutcome::recorded_memory_use)
+    }
+
+    /// Idempotently confirm selected content, then persist any Memory use.
+    /// Pending/unknown host status leaves the selection and Freshness unchanged.
+    pub fn deliver_agentic_memory_confirmed(
+        &self,
+        turn: &MemoryRetrievalTurn,
+        prepared: &PreparedMemoryDelivery,
+        router: &CapabilityRouter,
+    ) -> Result<RetrievalDeliveryOutcome, GatewayError> {
         validate_prepared(self, turn, prepared)?;
         let _delivery = turn
             .delivery
@@ -27,7 +38,7 @@ impl Instance {
             if self.pending_matches(turn, prepared)? {
                 self.commit_selected(turn, prepared)?;
             }
-            return Ok(false);
+            return Ok(RetrievalDeliveryOutcome::Replay);
         }
         crate::host_memory_delivery::require_delivery_contract(router, self.gateway_binding())?;
         if !self.pending_matches(turn, prepared)? {
@@ -38,7 +49,7 @@ impl Instance {
                 )
             {
                 validate_prepared(self, turn, prepared)?;
-                return Ok(false);
+                return Ok(RetrievalDeliveryOutcome::Replay);
             }
             return Err(GatewayError::InvalidPreparedRetrieval);
         }
@@ -50,21 +61,27 @@ impl Instance {
             payload_digest: prepared.digest,
             payload: prepared.payload.clone(),
         };
-        let consumption_confirmed = {
+        let (handoff_checked, consumption_confirmed) = {
             let mut state = turn
                 .state
                 .lock()
                 .map_err(|_| GatewayError::RegistryPoisoned)?;
+            let handoff_checked = state.handoff_checked;
             state.handoff_checked = true;
-            state.consumption_confirmed
+            (handoff_checked, state.consumption_confirmed)
         };
         let status = router
             .adapter()
             .memory_delivery_status(&prepared.use_id)
             .map_err(GatewayError::HostAdapter)?;
-        match status {
+        let replay = match status {
             MemoryDeliveryStatus::Confirmed(confirmed)
-                if matches_operation(prepared, &confirmed) => {}
+                if matches_operation(prepared, &confirmed) =>
+            {
+                // A newly prepared controller can reconstruct an operation that
+                // the host confirmed earlier. A retry can also resolve a pending handoff.
+                !handoff_checked
+            }
             MemoryDeliveryStatus::Confirmed(_) => {
                 return Err(GatewayError::InvalidHandoffReceipt);
             }
@@ -97,8 +114,9 @@ impl Instance {
                 {
                     return Err(GatewayError::InvalidHandoffReceipt);
                 }
+                false
             }
-        }
+        };
         validate_prepared(self, turn, prepared)?;
         // Host consumption is known even if the durable Freshness write fails.
         // Retain the pending exact manifest until its receipt is reconciled.
@@ -107,7 +125,13 @@ impl Instance {
         // host operation remains recoverable without a Memory Freshness write.
         if sources.is_empty() {
             self.commit_selected(turn, prepared)?;
-            return Ok(false);
+            return Ok(if replay {
+                RetrievalDeliveryOutcome::Replay
+            } else {
+                RetrievalDeliveryOutcome::Confirmed {
+                    recorded_memory_use: false,
+                }
+            });
         }
         let recorded =
             self.with_rel_writer(prepared.owner, |writer| -> Result<bool, GatewayError> {
@@ -120,7 +144,13 @@ impl Instance {
                 )?)
             })??;
         self.commit_selected(turn, prepared)?;
-        Ok(recorded)
+        Ok(if recorded {
+            RetrievalDeliveryOutcome::Confirmed {
+                recorded_memory_use: true,
+            }
+        } else {
+            RetrievalDeliveryOutcome::Replay
+        })
     }
 
     pub(super) fn revalidate_before_handoff(

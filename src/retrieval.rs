@@ -25,8 +25,8 @@ pub use reliquary_application::{
 pub use reliquary_runtime_gateway::{
     ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication,
     ArchiveTurnTemporalEvidence, ArchiveVectorHit, ArchiveVectorSearch, MemoryTemporalMatch,
-    RetrievalCut, RetrievalMemory, RetrievalMode, RetrievalObservation, RetrievalPreview,
-    RetrievalSource, SearchMode, SearchResult, TemporalArchiveHitEvidence,
+    RetrievalCut, RetrievalDeliveryOutcome, RetrievalMemory, RetrievalMode, RetrievalObservation,
+    RetrievalPreview, RetrievalSource, SearchMode, SearchResult, TemporalArchiveHitEvidence,
     TemporalArchiveHybridSearch,
 };
 
@@ -288,16 +288,28 @@ impl Instance {
             .map_err(retrieval_error)
     }
 
-    /// Returns whether this invocation recorded the exact confirmed-use receipt.
+    /// Returns whether this invocation added a durable Memory-use receipt.
     pub fn deliver_retrieval(
         &self,
         session: &RetrievalSession,
         prepared: &PreparedMemoryDelivery,
         router: &CapabilityRouter,
     ) -> Result<bool, ProductError> {
+        self.deliver_retrieval_confirmed(session, prepared, router)
+            .map(RetrievalDeliveryOutcome::recorded_memory_use)
+    }
+
+    /// Confirm the exact prepared selection through the trusted host. Distinguishes
+    /// a newly completed selection from a replay, including Observation-only delivery.
+    pub fn deliver_retrieval_confirmed(
+        &self,
+        session: &RetrievalSession,
+        prepared: &PreparedMemoryDelivery,
+        router: &CapabilityRouter,
+    ) -> Result<RetrievalDeliveryOutcome, ProductError> {
         self.require(OwnerGrant::OperateRel(session.owner))?;
         self.inner
-            .deliver_agentic_memory(&session.inner, prepared.inner(), router)
+            .deliver_agentic_memory_confirmed(&session.inner, prepared.inner(), router)
             .map_err(retrieval_error)
     }
 

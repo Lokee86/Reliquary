@@ -503,5 +503,6 @@ pub use host_memory_delivery::{
 pub use instance_external_source::{AuthorizedExternalLexicalIndex, ExternalHostSource};
 pub use instance_retrieval::{
     MemoryRetrievalRoute, MemoryRetrievalTurn, PreparedMemoryDelivery, RetrievalCut,
-    RetrievalMemory, RetrievalMode, RetrievalOutcome, RetrievalPreview, RetrievalSource,
+    RetrievalDeliveryOutcome, RetrievalMemory, RetrievalMode, RetrievalOutcome, RetrievalPreview,
+    RetrievalSource,
 };

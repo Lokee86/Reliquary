@@ -54,6 +54,8 @@ Authentication with `ManageRel` admits Perception work for that owner's writable
 
 The public `TrustedHostAdapter` contract supplies configured capabilities, authenticated `connect`, declared per-capability queue guarantees, reconciliation, stable-id handoff/status/cancel, and optional confirmed memory delivery/status. `HostQueueGuarantees::complete` requires durable acceptance, stable submission IDs, linearizable cancel/dequeue, queryable operation status, and idempotent handoff before Gateway treats the capability as executable. Host-reported capability declarations are not proof that an adapter honors them; production host conformance requires independent integration verification.
 
+Typed retrieval delivery distinguishes a newly completed exact operation from a replay. Observation-only delivery confirms consumption through the trusted host and advances the turn frontier without a Memory-use receipt. Mixed delivery records the selected Memory use once through the REL writer and retains the selected Observations in the same turn frontier.
+
 These are library integration contracts, not wire protocol/deployment documentation. Exact public signatures are re-exported through [`src/lib.rs`](../../src/lib.rs) and [`crates/reliquary-runtime-gateway/src/lib.rs`](../../crates/reliquary-runtime-gateway/src/lib.rs); the CLI and operator guides own user-facing invocation details.
 
 ## Failure, recovery, and invariants

@@ -176,6 +176,89 @@ fn create_observation(
 }
 
 #[test]
+fn mixed_delivery_confirms_once_and_records_selected_memory_use() {
+    let fixture = Fixture::new();
+    let support = source(&fixture);
+    let (_, observation) = create_observation(
+        &fixture,
+        support,
+        10,
+        "Needle work includes an approved delivery.",
+    );
+    let alice = fixture.alice();
+    let turn = alice
+        .begin_memory_retrieval_turn(fixture.owner, "mixed-delivery")
+        .unwrap();
+    let token = alice
+        .prepare_agentic_memory_delivery(
+            &turn,
+            &route(),
+            RetrievalAction::Query("needle other".into()),
+            None,
+            None,
+        )
+        .unwrap()
+        .prepared
+        .unwrap();
+    let preview = alice
+        .preview_agentic_memory_delivery(&turn, &token)
+        .unwrap();
+    assert_eq!(preview.memories.len(), 2);
+    assert_eq!(preview.observations.len(), 1);
+    assert_eq!(preview.observations[0].claim.citation, observation);
+
+    let host = Arc::new(Host::default());
+    host.pending.store(true, Ordering::Relaxed);
+    let router = connect(&fixture.gateway, host.clone());
+    assert!(matches!(
+        alice.deliver_agentic_memory_confirmed(&turn, &token, &router),
+        Err(GatewayError::InvalidHandoffReceipt)
+    ));
+    assert!(matches!(
+        alice.deliver_agentic_memory_confirmed(&turn, &token, &router),
+        Err(GatewayError::HostStatusUnknown)
+    ));
+    host.pending.store(false, Ordering::Relaxed);
+    assert_eq!(
+        alice
+            .deliver_agentic_memory_confirmed(&turn, &token, &router)
+            .unwrap(),
+        RetrievalDeliveryOutcome::Confirmed {
+            recorded_memory_use: true,
+        }
+    );
+    assert_eq!(
+        alice
+            .deliver_agentic_memory_confirmed(&turn, &token, &router)
+            .unwrap(),
+        RetrievalDeliveryOutcome::Replay
+    );
+    assert_eq!(host.calls.load(Ordering::Relaxed), 1);
+    let receipt = alice
+        .with_reliquary(fixture.owner, |rel| {
+            rel.accepted_external_use(token.stable_id()).cloned()
+        })
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        receipt
+            .sources
+            .iter()
+            .map(|id| hex(&id.0))
+            .collect::<Vec<_>>(),
+        preview
+            .memories
+            .iter()
+            .map(|memory| memory.memory_id.clone())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        turn.state.lock().unwrap().provided_observations,
+        [observation].into()
+    );
+}
+
+#[test]
 fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
     let fixture = Fixture::new();
     let support = source(&fixture);
@@ -272,10 +355,30 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
         .unwrap();
     let accepted_token = prepare(&accepted);
     let accepted_id = accepted_token.stable_id().to_owned();
-    assert!(
-        !alice
-            .deliver_agentic_memory(&accepted, &accepted_token, &router)
-            .unwrap()
+    assert_eq!(
+        alice
+            .deliver_agentic_memory_confirmed(&accepted, &accepted_token, &router)
+            .unwrap(),
+        RetrievalDeliveryOutcome::Confirmed {
+            recorded_memory_use: false,
+        }
+    );
+    assert_eq!(
+        alice
+            .deliver_agentic_memory_confirmed(&accepted, &accepted_token, &router)
+            .unwrap(),
+        RetrievalDeliveryOutcome::Replay
+    );
+    let rebuilt = alice
+        .begin_memory_retrieval_turn(fixture.owner, "confirmed-observation")
+        .unwrap();
+    let rebuilt_token = prepare(&rebuilt);
+    assert_eq!(rebuilt_token.stable_id(), accepted_id);
+    assert_eq!(
+        alice
+            .deliver_agentic_memory_confirmed(&rebuilt, &rebuilt_token, &router)
+            .unwrap(),
+        RetrievalDeliveryOutcome::Replay
     );
     assert!(
         !alice
@@ -333,7 +436,7 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
         assert!(!row.claim.proposition.is_empty());
     }
     assert!(matches!(
-        alice.deliver_agentic_memory(&pending_turn, &pending_delivery, &router),
+        alice.deliver_agentic_memory_confirmed(&pending_turn, &pending_delivery, &router),
         Err(GatewayError::StaleRetrieval)
     ));
     assert_eq!(host.calls.load(Ordering::Relaxed), 1);

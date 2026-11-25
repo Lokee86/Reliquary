@@ -56,6 +56,28 @@ impl PreparedMemoryDelivery {
     }
 }
 
+/// Result of completing trusted delivery for one exact prepared selection.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RetrievalDeliveryOutcome {
+    /// The pending selection completed. Observation-only delivery has no
+    /// Memory use to record.
+    Confirmed { recorded_memory_use: bool },
+    /// Exact delivery had already been confirmed.
+    Replay,
+}
+
+impl RetrievalDeliveryOutcome {
+    /// Whether this invocation added a durable Memory-use receipt.
+    pub fn recorded_memory_use(self) -> bool {
+        matches!(
+            self,
+            Self::Confirmed {
+                recorded_memory_use: true
+            }
+        )
+    }
+}
+
 pub struct RetrievalOutcome {
     pub prepared: Option<PreparedMemoryDelivery>,
     pub preview: Option<RetrievalPreview>,
