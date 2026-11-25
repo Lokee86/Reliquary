@@ -4,6 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::io::Read;
 
 pub const MAGIC: &[u8; 8] = b"RELIFRS1";
 
@@ -95,14 +96,31 @@ pub fn push_frame(hash: &mut Sha256, payload: &[u8]) {
     hash.update(payload);
 }
 
+pub(super) const PREFIX_BUFFER_BYTES: usize = 64 * 1024;
+
+pub(super) fn push_streamed_frame(
+    hash: &mut Sha256,
+    prefix: &[u8],
+    frame: &mut reliquary_container::FramePayloadReader<'_>,
+    buffer: &mut [u8],
+) -> Result<(), String> {
+    hash.update(frame.object().length.to_le_bytes());
+    hash.update(prefix);
+    loop {
+        let count = frame.read(buffer).map_err(|error| error.to_string())?;
+        if count == 0 {
+            return Ok(());
+        }
+        hash.update(&buffer[..count]);
+    }
+}
+
 pub fn source_prefix_digest(container: &reliquary_container::Container) -> Result<String, String> {
     let mut hash = prefix_hasher();
     let mut cursor = container.physical_cursor().map_err(|e| e.to_string())?;
+    let mut buffer = vec![0; PREFIX_BUFFER_BYTES];
     while let Some(mut frame) = cursor.next_frame().map_err(|e| e.to_string())? {
-        use std::io::Read;
-        let mut payload = Vec::new();
-        frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
-        push_frame(&mut hash, &payload);
+        push_streamed_frame(&mut hash, &[], &mut frame, &mut buffer)?;
     }
     Ok(format!("{:x}", hash.finalize()))
 }

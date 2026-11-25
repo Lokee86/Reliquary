@@ -22,6 +22,15 @@ pub mod freshness_journal;
 const JOURNAL_MAGIC: &[u8; 8] = b"CVDREAM1";
 const BEGIN_MAGIC: &[u8; 8] = b"CVDREAM2";
 
+fn dream_evidence_frame(prefix: &[u8]) -> bool {
+    // The evidence store admits raw carriers. Match decoder families where
+    // an unsupported marker must still reach validation.
+    prefix.starts_with(JOURNAL_MAGIC)
+        || prefix.starts_with(BEGIN_MAGIC)
+        || prefix.starts_with(b"RELDRC")
+        || prefix.starts_with(b"RELDRF")
+}
+
 #[path = "dream_checkpoint.rs"]
 mod checkpoint;
 #[path = "dream_population_history.rs"]
@@ -312,7 +321,7 @@ impl DreamEvidenceStore {
         let mut frontier_positions = Vec::new();
         let mut explicit_frontiers = explicit_frontiers.into_iter().peekable();
         let mut frames = container
-            .matching_physical_cursor(super::frame_selection::without_archive_or_packed)
+            .matching_physical_cursor(dream_evidence_frame)
             .map_err(|error| error.to_string())?;
         let mut buffer = Vec::new();
         while let Some(mut frame) = frames.next_frame().map_err(|error| error.to_string())? {

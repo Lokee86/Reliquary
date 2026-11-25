@@ -22,18 +22,50 @@ pub(super) fn observe_after_graph_replay(
     admissions: &[DreamBeginAdmission],
 ) -> Result<Vec<DreamBeginAdmission>, OwnerSessionError> {
     let select = if container.identity().file_kind == reliquary_container::FileKind::Reliquary {
-        without_verified_rel_frontiers
+        rel_compact_prefix_frame
     } else {
-        crate::records::frame_selection::without_archive_or_packed
+        compact_prefix_frame
     };
     collect_compact_dream_prefix(container, admissions, true, select)
 }
 
-fn without_verified_rel_frontiers(prefix: &[u8]) -> bool {
-    // The Frontier gives no Memory or Graph effect to a standalone Begin.
-    // Graph replay already validated its shape, including the payload bound.
+fn rel_compact_prefix_frame(prefix: &[u8]) -> bool {
+    // Graph replay already verified these Frontiers. The Freshness store
+    // validates its journal independently of standalone Dream births.
     !prefix.starts_with(b"RELDRC01")
-        && crate::records::frame_selection::without_archive_or_packed(prefix)
+        && !prefix.starts_with(b"RELFRS02")
+        && compact_prefix_frame(prefix)
+}
+
+fn compact_prefix_frame(prefix: &[u8]) -> bool {
+    let Some(magic) = prefix.first_chunk::<8>() else {
+        return false;
+    };
+    if magic.starts_with(b"RELPUB") {
+        return crate::records::frame_selection::without_archive_publications(prefix);
+    }
+    matches!(
+        magic,
+        b"RELMCRT1"
+            | b"RELMDLT1"
+            | b"RELMTMB1"
+            | b"RELIFRS1"
+            | b"RELINSC7"
+            | b"RELINSC8"
+            | b"CVDREAM2"
+            | b"RELGRF01"
+            | b"RELASC01"
+            | b"CVDREAM1"
+            | crate::records::IMPORT_PROCESSING_MAGIC
+    ) || [
+        b"RELDR".as_slice(),
+        b"RELFRS",
+        b"RELIEP",
+        b"RELMCOR",
+        b"RELMRET",
+    ]
+    .iter()
+    .any(|marker| magic.starts_with(marker))
 }
 
 #[cfg(test)]
@@ -41,12 +73,7 @@ pub(crate) fn observe_compact_dream_prefix(
     container: &Container,
     admissions: &[DreamBeginAdmission],
 ) -> Result<Vec<DreamBeginAdmission>, OwnerSessionError> {
-    collect_compact_dream_prefix(
-        container,
-        admissions,
-        true,
-        crate::records::frame_selection::without_archive_or_packed,
-    )
+    collect_compact_dream_prefix(container, admissions, true, compact_prefix_frame)
 }
 
 #[cfg(test)]
@@ -54,13 +81,7 @@ pub(crate) fn validate_compact_dream_prefix(
     container: &Container,
     admissions: &[DreamBeginAdmission],
 ) -> Result<(), OwnerSessionError> {
-    collect_compact_dream_prefix(
-        container,
-        admissions,
-        false,
-        crate::records::frame_selection::without_archive_or_packed,
-    )
-    .map(|_| ())
+    collect_compact_dream_prefix(container, admissions, false, compact_prefix_frame).map(|_| ())
 }
 
 fn collect_compact_dream_prefix(

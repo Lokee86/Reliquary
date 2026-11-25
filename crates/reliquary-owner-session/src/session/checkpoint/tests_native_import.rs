@@ -128,6 +128,9 @@ fn suspended_native_import_replays_source_suffix_and_recovers_queued_episode() {
 
 #[test]
 fn import_settlement_still_verifies_the_physical_prefix_and_fences_later_mutation() {
+    use crate::records::import_settlement::{prefix_hasher, push_frame};
+    use sha2::Digest;
+
     let directory = tempfile::tempdir().unwrap();
     for correct_digest in [true, false] {
         let owner = directory.path().join(format!("{correct_digest}.rel"));
@@ -139,13 +142,25 @@ fn import_settlement_still_verifies_the_physical_prefix_and_fences_later_mutatio
         else {
             panic!("new import must open");
         };
+        // This unrelated frame spans more than one hash buffer.
+        writer
+            .container
+            .append(&vec![0x6a; 128 * 1024 + 13])
+            .unwrap();
+        writer.container.sync().unwrap();
+        let streamed_digest = source_prefix_digest(&writer.container).unwrap();
+        let mut reference = prefix_hasher();
+        for frame in writer.container.read_frames().unwrap() {
+            push_frame(&mut reference, &frame.payload);
+        }
+        assert_eq!(streamed_digest, format!("{:x}", reference.finalize()));
         let settlement = ImportFreshnessSettlement {
             owner_uuid: owner_id,
             import_id: start.import_id.clone(),
             start_digest: hex_digest(&serde_json::to_vec(&start).unwrap()),
             receipt_digest: hex_digest(b"receipt"),
             prefix_digest: if correct_digest {
-                source_prefix_digest(&writer.container).unwrap()
+                streamed_digest
             } else {
                 hex_digest(b"incorrect prefix")
             },

@@ -2,6 +2,7 @@ use super::archive_lexical::ARCHIVE_LEXICAL_INDEX_MAGIC;
 use super::grouped_completion::StoredGroupedCompletion;
 use super::rel_dependencies::REL_DEPENDENCY_MAGIC;
 use super::*;
+use std::io::Read;
 
 pub(super) fn grouped_completion_receipt(
     completion: &GroupedInsomniaCompletion,
@@ -60,6 +61,29 @@ pub(super) struct RelReplayAdmission {
     pub has_identity_history: bool,
 }
 
+fn rel_admission_frame(prefix: &[u8]) -> bool {
+    if crate::records::import::is_import_epoch_marker(prefix) {
+        return true;
+    }
+    let body = match reliquary_container::decode_publication(prefix) {
+        Ok(Some(envelope)) => envelope.body,
+        Ok(None) => prefix,
+        Err(_) => return true,
+    };
+    [
+        super::identity_receipt::PREFIX,
+        super::identity_separation::PREFIX,
+        ARCHIVE_LEXICAL_INDEX_MAGIC,
+        REL_DEPENDENCY_MAGIC,
+        b"RELRELM",
+        b"RELINSC",
+        b"RELXMEM",
+        b"RELMCRT1",
+    ]
+    .iter()
+    .any(|marker| body.starts_with(marker))
+}
+
 pub(super) fn validate_rel_replay_admission(
     container: &Container,
     archive: &Archive,
@@ -69,17 +93,19 @@ pub(super) fn validate_rel_replay_admission(
     let mut admission = RelReplayAdmission::default();
     let mut imports = ImportEpochStore::prefix(container.owner_id());
     let mut visible_memories = std::collections::BTreeSet::new();
-    let mut frames = container
-        .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
-    while let Some(frame) = frames.next_frame()? {
-        if crate::records::import::is_import_epoch_marker(frame.payload) {
-            imports
-                .ingest_prefix(frame.payload)
-                .map_err(OwnerSessionError::Record)?;
-            continue;
-        }
-        let envelope = reliquary_container::decode_publication(frame.payload)?;
-        let body = envelope.as_ref().map_or(frame.payload, |value| value.body);
+    let mut frames = container.matching_physical_cursor(rel_admission_frame)?;
+    let mut payload = Vec::new();
+    while let Some(mut frame) = frames.next_frame()? {
+        let object = frame.object();
+        // At most 25 bytes of clock envelope plus an eight-byte record marker.
+        payload.resize(object.length.min(33) as usize, 0);
+        frame
+            .read_exact(&mut payload)
+            .map_err(ContainerError::from)?;
+        let envelope = reliquary_container::decode_publication(&payload)?;
+        let body = envelope
+            .as_ref()
+            .map_or(payload.as_slice(), |value| value.body);
         if body.starts_with(super::identity_receipt::PREFIX)
             || body.starts_with(super::identity_separation::PREFIX)
         {
@@ -95,6 +121,21 @@ pub(super) fn validate_rel_replay_admission(
             admission.has_archive_lexical_indexes = true;
             continue;
         }
+        // The identity and lexical index checks above consume only their
+        // markers. The remaining families need their full typed payload.
+        frame
+            .read_to_end(&mut payload)
+            .map_err(ContainerError::from)?;
+        if crate::records::import::is_import_epoch_marker(&payload) {
+            imports
+                .ingest_prefix(&payload)
+                .map_err(OwnerSessionError::Record)?;
+            continue;
+        }
+        let envelope = reliquary_container::decode_publication(&payload)?;
+        let body = envelope
+            .as_ref()
+            .map_or(payload.as_slice(), |value| value.body);
         if body.starts_with(REL_DEPENDENCY_MAGIC) {
             if envelope.is_some() {
                 return Err(OwnerSessionError::Record(
@@ -122,7 +163,7 @@ pub(super) fn validate_rel_replay_admission(
         }
         let payload = envelope
             .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
-            .map_or(frame.payload, |envelope| envelope.body);
+            .map_or(payload.as_slice(), |envelope| envelope.body);
         if payload.starts_with(b"RELMCRT1") {
             let creation = reliquary_memory_core::decode_grouped_creation(payload)?;
             visible_memories.insert(creation.id.0);
@@ -134,9 +175,8 @@ pub(super) fn validate_rel_replay_admission(
         let completion =
             GroupedInsomniaCompletion::decode(payload).map_err(OwnerSessionError::Record)?;
         let episode_id = reliquary_archive::EpisodeId(completion.episode_id);
-        let &(archive_version, activity) = grouped_archive_cuts
-            .get(&frame.object.offset)
-            .ok_or_else(|| {
+        let &(archive_version, activity) =
+            grouped_archive_cuts.get(&object.offset).ok_or_else(|| {
                 OwnerSessionError::Record("missing grouped completion Archive cut".into())
             })?;
         if archive
@@ -193,7 +233,7 @@ pub(super) fn validate_rel_replay_admission(
         }
         let stored = StoredGroupedCompletion::from_admitted(
             completion,
-            leased.then_some((frame.object, payload)),
+            leased.then_some((object, payload)),
         )?;
         if admission.completions.insert(key, stored).is_some() {
             return Err(OwnerSessionError::Record(
@@ -262,7 +302,6 @@ pub(super) fn reject_rel_only_records(container: &Container) -> Result<(), Owner
             "cross-REL identity receipt",
         ),
     ];
-    use std::io::Read;
     let mut cursor = container.physical_cursor()?;
     while let Some(mut frame) = cursor.next_frame()? {
         let mut prefix = [0u8; 8];

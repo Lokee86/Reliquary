@@ -8,6 +8,7 @@ use crate::records::dream::InferredExplicitFrontier;
 use crate::records::dream::dream_begin_codec::{self, BeginPopulation, BeginRecord};
 use crate::records::user_memory::{UserMemoryEffect, UserMemoryRecord};
 use reliquary_perception_store::observation::ObservationStore;
+use std::io::Read;
 
 #[derive(Default)]
 pub(super) struct DreamReplayPrefix {
@@ -27,6 +28,63 @@ pub(super) struct NativeBirthAdmission {
 pub(super) struct DreamArchivePrefix<'a> {
     pub archive: &'a Archive,
     pub cuts: &'a BTreeMap<u64, (u64, u64)>,
+}
+
+fn graph_prefix_frame(prefix: &[u8]) -> bool {
+    graph_prefix_frame_with_identity(prefix, false)
+}
+
+fn graph_and_identity_prefix_frame(prefix: &[u8]) -> bool {
+    graph_prefix_frame_with_identity(prefix, true)
+}
+
+fn graph_prefix_frame_with_identity(prefix: &[u8], identity: bool) -> bool {
+    if crate::records::import::is_import_epoch_marker(prefix) {
+        return true;
+    }
+    let body = match reliquary_container::decode_publication(prefix) {
+        Ok(Some(envelope)) => envelope.body,
+        Ok(None) => prefix,
+        Err(_) => return true,
+    };
+    let families: &[&[u8]] = &[
+        b"RELDR",
+        b"RELMCOR",
+        b"RELMRET",
+        b"CVDREAM2",
+        b"RELINSC7",
+        b"RELINSC8",
+        b"RELCPRO1",
+        b"RELPVRN1",
+        b"RELMVEC1",
+        b"RELGPB",
+        b"RELASC",
+        b"RELGRF01",
+        b"RELCOM01",
+        b"RELCOM02",
+        b"RELCMP01",
+        b"RELCMN01",
+        b"RELEPB",
+        b"RELPER01",
+        b"RELERH01",
+        b"RELERL01",
+    ];
+    crate::records::memory_prune_proof::memory_history_record(body)
+        || families.iter().any(|marker| body.starts_with(marker))
+        // Packed objects normally arrive through separately proved positions.
+        // Preserve the existing scan fence for an incomplete object header.
+        || (prefix.len() < 64 && prefix.starts_with(b"RELPVEC1"))
+        || (identity
+            && [
+                super::observations::PREFIX,
+                super::identity_receipt::PREFIX,
+                super::identity_separation::PREFIX,
+                b"RELMBOD1",
+                b"RELETM01",
+                b"RELRLP01",
+            ]
+            .iter()
+            .any(|marker| body.starts_with(marker)))
 }
 
 pub(super) fn validate_graph_prefix(
@@ -62,9 +120,39 @@ pub(super) fn validate_graph_prefix(
     let mut packed_positions: Vec<_> = packed_store.object_positions().collect();
     packed_positions.sort_unstable_by_key(|(object, _)| object.offset);
     let mut packed_positions = packed_positions.into_iter().peekable();
-    let mut frames = container
-        .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
-    while let Some(frame) = frames.next_frame()? {
+    let select: fn(&[u8]) -> bool = if identity_context.is_some() {
+        graph_and_identity_prefix_frame
+    } else {
+        graph_prefix_frame
+    };
+    let mut frames = container.matching_physical_cursor(select)?;
+    let mut buffer = Vec::new();
+    while let Some(mut reader) = frames.next_frame()? {
+        let object = reader.object();
+        buffer.clear();
+        if identity_context.is_some() {
+            // A timed envelope can occupy 25 bytes. The standalone Memory
+            // body ID follows the eight-byte marker in the next 32 bytes.
+            buffer.resize(object.length.min(65) as usize, 0);
+            reader
+                .read_exact(&mut buffer)
+                .map_err(ContainerError::from)?;
+            let envelope = reliquary_container::decode_publication(&buffer)?;
+            let body = envelope
+                .as_ref()
+                .map_or(buffer.as_slice(), |entry| entry.body);
+            if let Some(id) = reliquary_memory_core::body_id_in_frame(body)? {
+                observed_bodies.insert(id);
+                continue;
+            }
+        }
+        reader
+            .read_to_end(&mut buffer)
+            .map_err(ContainerError::from)?;
+        let frame = reliquary_container::ScannedFrame {
+            object,
+            payload: &buffer,
+        };
         while let Some((_, id)) =
             packed_positions.next_if(|(object, _)| object.offset < frame.object.offset)
         {
@@ -128,9 +216,6 @@ pub(super) fn validate_graph_prefix(
                 reliquary_perception_store::retained_resolution_ordinal_in_frame(frame.payload)?
             {
                 retained_ordinal_cut = Some(ordinal);
-            }
-            if let Some(id) = reliquary_memory_core::body_id_in_frame(body)? {
-                observed_bodies.insert(id);
             }
             if let Some(version) =
                 reliquary_perception_store::perception_version_in_frame(frame.payload)?

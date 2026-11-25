@@ -100,26 +100,45 @@ impl ImportEpochStore {
     fn open_with_settlement_proof(container: &Container, last_marker: u64) -> Result<Self, String> {
         let mut store = Self::prefix(container.owner_id());
         let mut prefix_hash = import_settlement::prefix_hasher();
-        let mut frames = container.scan_frames().map_err(|e| e.to_string())?;
-        while let Some(frame) = frames.next_frame().map_err(|e| e.to_string())? {
-            if frame.payload.starts_with(import_settlement::MAGIC) {
-                let settlement = ImportFreshnessSettlement::decode(frame.payload)?;
-                let expected = format!("{:x}", prefix_hash.clone().finalize());
-                if settlement.prefix_digest != expected {
-                    return Err("import settlement physical source prefix mismatch".into());
+        let mut frames = container.physical_cursor().map_err(|e| e.to_string())?;
+        let mut buffer = vec![0; import_settlement::PREFIX_BUFFER_BYTES];
+        let mut payload = Vec::new();
+        while let Some(mut frame) = frames.next_frame().map_err(|e| e.to_string())? {
+            let object = frame.object();
+            let mut marker = [0; 8];
+            let prefix = &mut marker[..object.length.min(8) as usize];
+            frame.read_exact(prefix).map_err(|e| e.to_string())?;
+            if is_import_epoch_marker(prefix) {
+                payload.clear();
+                payload.extend_from_slice(prefix);
+                frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+                if prefix.starts_with(import_settlement::MAGIC) {
+                    let settlement = ImportFreshnessSettlement::decode(&payload)?;
+                    let expected = format!("{:x}", prefix_hash.clone().finalize());
+                    if settlement.prefix_digest != expected {
+                        return Err("import settlement physical source prefix mismatch".into());
+                    }
+                    store.ingest_settlement(settlement)?;
+                } else {
+                    store.ingest_prefix(&payload)?;
                 }
-                store.ingest_settlement(settlement)?;
-            } else if is_import_epoch_marker(frame.payload) {
-                store.ingest_prefix(frame.payload)?;
-            } else if store
-                .open
-                .as_ref()
-                .is_some_and(|id| store.settlements.contains_key(id))
-            {
-                return Err("import mutation followed settlement before completion".into());
+                import_settlement::push_frame(&mut prefix_hash, &payload);
+            } else {
+                if store
+                    .open
+                    .as_ref()
+                    .is_some_and(|id| store.settlements.contains_key(id))
+                {
+                    return Err("import mutation followed settlement before completion".into());
+                }
+                import_settlement::push_streamed_frame(
+                    &mut prefix_hash,
+                    prefix,
+                    &mut frame,
+                    &mut buffer,
+                )?;
             }
-            import_settlement::push_frame(&mut prefix_hash, frame.payload);
-            if frame.object.offset == last_marker
+            if object.offset == last_marker
                 && !store
                     .open
                     .as_ref()

@@ -11,6 +11,66 @@ use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 
+fn dream_initial_frame(prefix: &[u8]) -> bool {
+    // Import epochs and the legacy Dream journal are inspected before
+    // unwrapping publication envelopes.
+    if crate::records::import::is_import_epoch_marker(prefix) || prefix.starts_with(b"CVDREAM1") {
+        return true;
+    }
+    let payload = match reliquary_container::decode_publication(prefix) {
+        Ok(Some(envelope)) => envelope.body,
+        Ok(None) => prefix,
+        Err(_) => return true,
+    };
+    if crate::records::insomnia_completion::is_grouped_completion(payload) {
+        return true;
+    }
+    // Keep owner families that reject unknown versions, and exact markers
+    // for the remaining records that carry the Memory, Graph or Dream cuts.
+    payload.starts_with(b"RELMCOR")
+        || payload.starts_with(b"RELMRET")
+        || [
+            b"RELDRB", b"RELDRC", b"RELDRF", b"RELDRG", b"RELDRS", b"RELGPB", b"RELASC",
+        ]
+        .iter()
+        .any(|marker| payload.starts_with(*marker))
+        || [
+            b"CVDREAM2",
+            b"RELDRM01",
+            b"RELDRP02",
+            b"RELMCRT1",
+            b"RELMDLT1",
+            b"RELMTMB1",
+            b"RELGRF01",
+            b"RELCOM01",
+            b"RELCOM02",
+            b"RELCMP01",
+            b"RELCMN01",
+        ]
+        .iter()
+        .any(|marker| payload.starts_with(*marker))
+}
+
+#[test]
+fn initial_replay_selects_clocked_proofs_but_skips_unrelated_bodies() {
+    let timed_envelope = |marker: &[u8; 8]| {
+        let mut bytes = b"RELPUB01".to_vec();
+        bytes.extend_from_slice(&1u64.to_le_bytes());
+        bytes.push(1);
+        bytes.extend_from_slice(&0i64.to_le_bytes());
+        bytes.extend_from_slice(marker);
+        bytes
+    };
+
+    assert!(dream_initial_frame(b"RELIEPS2"));
+    assert!(!dream_initial_frame(&timed_envelope(b"RELIEPS2")));
+    assert!(dream_initial_frame(&timed_envelope(b"RELGPB99")));
+    assert!(dream_initial_frame(b"RELDRF99"));
+    assert!(dream_initial_frame(b"RELPUB99"));
+    assert!(!dream_initial_frame(b"RELMBOD1"));
+    assert!(!dream_initial_frame(&timed_envelope(b"RELMBOD1")));
+}
+
 pub(super) fn validate(
     container: &Container,
     dreams: &DreamEvidenceStore,
@@ -38,8 +98,7 @@ pub(super) fn validate(
     let mut community = None;
     let mut generation = 0;
     let mut accepted_frontiers = frontier_positions.iter().peekable();
-    let mut frames = container
-        .matching_physical_cursor(crate::records::frame_selection::without_archive_or_packed)?;
+    let mut frames = container.matching_physical_cursor(dream_initial_frame)?;
     let mut buffer = Vec::new();
     while let Some(mut frame) = frames.next_frame()? {
         let object = frame.object();
