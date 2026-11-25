@@ -28,9 +28,14 @@ use std::{
 pub use hermes::{
     HermesCopiedEcho, HermesCopiedEchoKind, HermesCopiedMessage, HermesCopiedRole,
     HermesCopiedSnapshot, HermesCopiedSource, HermesCopiedSourceTurn, HermesCopiedToolOutcome,
-    HermesCopyScope, read_hermes_archive_range, read_hermes_copy_source, tombstone_hermes_copy,
+    HermesCopyScope, apply_hermes_copy_source_change, read_hermes_archive_range,
+    read_hermes_copy_source, tombstone_hermes_copy,
 };
-pub use reliquary_owner_session::model::ImportedSourceAuthor as HermesCopiedAuthor;
+pub use reliquary_owner_session::model::{
+    CopiedSourceChange as HermesCopySourceChange,
+    CopiedSourceChangeReceipt as HermesCopySourceChangeReceipt,
+    ImportedSourceAuthor as HermesCopiedAuthor,
+};
 pub use stage::{
     NativeImportStageError, NativeImportStageResult, NativeImportState, NativeImportStatus,
     native_import_status,

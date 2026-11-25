@@ -3,6 +3,7 @@
 //! This crate owns accepted turn, branch, and Episode semantics. Container owns
 //! framing and bytes; Archive does not depend on the application or other owners.
 
+pub(crate) mod copied_source;
 mod fragment_passages;
 mod history;
 mod payload;
@@ -73,6 +74,7 @@ pub struct Archive {
     fragment_definitions: BTreeMap<crate::FragmentId, crate::FragmentDefinition>,
     fragment_versions: BTreeMap<crate::FragmentId, u64>,
     conversation_tombstones: BTreeMap<String, crate::ConversationTombstone>,
+    copied_sources: copied_source::CopiedSources,
     conversation_titles: BTreeMap<String, crate::ConversationTitle>,
     archive_version: u64,
     publication_bindings: Vec<ArchivePublicationBinding>,
@@ -102,6 +104,7 @@ impl Archive {
             fragment_definitions: BTreeMap::new(),
             fragment_versions: BTreeMap::new(),
             conversation_tombstones: BTreeMap::new(),
+            copied_sources: copied_source::CopiedSources::default(),
             conversation_titles: BTreeMap::new(),
             archive_version: 0,
             publication_bindings: Vec::new(),
@@ -202,6 +205,11 @@ impl Archive {
             self.replay_publication(container, object, payload, publication)?;
         } else if let Some(record) = decode_record(payload)? {
             match &record {
+                Record::CopiedSourceChange(_) => {
+                    return Err(ArchiveError::CorruptRecord(
+                        "copied source change has no publication coordinate",
+                    ));
+                }
                 Record::Retained(_) => {
                     return Err(ArchiveError::CorruptRecord(
                         "retained Archive record has no publication coordinate",
@@ -251,6 +259,14 @@ impl Archive {
             .contains_key(&input.conversation_id)
         {
             return Err(ArchiveError::InvalidField("terminal conversation"));
+        }
+        if self.source_removed(&input.conversation_id, &input.id)
+            || input
+                .parent_id
+                .as_deref()
+                .is_some_and(|parent| self.source_removed(&input.conversation_id, parent))
+        {
+            return Err(ArchiveError::InvalidField("removed copied source"));
         }
         if input.parent_id.as_deref() == Some("") || input.principal_id.as_deref() == Some("") {
             return Err(ArchiveError::InvalidField("optional turn field"));
@@ -386,6 +402,9 @@ impl Archive {
             return Err(ArchiveError::InvalidField("terminal conversation"));
         }
         validate_text(&branch.leaf_node_id, "branch leaf node id")?;
+        if self.source_removed(&branch.conversation_id, &branch.leaf_node_id) {
+            return Err(ArchiveError::InvalidBranchRevision);
+        }
         self.require_node(&branch.conversation_id, &branch.leaf_node_id)?;
         if let Some(existing) = self
             .branches
@@ -426,6 +445,9 @@ impl Archive {
         validate_text(conversation_id, "conversation id")?;
         if self.conversation_tombstones.contains_key(conversation_id) {
             return Err(ArchiveError::InvalidField("terminal conversation"));
+        }
+        if self.source_range_removed(conversation_id, start_node_id, end_node_id) {
+            return Err(ArchiveError::InvalidEpisodeRange);
         }
         let end = self.require_node(conversation_id, end_node_id)?;
         if !self
@@ -1015,6 +1037,16 @@ impl Archive {
                 validate_text(&node.id, "node id")?;
                 validate_text(&node.conversation_id, "conversation id")?;
                 validate_text(&node.role, "role")?;
+                if self.source_removed(&node.conversation_id, &node.id)
+                    || node
+                        .parent_id
+                        .as_deref()
+                        .is_some_and(|parent| self.source_removed(&node.conversation_id, parent))
+                {
+                    return Err(ArchiveError::CorruptRecord(
+                        "turn uses removed copied source",
+                    ));
+                }
                 if node.parent_id.as_deref() == Some("") || node.principal_id.as_deref() == Some("")
                 {
                     return Err(ArchiveError::CorruptRecord("empty optional turn field"));
@@ -1115,6 +1147,9 @@ impl Archive {
                 validate_text(&branch.id, "branch id")?;
                 validate_text(&branch.conversation_id, "conversation id")?;
                 validate_text(&branch.leaf_node_id, "branch leaf node id")?;
+                if self.source_removed(&branch.conversation_id, &branch.leaf_node_id) {
+                    return Err(ArchiveError::InvalidBranchRevision);
+                }
                 self.require_node(&branch.conversation_id, &branch.leaf_node_id)?;
                 let key = (branch.conversation_id.clone(), branch.id.clone());
                 if let Some(existing) = self.branches.get(&key) {
@@ -1256,15 +1291,10 @@ impl Archive {
                     ));
                 }
                 let archive_version = self.next_archive_version()?;
-                self.conversation_tombstones.insert(
-                    conversation_id.clone(),
-                    crate::ConversationTombstone {
-                        conversation_id,
-                        archive_version,
-                    },
-                );
+                self.apply_terminal_conversation(conversation_id, archive_version);
                 self.archive_version = archive_version;
             }
+            Record::CopiedSourceChange(record) => self.replay_copied_source_change(record)?,
             Record::Retained(value) => self.apply_retained_publication(value)?,
             Record::ProjectCorrelation(value) => self.apply_project_correlation(value)?,
             Record::ProjectBacking(value) => self.apply_project_backing(value)?,

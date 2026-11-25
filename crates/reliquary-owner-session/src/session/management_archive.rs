@@ -12,7 +12,7 @@ impl RelSession {
         let Some(record) = self.archive.node(conversation, node) else {
             return Ok(None);
         };
-        let terminal = self.archive.conversation_tombstone(conversation).is_some();
+        let terminal = self.archive_source_removed(conversation, node);
         let content = if terminal {
             None
         } else {
@@ -151,6 +151,9 @@ impl RelSession {
         offset: usize,
         limit: usize,
     ) -> Result<(usize, Vec<String>), OwnerSessionError> {
+        if self.archive_source_removed(conversation, leaf) {
+            return Err(OwnerSessionError::ManagementMissing);
+        }
         self.archive
             .management_transcript_nodes(conversation, leaf, offset, limit)
             .map_err(|error| match error {

@@ -191,6 +191,7 @@ impl RelSession {
             .and_then(|count| count.checked_add(archive.import_receipts.len()))
             .and_then(|count| count.checked_add(archive.fragment_definitions.len()))
             .and_then(|count| count.checked_add(archive.conversation_tombstones.len()))
+            .and_then(|count| count.checked_add(archive.copied_source_changes.len()))
             .and_then(|count| count.checked_add(freshness_evidence.len()))
             .and_then(|count| count.checked_add(identities.len()))
             .and_then(|count| count.checked_add(separations.len()))

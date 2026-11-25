@@ -33,6 +33,8 @@ pub struct ArchiveHybridView {
 
 struct ArchiveHybridSources {
     generation: VectorGenerationId,
+    source_removal_version: u64,
+    eligible: Box<[bool]>,
     fragments: Box<[Fragment]>,
     fragments_with_text: usize,
     source_digest: [u8; 32],
@@ -52,10 +54,11 @@ impl ArchiveHybridSources {
     ) -> Result<Self, OwnerSessionError> {
         let mut fragments = Vec::with_capacity(view.fragments.len());
         let mut texts = Vec::with_capacity(view.fragments.len());
+        let mut eligible = Vec::with_capacity(view.fragments.len());
         let mut fragments_with_text = 0;
         let mut source = Sha256::new();
         source.update(b"REL Archive lexical source v1\0");
-        for id in view.fragments.iter() {
+        for (ordinal, id) in view.fragments.iter().enumerate() {
             let (fragment, _) = archive
                 .fragment_vector_source(FragmentId(id.0), view.generation.source_archive_version)
                 .ok_or_else(|| {
@@ -64,6 +67,14 @@ impl ArchiveHybridSources {
                     )
                 })?;
             source.update(id.0);
+            let source_eligible = view.source_eligible(ordinal);
+            eligible.push(source_eligible);
+            if !source_eligible {
+                source.update(u64::MAX.to_le_bytes());
+                fragments.push(fragment.clone());
+                texts.push(None);
+                continue;
+            }
             let text = match archive.bounded_fragment_index_text(fragment) {
                 Ok(turns) => {
                     fragments_with_text += 1;
@@ -97,6 +108,8 @@ impl ArchiveHybridSources {
         };
         Ok(Self {
             generation,
+            source_removal_version: view.source_removal_version(),
+            eligible: eligible.into_boxed_slice(),
             fragments: fragments.into_boxed_slice(),
             fragments_with_text,
             source_digest,
@@ -128,7 +141,18 @@ impl ArchiveHybridSources {
 }
 
 impl ArchiveHybridView {
+    pub fn source_removal_version(&self) -> u64 {
+        self.sources.source_removal_version
+    }
+
+    pub fn source_eligible(&self, ordinal: usize) -> bool {
+        self.sources.eligible.get(ordinal).copied() == Some(true)
+    }
+
     pub fn packed_row(&self, ordinal: usize) -> Option<&[u8]> {
+        if !self.source_eligible(ordinal) {
+            return None;
+        }
         self.vectors.row(ordinal)
     }
 
@@ -170,12 +194,8 @@ impl RelSession {
             return Ok(None);
         };
         let mut paths = Vec::with_capacity(view.fragments().len());
-        for fragment in view.fragments() {
-            if self
-                .archive
-                .conversation_tombstone(&fragment.conversation_id)
-                .is_some()
-            {
+        for (ordinal, fragment) in view.fragments().iter().enumerate() {
+            if !view.source_eligible(ordinal) {
                 paths.push(None);
                 continue;
             }
@@ -203,7 +223,12 @@ impl RelSession {
             OwnerSessionError::Record("Archive hybrid snapshot cache lock is poisoned".into())
         })?;
         let sources = match cached.get(&profile_id) {
-            Some(sources) if sources.generation == view.generation.id => Arc::clone(sources),
+            Some(sources)
+                if sources.generation == view.generation.id
+                    && sources.source_removal_version == view.source_removal_version() =>
+            {
+                Arc::clone(sources)
+            }
             _ => {
                 let sources = Arc::new(ArchiveHybridSources::capture(
                     &self.archive,
@@ -296,6 +321,7 @@ impl RelWriter {
                 .active_compatibility_profile(profile_id)
                 .is_none()
             || self.session.generations.current_generation(profile_id) != Some(input.generation)
+            || self.session.archive_source_removal_version() != input.sources.source_removal_version
         {
             return Err(OwnerSessionError::ManagementStale);
         }

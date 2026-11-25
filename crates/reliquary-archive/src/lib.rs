@@ -69,6 +69,10 @@ fn applying_archive_payload(payload: &[u8]) -> Result<Option<&[u8]>, ArchiveErro
     })
 }
 
+pub use archive::copied_source::{
+    AcceptedCopiedSourceChange, CopiedSourceChange, CopiedSourceChangeReceipt,
+    CopiedSourceChangeRequest, CopiedSourceHead,
+};
 pub use archive::file_id_from_bytes;
 pub use archive::validate_project_file_reference;
 
@@ -169,6 +173,13 @@ pub fn source_publication(payload: &[u8]) -> Result<Option<SourcePublication>, A
 pub fn is_turn_or_branch_publication(payload: &[u8]) -> Result<bool, ArchiveError> {
     Ok(applying_archive_payload(payload)?
         .is_some_and(|body| body.starts_with(b"RELTURN2") || body.starts_with(b"RELBRCH1")))
+}
+
+/// Identify the source removal carriers that can replay against the Archive checkpoint.
+pub fn is_source_removal_publication(payload: &[u8]) -> Result<bool, ArchiveError> {
+    Ok(applying_archive_payload(payload)?.is_some_and(|body| {
+        body.starts_with(b"RELCTM01") || body.starts_with(archive::copied_source::MARKER)
+    }))
 }
 
 #[cfg(test)]

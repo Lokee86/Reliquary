@@ -4,11 +4,12 @@
 //! concrete store access, and replay/repair entry points remain owner-local.
 
 pub use reliquary_archive::{
-    Branch, ContentId, EchoEvent, EchoEventKind, Episode, EpisodeBoundary, EpisodeId,
-    EpisodeOrigin, FragmentPassage, HERMES_COPIED_SOURCE_FORMAT, ImportReceipt, ImportedArtifact,
-    ImportedBranch, ImportedConversation, ImportedMessage, ImportedSourceAuthor,
-    ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef,
-    ProjectRevisionRef, ResolvedTurn, SourceAttachment, TurnInput, validate_project_file_reference,
+    Branch, ContentId, CopiedSourceChange, CopiedSourceChangeReceipt, CopiedSourceChangeRequest,
+    CopiedSourceHead, EchoEvent, EchoEventKind, Episode, EpisodeBoundary, EpisodeId, EpisodeOrigin,
+    FragmentPassage, HERMES_COPIED_SOURCE_FORMAT, ImportReceipt, ImportedArtifact, ImportedBranch,
+    ImportedConversation, ImportedMessage, ImportedSourceAuthor, ProjectAttachmentInput,
+    ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef, ResolvedTurn,
+    SourceAttachment, TurnInput, validate_project_file_reference,
 };
 /// Activity correlation used for copied Hermes model-round delimiters in Echo.
 pub const HERMES_MODEL_ROUND_ECHO: &str = "hermes:model_round";

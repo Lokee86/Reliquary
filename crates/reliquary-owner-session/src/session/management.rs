@@ -35,6 +35,9 @@ impl RelSession {
     pub fn conversation_summaries(&self) -> Result<Vec<RelConversationSummary>, OwnerSessionError> {
         let mut selected = BTreeMap::<String, reliquary_archive::Branch>::new();
         for branch in self.archive.branches() {
+            if self.archive_source_removed(&branch.conversation_id, &branch.leaf_node_id) {
+                continue;
+            }
             let replace = selected.get(&branch.conversation_id).is_none_or(|current| {
                 (branch.canonical && !current.canonical)
                     || (branch.canonical == current.canonical && branch.id < current.id)
@@ -69,6 +72,9 @@ impl RelSession {
         conversation_id: &str,
         leaf_node_id: &str,
     ) -> Result<Vec<RelTranscriptTurn>, OwnerSessionError> {
+        if self.archive_source_removed(conversation_id, leaf_node_id) {
+            return Err(OwnerSessionError::ManagementMissing);
+        }
         Ok(self
             .archive
             .historical_turns(conversation_id, leaf_node_id)?

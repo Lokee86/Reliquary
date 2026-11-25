@@ -109,7 +109,12 @@ fn rank_archive(
         .map_err(|error| error.to_string())?;
     let fragments = view.fragments();
     let mut ranked = Vec::new();
+    let mut fragments_scored = 0;
     for (ordinal, counts) in lexical_counts.into_iter().enumerate() {
+        if !view.source_eligible(ordinal) {
+            continue;
+        }
+        fragments_scored += 1;
         let mut temporal = None;
         let mut partial_lexical = None;
         if let Some(filter) = filter {
@@ -198,7 +203,7 @@ fn rank_archive(
             profile_id: view.generation.compatibility_profile_id,
             generation_id: view.generation.id.0,
             source_archive_version: view.generation.source_archive_version,
-            fragments_scored: fragments.len(),
+            fragments_scored,
             fragments_with_text: view.fragments_with_text(),
             truncated,
             hits,

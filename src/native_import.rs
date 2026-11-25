@@ -9,7 +9,8 @@ pub use reliquary_runtime_gateway::ArchiveVectorPublication as NativeImportArchi
 pub use source::{
     HermesCopiedAuthor, HermesCopiedEcho, HermesCopiedEchoKind, HermesCopiedMessage,
     HermesCopiedRole, HermesCopiedSnapshot, HermesCopiedSource, HermesCopiedSourceTurn,
-    HermesCopiedToolOutcome, HermesCopyScope, NativeImportCoverage, NativeImportFormat,
+    HermesCopiedToolOutcome, HermesCopyScope, HermesCopySourceChange,
+    HermesCopySourceChangeReceipt, NativeImportCoverage, NativeImportFormat,
     NativeImportParentMapping, NativeImportSourceError, NativeImportStageResult, NativeImportState,
     NativeImportStatus, NativeImportWindow,
 };
@@ -142,6 +143,26 @@ impl Instance {
             source_sha256,
             start_message_uid,
             end_message_uid,
+        )?)
+    }
+
+    /// Apply one committed host deletion or rewind to an accepted copied-source head.
+    /// Retries of the same scoped host event return its original durable receipt.
+    pub fn apply_hermes_copy_source_change(
+        &self,
+        owner: OwnerId,
+        scope: &HermesCopyScope,
+        source_sha256: [u8; 32],
+        event_id: &str,
+        change: HermesCopySourceChange,
+    ) -> Result<HermesCopySourceChangeReceipt, ProductError> {
+        self.require(OwnerGrant::OperateRel(owner))?;
+        Ok(self.inner.apply_hermes_copy_source_change(
+            owner.into(),
+            scope,
+            source_sha256,
+            event_id,
+            change,
         )?)
     }
 

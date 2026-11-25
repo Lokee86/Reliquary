@@ -139,6 +139,13 @@ impl NativeImportPlan {
         } else {
             false
         };
+        if copied
+            && turns
+                .iter()
+                .any(|(turn, _)| session.archive_source_removed(&turn.conversation_id, &turn.id))
+        {
+            return Err(NativeImportStageError::Conflict);
+        }
         if let Some(status) = status {
             let start = match status {
                 ImportEpochStatus::Open(start) | ImportEpochStatus::Completed { start, .. } => {

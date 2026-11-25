@@ -31,6 +31,7 @@ pub(crate) fn archive_record_prefix(prefix: &[u8]) -> bool {
         IMPORT_MAGIC.as_slice(),
         FRAGMENT_DEFINITION_MAGIC.as_slice(),
         TOMBSTONE_MAGIC.as_slice(),
+        crate::archive::copied_source::MARKER,
         TITLE_MAGIC.as_slice(),
         PRUNED_TURN_MAGIC.as_slice(),
         crate::retained::RETAINED_MARKER,
@@ -47,6 +48,7 @@ pub(crate) enum Record<'a> {
     Import(ImportReceipt),
     FragmentDefinitions(Vec<FragmentDefinition>),
     ConversationTombstone(String),
+    CopiedSourceChange(crate::AcceptedCopiedSourceChange),
     ConversationTitle(String, String),
     PrunedTurn(Node, Vec<SourceAttachment>, [u8; 32]),
     Retained(crate::RetainedArchiveValue),
@@ -250,6 +252,10 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<Record<'_>>, ArchiveE
         let id = read_string(bytes, &mut cursor)?;
         require_end(bytes, cursor)?;
         Ok(Some(Record::ConversationTombstone(id)))
+    } else if magic == crate::archive::copied_source::MARKER {
+        Ok(Some(Record::CopiedSourceChange(
+            crate::archive::copied_source::decode(bytes)?,
+        )))
     } else if magic == TITLE_MAGIC {
         let mut cursor = 8;
         let conversation_id = read_string(bytes, &mut cursor)?;

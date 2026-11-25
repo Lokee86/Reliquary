@@ -1,7 +1,8 @@
 use super::*;
 use reliquary_application::native_import_source::{
-    HermesCopiedSourceTurn, HermesCopyScope, NativeImportPlan, NativeImportStageError,
-    NativeImportStageResult, NativeImportStatus, native_import_status, read_hermes_archive_range,
+    HermesCopiedSourceTurn, HermesCopyScope, HermesCopySourceChange, HermesCopySourceChangeReceipt,
+    NativeImportPlan, NativeImportStageError, NativeImportStageResult, NativeImportStatus,
+    apply_hermes_copy_source_change, native_import_status, read_hermes_archive_range,
     read_hermes_copy_source, tombstone_hermes_copy,
 };
 
@@ -61,6 +62,28 @@ impl Instance {
         })??;
         self.ensure_credential_active()?;
         Ok(result)
+    }
+
+    pub fn apply_hermes_copy_source_change(
+        &self,
+        owner: OwnerId,
+        scope: &HermesCopyScope,
+        source_sha256: [u8; 32],
+        event_id: &str,
+        change: HermesCopySourceChange,
+    ) -> Result<HermesCopySourceChangeReceipt, GatewayError> {
+        self.with_rel_writer(owner, |writer| {
+            apply_hermes_copy_source_change(
+                writer,
+                scope,
+                source_sha256,
+                event_id,
+                change,
+                self.principal(),
+                || self.ensure_credential_active().is_ok(),
+            )
+        })?
+        .map_err(import_error)
     }
 
     pub fn tombstone_hermes_copy(

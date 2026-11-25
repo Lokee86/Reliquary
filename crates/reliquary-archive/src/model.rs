@@ -222,6 +222,7 @@ pub struct ArchiveHistorySnapshot {
     pub import_receipts: Vec<ImportReceipt>,
     pub fragment_definitions: Vec<crate::FragmentDefinition>,
     pub conversation_tombstones: Vec<ConversationTombstone>,
+    pub copied_source_changes: Vec<crate::AcceptedCopiedSourceChange>,
     pub retained_publications: Vec<crate::RetainedArchivePublication>,
 }
 

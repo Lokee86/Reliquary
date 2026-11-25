@@ -40,7 +40,9 @@ pub(super) fn replay(
             session.rel_dependencies.replay(session.owner_id, payload)?;
             continue;
         }
-        if reliquary_archive::is_turn_or_branch_publication(payload)? {
+        if reliquary_archive::is_turn_or_branch_publication(payload)?
+            || reliquary_archive::is_source_removal_publication(payload)?
+        {
             // These publications carry their own coordinates. The separate
             // project-binding carriers that need a frontier use full replay.
             continue;
@@ -113,7 +115,9 @@ fn replay_typed_suffix(
 
     let mut frames = container.scan_frames_from(covered_end)?;
     while let Some(frame) = frames.next_frame()? {
-        if reliquary_archive::is_turn_or_branch_publication(frame.payload)? {
+        if reliquary_archive::is_turn_or_branch_publication(frame.payload)?
+            || reliquary_archive::is_source_removal_publication(frame.payload)?
+        {
             session
                 .archive
                 .replay_frame(container, frame.object, frame.payload, 0)?;

@@ -284,6 +284,37 @@ impl NativeImportPlan {
     }
 }
 
+/// Publish a committed host removal against its exact authenticated copied source.
+pub fn apply_hermes_copy_source_change(
+    writer: &mut RelWriter,
+    scope: &HermesCopyScope,
+    source_sha256: [u8; 32],
+    event_id: &str,
+    change: HermesCopySourceChange,
+    principal: &str,
+    credential_active: impl Fn() -> bool,
+) -> Result<HermesCopySourceChangeReceipt, NativeImportStageError> {
+    if !credential_active() {
+        return Err(NativeImportStageError::Revoked);
+    }
+    let request = reliquary_owner_session::model::CopiedSourceChangeRequest {
+        namespace: scope.namespace(principal),
+        source_id: scope.session_id.clone(),
+        conversation_id: scope.conversation_id(),
+        source_sha256,
+        event_id: event_id.to_owned(),
+        change,
+    };
+    writer
+        .publish_copied_source_change(request)
+        .map_err(|error| match error {
+            reliquary_owner_session::OwnerSessionError::ManagementStale => {
+                NativeImportStageError::Conflict
+            }
+            other => NativeImportStageError::Owner(other),
+        })
+}
+
 /// Tombstone only the copied conversation bound by this principal's durable receipt.
 pub fn tombstone_hermes_copy(
     writer: &mut RelWriter,
@@ -294,24 +325,38 @@ pub fn tombstone_hermes_copy(
 ) -> Result<bool, NativeImportStageError> {
     let session = writer.read_session();
     let id = scope.conversation_id();
-    if scope
-        .accepted_conversation(session, &source_sha256, &scope.namespace(principal))
+    if !credential_active() {
+        return Err(NativeImportStageError::Revoked);
+    }
+    if session
+        .copied_source_head(
+            &scope.namespace(principal),
+            &scope.session_id,
+            &id,
+            &source_sha256,
+        )
         .is_none()
     {
         return Err(NativeImportStageError::Conflict);
     }
-    if !credential_active() {
-        return Err(NativeImportStageError::Revoked);
-    }
     if session.conversation_tombstone(&id).is_some() {
         return Ok(false);
     }
-    if session.open_native_import_id().is_some() {
-        return Err(NativeImportStageError::Conflict);
-    }
-    writer
-        .tombstone_conversation(&id)
-        .map_err(NativeImportStageError::Owner)
+    let key = source_sha256
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let event_id = format!("legacy-delete:{key}");
+    apply_hermes_copy_source_change(
+        writer,
+        scope,
+        source_sha256,
+        &event_id,
+        HermesCopySourceChange::Delete,
+        principal,
+        credential_active,
+    )?;
+    Ok(true)
 }
 
 fn copied_branch_id(source: Option<&str>) -> String {

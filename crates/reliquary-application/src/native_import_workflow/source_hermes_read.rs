@@ -172,6 +172,9 @@ fn read_copied_turn(
     node_id: &str,
     source: HermesCopiedSource,
 ) -> Result<Option<HermesCopiedSourceTurn>, reliquary_owner_session::OwnerSessionError> {
+    if session.archive_source_removed(conversation_id, node_id) {
+        return Ok(None);
+    }
     let Some(archive) = session.resolved_archive_turn(conversation_id, node_id)? else {
         return Ok(None);
     };

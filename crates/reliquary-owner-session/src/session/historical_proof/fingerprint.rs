@@ -427,6 +427,9 @@ fn archive_value(value: &reliquary_archive::ArchiveHistorySnapshot) -> Value {
             "conversation_id": terminal.conversation_id, "archive_version": terminal.archive_version,
         })).collect::<Vec<_>>(),
     });
+    if !value.copied_source_changes.is_empty() {
+        encoded["copied_source_changes"] = json!(value.copied_source_changes);
+    }
     if !value.retained_publications.is_empty() {
         encoded["retained_publications"] = json!(value.retained_publications);
     }

@@ -247,15 +247,17 @@ pub(super) fn archive_vector_input(
                     "current Archive vector binding repeats a fragment",
                 ));
             }
-            let vector = packed.read_f32_row(binding.packed_vector_id, row as u64)?;
-            validate_archive_vector_row(&profile, &vector)?;
             if replaced_parents.contains(&fragment_id)
-                || archive
-                    .conversation_tombstone(&fragment.conversation_id)
-                    .is_some()
+                || archive.source_range_removed(
+                    &fragment.conversation_id,
+                    &fragment.start_node_id,
+                    &fragment.end_node_id,
+                )
             {
                 continue;
             }
+            let vector = packed.read_f32_row(binding.packed_vector_id, row as u64)?;
+            validate_archive_vector_row(&profile, &vector)?;
             existing_max_fragment_archive_version =
                 existing_max_fragment_archive_version.max(version);
             existing_rows.insert(

@@ -26,6 +26,13 @@ impl Archive {
         let Some(episode) = self.episodes.get(&id) else {
             return Ok(None);
         };
+        if self.source_range_removed(
+            &episode.conversation_id,
+            &episode.start_node_id,
+            &episode.end_node_id,
+        ) {
+            return Ok(None);
+        }
         let selected = self.bounded_ancestor_range(
             &episode.conversation_id,
             &episode.start_node_id,
@@ -45,6 +52,9 @@ impl Archive {
         max_turns: usize,
         max_bytes: usize,
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+        if self.source_range_removed(conversation_id, start_node_id, end_node_id) {
+            return Err(ArchiveError::MissingContent);
+        }
         let selected = self.bounded_ancestor_range(
             conversation_id,
             start_node_id,
@@ -116,7 +126,9 @@ impl Archive {
             }
             scanned += 1;
             let node = &turn.node;
-            if conversation_id.is_some_and(|id| id != node.conversation_id) {
+            if conversation_id.is_some_and(|id| id != node.conversation_id)
+                || self.source_removed(&node.conversation_id, &node.id)
+            {
                 continue;
             }
             if through_timestamp_ns.is_some_and(|cutoff| node.timestamp_ns > cutoff) {
@@ -172,6 +184,9 @@ impl Archive {
         node_id: &str,
         max_bytes: usize,
     ) -> Result<Option<ResolvedTurn>, ArchiveError> {
+        if self.source_removed(conversation_id, node_id) {
+            return Ok(None);
+        }
         let Some(node) = self.node(conversation_id, node_id) else {
             return Ok(None);
         };

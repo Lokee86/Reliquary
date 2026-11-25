@@ -125,6 +125,9 @@ pub fn rewrite_memory_history_copy(
         FileKind::Reliquary => {
             let session = RelSession::open(&source, graph_admission, [], [])
                 .map_err(|error| error.to_string())?;
+            if !session.archive.copied_source_changes().is_empty() {
+                return Err("fresh-history rewrite cannot preserve copied source changes".into());
+            }
             if session.observation_publication_version() != 0 {
                 return Err(
                     "fresh-history rewrite cannot preserve Observation publications".into(),

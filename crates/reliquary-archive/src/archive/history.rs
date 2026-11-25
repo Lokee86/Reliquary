@@ -7,15 +7,35 @@ impl Archive {
             return Err(ArchiveError::InvalidField("future Archive version"));
         }
         let mut branches = BTreeMap::new();
-        for (_, branch) in self
+        for (accepted, branch) in self
             .branch_history
             .iter()
             .take_while(|(accepted, _)| *accepted <= version)
         {
             branches.insert(
                 (branch.conversation_id.clone(), branch.id.clone()),
-                branch.clone(),
+                (*accepted, branch.clone()),
             );
+        }
+        let copied_source_changes = self
+            .copied_sources
+            .changes
+            .iter()
+            .take_while(|record| record.receipt.archive_version <= version)
+            .cloned()
+            .collect::<Vec<_>>();
+        for change in &copied_source_changes {
+            if let Some(branch_id) = &change.branch_id
+                && change.surviving_node.is_none()
+            {
+                let key = (change.request.conversation_id.clone(), branch_id.clone());
+                if branches
+                    .get(&key)
+                    .is_some_and(|(accepted, _)| *accepted < change.receipt.archive_version)
+                {
+                    branches.remove(&key);
+                }
+            }
         }
         let turns = self
             .turns
@@ -55,7 +75,8 @@ impl Archive {
                     branch: branch.clone(),
                 })
                 .collect(),
-            branches: branches.into_values().collect(),
+            branches: branches.into_values().map(|(_, branch)| branch).collect(),
+            copied_source_changes,
             episodes: self
                 .episodes
                 .iter()

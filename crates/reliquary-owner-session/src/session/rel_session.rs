@@ -30,6 +30,8 @@ pub struct ArchiveVectorView {
     generation: VectorGeneration,
     dimensions: usize,
     fragments: Arc<[ArchiveFragmentId]>,
+    eligible: Option<Box<[bool]>>,
+    source_removal_version: u64,
     vectors: PackedVectorView,
 }
 
@@ -38,18 +40,36 @@ impl ArchiveVectorView {
         self.dimensions
     }
 
+    pub fn source_removal_version(&self) -> u64 {
+        self.source_removal_version
+    }
+
+    fn source_eligible(&self, ordinal: usize) -> bool {
+        self.eligible
+            .as_ref()
+            .is_none_or(|rows| rows.get(ordinal).copied() == Some(true))
+    }
+
     pub fn search(
         &self,
         query: &[f32],
         limit: usize,
     ) -> Result<ArchiveVectorSearch, OwnerSessionError> {
-        let hits = self.vectors.search_cosine(query, limit)?;
+        let skipped = self
+            .eligible
+            .as_ref()
+            .map_or(0, |rows| rows.iter().filter(|&&valid| !valid).count());
+        let hits = self
+            .vectors
+            .search_cosine(query, limit.saturating_add(skipped))?;
         Ok(ArchiveVectorSearch {
             profile_id: self.generation.compatibility_profile_id,
             generation_id: self.generation.id.0,
             source_archive_version: self.generation.source_archive_version,
             hits: hits
                 .into_iter()
+                .filter(|hit| self.source_eligible(hit.index))
+                .take(limit)
                 .map(|hit| ArchiveVectorHit {
                     fragment_id: self.fragments[hit.index].0,
                     ordinal: hit.index,
@@ -487,17 +507,81 @@ impl RelSession {
     ) -> Option<&reliquary_archive::ConversationTombstone> {
         self.archive.conversation_tombstone(conversation)
     }
-    /// Read immutable Echo evidence for one exact conversation/message source.
+    pub fn archive_source_removal_version(&self) -> u64 {
+        self.archive.source_removal_version()
+    }
+
+    pub fn archive_source_removed(&self, conversation_id: &str, node_id: &str) -> bool {
+        self.archive.source_removed(conversation_id, node_id)
+    }
+
+    pub fn archive_source_range_removed(
+        &self,
+        conversation_id: &str,
+        start_node_id: &str,
+        end_node_id: &str,
+        archive_version: u64,
+    ) -> bool {
+        self.archive.source_range_removed_at(
+            conversation_id,
+            start_node_id,
+            end_node_id,
+            archive_version,
+            self.archive_version(),
+        )
+    }
+
+    pub fn copied_source_head(
+        &self,
+        namespace: &str,
+        source_id: &str,
+        conversation_id: &str,
+        source_sha256: &[u8; 32],
+    ) -> Option<crate::model::CopiedSourceHead<'_>> {
+        if self.native_import_receipt(source_sha256).is_some() {
+            let key = source_sha256
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>();
+            let id = crate::records::import_id(self.owner_id(), &key);
+            if !matches!(
+                self.import_status(&id),
+                Some(ImportEpochStatus::Completed { .. })
+            ) {
+                return None;
+            }
+        }
+        self.archive
+            .copied_source_head(namespace, source_id, conversation_id, source_sha256)
+    }
+
+    pub fn copied_source_head_is_current(
+        &self,
+        conversation_id: &str,
+        head: &crate::model::CopiedSourceHead<'_>,
+    ) -> bool {
+        self.archive
+            .copied_source_head_is_current(conversation_id, head)
+    }
+
+    /// Read currently eligible Echo evidence for one exact conversation/message source.
     pub fn echo_for_turn(
         &self,
         conversation: &str,
         message: &str,
     ) -> Vec<reliquary_archive::EchoEvent> {
+        if self.archive_source_removed(conversation, message) {
+            return Vec::new();
+        }
         self.echo.for_turn(conversation, message)
     }
-    /// Read immutable Echo evidence for one conversation in deterministic order.
+    /// Read currently eligible Echo evidence for one conversation in deterministic order.
     pub fn echo_for_conversation(&self, conversation: &str) -> Vec<reliquary_archive::EchoEvent> {
-        self.echo.for_conversation(conversation)
+        self.echo
+            .for_conversation(conversation)
+            .into_iter()
+            .filter(|event| !self.archive_source_removed(conversation, &event.message_id))
+            .collect()
     }
     pub fn archive_source_attachments(
         &self,
@@ -591,10 +675,42 @@ impl RelSession {
         let (packed_id, fragments) = self
             .archive_vectors
             .row_mapping(generation.archive_vector_id)?;
+        let source_removal_version = self.archive_source_removal_version();
+        let eligible = if source_removal_version == 0 {
+            None
+        } else {
+            Some(
+                fragments
+                    .iter()
+                    .map(|id| {
+                        let (fragment, _) = self
+                            .archive
+                            .fragment_vector_source(
+                                reliquary_archive::FragmentId(id.0),
+                                generation.source_archive_version,
+                            )
+                            .ok_or_else(|| {
+                                OwnerSessionError::Record(
+                                    "active Archive vector has no fragment at its source cut"
+                                        .into(),
+                                )
+                            })?;
+                        Ok(!self.archive_source_range_removed(
+                            &fragment.conversation_id,
+                            &fragment.start_node_id,
+                            &fragment.end_node_id,
+                            generation.source_archive_version,
+                        ))
+                    })
+                    .collect::<Result<Box<[_]>, OwnerSessionError>>()?,
+            )
+        };
         Ok(Some(ArchiveVectorView {
             generation,
             dimensions: profile.dimensions as usize,
             fragments,
+            eligible,
+            source_removal_version,
             vectors: self.common.packed_vectors.view(packed_id)?,
         }))
     }
@@ -647,6 +763,15 @@ impl RelSession {
         &self,
         id: reliquary_archive::EpisodeId,
     ) -> Result<Option<Vec<reliquary_archive::ResolvedTurn>>, OwnerSessionError> {
+        if self.archive.episode(id).is_some_and(|episode| {
+            self.archive.source_range_removed(
+                &episode.conversation_id,
+                &episode.start_node_id,
+                &episode.end_node_id,
+            )
+        }) {
+            return Ok(None);
+        }
         self.archive
             .episode_turns(id)
             .map_err(|error| OwnerSessionError::Record(error.to_string()))

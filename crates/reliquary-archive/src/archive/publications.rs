@@ -153,6 +153,13 @@ impl Archive {
         validate_text(&episode.conversation_id, "conversation id")?;
         validate_text(&episode.start_node_id, "Episode start node id")?;
         validate_text(&episode.end_node_id, "Episode end node id")?;
+        if self.source_range_removed(
+            &episode.conversation_id,
+            &episode.start_node_id,
+            &episode.end_node_id,
+        ) {
+            return Err(ArchiveError::InvalidEpisodeRange);
+        }
         let end = self.require_node(&episode.conversation_id, &episode.end_node_id)?;
         if episode.id
             != Episode::stable_id(
