@@ -88,7 +88,7 @@ impl RetrievalPreview {
         profile: Option<CompatibilityProfileId>,
         evaluation: &RetrievalEvaluation,
         observation_version: u64,
-        (observations, observations_truncated): (Vec<RetrievalObservation>, bool),
+        observations: Vec<RetrievalObservation>,
     ) -> Result<Self, GatewayError> {
         let memories =
             project_memories(snapshot, evaluation.memories.iter().map(|memory| memory.id))?;
@@ -113,8 +113,7 @@ impl RetrievalPreview {
             temporal_evidence,
             truncated: evaluation.memories.len() > memories.len()
                 || memories.iter().any(|m| m.truncated)
-                || !evaluation.temporal_evidence_truncated.is_empty()
-                || observations_truncated,
+                || !evaluation.temporal_evidence_truncated.is_empty(),
             memories,
             observations,
         })

@@ -198,20 +198,19 @@ impl Instance {
                 return Err(GatewayError::StaleRetrieval);
             }
             Ok(if offer_observations {
-                evaluation
-                    .next
-                    .query()
-                    .map_or((Vec::new(), false), |query| {
-                        rank_current_observations(
-                            rel,
-                            query,
-                            evaluation.next.temporal_filter(),
-                            &provided_observations,
-                            MAX_AGENTIC_OBSERVATIONS,
-                        )
-                    })
+                evaluation.next.query().map_or_else(Vec::new, |query| {
+                    // The ranked shortlist is the exact set offered for delivery.
+                    rank_current_observations(
+                        rel,
+                        query,
+                        evaluation.next.temporal_filter(),
+                        &provided_observations,
+                        MAX_AGENTIC_OBSERVATIONS,
+                    )
+                    .0
+                })
             } else {
-                (Vec::new(), false)
+                Vec::new()
             })
         })??;
         let preview = RetrievalPreview::from_evaluation(
