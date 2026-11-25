@@ -664,22 +664,25 @@ impl MemoryStore {
     }
 
     pub fn preflight_grouped_lifecycle_delta(&self, bytes: &[u8]) -> Result<(), MemoryError> {
-        let mut projection = self.clone();
-        projection.apply_grouped_lifecycle_delta(bytes)
+        self.validate_grouped_lifecycle_delta(bytes).map(drop)
     }
 
     pub fn apply_grouped_lifecycle_delta(&mut self, bytes: &[u8]) -> Result<(), MemoryError> {
+        let (record, next_version) = self.validate_grouped_lifecycle_delta(bytes)?;
+        self.apply_validated_delta(record, next_version);
+        Ok(())
+    }
+
+    fn validate_grouped_lifecycle_delta(
+        &self,
+        bytes: &[u8],
+    ) -> Result<(MemoryRecord, u64), MemoryError> {
         if !bytes.starts_with(DELTA) || !self.initialized {
             return Err(MemoryError::Corrupt(
                 "grouped Dream requires a Memory delta",
             ));
         }
-        // Replay is all-or-nothing in memory, just as normal Memory revision
-        // history replay. No physical append is performed by this method.
-        let mut next = self.clone();
-        next.replay(bytes)?;
-        *self = next;
-        Ok(())
+        self.validate_delta(bytes)
     }
 
     pub fn is_initialized(&self) -> bool {
@@ -1188,143 +1191,8 @@ impl MemoryStore {
             return Ok(());
         }
         if bytes.starts_with(DELTA) {
-            let delta = decode_delta(bytes)?;
-            let history = self
-                .state
-                .revisions
-                .get_mut(&delta.id)
-                .ok_or(MemoryError::Corrupt("delta has no creation"))?;
-            let previous = history
-                .last()
-                .ok_or(MemoryError::Corrupt("empty Memory history"))?;
-            if self.state.tombstones.contains_key(&delta.id)
-                || previous.revision != delta.previous_revision
-                || previous.revision.checked_add(1) != Some(delta.record.revision)
-                || previous.body_id != delta.record.body_id
-                || delta.record.memory_version != self.state.next_memory_version
-                || delta.record.mutation_id == previous.mutation_id
-                || self.state.mutations.contains_key(&delta.record.mutation_id)
-            {
-                return Err(MemoryError::Corrupt("invalid Memory delta predecessor"));
-            }
-            let mut record = delta.record;
-            record.category = if delta.mask & (1 << 0) != 0 {
-                record.category
-            } else {
-                previous.category.clone()
-            };
-            record.memory_type = if delta.mask & (1 << 1) != 0 {
-                record.memory_type
-            } else {
-                previous.memory_type.clone()
-            };
-            record.authority_kind = if delta.mask & (1 << 2) != 0 {
-                record.authority_kind
-            } else {
-                previous.authority_kind.clone()
-            };
-            record.temporal_status = if delta.mask & (1 << 3) != 0 {
-                record.temporal_status
-            } else {
-                previous.temporal_status.clone()
-            };
-            record.scope = if delta.mask & (1 << 4) != 0 {
-                record.scope
-            } else {
-                previous.scope.clone()
-            };
-            record.lifecycle_state = if delta.mask & (1 << 5) != 0 {
-                record.lifecycle_state
-            } else {
-                previous.lifecycle_state.clone()
-            };
-            record.archived = if delta.mask & (1 << 6) != 0 {
-                record.archived
-            } else {
-                previous.archived
-            };
-            record.superseded_by = if delta.mask & (1 << 7) != 0 {
-                record.superseded_by
-            } else {
-                previous.superseded_by
-            };
-            record.parent_id = if delta.mask & (1 << 8) != 0 {
-                record.parent_id
-            } else {
-                previous.parent_id
-            };
-            record.source_node_id = if delta.mask & (1 << 9) != 0 {
-                record.source_node_id
-            } else {
-                previous.source_node_id.clone()
-            };
-            record.content_source_conversation_id = if delta.mask & (1 << 10) != 0 {
-                record.content_source_conversation_id
-            } else {
-                previous.content_source_conversation_id.clone()
-            };
-            record.content_source_node_id = if delta.mask & (1 << 11) != 0 {
-                record.content_source_node_id
-            } else {
-                previous.content_source_node_id.clone()
-            };
-            record.grounding_source_conversation_id = if delta.mask & (1 << 12) != 0 {
-                record.grounding_source_conversation_id
-            } else {
-                previous.grounding_source_conversation_id.clone()
-            };
-            record.grounding_source_node_id = if delta.mask & (1 << 13) != 0 {
-                record.grounding_source_node_id
-            } else {
-                previous.grounding_source_node_id.clone()
-            };
-            record.source_episode_id = if delta.mask & (1 << 14) != 0 {
-                record.source_episode_id
-            } else {
-                previous.source_episode_id
-            };
-            record.source_time_ns = if delta.mask & (1 << 15) != 0 {
-                record.source_time_ns
-            } else {
-                previous.source_time_ns
-            };
-            record.source_ref = if delta.mask & (1 << 16) != 0 {
-                record.source_ref
-            } else {
-                previous.source_ref.clone()
-            };
-            record.temporal_inference = if delta.mask & (1 << 17) != 0 {
-                record.temporal_inference
-            } else {
-                previous.temporal_inference.clone()
-            };
-            record.created_at_ns = if delta.mask & (1 << 18) != 0 {
-                record.created_at_ns
-            } else {
-                previous.created_at_ns
-            };
-            record.updated_at_ns = if delta.mask & (1 << 19) != 0 {
-                record.updated_at_ns
-            } else {
-                previous.updated_at_ns
-            };
-            let body_len = self
-                .state
-                .bodies
-                .get(&record.body_id)
-                .map(StoredBody::body_len);
-            validate_replayed_record_with_body_len(&record, body_len)?;
-            let index = history.len();
-            self.state
-                .mutations
-                .insert(record.mutation_id.clone(), (delta.id, index));
-            history.push(record);
-            self.state.changes.push(delta.id);
-            self.state.next_memory_version = self
-                .state
-                .next_memory_version
-                .checked_add(1)
-                .ok_or(MemoryError::VersionExhausted)?;
+            let (record, next_version) = self.validate_delta(bytes)?;
+            self.apply_validated_delta(record, next_version);
             return Ok(());
         }
         if bytes.starts_with(TOMBSTONE) {
@@ -1357,6 +1225,156 @@ impl MemoryStore {
             return Ok(());
         }
         Err(MemoryError::Corrupt("unknown Memory record"))
+    }
+
+    fn validate_delta(&self, bytes: &[u8]) -> Result<(MemoryRecord, u64), MemoryError> {
+        let delta = decode_delta(bytes)?;
+        let history = self
+            .state
+            .revisions
+            .get(&delta.id)
+            .ok_or(MemoryError::Corrupt("delta has no creation"))?;
+        let previous = history
+            .last()
+            .ok_or(MemoryError::Corrupt("empty Memory history"))?;
+        if self.state.tombstones.contains_key(&delta.id)
+            || previous.revision != delta.previous_revision
+            || previous.revision.checked_add(1) != Some(delta.record.revision)
+            || previous.body_id != delta.record.body_id
+            || delta.record.memory_version != self.state.next_memory_version
+            || delta.record.mutation_id == previous.mutation_id
+            || self.state.mutations.contains_key(&delta.record.mutation_id)
+        {
+            return Err(MemoryError::Corrupt("invalid Memory delta predecessor"));
+        }
+        let mut record = delta.record;
+        record.category = if delta.mask & (1 << 0) != 0 {
+            record.category
+        } else {
+            previous.category.clone()
+        };
+        record.memory_type = if delta.mask & (1 << 1) != 0 {
+            record.memory_type
+        } else {
+            previous.memory_type.clone()
+        };
+        record.authority_kind = if delta.mask & (1 << 2) != 0 {
+            record.authority_kind
+        } else {
+            previous.authority_kind.clone()
+        };
+        record.temporal_status = if delta.mask & (1 << 3) != 0 {
+            record.temporal_status
+        } else {
+            previous.temporal_status.clone()
+        };
+        record.scope = if delta.mask & (1 << 4) != 0 {
+            record.scope
+        } else {
+            previous.scope.clone()
+        };
+        record.lifecycle_state = if delta.mask & (1 << 5) != 0 {
+            record.lifecycle_state
+        } else {
+            previous.lifecycle_state.clone()
+        };
+        record.archived = if delta.mask & (1 << 6) != 0 {
+            record.archived
+        } else {
+            previous.archived
+        };
+        record.superseded_by = if delta.mask & (1 << 7) != 0 {
+            record.superseded_by
+        } else {
+            previous.superseded_by
+        };
+        record.parent_id = if delta.mask & (1 << 8) != 0 {
+            record.parent_id
+        } else {
+            previous.parent_id
+        };
+        record.source_node_id = if delta.mask & (1 << 9) != 0 {
+            record.source_node_id
+        } else {
+            previous.source_node_id.clone()
+        };
+        record.content_source_conversation_id = if delta.mask & (1 << 10) != 0 {
+            record.content_source_conversation_id
+        } else {
+            previous.content_source_conversation_id.clone()
+        };
+        record.content_source_node_id = if delta.mask & (1 << 11) != 0 {
+            record.content_source_node_id
+        } else {
+            previous.content_source_node_id.clone()
+        };
+        record.grounding_source_conversation_id = if delta.mask & (1 << 12) != 0 {
+            record.grounding_source_conversation_id
+        } else {
+            previous.grounding_source_conversation_id.clone()
+        };
+        record.grounding_source_node_id = if delta.mask & (1 << 13) != 0 {
+            record.grounding_source_node_id
+        } else {
+            previous.grounding_source_node_id.clone()
+        };
+        record.source_episode_id = if delta.mask & (1 << 14) != 0 {
+            record.source_episode_id
+        } else {
+            previous.source_episode_id
+        };
+        record.source_time_ns = if delta.mask & (1 << 15) != 0 {
+            record.source_time_ns
+        } else {
+            previous.source_time_ns
+        };
+        record.source_ref = if delta.mask & (1 << 16) != 0 {
+            record.source_ref
+        } else {
+            previous.source_ref.clone()
+        };
+        record.temporal_inference = if delta.mask & (1 << 17) != 0 {
+            record.temporal_inference
+        } else {
+            previous.temporal_inference.clone()
+        };
+        record.created_at_ns = if delta.mask & (1 << 18) != 0 {
+            record.created_at_ns
+        } else {
+            previous.created_at_ns
+        };
+        record.updated_at_ns = if delta.mask & (1 << 19) != 0 {
+            record.updated_at_ns
+        } else {
+            previous.updated_at_ns
+        };
+        let body_len = self
+            .state
+            .bodies
+            .get(&record.body_id)
+            .map(StoredBody::body_len);
+        validate_replayed_record_with_body_len(&record, body_len)?;
+        let next_version = self
+            .state
+            .next_memory_version
+            .checked_add(1)
+            .ok_or(MemoryError::VersionExhausted)?;
+        Ok((record, next_version))
+    }
+
+    fn apply_validated_delta(&mut self, record: MemoryRecord, next_version: u64) {
+        let id = record.id;
+        let history = self
+            .state
+            .revisions
+            .get_mut(&id)
+            .expect("validated Memory delta has a creation");
+        self.state
+            .mutations
+            .insert(record.mutation_id.clone(), (id, history.len()));
+        history.push(record);
+        self.state.changes.push(id);
+        self.state.next_memory_version = next_version;
     }
 }
 
