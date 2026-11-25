@@ -76,6 +76,8 @@ Ordinary 2.1 owner admission replays retained publications and verifies the owni
 
 Add a session operation when the invariant is inherently owner-local: it must check current owner state, acquire/validate the owner writer, or commit a set of related store records. Keep semantic analysis and user-facing orchestration above this crate. Expose immutable value types deliberately; never expose mutable store handles or low-level codec construction for convenience.
 
+Storage reclamation preserves the replay-validated historical Freshness snapshots emitted by native imports. These snapshots carry the settled Freshness history through a verified same-owner copy.
+
 ## Related docs
 
 - [Reliquary source and binary distribution terms](../../README.md#license)
