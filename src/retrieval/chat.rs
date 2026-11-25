@@ -2,8 +2,9 @@
 
 use super::{ArchiveSearchOptions, RetrievalMode, RetrievalPreview, RetrievalSession};
 use crate::{
-    ConfiguredRuntime, HermesCopiedSourceTurn, InspectionCut, Instance, MemoryId, OwnerId,
-    OwnerKind, ProductError, ProductErrorKind, TemporalBasis, TemporalFilter,
+    ConfiguredRuntime, HermesCopiedSourceTurn, InspectionCut, Instance, MemoryId,
+    ObservationCitation, OwnerId, OwnerKind, ProductError, ProductErrorKind, TemporalBasis,
+    TemporalFilter,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
@@ -46,6 +47,8 @@ struct Selection {
     result_id: String,
     cut: InspectionCut,
     ids: BTreeSet<String>,
+    observations: BTreeSet<ObservationCitation>,
+    observation_version: Option<u64>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -266,6 +269,17 @@ impl ChatRetrieval {
         result_id: &str,
         disclosed_ids: &[String],
     ) -> Result<(), ProductError> {
+        self.accept_typed_memory_result(result_id, disclosed_ids, &[])
+    }
+
+    /// Authorize only the Memory IDs and exact Observation revisions disclosed
+    /// by the trusted host. Observation references never become graph seeds.
+    pub fn accept_typed_memory_result(
+        &mut self,
+        result_id: &str,
+        disclosed_ids: &[String],
+        disclosed_observations: &[ObservationCitation],
+    ) -> Result<(), ProductError> {
         let cut = self.cut()?;
         let pending = self
             .pending
@@ -276,6 +290,21 @@ impl ChatRetrieval {
             return Err(stale_selection());
         }
         validate_ids(disclosed_ids, &pending.ids, false)?;
+        if !disclosed_observations.is_empty() {
+            let unique: BTreeSet<_> = disclosed_observations.iter().copied().collect();
+            if unique.len() != disclosed_observations.len()
+                || !unique.is_subset(&pending.observations)
+            {
+                return Err(ProductError::invalid(
+                    "Observation citations must come from the authorized result",
+                ));
+            }
+            self.instance.inner.accept_inspected_observations(
+                &self.session.inner,
+                pending.observation_version.ok_or_else(stale_selection)?,
+                disclosed_observations,
+            )?;
+        }
         let mut selection = self.pending.take().expect("validated pending result");
         selection.ids.retain(|id| disclosed_ids.contains(id));
         self.returned = Some(selection);
@@ -321,11 +350,21 @@ impl ChatRetrieval {
             .flat_map(|preview| &preview.memories)
             .map(|memory| memory.memory_id.clone())
             .collect();
+        let observations = preview
+            .iter()
+            .flat_map(|preview| &preview.observations)
+            .map(|observation| observation.claim.citation)
+            .collect();
+        let observation_version = preview
+            .as_ref()
+            .and_then(|preview| preview.cut.observation_version);
         self.pending = Some(Selection {
             search_id: search_id.clone(),
             result_id: result_id.clone(),
             cut,
             ids,
+            observations,
+            observation_version,
         });
         Ok(ChatMemoryResult {
             search_id,
