@@ -23,6 +23,14 @@ Both hosts use Core `96c41a2287eac2a8b48a1a6443b339423a4a8ca3`. Hermes exports t
 - Hermes source `2edfbdb6651eb6a6a0b18d7c271736694f3a3810` produced `reliquary-hermes-windows-x86_64-2edfbdb-test.zip` under `host/target/perception-package-2edfbdb/`. The ZIP SHA-256 is `aad54b4c532db50e28e7ea0715a999569c7aa15bb3a6c0530caddbc9dc112503`. The Windows-only ZIP contains the debug executable verified by the signed test. Each Linux and macOS executable still needs to be rebuilt and attested by the existing native workflow.
 - Mercury source `60468e37e2258ec1836b0cf66338d0cd699d7d8f` uses the shared Core pin. Local Cargo resolved the unpublished pin from the isolated Core checkout. A fresh network build requires the Core commit on the canonical remote. Release distribution uses the existing notice and packaging workflow. The local Windows builds and Gateway test passed with MSVC warning LNK4098. A repository-wide format check found existing layout differences, including unchanged `crates/desktop/build.rs` at the base revision. The committed changes passed the Git whitespace check.
 
+## Shared hybrid recall follow-up
+
+Core `8d0b432dafc023b31dade2c06c46b75c1ab266bf` replaced the separate Observation keyword search with the same ranked population and agentic selection as Memories. The disposable REL fixture reopened a verified claim with its document embedding, matched a paraphrase with zero lexical overlap, and won the shared one-result limit against a lexical Memory. The exact citation remained intact. When the claim went into review, passive hybrid, semantic, and agentic recall withheld it. The mounted worker indexed both an existing claim and a newly verified one, using document embeddings distinct from the receptor vectors. [Paraphrase regression](../../crates/reliquary-runtime-gateway/src/instance_retrieval/observation_checks/tests.rs) · [Managed worker test](../../crates/reliquary-runtime-gateway/src/instance_perception/tests.rs)
+
+The final Core revision passed all 15 focused Gateway retrieval tests and the mounted Perception test. The Application agentic suite passed 11 tests. Mercury’s locked Gateway compile check included its native WebSocket fixture. The Hermes native test target compiled and linked on the locked test profile. Its protocol and provider checks passed 124 tests.
+
+The source pins and Windows artifact listed above belong to the first integration. This follow-up pins the new Core in Hermes `d0601047` and Mercury `28a5e11`. Hermes applies its normal result limit to the combined return. Both hosts rely on Core for current Observation standing and retain their copied-source verification.
+
 ## Related docs
 
 - [Host integration spec](../planning/perception-host-integration-spec-2026-11-24.md)
