@@ -608,6 +608,33 @@ fn hermes_copy_extension_preserves_exact_replay_and_terminal_scope() {
             .unwrap()
             .is_some()
     );
+    drop((instance, rel));
+
+    let verified_copy = root.join("after-removals.rel");
+    let plan = reliquary_memory::VerifiedCopyPlan::prepare(&path).unwrap();
+    reliquary_memory::reclaim_storage_copy(&plan, &path, &verified_copy).unwrap();
+    let rel = Rel::open(&verified_copy).unwrap();
+    let (owner, instance, _) = mount(&rel);
+    assert_eq!(
+        apply_rewind(&instance, &scope, accepted.source_sha256).unwrap(),
+        rewound
+    );
+    assert_eq!(
+        inspect(&instance, owner, &scope, "fresh-root").availability,
+        SourceAvailability::Terminal
+    );
+    assert!(
+        instance
+            .read_hermes_copy_source(
+                owner,
+                &other_scope,
+                independent.source_sha256,
+                "next",
+                "next"
+            )
+            .unwrap()
+            .is_some()
+    );
 }
 
 fn process_copy(instance: &Instance, owner: OwnerId, runtime: &ConfiguredRuntime, id: &str) {

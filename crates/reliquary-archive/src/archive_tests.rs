@@ -477,6 +477,137 @@ fn import_receipt_binds_source_mapping_to_archive_nodes_branches_and_files() {
 }
 
 #[test]
+fn rewind_replays_the_copied_branch_without_removing_shared_branch_evidence() {
+    let temp = TestDirectory::new();
+    let owner = [0x44; 16];
+    let mut container = Container::create(
+        temp.file("rewind.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut archive = Archive::open(&container).unwrap();
+    let conversation = "conversation-1";
+    for (id, parent) in [
+        ("root", None),
+        ("shared", Some("root")),
+        ("removed", Some("shared")),
+        ("independent", Some("shared")),
+    ] {
+        archive
+            .accept_turn(&mut container, turn(id, parent, 1, id))
+            .unwrap();
+    }
+    for (id, leaf, canonical) in [("main", "removed", true), ("fork", "independent", false)] {
+        archive
+            .put_branch(
+                &mut container,
+                Branch {
+                    id: id.into(),
+                    conversation_id: conversation.into(),
+                    leaf_node_id: leaf.into(),
+                    canonical,
+                },
+            )
+            .unwrap();
+    }
+    let source_sha256 = [0x11; 32];
+    archive
+        .put_import_receipt(
+            &mut container,
+            ImportReceipt {
+                schema_version: 1,
+                owner_uuid: owner,
+                import_key: source_sha256,
+                source_namespace: "copy/principal".into(),
+                source_format: crate::HERMES_COPIED_SOURCE_FORMAT.into(),
+                source_digest: source_sha256,
+                conversations: vec![crate::ImportedConversation {
+                    source_id: "test-source".into(),
+                    conversation_id: conversation.into(),
+                    title: None,
+                    messages: ["root", "shared", "removed"]
+                        .into_iter()
+                        .map(|uid| crate::ImportedMessage {
+                            source_author: None,
+                            source_id: uid.into(),
+                            revision: "import".into(),
+                            source_parent_id: None,
+                            replaces: None,
+                            deleted: false,
+                            node_id: Some(uid.into()),
+                            fingerprint: [0x22; 32],
+                            artifacts: Vec::new(),
+                        })
+                        .collect(),
+                    branches: vec![crate::ImportedBranch {
+                        source_id: "main".into(),
+                        branch_id: "main".into(),
+                        leaf_node_id: Some("removed".into()),
+                        canonical: true,
+                    }],
+                }],
+                receipt_digest: [0; 32],
+            },
+        )
+        .unwrap();
+
+    let prior_version = archive.archive_version();
+    let request = crate::CopiedSourceChangeRequest {
+        namespace: "copy/principal".into(),
+        source_id: "test-source".into(),
+        conversation_id: conversation.into(),
+        source_sha256,
+        event_id: "rewind".into(),
+        change: crate::CopiedSourceChange::Rewind {
+            last_surviving_message_uid: Some("root".into()),
+        },
+    };
+    let receipt = archive
+        .publish_copied_source_change(&mut container, request.clone())
+        .unwrap();
+    assert_eq!(receipt.archive_version, prior_version + 1);
+    assert_eq!(
+        archive
+            .publish_copied_source_change(&mut container, request)
+            .unwrap(),
+        receipt
+    );
+
+    let reopened = Archive::open(&container).unwrap();
+    assert!(!reopened.source_removed_at(conversation, "removed", prior_version));
+    assert!(reopened.source_removed_at(conversation, "removed", receipt.archive_version));
+    assert!(!reopened.source_removed(conversation, "shared"));
+    assert_eq!(
+        reopened.branch(conversation, "main").unwrap().leaf_node_id,
+        "root"
+    );
+    assert_eq!(
+        reopened.branch(conversation, "fork").unwrap().leaf_node_id,
+        "independent"
+    );
+    assert_eq!(
+        reopened.branch_turns(conversation, "fork").unwrap().len(),
+        3
+    );
+    assert!(
+        reopened
+            .bounded_search(Some(conversation), "removed", 1, None)
+            .unwrap()
+            .turns
+            .is_empty()
+    );
+    assert_eq!(
+        reopened
+            .history_at(prior_version)
+            .unwrap()
+            .import_receipts
+            .len(),
+        1
+    );
+}
+
+#[test]
 fn bounded_episode_and_conversation_range_are_complete_and_size_limited() {
     let temp = TestDirectory::new();
     let mut container = Container::create(

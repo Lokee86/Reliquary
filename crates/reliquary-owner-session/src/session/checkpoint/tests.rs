@@ -48,6 +48,171 @@ fn draft() -> MemoryDraft {
 }
 
 #[test]
+fn copied_rewind_is_admitted_as_a_verified_checkpoint_suffix() {
+    use crate::model::{
+        Branch, CopiedSourceChange, CopiedSourceChangeRequest, HERMES_COPIED_SOURCE_FORMAT,
+        ImportReceipt, ImportedBranch, ImportedConversation, ImportedMessage,
+    };
+    use crate::records::{GroupedInsomniaCompletion, ImportEpochStatus};
+
+    let directory = tempfile::tempdir().unwrap();
+    let owner = directory.path().join("owner.rel");
+    let cache = directory.path().join("private");
+    private_cache::test_directory(&cache).unwrap();
+    let slot = cache.join("owner.checkpoint");
+    let namespace = "fixture/copied";
+    let conversation = "copied";
+    let source = "message";
+    let digest = [0x11; 32];
+
+    let mut writer = RelWriter::create_current_path(&owner, OWNER).unwrap();
+    let ImportEpochStatus::Open(start) = writer
+        .start_native_import(&"11".repeat(32), namespace, HERMES_COPIED_SOURCE_FORMAT, 1)
+        .unwrap()
+    else {
+        panic!("new import must be open")
+    };
+    let id = &start.import_id;
+    writer
+        .accept_native_import_turn(
+            id,
+            TurnInput {
+                id: source.into(),
+                conversation_id: conversation.into(),
+                parent_id: None,
+                role: "assistant".into(),
+                principal_id: None,
+                timestamp_ns: 1,
+                content: "copied suffix".into(),
+                attachments: vec![],
+                project_attachments: vec![],
+            },
+            Branch {
+                id: "branch".into(),
+                conversation_id: conversation.into(),
+                leaf_node_id: source.into(),
+                canonical: true,
+            },
+        )
+        .unwrap();
+    let episode = writer
+        .finalize_native_import_episode(id, conversation, source, source, 2)
+        .unwrap();
+    writer
+        .commit_native_import_receipt(
+            id,
+            ImportReceipt {
+                schema_version: 1,
+                owner_uuid: OWNER,
+                import_key: digest,
+                source_namespace: namespace.into(),
+                source_format: HERMES_COPIED_SOURCE_FORMAT.into(),
+                source_digest: digest,
+                conversations: vec![ImportedConversation {
+                    source_id: "source-id".into(),
+                    conversation_id: conversation.into(),
+                    title: None,
+                    messages: vec![ImportedMessage {
+                        source_author: None,
+                        source_id: source.into(),
+                        revision: "v1".into(),
+                        source_parent_id: None,
+                        replaces: None,
+                        deleted: false,
+                        node_id: Some(source.into()),
+                        fingerprint: [0x22; 32],
+                        artifacts: vec![],
+                    }],
+                    branches: vec![ImportedBranch {
+                        source_id: "branch".into(),
+                        branch_id: "branch".into(),
+                        leaf_node_id: Some(source.into()),
+                        canonical: true,
+                    }],
+                }],
+                receipt_digest: [0; 32],
+            },
+        )
+        .unwrap();
+    let claim = writer
+        .claim_native_import_episode(id, episode, "fixture", 3, 100)
+        .unwrap();
+    writer
+        .commit_native_import_completion_with_routed_receipts(
+            id,
+            claim.work.lease_token.unwrap(),
+            GroupedInsomniaCompletion {
+                episode_id: episode.0,
+                attempt: claim.work.attempt_count,
+                started_at_ns: 3,
+                completed_at_ns: 4,
+                transaction_time_ns: 4,
+                extractor_model: "fixture".into(),
+                extractor_version: "v1".into(),
+                rejected_count: 0,
+                memory_ids: vec![],
+                external_memory_refs: vec![],
+                global_version_start: writer.next_global_version().unwrap(),
+                bodies: vec![],
+                memory_records: vec![],
+                routing_metadata: vec![],
+                freshness_birth_turn: None,
+                freshness_policy_version: None,
+                freshness_birth_memory_ids: vec![],
+            },
+            4,
+            &[],
+        )
+        .unwrap();
+    writer.complete_native_import(id, 5).unwrap();
+    drop(writer);
+
+    let (_, before, _) = admit(&owner, &slot, true).unwrap();
+    assert!(!before.archive_source_removed(conversation, source));
+    let mut checkpoint = Entry::open(&slot).unwrap();
+    let physical = checkpoint.manifest.physical.clone();
+    let mut seeded = checkpoint.session().unwrap();
+    assert_eq!(seeded.archive_version(), before.archive_version());
+
+    let mut writer =
+        RelWriter::open_path(&owner, GraphAdmission::for_changes(OWNER, [], []), [], []).unwrap();
+    let request = CopiedSourceChangeRequest {
+        namespace: namespace.into(),
+        source_id: "source-id".into(),
+        conversation_id: conversation.into(),
+        source_sha256: digest,
+        event_id: "rewind-1".into(),
+        change: CopiedSourceChange::Rewind {
+            last_surviving_message_uid: None,
+        },
+    };
+    let receipt = writer.publish_copied_source_change(request).unwrap();
+    drop(writer);
+
+    let lease = Container::prepare_checkpoint_open(&owner, false, FileKind::Reliquary, Some(OWNER))
+        .unwrap();
+    let extent = lease.extent();
+    let (container, accepted_prefix) = lease.finish(Some(physical.clone())).unwrap();
+    assert!(accepted_prefix.is_some());
+    seeded.bind_checkpoint_reader(&container).unwrap();
+    assert!(suffix::replay(&mut seeded, &container, &physical, extent).unwrap());
+    assert!(seeded.archive_source_removed(conversation, source));
+    assert_eq!(
+        seeded.archive_source_removal_version(),
+        receipt.archive_version
+    );
+    assert!(seeded.archive_branch(conversation, "branch").is_none());
+
+    let cold = RelSession::open_current(&container).unwrap();
+    let cut = cold.current_historical_cut();
+    assert_eq!(seeded.current_historical_cut(), cut);
+    assert_eq!(
+        seeded.historical_proof(OWNER, cut).unwrap(),
+        cold.historical_proof(OWNER, cut).unwrap()
+    );
+}
+
+#[test]
 fn restores_a_verified_cut_and_replays_a_bound_turn_and_grouped_correction() {
     let directory = tempfile::tempdir().unwrap();
     let owner = directory.path().join("owner.rel");
