@@ -1,6 +1,8 @@
 use reliquary_application::{VectorWorkflowError, prepare_compatibility_profile};
 use reliquary_runtime_gateway::InsomniaWorkerConfig;
-use reliquary_switchboard::{ConfiguredRoutes, DecisionConsumer, DecisionEndpoint};
+use reliquary_switchboard::{
+    ConfiguredRoutes, DecisionConsumer, HostedModelRoute, HostedSwitchboardConfig, ModelSlot,
+};
 use reliquary_vectors::SwitchboardEmbeddingEndpoint;
 use std::fmt;
 use std::path::Path;
@@ -9,8 +11,9 @@ use std::sync::Arc;
 use crate::{ConfiguredRuntimeError, ReliquaryConfig, RetrievalConfig};
 pub use reliquary_switchboard::RuntimeEndpointFailure;
 pub use reliquary_switchboard::{
-    EmbeddingEndpoint, EmbeddingEndpointError, GeneralEndpoint, GeneralEndpointError,
-    HostedEmbeddingInputSemantics, HostedInferenceIdentity,
+    ConfiguredDecisionEndpoint, DecisionEndpoint, DecisionEndpointError, EmbeddingEndpoint,
+    EmbeddingEndpointError, GeneralEndpoint, GeneralEndpointError, HostedEmbeddingInputSemantics,
+    HostedInferenceIdentity,
 };
 pub use reliquary_vectors::{
     CompatibilityProbeReference, CompatibilityProfile, EmbeddingMode, VectorNormalization,
@@ -41,10 +44,10 @@ impl ConfiguredRuntime {
         ReliquaryConfig::open(path)?.configured_runtime()
     }
 
-    /// Bind Hermes-owned inference transports without opening Reliquary CVCFG.
+    /// Bind host-owned inference transports without opening Reliquary CVCFG.
     ///
-    /// All general semantic operations and decision consumers use the supplied
-    /// general endpoint. Retrieval and worker behavior retain product defaults.
+    /// Ordinary general and decision routes use the supplied general endpoint.
+    /// Retrieval and worker behavior retain product defaults.
     pub fn hosted(
         general: Arc<dyn GeneralEndpoint>,
         embedding: Arc<dyn EmbeddingEndpoint>,
@@ -52,6 +55,44 @@ impl ConfiguredRuntime {
     ) -> Result<Self, ConfiguredRuntimeError> {
         let routes = ConfiguredRoutes::hosted(general, embedding, identity)?;
         Ok(Self::new(routes, RetrievalConfig::default()))
+    }
+
+    /// Bind the persisted Switchboard route selections to host-owned transports.
+    /// The resolvers must only select/build local adapters; network calls happen
+    /// through the returned runtime or its explicit online probe.
+    pub fn hosted_switchboard<C, E>(
+        config: &HostedSwitchboardConfig,
+        completion_resolver: C,
+        embedding_resolver: E,
+    ) -> Result<Self, ConfiguredRuntimeError>
+    where
+        C: FnMut(
+            ModelSlot,
+            &HostedModelRoute,
+        ) -> Result<(String, Arc<dyn GeneralEndpoint>), ConfiguredRuntimeError>,
+        E: FnMut(
+            ModelSlot,
+            &HostedModelRoute,
+        ) -> Result<(String, Arc<dyn EmbeddingEndpoint>), ConfiguredRuntimeError>,
+    {
+        let routes =
+            ConfiguredRoutes::hosted_switchboard(config, completion_resolver, embedding_resolver)?;
+        Ok(Self::new(routes, RetrievalConfig::default()))
+    }
+
+    /// Bind the hosted native Jev route for Observation Contribution and Verify.
+    ///
+    /// Pass a stable, nonsecret route identity that changes when the native
+    /// route changes. Credential values and worker leases do not belong in it.
+    pub fn with_native_perception_decision(
+        mut self,
+        endpoint: Arc<dyn DecisionEndpoint>,
+        route_identity: &str,
+    ) -> Result<Self, ConfiguredRuntimeError> {
+        self.routes = self
+            .routes
+            .with_native_perception_decision(endpoint, route_identity)?;
+        Ok(self)
     }
 
     /// Reports route availability and selection without contacting providers.

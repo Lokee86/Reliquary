@@ -438,3 +438,145 @@ fn root_lexical_search_requires_only_view_and_no_runtime() {
     drop((management, viewer, admission, control, gateway, rel));
     std::fs::remove_file(path).unwrap();
 }
+
+#[test]
+fn configured_archive_publication_activates_searchable_generation() {
+    use reliquary_owner_session::{
+        RelWriter,
+        model::{Branch, TurnInput},
+    };
+
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".test-tmp");
+    std::fs::create_dir_all(&root).unwrap();
+    let path = root.join(format!(
+        "root-archive-publication-{}.rel",
+        uuid::Uuid::new_v4()
+    ));
+    let rel = Rel::create(&path).unwrap();
+    {
+        let mut writer = RelWriter::open_path_current(&path).unwrap();
+        for name in ["conversation", "terminal"] {
+            writer
+                .accept_turn_and_advance_branch(
+                    TurnInput {
+                        id: "turn".into(),
+                        conversation_id: name.into(),
+                        parent_id: None,
+                        role: "user".into(),
+                        principal_id: None,
+                        timestamp_ns: 1,
+                        content: format!("Configured Archive publication for {name}"),
+                        attachments: vec![],
+                        project_attachments: vec![],
+                    },
+                    Branch {
+                        id: "branch".into(),
+                        conversation_id: name.into(),
+                        leaf_node_id: "turn".into(),
+                        canonical: true,
+                    },
+                )
+                .unwrap();
+        }
+    }
+    let runtime = ConfiguredRuntime::hosted(
+        Arc::new(TestGeneral),
+        Arc::new(TestEmbedding),
+        HostedInferenceIdentity::new(
+            "test",
+            "general-test",
+            "test",
+            "embedding-test",
+            2,
+            HostedEmbeddingInputSemantics::Shared,
+            EmbeddingNormalization::L2,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let operator_token = "a".repeat(48);
+    let reader_token = "b".repeat(48);
+    let mount = |rel: &Rel| {
+        let gateway = Gateway::new();
+        let owner = gateway.mount_rel(rel, true).unwrap();
+        let (admission, _) = TrustedHostAdmission::new([
+            HostCredentialBinding::new(
+                "operator",
+                &operator_token,
+                [OwnerGrant::OperateRel(owner)],
+            ),
+            HostCredentialBinding::new("reader", &reader_token, [OwnerGrant::ViewRel(owner)]),
+        ])
+        .install(&gateway)
+        .unwrap();
+        let operator = admission.authenticate(&operator_token).unwrap();
+        let reader = admission.authenticate(&reader_token).unwrap();
+        (owner, operator, reader)
+    };
+    let (owner, operator, reader) = mount(&rel);
+    assert_eq!(
+        reader
+            .publish_archive_vectors(owner, &runtime, None)
+            .unwrap_err()
+            .kind(),
+        ProductErrorKind::Unauthorized
+    );
+    let generation = operator
+        .publish_archive_vectors(owner, &runtime, None)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        reader
+            .search_archive_vectors(owner, generation.compatibility_profile_id, &[1.0, 0.0], 10)
+            .unwrap()
+            .hits
+            .len(),
+        2
+    );
+    assert_eq!(
+        operator
+            .publish_archive_vectors(owner, &runtime, Some("embedding"))
+            .unwrap(),
+        Some(generation)
+    );
+    drop((operator, reader, rel));
+
+    {
+        let mut writer = RelWriter::open_path_current(&path).unwrap();
+        writer.tombstone_conversation("terminal").unwrap();
+    }
+    let rel = Rel::open(&path).unwrap();
+    let (owner, operator, reader) = mount(&rel);
+    let filtered = reader
+        .search_archive_hybrid_temporal(
+            owner,
+            generation.compatibility_profile_id,
+            "publication",
+            &[1.0, 0.0],
+            10,
+            TemporalFilter {
+                basis: crate::TemporalBasis::Source,
+                start_ns: 0,
+                end_exclusive_ns: 10,
+            },
+        )
+        .unwrap();
+    assert_eq!(filtered.search.hits.len(), 1);
+    assert_eq!(filtered.search.hits[0].conversation_id, "conversation");
+
+    let refreshed = operator
+        .publish_archive_vectors(owner, &runtime, None)
+        .unwrap()
+        .unwrap();
+    assert_ne!(refreshed.generation_id, generation.generation_id);
+    assert_eq!(
+        reader
+            .search_archive_vectors(owner, refreshed.compatibility_profile_id, &[1.0, 0.0], 10)
+            .unwrap()
+            .hits
+            .len(),
+        1
+    );
+    drop((operator, reader, rel));
+    std::fs::remove_file(path).unwrap();
+}

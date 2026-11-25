@@ -146,6 +146,54 @@ pub(super) fn hosted(identity: &HostedInferenceIdentity) -> ProcessingRouteIdent
     }
 }
 
+pub(super) fn hosted_switchboard(
+    general_route: Value,
+    entity_route: Value,
+    insomnia_route: Value,
+    ownership_route: Value,
+    dream_route: Value,
+    entity_extraction_route: Value,
+    embedding_route: Value,
+) -> ProcessingRouteIdentity {
+    let import = json!([
+        "reliquary-hosted-switchboard-import-v1",
+        insomnia_route,
+        ownership_route,
+        entity_extraction_route,
+        dream_route,
+        entity_route,
+        embedding_route,
+    ]);
+    let live_dream = json!([
+        "reliquary-hosted-switchboard-live-dream-v1",
+        dream_route,
+        embedding_route,
+    ]);
+    ProcessingRouteIdentity {
+        perception: hash(json!([
+            "reliquary-hosted-switchboard-perception-v1",
+            general_route,
+            embedding_route
+        ])),
+        perception_embedding: hash(json!([
+            "reliquary-perception-embedding-route-v1",
+            embedding_route
+        ])),
+        entity_identity: hash(json!(["reliquary-entity-identity-route-v1", entity_route])),
+        import: hash(import),
+        live_dream: hash(live_dream),
+    }
+}
+
+pub(super) fn hosted_native_perception(base: [u8; 32], route_identity: &str) -> [u8; 32] {
+    hash(json!([
+        "reliquary-hosted-native-perception-v1",
+        base,
+        OBSERVATION_DECISION_MODEL,
+        route_identity
+    ]))
+}
+
 fn hash(canonical: Value) -> [u8; 32] {
     digest(&SHA256, canonical.to_string().as_bytes())
         .as_ref()

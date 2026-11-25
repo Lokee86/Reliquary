@@ -99,3 +99,99 @@ fn raw_branch_selection_resumes_after_interrupted_staging() {
     }
     fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn copied_echo_resumes_after_interrupted_staging() {
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(".test-tmp")
+        .join(format!("hermes-echo-recovery-{}", std::process::id()));
+    fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("owner.rel");
+    let scope = HermesCopyScope::new("profile".into(), "session".into()).unwrap();
+    let conversation = scope.conversation_id();
+    let plan = || {
+        NativeImportPlan::from_hermes_copy_with_echo(
+            HermesCopiedSnapshot {
+                scope: scope.clone(),
+                branch_id: None,
+                source_revision: None,
+                messages: vec![HermesCopiedMessage {
+                    message_uid: "reply".into(),
+                    role: HermesCopiedRole::Assistant,
+                    timestamp_ns: 1,
+                    content: "accepted response".into(),
+                    author: None,
+                }],
+            },
+            [
+                HermesCopiedEchoKind::ModelRoundStarted,
+                HermesCopiedEchoKind::ModelRoundCompleted,
+            ]
+            .into_iter()
+            .enumerate()
+            .map(|(i, kind)| HermesCopiedEcho {
+                message_uid: "reply".into(),
+                sequence: i as u64,
+                timestamp_ns: i as i64,
+                model_round: 1,
+                kind,
+            })
+            .collect(),
+        )
+        .unwrap()
+    };
+    let source = plan().source_sha256();
+    {
+        let mut writer = RelWriter::create_current_path(&path, [0x32; 16]).unwrap();
+        let admission = Cell::new(0);
+        let interrupted = plan().stage(&mut writer, "authenticated", || {
+            admission.set(admission.get() + 1);
+            admission.get() <= 3
+        });
+        assert!(matches!(interrupted, Err(NativeImportStageError::Revoked)));
+        assert_eq!(
+            writer
+                .read_session()
+                .echo_for_turn(&conversation, "reply")
+                .len(),
+            1
+        );
+        assert!(
+            writer
+                .read_session()
+                .native_import_receipt(&source)
+                .is_none()
+        );
+        assert!(
+            read_hermes_copy_source(
+                writer.read_session(),
+                &scope,
+                source,
+                "reply",
+                "reply",
+                "authenticated",
+            )
+            .unwrap()
+            .is_none()
+        );
+    }
+    {
+        let mut writer = RelWriter::open_path_current(&path).unwrap();
+        let receipt = plan().stage(&mut writer, "authenticated", || true).unwrap();
+        assert_eq!(receipt.episode_ids.len(), 1);
+        let resumed = read_hermes_copy_source(
+            writer.read_session(),
+            &scope,
+            source,
+            "reply",
+            "reply",
+            "authenticated",
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(resumed[0].echo.len(), 2);
+        assert_eq!(resumed[0].echo[0].sequence, 0);
+        assert_eq!(resumed[0].echo[1].sequence, 1);
+    }
+    fs::remove_dir_all(dir).unwrap();
+}

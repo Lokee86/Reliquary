@@ -1,7 +1,8 @@
 use super::*;
 use reliquary_application::native_import_source::{
-    HermesCopyScope, NativeImportPlan, NativeImportStageError, NativeImportStageResult,
-    NativeImportStatus, native_import_status, tombstone_hermes_copy,
+    HermesCopiedSourceTurn, HermesCopyScope, NativeImportPlan, NativeImportStageError,
+    NativeImportStageResult, NativeImportStatus, native_import_status, read_hermes_archive_range,
+    read_hermes_copy_source, tombstone_hermes_copy,
 };
 
 impl Instance {
@@ -16,6 +17,50 @@ impl Instance {
             })
         })?
         .map_err(import_error)
+    }
+
+    pub fn read_hermes_archive_range(
+        &self,
+        owner: OwnerId,
+        conversation_id: &str,
+        start_node_id: &str,
+        end_node_id: &str,
+        source_archive_version: u64,
+    ) -> Result<Option<Vec<HermesCopiedSourceTurn>>, GatewayError> {
+        let result = self.with_reliquary(owner, |session| {
+            read_hermes_archive_range(
+                session,
+                conversation_id,
+                start_node_id,
+                end_node_id,
+                source_archive_version,
+                self.principal(),
+            )
+        })??;
+        self.ensure_credential_active()?;
+        Ok(result)
+    }
+
+    pub fn read_hermes_copy_source(
+        &self,
+        owner: OwnerId,
+        scope: &HermesCopyScope,
+        source_sha256: [u8; 32],
+        start_message_uid: &str,
+        end_message_uid: &str,
+    ) -> Result<Option<Vec<HermesCopiedSourceTurn>>, GatewayError> {
+        let result = self.with_reliquary(owner, |session| {
+            read_hermes_copy_source(
+                session,
+                scope,
+                source_sha256,
+                start_message_uid,
+                end_message_uid,
+                self.principal(),
+            )
+        })??;
+        self.ensure_credential_active()?;
+        Ok(result)
     }
 
     pub fn tombstone_hermes_copy(

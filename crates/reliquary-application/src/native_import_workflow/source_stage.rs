@@ -124,6 +124,7 @@ impl NativeImportPlan {
         let anchored = if let NativeSource::HermesCopy {
             scope,
             predecessor: Some(predecessor),
+            ..
         } = &self.source
         {
             hermes::attach_predecessor(
@@ -182,6 +183,10 @@ impl NativeImportPlan {
                 ))
             })?;
         let revoked = Cell::new(false);
+        let echo = match self.source {
+            NativeSource::HermesCopy { echo, .. } => echo,
+            NativeSource::File(_) => Vec::new(),
+        };
         let staged = stage_native_import_with_admission(
             writer,
             NativeImportBatch {
@@ -199,6 +204,7 @@ impl NativeImportPlan {
                 episodes: self.episodes,
                 started_at_ns,
             },
+            echo,
             || {
                 if credential_active() {
                     Ok(())

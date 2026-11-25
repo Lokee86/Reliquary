@@ -14,6 +14,7 @@ use credentials::PREFIX;
 use master_key::MasterKey;
 use std::collections::BTreeSet;
 use std::fmt;
+use std::fs::File;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -30,6 +31,14 @@ pub struct ConfigFile {
     credentials: CredentialsConfig,
     master_key: Option<MasterKey>,
     dirty_credentials: BTreeSet<CredentialId>,
+}
+
+pub(crate) fn config_file_lock(path: &Path) -> std::io::Result<File> {
+    key_lifecycle::lock(path)
+}
+
+pub(crate) fn config_destination(path: &Path) -> Result<PathBuf, ConfiguredRuntimeError> {
+    key_lifecycle::new_destination(path)
 }
 
 impl fmt::Debug for ConfigFile {

@@ -6,7 +6,7 @@ use maintenance::assert_divergent_copy_preserves_receipts;
 use reliquary_memory::{
     HermesCopiedMessage, HermesCopiedRole, HermesCopiedSnapshot, HermesCopyScope, InspectionItem,
     InspectionQuery, Instance, NativeImportState, OwnerId, OwnerKind, SourceAvailability,
-    SourceTurn,
+    SourceTurn, TemporalBasis,
 };
 
 const TOKEN: &str = "external-hermes-copy-operator-admission";
@@ -236,6 +236,13 @@ fn hermes_copy_extension_preserves_exact_replay_and_terminal_scope() {
         ProductErrorKind::Conflict
     );
     assert_eq!(length(), unchanged);
+    assert!(
+        instance
+            .publish_archive_vectors(owner, &runtime, None)
+            .unwrap()
+            .is_some()
+    );
+    let unchanged = length();
     drop((instance, foreign, rel));
     assert_divergent_copy_preserves_receipts(&path, &root, predecessor, accepted.source_sha256);
 
@@ -243,7 +250,23 @@ fn hermes_copy_extension_preserves_exact_replay_and_terminal_scope() {
     let info = rel.info().unwrap();
     assert_eq!(info.rel_turn_count, Some(2));
     assert_eq!(info.memory_count, 1);
-    let (owner, instance, _) = mount(&rel);
+    let (owner, instance, foreign) = mount(&rel);
+    let conversation = scope.conversation_id();
+    let cut = info.archive_version.unwrap();
+    let rows = instance
+        .read_hermes_archive_range(owner, &conversation, "accepted", "next", cut)
+        .unwrap()
+        .unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].source.source_sha256, predecessor);
+    assert_eq!(rows[1].source.source_sha256, accepted.source_sha256);
+    assert_eq!(rows[1].source.message_uid, "next");
+    assert!(
+        foreign
+            .read_hermes_archive_range(owner, &conversation, "accepted", "next", cut)
+            .unwrap()
+            .is_none()
+    );
     assert!(
         instance
             .stage_native_import(owner, second())
@@ -251,11 +274,55 @@ fn hermes_copy_extension_preserves_exact_replay_and_terminal_scope() {
             .already_completed
     );
     assert_eq!(length(), unchanged);
+    let mut chat = instance
+        .begin_chat_retrieval(owner, "archive-admission")
+        .unwrap();
+    assert_eq!(
+        chat.search_chat_archive(
+            "checklist",
+            TemporalBasis::Source,
+            3_000_000_000,
+            "UTC",
+            &runtime
+        )
+        .unwrap_err()
+        .kind(),
+        ProductErrorKind::TemporalQueryRequired,
+    );
+    let hits = chat
+        .search_chat_archive(
+            "checklist today",
+            TemporalBasis::Source,
+            3_000_000_000,
+            "UTC",
+            &runtime,
+        )
+        .unwrap()
+        .hits;
+    let reference = &hits.first().expect("a temporal Archive hit").reference;
+    assert!(
+        !chat
+            .preview_archive_reference(reference)
+            .unwrap()
+            .is_empty()
+    );
+    assert!(chat.read_archive_reference(reference).is_err());
+    assert!(chat.accept_archive_results(&["forged".into()]).is_err());
+    chat.accept_archive_results(std::slice::from_ref(reference))
+        .unwrap();
+    assert!(!chat.read_archive_reference(reference).unwrap().is_empty());
+    let new_chat = instance
+        .begin_chat_retrieval(owner, "different-admission")
+        .unwrap();
+    assert!(new_chat.read_archive_reference(reference).is_err());
+    drop(new_chat);
     assert!(
         instance
             .tombstone_hermes_copy(owner, &scope, predecessor)
             .unwrap()
     );
+    assert!(chat.read_archive_reference(reference).is_err());
+    drop(chat);
     assert!(
         !instance
             .tombstone_hermes_copy(owner, &scope, accepted.source_sha256)
@@ -268,7 +335,13 @@ fn hermes_copy_extension_preserves_exact_replay_and_terminal_scope() {
             .kind(),
         ProductErrorKind::Conflict
     );
-    drop((instance, rel));
+    assert!(
+        instance
+            .read_hermes_archive_range(owner, &conversation, "accepted", "next", cut)
+            .unwrap()
+            .is_none()
+    );
+    drop((instance, foreign, rel));
 
     let rel = Rel::open(&path).unwrap();
     let (owner, instance, _) = mount(&rel);

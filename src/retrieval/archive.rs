@@ -11,6 +11,34 @@ pub struct ArchiveSearchOptions {
 }
 
 impl Instance {
+    /// Search Archive from a natural-language query that must contain a resolvable date.
+    /// The request time and IANA calendar zone are trusted host context, never query input.
+    pub fn search_archive_for_query(
+        &self,
+        owner: OwnerId,
+        query: &str,
+        basis: crate::TemporalBasis,
+        options: ArchiveSearchOptions,
+        runtime: &ConfiguredRuntime,
+        request_time_ns: i64,
+        calendar_zone: &str,
+    ) -> Result<TemporalArchiveHybridSearch, ProductError> {
+        self.require_rel_read(owner)?;
+        let resolved = reliquary_application::resolve_archive_temporal_query(
+            query,
+            basis,
+            request_time_ns,
+            calendar_zone,
+        )
+        .map_err(|error| {
+            ProductError::new(
+                crate::ProductErrorKind::TemporalQueryRequired,
+                error.to_string(),
+            )
+        })?;
+        self.search_archive_temporal(owner, &resolved.topic, options, runtime, resolved.filter)
+    }
+
     /// Persist lexical indexes for the active Archive generations in a writable REL.
     pub fn publish_archive_lexical_indexes(
         &self,

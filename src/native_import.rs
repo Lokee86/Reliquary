@@ -7,10 +7,11 @@ use std::{path::Path, sync::Arc};
 
 pub use reliquary_runtime_gateway::ArchiveVectorPublication;
 pub use source::{
-    HermesCopiedAuthor, HermesCopiedMessage, HermesCopiedRole, HermesCopiedSnapshot,
-    HermesCopyScope, NativeImportCoverage, NativeImportFormat, NativeImportParentMapping,
-    NativeImportSourceError, NativeImportStageResult, NativeImportState, NativeImportStatus,
-    NativeImportWindow,
+    HermesCopiedAuthor, HermesCopiedEcho, HermesCopiedEchoKind, HermesCopiedMessage,
+    HermesCopiedRole, HermesCopiedSnapshot, HermesCopiedSource, HermesCopiedSourceTurn,
+    HermesCopiedToolOutcome, HermesCopyScope, NativeImportCoverage, NativeImportFormat,
+    NativeImportParentMapping, NativeImportSourceError, NativeImportStageResult, NativeImportState,
+    NativeImportStatus, NativeImportWindow,
 };
 
 impl From<NativeImportSourceError> for ProductError {
@@ -53,6 +54,31 @@ impl NativeImportPlan {
         )?))
     }
 
+    /// Normalize an authorized copy together with redacted, source-keyed Echo.
+    pub fn from_hermes_copy_with_echo(
+        snapshot: HermesCopiedSnapshot,
+        echo: Vec<HermesCopiedEcho>,
+    ) -> Result<Self, ProductError> {
+        Ok(Self(source::NativeImportPlan::from_hermes_copy_with_echo(
+            snapshot, echo,
+        )?))
+    }
+
+    /// Append a copied suffix and its Echo to an exact completed predecessor.
+    pub fn from_hermes_copy_extension_with_echo(
+        snapshot: HermesCopiedSnapshot,
+        predecessor_sha256: [u8; 32],
+        echo: Vec<HermesCopiedEcho>,
+    ) -> Result<Self, ProductError> {
+        Ok(Self(
+            source::NativeImportPlan::from_hermes_copy_extension_with_echo(
+                snapshot,
+                predecessor_sha256,
+                echo,
+            )?,
+        ))
+    }
+
     pub fn coverage(&self) -> &NativeImportCoverage {
         self.0.coverage()
     }
@@ -79,6 +105,44 @@ impl Instance {
     ) -> Result<NativeImportStageResult, ProductError> {
         self.require(OwnerGrant::OperateRel(owner))?;
         Ok(self.inner.stage_native_import(owner.into(), plan.0)?)
+    }
+
+    /// Resolve copied Hermes source provenance across an exact Archive hit range.
+    pub fn read_hermes_archive_range(
+        &self,
+        owner: OwnerId,
+        conversation_id: &str,
+        start_node_id: &str,
+        end_node_id: &str,
+        source_archive_version: u64,
+    ) -> Result<Option<Vec<HermesCopiedSourceTurn>>, ProductError> {
+        self.require_rel_read(owner)?;
+        Ok(self.inner.read_hermes_archive_range(
+            owner.into(),
+            conversation_id,
+            start_node_id,
+            end_node_id,
+            source_archive_version,
+        )?)
+    }
+
+    /// Read an exact inclusive message range from an accepted copied receipt of this principal.
+    pub fn read_hermes_copy_source(
+        &self,
+        owner: OwnerId,
+        scope: &HermesCopyScope,
+        source_sha256: [u8; 32],
+        start_message_uid: &str,
+        end_message_uid: &str,
+    ) -> Result<Option<Vec<HermesCopiedSourceTurn>>, ProductError> {
+        self.require_rel_read(owner)?;
+        Ok(self.inner.read_hermes_copy_source(
+            owner.into(),
+            scope,
+            source_sha256,
+            start_message_uid,
+            end_message_uid,
+        )?)
     }
 
     /// Mark a previously accepted Hermes copy terminal using its exact source key.
