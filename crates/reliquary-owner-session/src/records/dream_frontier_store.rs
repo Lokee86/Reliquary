@@ -84,19 +84,19 @@ impl DreamEvidenceStore {
     pub(crate) fn append_frontier(
         &mut self,
         container: &mut Container,
-        admission: DreamBeginAdmission,
+        admission: StoredAdmission,
         source: crate::DreamMemoryCut,
         candidates: Vec<crate::DreamMemoryCut>,
         graph_version: u64,
         memory_version: u64,
         native_birth_version: Option<u64>,
-    ) -> Result<DreamBeginAdmission, String> {
+    ) -> Result<StoredAdmission, String> {
         self.check_owner(container)?;
         if let Some(old) = self.frontiers.get(&admission.pass_id) {
             return if old.source.cut() == source
                 && old.candidates.iter().map(|o| o.cut()).collect::<Vec<_>>() == candidates
             {
-                Ok(self.admissions[&admission.pass_id].to_admission())
+                Ok(self.admissions[&admission.pass_id].clone())
             } else {
                 Err("frontier identity changed".into())
             };
@@ -116,18 +116,17 @@ impl DreamEvidenceStore {
                 population: match native_birth_version {
                     Some(first_memory_version) => BeginPopulation::NativeBirth {
                         first_memory_version,
-                        digest: population_digest(&admission.preexisting_ids),
+                        digest: admission.preexisting_ids.digest(),
                     },
-                    None => BeginPopulation::ExplicitSet(admission.preexisting_ids.clone()),
+                    None => BeginPopulation::ExplicitSet(admission.copy_preexisting_ids()),
                 },
             };
-            let stored = StoredAdmission::from(admission.clone());
-            self.validate_begin(&begin, &stored)?;
+            self.validate_begin(&begin, &admission)?;
             let payload = dream_begin_codec::encode(&begin)?;
             let mut journal = self.journal.clone();
-            journal.ingest_admitted_begin(self.owner_uuid, pending_pass(&stored))?;
-            let begin = StoredBegin::new(&stored, (&begin).into());
-            (Some((begin, stored, journal)), Some(payload))
+            journal.ingest_admitted_begin(self.owner_uuid, pending_pass(&admission))?;
+            let begin = StoredBegin::new(&admission, (&begin).into());
+            (Some((begin, journal)), Some(payload))
         };
         let record = FrontierRecord {
             owner: self.owner_uuid,
@@ -139,7 +138,7 @@ impl DreamEvidenceStore {
             memory_version,
         };
         let (begin, journal) = match &new_begin {
-            Some((begin, _, journal)) => (begin, journal),
+            Some((begin, journal)) => (begin, journal),
             None => (
                 self.begins
                     .get(&record.pass_id)
@@ -151,9 +150,10 @@ impl DreamEvidenceStore {
         let bytes = record.encode()?;
         container.append(&bytes).map_err(|e| e.to_string())?;
         container.sync().map_err(|e| e.to_string())?;
-        if let Some((begin, stored, journal)) = new_begin {
+        if let Some((begin, journal)) = new_begin {
             self.journal = journal;
-            self.admissions.insert(admission.pass_id.clone(), stored);
+            self.admissions
+                .insert(admission.pass_id.clone(), admission.clone());
             self.install_begin(admission.pass_id.clone(), begin);
         }
         self.frontiers.insert(record.pass_id.clone(), record.into());

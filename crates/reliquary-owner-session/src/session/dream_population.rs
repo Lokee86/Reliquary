@@ -1,5 +1,6 @@
 //! Historical active birth populations, excluding the source cohort.
 use super::*;
+use crate::records::dream::{Population, PopulationHistory};
 use std::collections::BTreeSet;
 // A cohort is one physical creation frame; siblings never count as older roots.
 // The canonical Memory records supply lifecycle state at the cohort's birth,
@@ -55,12 +56,54 @@ pub(super) fn birth_population_at(
     let cut = before_birth(first_birth_version)?;
     Ok(memories
         .memory_ids()
-        .filter(|&id| {
-            memories
-                .record_at_cut(id, cut)
-                .is_some_and(|record| !record.archived)
-        })
+        .filter(|&id| is_active_at(memories, id, cut))
         .collect())
+}
+
+/// Project the active population before each requested cohort from typed Memory history.
+pub(super) fn birth_population_history(
+    memories: &MemoryStore,
+    first_versions: impl IntoIterator<Item = u64>,
+) -> Result<BTreeMap<u64, Population>, OwnerSessionError> {
+    let first_versions: BTreeSet<_> = first_versions.into_iter().collect();
+    let mut previous_cut = 0;
+    let mut deltas = Vec::with_capacity(first_versions.len());
+    for &first_version in &first_versions {
+        if first_version > memories.memory_version() {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
+        let cut = before_birth(first_version)?;
+        let changed: BTreeSet<_> = memories
+            .changes_after(previous_cut, cut, usize::MAX)
+            .map(|(_, id)| id)
+            .collect();
+        let mut added = Vec::new();
+        let mut removed = Vec::new();
+        for id in changed {
+            match (
+                is_active_at(memories, id, previous_cut),
+                is_active_at(memories, id, cut),
+            ) {
+                (false, true) => added.push(id),
+                (true, false) => removed.push(id),
+                _ => (),
+            }
+        }
+        deltas.push((added, removed));
+        previous_cut = cut;
+    }
+    let history = PopulationHistory::from_deltas(deltas)
+        .map_err(|error| OwnerSessionError::Record(error.into()))?;
+    Ok(first_versions
+        .into_iter()
+        .zip((1..).map(|step| history.snapshot(step)))
+        .collect())
+}
+
+fn is_active_at(memories: &MemoryStore, id: MemoryId, cut: u64) -> bool {
+    memories
+        .record_at_cut(id, cut)
+        .is_some_and(|record| !record.archived)
 }
 
 /// Advances one active population through successive cohort cuts. A later
@@ -89,11 +132,7 @@ impl<'a> BirthPopulationReplay<'a> {
             self.exact = birth_population_at(self.memories, birth_version)?;
         } else {
             for (version, id) in self.memories.changes_after(self.cut, cut, usize::MAX) {
-                if self
-                    .memories
-                    .record_at_cut(id, version)
-                    .is_some_and(|record| !record.archived)
-                {
+                if is_active_at(self.memories, id, version) {
                     self.exact.insert(id);
                 } else {
                     self.exact.remove(&id);
@@ -110,11 +149,9 @@ impl<'a> BirthPopulationReplay<'a> {
         population: &BTreeSet<MemoryId>,
     ) -> Result<bool, OwnerSessionError> {
         let cut = before_birth(birth_version)?;
-        Ok(population.iter().all(|&id| {
-            self.memories
-                .record_at_cut(id, cut)
-                .is_some_and(|record| !record.archived)
-        }))
+        Ok(population
+            .iter()
+            .all(|&id| is_active_at(self.memories, id, cut)))
     }
 }
 
@@ -122,4 +159,91 @@ fn before_birth(birth_version: u64) -> Result<u64, OwnerSessionError> {
     birth_version
         .checked_sub(1)
         .ok_or(OwnerSessionError::StaleDreamCut)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::records::dream::population_digest;
+    use reliquary_container::{ContainerIdentity, ReliquaryScope};
+
+    #[test]
+    fn shared_birth_populations_follow_retained_memory_lifecycle() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut container = Container::create(
+            directory.path().join("birth-population.rel"),
+            ContainerIdentity::reliquary(ReliquaryScope::Project),
+            [62; 16],
+        )
+        .unwrap();
+        let mut memories = MemoryStore::create(&mut container).unwrap();
+        let draft = |mutation: &str, archived| MemoryDraft {
+            title: "Historical Memory".into(),
+            content: "Retained through lifecycle changes.".into(),
+            category: "fact".into(),
+            memory_type: "semantic".into(),
+            authority_kind: "user".into(),
+            temporal_status: "current".into(),
+            scope: "local".into(),
+            lifecycle_state: if archived { "archived" } else { "knowledge" }.into(),
+            archived,
+            parent_id: None,
+            superseded_by: None,
+            source_node_id: None,
+            content_source_conversation_id: None,
+            content_source_node_id: None,
+            grounding_source_conversation_id: None,
+            grounding_source_node_id: None,
+            source_episode_id: None,
+            source_ref: None,
+            source_time_ns: None,
+            temporal_inference: None,
+            mutation_id: mutation.into(),
+            created_at_ns: 1,
+            updated_at_ns: 1,
+        };
+        let create = |memories: &mut MemoryStore, container: &mut Container, mutation| {
+            memories
+                .publish(container, None, 0, draft(mutation, false))
+                .unwrap()
+                .revision
+                .record
+        };
+        let subject = create(&mut memories, &mut container, "subject");
+        let before_archive = create(&mut memories, &mut container, "before-archive");
+        memories
+            .publish(&mut container, Some(subject.id), 1, draft("archive", true))
+            .unwrap();
+        let after_archive = create(&mut memories, &mut container, "after-archive");
+        memories
+            .publish(&mut container, Some(subject.id), 2, draft("readmit", false))
+            .unwrap();
+        let after_readmission = create(&mut memories, &mut container, "after-readmission");
+        memories.tombstone(&mut container, subject.id, 3).unwrap();
+        let after_tombstone = create(&mut memories, &mut container, "after-tombstone");
+
+        let births = [
+            (before_archive, true),
+            (after_archive, false),
+            (after_readmission, true),
+            (after_tombstone, false),
+        ];
+        let cuts = births.iter().map(|(record, _)| record.memory_version);
+        let populations =
+            birth_population_history(&memories, cuts.clone().rev().chain(cuts)).unwrap();
+        assert_eq!(populations.len(), births.len());
+        for (cohort, active) in births {
+            let version = cohort.memory_version;
+            let population = &populations[&version];
+            let expected = birth_population_at(&memories, version).unwrap();
+            assert_eq!(population.contains(&subject.id), active);
+            assert!(!population.contains(&cohort.id));
+            assert_eq!(population.digest(), population_digest(&expected));
+            assert_eq!(population, &Population::from_set(expected));
+        }
+        assert!(matches!(
+            birth_population_history(&memories, [memories.memory_version() + 1]),
+            Err(OwnerSessionError::StaleDreamCut)
+        ));
+    }
 }

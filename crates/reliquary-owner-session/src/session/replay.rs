@@ -1,5 +1,5 @@
 use super::*;
-use crate::records::user_memory::UserMemoryRecord;
+use crate::records::{dream::StoredAdmission, user_memory::UserMemoryRecord};
 
 pub(super) fn open_common(
     container: &Container,
@@ -296,14 +296,39 @@ pub(super) fn open_common_replaying(
     }
 
     let check_native_dream_policy = !dream_prefix.native_admissions.is_empty();
+    let native_populations = super::dream_population::birth_population_history(
+        &memories,
+        dream_prefix
+            .native_admissions
+            .iter()
+            .map(|admission| admission.first_memory_version),
+    )?;
+    let mut native_admissions = Vec::with_capacity(dream_prefix.native_admissions.len());
     for admission in dream_prefix.native_admissions {
-        if let Some(supplied) = admissions_by_pass.get(&admission.pass_id) {
-            if supplied != &admission {
-                return Err(OwnerSessionError::StaleDreamCut);
-            }
-        } else {
-            admissions_by_pass.insert(admission.pass_id.clone(), admission);
+        let begin = admission.begin;
+        if begin.owner_uuid != container.owner_id()
+            || admission.memory_cut > memories.memory_version()
+            || begin.graph_version_before > graph.graph_version()
+            || memories
+                .first_memory_version(begin.source_id)
+                .is_none_or(|version| version > admission.memory_cut)
+        {
+            return Err(OwnerSessionError::Record(
+                "Dream admission references unavailable owner history".into(),
+            ));
         }
+        // Every population member comes from retained Memory history strictly
+        // before the physically proven cohort, which precedes this frontier.
+        let supplied = admissions_by_pass.remove(&begin.pass_id);
+        let stored = StoredAdmission::with_population(
+            begin,
+            admission.memory_cut,
+            native_populations[&admission.first_memory_version].clone(),
+        );
+        if supplied.is_some_and(|supplied| StoredAdmission::from(supplied) != stored) {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
+        native_admissions.push(stored);
     }
     let mut dream_admissions: Vec<_> = admissions_by_pass.into_values().collect();
     let compact = super::dream_prefix::observe_compact_dream_prefix(container, &dream_admissions)?;
@@ -331,8 +356,14 @@ pub(super) fn open_common_replaying(
             ));
         }
     }
-    let dreams =
-        DreamEvidenceStore::open(container, dream_admissions).map_err(OwnerSessionError::Record)?;
+    let dreams = DreamEvidenceStore::open_admitted(
+        container,
+        dream_admissions
+            .into_iter()
+            .map(StoredAdmission::from)
+            .chain(native_admissions),
+    )
+    .map_err(OwnerSessionError::Record)?;
     super::dream_initial_replay::validate(
         container,
         &dreams,

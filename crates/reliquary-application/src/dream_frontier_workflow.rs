@@ -19,12 +19,12 @@ impl PreparedDreamFrontier {
         import_id: &str,
         pass: String,
         turn: u64,
-    ) -> Result<DreamBeginAdmission, DreamWorkflowError> {
+    ) -> Result<(), DreamWorkflowError> {
         if writer.owner_id() != self.owner || writer.dream_graph_version() != self.graph_version {
             return Err(DreamWorkflowError::StaleSnapshot);
         }
         writer
-            .begin_native_import_dream_frontier(import_id, pass, self.source, self.candidates, turn)
+            .bind_native_import_dream_frontier(import_id, pass, self.source, self.candidates, turn)
             .map_err(crate::dream_batch_workflow::map_dream_owner_write)
     }
 

@@ -1,13 +1,13 @@
 //! Owner-lease admission of a no-candidate initial Dream completion.
 //! The accepted Graph cut and final journal settlement share one frame.
 use super::*;
+use crate::records::dream::{Population, StoredAdmission};
 use crate::records::{DreamMemoryCut, dream_empty::InitialDreamSettlement};
 
-#[derive(Clone, Copy)]
 pub(super) enum InitialDreamBirth {
     Physical,
     Grouped(u64),
-    NativeFrontier(u64),
+    NativeFrontier(Population),
 }
 
 pub(super) fn initial_admission(
@@ -18,6 +18,18 @@ pub(super) fn initial_admission(
     turn: u64,
     birth: InitialDreamBirth,
 ) -> Result<DreamBeginAdmission, OwnerSessionError> {
+    initial_stored_admission(container, common, source, pass_id, turn, birth)
+        .map(|admission| admission.to_admission())
+}
+
+pub(super) fn initial_stored_admission(
+    container: &Container,
+    common: &CommonState,
+    source: DreamMemoryCut,
+    pass_id: String,
+    turn: u64,
+    birth: InitialDreamBirth,
+) -> Result<StoredAdmission, OwnerSessionError> {
     if pass_id.is_empty() || pass_id.trim() != pass_id || pass_id.len() > 256 || turn == 0 {
         return Err(OwnerSessionError::StaleDreamCut);
     }
@@ -37,7 +49,7 @@ pub(super) fn initial_admission(
             {
                 return Err(OwnerSessionError::StaleDreamCut);
             }
-            return Ok(admission.to_admission());
+            return Ok(admission.clone());
         }
         return Err(OwnerSessionError::StaleDreamCut);
     }
@@ -46,25 +58,33 @@ pub(super) fn initial_admission(
         return Err(OwnerSessionError::StaleDreamCut);
     }
     let population = match birth {
-        InitialDreamBirth::Grouped(version) | InitialDreamBirth::NativeFrontier(version) => {
-            super::dream_population::birth_population_at(&common.memories, version)?
-        }
-        InitialDreamBirth::Physical => {
-            super::dream_population::birth_population(container, &common.memories, source.id)?
+        InitialDreamBirth::NativeFrontier(population) => population,
+        legacy => {
+            let population = match legacy {
+                InitialDreamBirth::Grouped(version) => {
+                    super::dream_population::birth_population_at(&common.memories, version)?
+                }
+                _ => super::dream_population::birth_population(
+                    container,
+                    &common.memories,
+                    source.id,
+                )?,
+            };
+            if population.len() > 4096 {
+                return Err(OwnerSessionError::StaleDreamCut);
+            }
+            Population::from_set(population)
         }
     };
-    if !matches!(birth, InitialDreamBirth::NativeFrontier(_)) && population.len() > 4096 {
-        return Err(OwnerSessionError::StaleDreamCut);
-    }
-    Ok(DreamBeginAdmission {
-        owner_uuid: container.owner_id(),
+    Ok(StoredAdmission::new(
+        container.owner_id(),
         pass_id,
-        source_id: source.id,
+        source.id,
         turn,
-        graph_version_before: common.graph.graph_version(),
-        preexisting_ids: population,
-        memory_cut: common.memories.memory_version(),
-    })
+        common.graph.graph_version(),
+        common.memories.memory_version(),
+        population,
+    ))
 }
 
 pub(super) fn validate(

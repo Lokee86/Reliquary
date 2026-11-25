@@ -2,7 +2,7 @@
 //! owner after it proves the exact Memory physical prefix.
 use self::dream_begin_codec::{BeginPopulation, BeginRecord};
 use self::freshness_journal::{DreamFreshnessJournal, StoredDreamPass};
-use self::population_history::Population;
+pub(crate) use self::population_history::{Population, PopulationHistory};
 #[path = "dream_settlement.rs"]
 mod settlement;
 use super::dream_empty::InitialDreamSettlement;
@@ -42,7 +42,7 @@ pub struct DreamBeginAdmission {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct StoredAdmission {
     owner_uuid: [u8; 16],
-    pass_id: String,
+    pub(crate) pass_id: String,
     source_id: MemoryId,
     turn: u64,
     graph_version_before: u64,
@@ -65,6 +65,52 @@ impl From<DreamBeginAdmission> for StoredAdmission {
 }
 
 impl StoredAdmission {
+    pub(crate) fn new(
+        owner_uuid: [u8; 16],
+        pass_id: String,
+        source_id: MemoryId,
+        turn: u64,
+        graph_version_before: u64,
+        memory_cut: u64,
+        population: Population,
+    ) -> Self {
+        Self {
+            owner_uuid,
+            pass_id,
+            source_id,
+            turn,
+            graph_version_before,
+            memory_cut,
+            preexisting_ids: population,
+        }
+    }
+
+    pub(crate) fn with_population(
+        begin: BeginRecord,
+        memory_cut: u64,
+        population: Population,
+    ) -> Self {
+        Self::new(
+            begin.owner_uuid,
+            begin.pass_id,
+            begin.source_id,
+            begin.turn,
+            begin.graph_version_before,
+            memory_cut,
+            population,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn population_is_materialized(&self) -> bool {
+        self.preexisting_ids.is_materialized()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shares_population_history(&self, other: &Self) -> bool {
+        self.preexisting_ids.shares_history(&other.preexisting_ids)
+    }
+
     pub(crate) fn to_admission(&self) -> DreamBeginAdmission {
         DreamBeginAdmission {
             owner_uuid: self.owner_uuid,
@@ -199,6 +245,13 @@ impl DreamEvidenceStore {
         container: &Container,
         admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     ) -> Result<Self, String> {
+        Self::open_admitted(container, admissions.into_iter().map(StoredAdmission::from))
+    }
+
+    pub(crate) fn open_admitted(
+        container: &Container,
+        admissions: impl IntoIterator<Item = StoredAdmission>,
+    ) -> Result<Self, String> {
         let owner_uuid = container.owner_id();
         let mut admitted = BTreeMap::new();
         for admission in admissions {
@@ -206,7 +259,7 @@ impl DreamEvidenceStore {
                 return Err("Dream admission owner or pass identity mismatch".into());
             }
             if admitted
-                .insert(admission.pass_id.clone(), admission.into())
+                .insert(admission.pass_id.clone(), admission)
                 .is_some()
             {
                 return Err("duplicate Dream Begin admission".into());
@@ -357,13 +410,13 @@ impl DreamEvidenceStore {
         &mut self,
         record: super::dream_frontier::FrontierRecord,
         begin: BeginRecord,
-        admission: DreamBeginAdmission,
+        admission: impl Into<StoredAdmission>,
     ) -> Result<(), String> {
+        let admission = admission.into();
         if self.admissions.contains_key(&admission.pass_id) {
             return Err("duplicate Dream Begin admission".into());
         }
-        self.admissions
-            .insert(admission.pass_id.clone(), admission.into());
+        self.admissions.insert(admission.pass_id.clone(), admission);
         self.ingest_physical_begin(begin)?;
         self.apply_frontier(record)
     }
@@ -394,7 +447,7 @@ impl DreamEvidenceStore {
         match &begin.population {
             BeginPopulation::CompactCut { memory_cut, digest } => {
                 if *memory_cut != admission.memory_cut
-                    || *digest != population_digest(admission.preexisting_ids())
+                    || *digest != admission.preexisting_ids.digest()
                 {
                     return Err("Dream compact population lacks exact prefix proof".into());
                 }
@@ -405,7 +458,7 @@ impl DreamEvidenceStore {
             } => {
                 if *first_memory_version == 0
                     || *first_memory_version > admission.memory_cut
-                    || *digest != population_digest(admission.preexisting_ids())
+                    || *digest != admission.preexisting_ids.digest()
                 {
                     return Err("Dream native birth population lacks exact birth proof".into());
                 }
@@ -421,9 +474,13 @@ impl DreamEvidenceStore {
 }
 
 pub fn population_digest(ids: &BTreeSet<MemoryId>) -> [u8; 32] {
+    population_digest_iter(ids.len(), ids)
+}
+
+fn population_digest_iter<'a>(len: usize, ids: impl IntoIterator<Item = &'a MemoryId>) -> [u8; 32] {
     let mut hash = Sha256::new();
     hash.update(b"reliquary:dream-population:v1\0");
-    hash.update((ids.len() as u64).to_le_bytes());
+    hash.update((len as u64).to_le_bytes());
     for id in ids {
         hash.update(id.0);
     }

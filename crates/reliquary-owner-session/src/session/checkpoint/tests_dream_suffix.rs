@@ -13,7 +13,7 @@ use reliquary_memory_core::{
     MemoryBodyId, MemoryRecord, encode_grouped_creation, memory_body_bytes, memory_body_id,
     memory_id,
 };
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const OWNER: [u8; 16] = [93; 16];
 const PREDECESSORS: usize = 4097;
@@ -277,11 +277,10 @@ fn suspended_import_checkpoint_replays_large_native_dream_population() {
             )
             .is_err()
     );
-    let admission = writer
-        .begin_native_import_dream_frontier(&import_id, pass.clone(), cut, vec![older_cut], turn)
+    writer
+        .bind_native_import_dream_frontier(&import_id, pass.clone(), cut, vec![older_cut], turn)
         .unwrap();
-    assert_eq!(admission.preexisting_ids, predecessors);
-    assert!(!admission.preexisting_ids.contains(&sibling_id));
+    let sibling_pass = RelWriter::native_import_dream_identity(&import_id, sibling_id).0;
     writer
         .commit_native_import_dream_batch(
             &import_id,
@@ -321,6 +320,37 @@ fn suspended_import_checkpoint_replays_large_native_dream_population() {
             true,
         )
         .unwrap();
+    writer
+        .bind_native_import_dream_frontier(
+            &import_id,
+            sibling_pass.clone(),
+            sibling_cut,
+            Vec::new(),
+            turn,
+        )
+        .unwrap();
+    writer
+        .commit_native_import_initial_dream_pass(
+            &import_id,
+            &sibling_pass,
+            sibling_cut,
+            1,
+            turn,
+            BTreeMap::new(),
+            true,
+        )
+        .unwrap();
+    let assert_shared_populations = |session: &RelSession| {
+        let first = session.common.dreams.admission(&pass).unwrap();
+        let sibling = session.common.dreams.admission(&sibling_pass).unwrap();
+        assert!(!first.population_is_materialized());
+        assert!(!sibling.population_is_materialized());
+        assert!(first.shares_population_history(sibling));
+        assert_eq!(first.copy_preexisting_ids(), predecessors);
+        assert_eq!(sibling.copy_preexisting_ids(), predecessors);
+        assert!(!first.preexisting_contains(&sibling_id));
+    };
+    assert_shared_populations(writer.read_session());
     let import_state = writer.read_session().import_status(&import_id).unwrap();
     assert!(matches!(import_state, ImportEpochStatus::Open(_)));
     drop(writer);
@@ -341,7 +371,8 @@ fn suspended_import_checkpoint_replays_large_native_dream_population() {
     let warm_settlement = warm.common.dreams.settlement_record(&pass).unwrap().clone();
     assert_eq!(warm_settlement.roots, BTreeSet::from([older.id]));
     assert_eq!(warm.current_memory(id).unwrap().record.revision, 2);
-    assert_eq!(warm.current_memory(sibling_id).unwrap().record, sibling);
+    assert_eq!(warm.current_memory(sibling_id).unwrap().record.revision, 2);
+    assert_shared_populations(&warm);
     let warm_frontier = warm.initial_dream_frontier(&pass).unwrap();
     assert_eq!(warm_frontier.candidates, [older_cut]);
     let warm_begin = warm.dream_begin(&pass).unwrap().clone();
@@ -351,14 +382,6 @@ fn suspended_import_checkpoint_replays_large_native_dream_population() {
             first_memory_version,
             digest: population_digest(&predecessors),
         }
-    );
-    assert_eq!(
-        warm.common
-            .dreams
-            .admission(&pass)
-            .unwrap()
-            .preexisting_ids(),
-        &predecessors
     );
     let warm_relations = warm.graph_relations();
     let warm_memory_version = warm.memory_version();
@@ -381,18 +404,13 @@ fn suspended_import_checkpoint_replays_large_native_dream_population() {
             restored.common.dreams.settlement_record(&pass),
             Some(&warm_settlement)
         );
-        assert_eq!(
-            restored
-                .common
-                .dreams
-                .admission(&pass)
-                .unwrap()
-                .preexisting_ids(),
-            &predecessors
-        );
+        assert_shared_populations(restored);
         assert!(restored.dream_pair_evaluated(id, older.id));
         assert_eq!(restored.current_memory(id).unwrap().record.revision, 2);
-        assert_eq!(restored.current_memory(sibling_id).unwrap().record, sibling);
+        assert_eq!(
+            restored.current_memory(sibling_id).unwrap().record.revision,
+            2
+        );
         let restored_cut = restored
             .freshness
             .cut_through_turn(restored.rel_turn_count());
@@ -432,8 +450,12 @@ fn suspended_import_checkpoint_replays_large_native_dream_population() {
             let decoded = FrontierRecord::decode(frame.payload).unwrap().unwrap();
             let payload = decoded.begin.as_deref().unwrap();
             assert!(payload.len() < 320);
-            assert_eq!(dream_begin_codec::decode(payload).unwrap(), warm_begin);
-            assert!(frontier.replace(decoded).is_none());
+            let begin = dream_begin_codec::decode(payload).unwrap();
+            assert_eq!(begin.population, warm_begin.population);
+            if decoded.pass_id == pass {
+                assert_eq!(begin, warm_begin);
+                assert!(frontier.replace(decoded).is_none());
+            }
         }
         if frame.payload.starts_with(b"RELDRF02") {
             settlement = Some(frame.payload.to_vec());

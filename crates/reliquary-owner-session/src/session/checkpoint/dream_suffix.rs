@@ -2,7 +2,10 @@
 use super::super::*;
 use crate::DreamMemoryCut;
 use crate::records::{
-    dream::dream_begin_codec::{self, BeginPopulation},
+    dream::{
+        Population, StoredAdmission,
+        dream_begin_codec::{self, BeginPopulation},
+    },
     dream_batch::DreamBatchRecord,
     dream_empty::InitialDreamSettlement,
     dream_frontier::FrontierRecord,
@@ -13,9 +16,26 @@ use std::collections::{BTreeMap, BTreeSet};
 pub(super) struct NativeDreamSources {
     mapped: Option<BTreeMap<String, BTreeSet<String>>>,
     checked: BTreeSet<reliquary_archive::EpisodeId>,
+    birth_populations: Option<BTreeMap<u64, Population>>,
 }
 
 impl NativeDreamSources {
+    fn birth_population(
+        &mut self,
+        session: &RelSession,
+        import_id: &str,
+        birth: u64,
+    ) -> Result<Population, OwnerSessionError> {
+        if self.birth_populations.is_none() {
+            self.birth_populations = Some(session.native_import_birth_populations(import_id)?);
+        }
+        self.birth_populations
+            .as_ref()
+            .and_then(|populations| populations.get(&birth))
+            .cloned()
+            .ok_or(OwnerSessionError::StaleDreamCut)
+    }
+
     fn verify_episode(
         &mut self,
         session: &RelSession,
@@ -130,23 +150,29 @@ fn replay_frontier(
             dream_begin_codec::decode(payload).map_err(OwnerSessionError::Record)
         })?;
     let birth = import_birth(session, import_id, source)?;
-    let population = dream_population::birth_population_at(&common.memories, birth)?;
-    // The Dream store checks the digest against this authenticated population
-    // before installing the frontier.
-    let population_bound = match &begin.population {
+    let population = match &begin.population {
         BeginPopulation::NativeBirth {
             first_memory_version,
             ..
         } => {
+            if *first_memory_version != birth || birth <= pre_import_memory {
+                return Err(OwnerSessionError::StaleDreamCut);
+            }
             native_sources.verify_episode(session, import_id, source)?;
-            *first_memory_version == birth && birth > pre_import_memory
+            // The Dream store checks the digest before installing the frontier.
+            native_sources.birth_population(session, import_id, birth)?
         }
-        BeginPopulation::ExplicitSet(ids) => ids.len() <= 4096 && *ids == population,
-        BeginPopulation::CompactCut { .. } => false,
+        BeginPopulation::ExplicitSet(ids) if ids.len() <= 4096 => {
+            let exact = dream_population::birth_population_at(&common.memories, birth)?;
+            if *ids != exact {
+                return Err(OwnerSessionError::StaleDreamCut);
+            }
+            Population::from_set(exact)
+        }
+        _ => return Err(OwnerSessionError::StaleDreamCut),
     };
     if begin.turn != session.rel_turn_count()
         || frontier.pass_id != RelWriter::native_import_dream_identity(import_id, source).0
-        || !population_bound
         || common.dreams.has_other_pending_frontier(
             &native_import::native_import_dream_prefix(import_id),
             &frontier.pass_id,
@@ -175,15 +201,8 @@ fn replay_frontier(
         common.graph.graph_version(),
         &frontier,
     )?;
-    let admission = DreamBeginAdmission {
-        owner_uuid: session.owner_id,
-        pass_id: frontier.pass_id.clone(),
-        source_id: source,
-        turn: begin.turn,
-        graph_version_before: frontier.graph_version,
-        preexisting_ids: population,
-        memory_cut: frontier.memory_version,
-    };
+    let admission =
+        StoredAdmission::with_population(begin.clone(), frontier.memory_version, population);
     session
         .common
         .dreams

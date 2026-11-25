@@ -1,13 +1,12 @@
 //! Exact historical Dream populations backed by the checkpoint's admitted deltas.
 
 use crate::MemoryId;
-use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::sync::{Arc, OnceLock};
 
 #[derive(Clone)]
-pub(super) struct Population(PopulationStorage);
+pub(crate) struct Population(PopulationStorage);
 
 #[derive(Clone)]
 enum PopulationStorage {
@@ -19,7 +18,7 @@ enum PopulationStorage {
 }
 
 #[derive(Clone)]
-pub(super) struct PopulationHistory(Arc<History>);
+pub(crate) struct PopulationHistory(Arc<History>);
 
 struct History {
     // A sorted list of transitions per identity. The identity is active when
@@ -34,10 +33,11 @@ struct Step {
     added: Vec<MemoryId>,
     removed: Vec<MemoryId>,
     materialized: OnceLock<BTreeSet<MemoryId>>,
+    digest: OnceLock<[u8; 32]>,
 }
 
 impl PopulationHistory {
-    pub(super) fn from_deltas(
+    pub(crate) fn from_deltas(
         deltas: impl IntoIterator<Item = (Vec<MemoryId>, Vec<MemoryId>)>,
     ) -> Result<Self, &'static str> {
         const INVALID_DELTA: &str = "invalid Dream checkpoint population delta";
@@ -77,12 +77,13 @@ impl PopulationHistory {
                 added,
                 removed,
                 materialized: OnceLock::new(),
+                digest: OnceLock::new(),
             });
         }
         Ok(Self(Arc::new(History { transitions, steps })))
     }
 
-    pub(super) fn snapshot(&self, step: usize) -> Population {
+    pub(crate) fn snapshot(&self, step: usize) -> Population {
         assert!(step < self.0.steps.len());
         Population(PopulationStorage::Historical {
             history: self.clone(),
@@ -96,11 +97,40 @@ fn active_at(transitions: &[usize], step: usize) -> bool {
 }
 
 impl History {
-    fn materialize(&self, step: usize) -> BTreeSet<MemoryId> {
+    fn active_ids(&self, step: usize) -> impl Iterator<Item = &MemoryId> {
         self.transitions
             .iter()
-            .filter_map(|(&id, transitions)| active_at(transitions, step).then_some(id))
-            .collect()
+            .filter_map(move |(id, transitions)| active_at(transitions, step).then_some(id))
+    }
+
+    fn materialize(&self, step: usize) -> BTreeSet<MemoryId> {
+        self.active_ids(step).copied().collect()
+    }
+
+    fn changes(&self, from: usize, to: usize) -> (Vec<MemoryId>, Vec<MemoryId>) {
+        if from == to {
+            return (Vec::new(), Vec::new());
+        }
+        let steps = &self.steps[from + 1..=to];
+        if let [step] = steps {
+            return (step.added.clone(), step.removed.clone());
+        }
+
+        let mut added = BTreeSet::new();
+        let mut removed = BTreeSet::new();
+        for step in steps {
+            for id in &step.added {
+                if !removed.remove(id) {
+                    added.insert(*id);
+                }
+            }
+            for id in &step.removed {
+                if !added.remove(id) {
+                    removed.insert(*id);
+                }
+            }
+        }
+        (added.into_iter().collect(), removed.into_iter().collect())
     }
 }
 
@@ -115,7 +145,18 @@ impl Population {
         }
     }
 
-    pub(super) fn from_set(ids: BTreeSet<MemoryId>) -> Self {
+    #[cfg(test)]
+    pub(super) fn shares_history(&self, other: &Self) -> bool {
+        match (&self.0, &other.0) {
+            (
+                PopulationStorage::Historical { history: left, .. },
+                PopulationStorage::Historical { history: right, .. },
+            ) => Arc::ptr_eq(&left.0, &right.0),
+            _ => false,
+        }
+    }
+
+    pub(crate) fn from_set(ids: BTreeSet<MemoryId>) -> Self {
         Self(PopulationStorage::Materialized(Arc::new(ids)))
     }
 
@@ -126,7 +167,7 @@ impl Population {
         }
     }
 
-    pub(super) fn contains(&self, id: &MemoryId) -> bool {
+    pub(crate) fn contains(&self, id: &MemoryId) -> bool {
         match &self.0 {
             PopulationStorage::Materialized(ids) => ids.contains(id),
             PopulationStorage::Historical { history, step } => history
@@ -135,6 +176,31 @@ impl Population {
                 .get(id)
                 .is_some_and(|changes| active_at(changes, *step)),
         }
+    }
+
+    pub(crate) fn digest(&self) -> [u8; 32] {
+        match &self.0 {
+            PopulationStorage::Materialized(ids) => super::population_digest(ids),
+            PopulationStorage::Historical { history, step } => {
+                let snapshot = &history.0.steps[*step];
+                *snapshot.digest.get_or_init(|| {
+                    super::population_digest_iter(snapshot.len, history.0.active_ids(*step))
+                })
+            }
+        }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &MemoryId> {
+        let (materialized, historical) = match &self.0 {
+            PopulationStorage::Materialized(ids) => (Some(ids.iter()), None),
+            PopulationStorage::Historical { history, step } => {
+                (None, Some(history.0.active_ids(*step)))
+            }
+        };
+        materialized
+            .into_iter()
+            .flatten()
+            .chain(historical.into_iter().flatten())
     }
 
     pub(super) fn matches_set(&self, ids: &BTreeSet<MemoryId>) -> bool {
@@ -166,43 +232,34 @@ impl Population {
         }
     }
 
-    fn set_for_comparison(&self) -> Cow<'_, BTreeSet<MemoryId>> {
-        match &self.0 {
-            PopulationStorage::Materialized(ids) => Cow::Borrowed(ids),
-            PopulationStorage::Historical { history, step } => {
-                match history.0.steps[*step].materialized.get() {
-                    Some(ids) => Cow::Borrowed(ids),
-                    None => Cow::Owned(history.0.materialize(*step)),
-                }
-            }
-        }
-    }
-
     pub(super) fn changes_since(&self, previous: &Self) -> (Vec<MemoryId>, Vec<MemoryId>) {
         if let PopulationStorage::Historical { history, step } = &self.0 {
-            if *step == 1 && previous.len() == 0 {
-                return (history.0.steps[*step].added.clone(), Vec::new());
-            }
             if let PopulationStorage::Historical {
                 history: previous_history,
                 step: previous_step,
             } = &previous.0
                 && Arc::ptr_eq(&history.0, &previous_history.0)
             {
-                if step == previous_step {
-                    return (Vec::new(), Vec::new());
+                if previous_step <= step {
+                    return history.0.changes(*previous_step, *step);
                 }
-                if *step == previous_step + 1 {
-                    let changes = &history.0.steps[*step];
-                    return (changes.added.clone(), changes.removed.clone());
-                }
+                let (added, removed) = history.0.changes(*step, *previous_step);
+                return (removed, added);
+            }
+            if previous.len() == 0 {
+                return history.0.changes(0, *step);
             }
         }
-        let current = self.set_for_comparison();
-        let previous = previous.set_for_comparison();
         (
-            current.difference(&previous).copied().collect(),
-            previous.difference(&current).copied().collect(),
+            self.iter()
+                .filter(|id| !previous.contains(id))
+                .copied()
+                .collect(),
+            previous
+                .iter()
+                .filter(|id| !self.contains(id))
+                .copied()
+                .collect(),
         )
     }
 }
@@ -232,9 +289,7 @@ impl PartialEq for Population {
                     step: right_step,
                 },
             ) if left_step == right_step && Arc::ptr_eq(&left.0, &right.0) => true,
-            _ => {
-                self.len() == other.len() && self.set_for_comparison() == other.set_for_comparison()
-            }
+            _ => self.len() == other.len() && self.iter().eq(other.iter()),
         }
     }
 }
@@ -272,6 +327,12 @@ mod tests {
         );
         assert_eq!(changed.changes_since(&initial), (vec![c], vec![a]));
         assert_eq!(readmitted.changes_since(&changed), (vec![a], vec![b]));
+        assert_eq!(readmitted.changes_since(&initial), (vec![c], vec![b]));
+        assert_eq!(initial.changes_since(&readmitted), (vec![b], vec![c]));
+        assert_eq!(
+            readmitted.changes_since(&Population::from_set(BTreeSet::new())),
+            (vec![a, c], vec![])
+        );
         assert!(
             history
                 .0
@@ -280,6 +341,23 @@ mod tests {
                 .all(|step| step.materialized.get().is_none())
         );
         assert_eq!(readmitted, Population::from_set(BTreeSet::from([a, c])));
+    }
+
+    #[test]
+    fn population_digest_is_shared_without_materializing_the_snapshot() {
+        let a = MemoryId([1; 32]);
+        let b = MemoryId([2; 32]);
+        let history = PopulationHistory::from_deltas([(vec![b, a], vec![])]).unwrap();
+        let initial = history.snapshot(1);
+        let other = history.snapshot(1);
+        let expected = super::super::population_digest(&BTreeSet::from([a, b]));
+
+        assert!(initial.shares_history(&other));
+        assert!(history.0.steps[1].digest.get().is_none());
+        assert_eq!(initial.digest(), expected);
+        assert_eq!(history.0.steps[1].digest.get(), Some(&expected));
+        assert_eq!(other.digest(), expected);
+        assert!(!other.is_materialized());
     }
 
     #[test]

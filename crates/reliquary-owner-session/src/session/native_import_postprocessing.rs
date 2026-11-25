@@ -1,5 +1,6 @@
 //! Owner admission for semantic work on the durable import extraction cohort.
 use super::*;
+use crate::records::dream::Population;
 use crate::session::grouped_completion::StoredGroupedCompletion;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -10,6 +11,7 @@ pub(in crate::session) struct VerifiedDreamImport {
     completion_count: usize,
     epoch_binding_count: usize,
     episodes: BTreeSet<WorkEpisodeId>,
+    birth_populations: Option<BTreeMap<u64, Population>>,
 }
 
 impl VerifiedDreamImport {
@@ -72,8 +74,33 @@ impl RelWriter {
             completion_count: self.session.grouped_completions.len(),
             epoch_binding_count: self.session.native_import_grouped_epochs.len(),
             episodes,
+            birth_populations: None,
         });
         Ok(())
+    }
+
+    pub(in crate::session) fn native_dream_birth_population(
+        &mut self,
+        import_id: &str,
+        birth: u64,
+    ) -> Result<Population, OwnerSessionError> {
+        let verified = self
+            .verified_dream_import
+            .as_mut()
+            .filter(|verified| verified.matches(&self.session, import_id))
+            .ok_or(OwnerSessionError::StaleDreamCut)?;
+        // Only mutations before a cohort's immutable first birth affect it.
+        // Reuse the history until the verified extraction cohort changes.
+        if verified.birth_populations.is_none() {
+            verified.birth_populations =
+                Some(self.session.native_import_birth_populations(import_id)?);
+        }
+        verified
+            .birth_populations
+            .as_ref()
+            .and_then(|populations| populations.get(&birth))
+            .cloned()
+            .ok_or(OwnerSessionError::StaleDreamCut)
     }
 
     /// Verify membership in this epoch's accepted local extraction. Source
@@ -169,6 +196,27 @@ impl RelWriter {
 }
 
 impl RelSession {
+    pub(in crate::session) fn native_import_birth_populations(
+        &self,
+        import_id: &str,
+    ) -> Result<BTreeMap<u64, Population>, OwnerSessionError> {
+        let births = self
+            .grouped_completions
+            .iter()
+            .filter_map(|(key, completion)| {
+                if self
+                    .native_import_grouped_epochs
+                    .get(key)
+                    .is_some_and(|epoch| epoch == import_id)
+                {
+                    completion.memory_versions.map(|(first, _)| first)
+                } else {
+                    None
+                }
+            });
+        crate::session::dream_population::birth_population_history(&self.common.memories, births)
+    }
+
     pub(in crate::session) fn grouped_import_birth(
         &self,
         import_id: &str,

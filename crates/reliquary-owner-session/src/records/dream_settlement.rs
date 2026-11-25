@@ -1,19 +1,21 @@
 use super::freshness_journal::AcceptedGraphCutProof;
 use super::*;
 impl DreamEvidenceStore {
+    /// Advance an unpublished replay. A failure discards the replayed owner.
     pub(crate) fn apply_initial_settlement(
         &mut self,
         settlement: InitialDreamSettlement,
     ) -> Result<(), String> {
-        let journal = self.prepare_initial_settlement(&settlement)?;
-        self.install_initial_settlement(settlement, journal);
+        self.validate_initial_settlement(&settlement)?;
+        Self::apply_settlement_journal(&mut self.journal, &settlement)?;
+        self.record_initial_settlement(settlement);
         Ok(())
     }
 
-    fn prepare_initial_settlement(
+    fn validate_initial_settlement(
         &self,
         settlement: &InitialDreamSettlement,
-    ) -> Result<DreamFreshnessJournal, String> {
+    ) -> Result<(), String> {
         settlement.validate()?;
         if settlement.owner != self.owner_uuid
             || self.initial_settlements.contains_key(&settlement.pass_id)
@@ -45,11 +47,17 @@ impl DreamEvidenceStore {
         {
             return Err("initial Dream settlement has roots or incorrect source revision".into());
         }
-        let mut staged = self.journal.clone();
-        staged.derive_publication_birth(settlement.source);
-        let roots = staged.roots_payload(&settlement.pass_id, &settlement.roots)?;
-        staged.ingest(&roots)?;
-        let acceptance = staged.accept_graph_payload(
+        Ok(())
+    }
+
+    fn apply_settlement_journal(
+        journal: &mut DreamFreshnessJournal,
+        settlement: &InitialDreamSettlement,
+    ) -> Result<(), String> {
+        journal.derive_publication_birth(settlement.source);
+        let roots = journal.roots_payload(&settlement.pass_id, &settlement.roots)?;
+        journal.ingest(&roots)?;
+        let acceptance = journal.accept_graph_payload(
             &settlement.pass_id,
             settlement.accepted_turn,
             settlement.graph_version,
@@ -64,18 +72,12 @@ impl DreamEvidenceStore {
         if acceptance.is_empty() {
             return Err("initial Dream already has an accepted graph cut".into());
         }
-        staged.ingest(&acceptance)?;
-        let settled = staged.settled_payload(&settlement.pass_id)?;
-        staged.ingest(&settled)?;
-        Ok(staged)
+        journal.ingest(&acceptance)?;
+        let settled = journal.settled_payload(&settlement.pass_id)?;
+        journal.ingest(&settled)
     }
 
-    fn install_initial_settlement(
-        &mut self,
-        settlement: InitialDreamSettlement,
-        journal: DreamFreshnessJournal,
-    ) {
-        self.journal = journal;
+    fn record_initial_settlement(&mut self, settlement: InitialDreamSettlement) {
         self.settled_sources.push(settlement.source);
         self.settlement_positions
             .insert(settlement.source, self.settled_sources.len() as u64);
@@ -98,13 +100,16 @@ impl DreamEvidenceStore {
                 Err("conflicting settled Dream pass retry".into())
             };
         }
-        let journal = self.prepare_initial_settlement(&settlement)?;
+        self.validate_initial_settlement(&settlement)?;
+        let mut journal = self.journal.clone();
+        Self::apply_settlement_journal(&mut journal, &settlement)?;
         let encoded = settlement.encode()?;
         container
             .append(&encoded)
             .map_err(|error| error.to_string())?;
         container.sync().map_err(|error| error.to_string())?;
-        self.install_initial_settlement(settlement, journal);
+        self.journal = journal;
+        self.record_initial_settlement(settlement);
         Ok(true)
     }
 

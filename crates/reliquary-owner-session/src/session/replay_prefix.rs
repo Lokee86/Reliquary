@@ -4,7 +4,7 @@ use super::identity_receipt::{IdentityHistory, LocalProjection};
 use super::identity_separation::{SeparationHistory, SeparationProjection};
 use super::observations::ObservationPrefix;
 use super::*;
-use crate::records::dream::dream_begin_codec::{self, BeginPopulation};
+use crate::records::dream::dream_begin_codec::{self, BeginPopulation, BeginRecord};
 use crate::records::user_memory::{UserMemoryEffect, UserMemoryRecord};
 use reliquary_perception_store::observation::ObservationStore;
 
@@ -12,7 +12,13 @@ use reliquary_perception_store::observation::ObservationStore;
 pub(super) struct DreamReplayPrefix {
     pub birth_versions: BTreeMap<MemoryId, u64>,
     pub explicit_admissions: Vec<DreamBeginAdmission>,
-    pub native_admissions: Vec<DreamBeginAdmission>,
+    pub native_admissions: Vec<NativeBirthAdmission>,
+}
+
+pub(super) struct NativeBirthAdmission {
+    pub begin: BeginRecord,
+    pub first_memory_version: u64,
+    pub memory_cut: u64,
 }
 
 pub(super) struct DreamArchivePrefix<'a> {
@@ -136,9 +142,11 @@ pub(super) fn validate_graph_prefix(
                     .birth_versions
                     .get(&begin.source_id)
                     .ok_or(OwnerSessionError::StaleDreamCut)?;
-                let population = birth_population.at(birth_version)?;
                 match begin.population {
-                    BeginPopulation::ExplicitSet(ids) if &ids == population => {
+                    BeginPopulation::ExplicitSet(ids) => {
+                        if &ids != birth_population.at(birth_version)? {
+                            return Err(OwnerSessionError::StaleDreamCut);
+                        }
                         dreams.explicit_admissions.push(DreamBeginAdmission {
                             owner_uuid: container.owner_id(),
                             pass_id: begin.pass_id,
@@ -212,15 +220,9 @@ pub(super) fn validate_graph_prefix(
                         {
                             return Err(OwnerSessionError::StaleDreamCut);
                         }
-                        // DreamEvidenceStore verifies the durable digest against this exact set
-                        // before applying the Begin.
-                        dreams.native_admissions.push(DreamBeginAdmission {
-                            owner_uuid: begin.owner_uuid,
-                            pass_id: begin.pass_id,
-                            source_id: begin.source_id,
-                            turn: begin.turn,
-                            graph_version_before: begin.graph_version_before,
-                            preexisting_ids: population.clone(),
+                        dreams.native_admissions.push(NativeBirthAdmission {
+                            begin,
+                            first_memory_version,
                             memory_cut: memory_head,
                         });
                     }
