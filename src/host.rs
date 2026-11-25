@@ -84,6 +84,14 @@ impl Gateway {
             })
             .unwrap_or_default();
         self.identity.set_route(endpoint, route)?;
+        self.set_perception_runtime(runtime)
+    }
+
+    /// Bind the same-REL Perception worker while leaving Entity routing independent.
+    pub fn set_perception_runtime(
+        &self,
+        runtime: Option<&crate::ConfiguredRuntime>,
+    ) -> Result<(), ProductError> {
         self.perception.set_routes(runtime.and_then(|runtime| {
             use reliquary_switchboard::DecisionConsumer;
             Some(runtime::PerceptionRoutes {
