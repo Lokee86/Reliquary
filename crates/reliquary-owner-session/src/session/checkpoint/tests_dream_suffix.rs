@@ -308,6 +308,12 @@ fn suspended_import_checkpoint_replays_large_native_dream_population() {
             },
         )
         .unwrap();
+    let batch_fingerprint = writer
+        .session
+        .common
+        .dream_pairs
+        .batch_fingerprint(publication)
+        .unwrap();
     let principal = writer.session.freshness.policy().linkage_principal;
     writer
         .commit_native_import_initial_dream_pass(
@@ -368,6 +374,10 @@ fn suspended_import_checkpoint_replays_large_native_dream_population() {
     assert_eq!(warm.open_native_import_id(), Some(import_id.as_str()));
     assert_eq!(warm.common.graph.active_relations().count(), 1);
     assert!(warm.dream_pair_evaluated(id, older.id));
+    assert_eq!(
+        warm.common.dream_pairs.batch_fingerprint(publication),
+        Some(batch_fingerprint)
+    );
     let warm_settlement = warm.common.dreams.settlement_record(&pass).unwrap().clone();
     assert_eq!(warm_settlement.roots, BTreeSet::from([older.id]));
     assert_eq!(warm.current_memory(id).unwrap().record.revision, 2);
@@ -406,6 +416,10 @@ fn suspended_import_checkpoint_replays_large_native_dream_population() {
         );
         assert_shared_populations(restored);
         assert!(restored.dream_pair_evaluated(id, older.id));
+        assert_eq!(
+            restored.common.dream_pairs.batch_fingerprint(publication),
+            Some(batch_fingerprint)
+        );
         assert_eq!(restored.current_memory(id).unwrap().record.revision, 2);
         assert_eq!(
             restored.current_memory(sibling_id).unwrap().record.revision,

@@ -12,8 +12,8 @@ fn prepare(
         return Err(OwnerSessionError::StaleDreamCut);
     }
     let digest = dream_batch::fingerprint(cut).map_err(OwnerSessionError::Record)?;
-    if let Some(prior) = common.dream_pairs.batch(cut.publication_id) {
-        return if prior.fingerprint == digest {
+    if let Some(prior) = common.dream_pairs.batch_fingerprint(cut.publication_id) {
+        return if prior == digest {
             Ok(None)
         } else {
             Err(OwnerSessionError::StaleDreamCut)

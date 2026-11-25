@@ -284,15 +284,21 @@ pub(super) fn open_common_replaying(
             ));
         }
     }
+    let mut reuse_explicit_frontiers = admissions_by_pass.is_empty();
     for admission in dream_prefix.explicit_admissions {
         // Preserve an explicit trusted admission when one was supplied. The
         // Dream store below validates every durable Begin field against it;
         // notably, the legacy explicit-set encoding does not carry its
         // physical Memory cut, so replacing that cut with an inferred value
         // would reject otherwise valid retained evidence.
-        admissions_by_pass
-            .entry(admission.pass_id.clone())
-            .or_insert(admission);
+        match admissions_by_pass.entry(admission.pass_id.clone()) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                entry.insert(admission);
+            }
+            std::collections::btree_map::Entry::Occupied(_) => {
+                reuse_explicit_frontiers = false;
+            }
+        }
     }
 
     let check_native_dream_policy = !dream_prefix.native_admissions.is_empty();
@@ -362,6 +368,11 @@ pub(super) fn open_common_replaying(
             .into_iter()
             .map(StoredAdmission::from)
             .chain(native_admissions),
+        if reuse_explicit_frontiers {
+            dream_prefix.explicit_frontiers
+        } else {
+            Vec::new()
+        },
     )
     .map_err(OwnerSessionError::Record)?;
     super::dream_initial_replay::validate(

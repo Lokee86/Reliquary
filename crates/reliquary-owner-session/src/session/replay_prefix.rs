@@ -4,6 +4,7 @@ use super::identity_receipt::{IdentityHistory, LocalProjection};
 use super::identity_separation::{SeparationHistory, SeparationProjection};
 use super::observations::ObservationPrefix;
 use super::*;
+use crate::records::dream::InferredExplicitFrontier;
 use crate::records::dream::dream_begin_codec::{self, BeginPopulation, BeginRecord};
 use crate::records::user_memory::{UserMemoryEffect, UserMemoryRecord};
 use reliquary_perception_store::observation::ObservationStore;
@@ -13,6 +14,7 @@ pub(super) struct DreamReplayPrefix {
     pub birth_versions: BTreeMap<MemoryId, u64>,
     pub explicit_admissions: Vec<DreamBeginAdmission>,
     pub native_admissions: Vec<NativeBirthAdmission>,
+    pub explicit_frontiers: Vec<InferredExplicitFrontier>,
 }
 
 pub(super) struct NativeBirthAdmission {
@@ -124,7 +126,7 @@ pub(super) fn validate_graph_prefix(
                 perception_cut = version;
             }
         }
-        if let Some((frontier, begin)) =
+        if let Some((mut frontier, begin)) =
             crate::records::dream_frontier::FrontierRecord::decode_with_begin(frame.payload)
                 .map_err(OwnerSessionError::Record)?
         {
@@ -153,6 +155,12 @@ pub(super) fn validate_graph_prefix(
                             graph_version_before: begin.graph_version_before,
                             preexisting_ids: ids,
                             memory_cut: memory_head,
+                        });
+                        frontier.begin = None;
+                        dreams.explicit_frontiers.push(InferredExplicitFrontier {
+                            position: frame.object,
+                            frontier,
+                            turn: begin.turn,
                         });
                     }
                     BeginPopulation::NativeBirth {

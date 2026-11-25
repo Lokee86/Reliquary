@@ -6,10 +6,12 @@ pub(crate) use self::population_history::{Population, PopulationHistory};
 #[path = "dream_settlement.rs"]
 mod settlement;
 use super::dream_empty::InitialDreamSettlement;
+use super::dream_frontier::FrontierRecord;
 use crate::MemoryId;
-use reliquary_container::Container;
+use reliquary_container::{Container, ObjectRef};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::io::Read;
 use std::sync::{Arc, OnceLock};
 
 #[path = "dream_begin_codec.rs"]
@@ -240,19 +242,32 @@ pub struct DreamEvidenceStore {
     frontiers: BTreeMap<String, frontier::StoredFrontier>,
 }
 
+/// A raw explicit Frontier whose embedded population was matched against
+/// the exact physical birth cut. The inferred admission owns that population.
+pub(crate) struct InferredExplicitFrontier {
+    pub position: ObjectRef,
+    pub frontier: FrontierRecord,
+    pub turn: u64,
+}
+
 impl DreamEvidenceStore {
     pub fn open(
         container: &Container,
         admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     ) -> Result<Self, String> {
-        Self::open_admitted(container, admissions.into_iter().map(StoredAdmission::from))
-            .map(|(store, _)| store)
+        Self::open_admitted(
+            container,
+            admissions.into_iter().map(StoredAdmission::from),
+            Vec::new(),
+        )
+        .map(|(store, _)| store)
     }
 
     pub(crate) fn open_admitted(
         container: &Container,
         admissions: impl IntoIterator<Item = StoredAdmission>,
-    ) -> Result<(Self, Vec<(reliquary_container::ObjectRef, String)>), String> {
+        explicit_frontiers: Vec<InferredExplicitFrontier>,
+    ) -> Result<(Self, Vec<(ObjectRef, String)>), String> {
         let owner_uuid = container.owner_id();
         let mut admitted = BTreeMap::new();
         for admission in admissions {
@@ -278,11 +293,39 @@ impl DreamEvidenceStore {
             frontiers: BTreeMap::new(),
         };
         let mut frontier_positions = Vec::new();
+        let mut explicit_frontiers = explicit_frontiers.into_iter().peekable();
         let mut frames = container
-            .scan_matching_frames(super::frame_selection::without_archive_or_packed)
+            .matching_physical_cursor(super::frame_selection::without_archive_or_packed)
             .map_err(|error| error.to_string())?;
-        while let Some(frame) = frames.next_frame().map_err(|error| error.to_string())? {
-            let payload = frame.payload;
+        let mut buffer = Vec::new();
+        while let Some(mut frame) = frames.next_frame().map_err(|error| error.to_string())? {
+            let object = frame.object();
+            if explicit_frontiers
+                .peek()
+                .is_some_and(|entry| entry.position.offset < object.offset)
+            {
+                return Err("inferred Dream Frontier position mismatch".into());
+            }
+            if let Some(entry) =
+                explicit_frontiers.next_if(|entry| entry.position.offset == object.offset)
+            {
+                let mut magic = [0; 8];
+                frame
+                    .read_exact(&mut magic)
+                    .map_err(|error| error.to_string())?;
+                if entry.position != object || &magic != b"RELDRC01" {
+                    return Err("inferred Dream Frontier position mismatch".into());
+                }
+                let pass_id = entry.frontier.pass_id.clone();
+                store.ingest_inferred_explicit_frontier(entry)?;
+                frontier_positions.push((object, pass_id));
+                continue;
+            }
+            buffer.clear();
+            frame
+                .read_to_end(&mut buffer)
+                .map_err(|error| error.to_string())?;
+            let payload = buffer.as_slice();
             if let Some((frontier, begin)) =
                 super::dream_frontier::FrontierRecord::decode_with_begin(payload)?
             {
@@ -291,7 +334,7 @@ impl DreamEvidenceStore {
                 }
                 let pass_id = frontier.pass_id.clone();
                 store.apply_frontier(frontier)?;
-                frontier_positions.push((frame.object, pass_id));
+                frontier_positions.push((object, pass_id));
             } else if payload.starts_with(BEGIN_MAGIC) {
                 let begin = dream_begin_codec::decode(payload)?;
                 if matches!(begin.population, BeginPopulation::NativeBirth { .. }) {
@@ -308,6 +351,9 @@ impl DreamEvidenceStore {
                 }
                 store.apply_initial_settlement(settlement)?;
             }
+        }
+        if explicit_frontiers.next().is_some() {
+            return Err("inferred Dream Frontier position mismatch".into());
         }
         Ok((store, frontier_positions))
     }
@@ -391,15 +437,51 @@ impl DreamEvidenceStore {
             .get(&begin.pass_id)
             .ok_or("Dream Begin lacks authenticated population admission")?;
         self.validate_begin(&begin, admission)?;
-        if self.begins.contains_key(&begin.pass_id)
-            || self.begun_sources.contains_key(&begin.source_id)
+        let kind = (&begin).into();
+        self.ingest_admitted_physical_begin(begin.pass_id, kind)
+    }
+
+    fn ingest_inferred_explicit_frontier(
+        &mut self,
+        entry: InferredExplicitFrontier,
+    ) -> Result<(), String> {
+        let frontier = entry.frontier;
+        let admission = self
+            .admissions
+            .get(&frontier.pass_id)
+            .ok_or("Dream Begin lacks authenticated population admission")?;
+        // The prefix validator supplied the exact explicit set in this admission.
+        if frontier.owner != self.owner_uuid
+            || admission.source_id != MemoryId(frontier.source.id)
+            || admission.turn != entry.turn
+            || admission.graph_version_before != frontier.graph_version
+            || admission.memory_cut != frontier.memory_version
+            || admission.preexisting_ids.contains(&admission.source_id)
+        {
+            return Err("Dream Begin does not match authenticated owner evidence".into());
+        }
+        self.ingest_admitted_physical_begin(frontier.pass_id.clone(), BeginKind::Explicit)?;
+        self.apply_frontier_with_begin(frontier, true)
+    }
+
+    fn ingest_admitted_physical_begin(
+        &mut self,
+        pass_id: String,
+        kind: BeginKind,
+    ) -> Result<(), String> {
+        let admission = self
+            .admissions
+            .get(&pass_id)
+            .ok_or("Dream Begin lacks authenticated population admission")?;
+        if self.begins.contains_key(&pass_id)
+            || self.begun_sources.contains_key(&admission.source_id)
         {
             return Err("duplicate physical first-cycle Dream Begin".into());
         }
-        let stored = StoredBegin::new(admission, (&begin).into());
+        let stored = StoredBegin::new(admission, kind);
         self.journal
             .ingest_admitted_begin(self.owner_uuid, pending_pass(admission))?;
-        self.install_begin(begin.pass_id, stored);
+        self.install_begin(pass_id, stored);
         Ok(())
     }
 

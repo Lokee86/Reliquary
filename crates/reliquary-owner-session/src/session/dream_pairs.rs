@@ -16,7 +16,8 @@ pub(crate) struct DreamPairs {
     refs: BTreeMap<MemoryId, u32>,
     pairs: BTreeSet<(MemoryId, MemoryId)>,
     grouped_receipts: BTreeMap<(MemoryId, MemoryId), GroupedDreamRelation>,
-    batches: BTreeMap<[u8; 32], crate::records::dream_batch::DreamBatchRecord>,
+    batch_fingerprints: BTreeMap<[u8; 32], [u8; 32]>,
+    batch_archivals: BTreeMap<MemoryId, u64>,
     initial: BTreeMap<MemoryId, BTreeMap<MemoryId, (reliquary_graph::RelationKind, u64)>>,
     supersessions: BTreeMap<(MemoryId, MemoryId), GroupedDreamSupersession>,
 }
@@ -30,7 +31,8 @@ impl DreamPairs {
             refs: BTreeMap::new(),
             pairs: BTreeSet::new(),
             grouped_receipts: BTreeMap::new(),
-            batches: BTreeMap::new(),
+            batch_fingerprints: BTreeMap::new(),
+            batch_archivals: BTreeMap::new(),
             initial: BTreeMap::new(),
             supersessions: BTreeMap::new(),
         };

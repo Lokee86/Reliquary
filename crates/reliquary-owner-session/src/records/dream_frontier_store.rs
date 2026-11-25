@@ -24,6 +24,15 @@ impl From<FrontierRecord> for StoredFrontier {
 
 impl DreamEvidenceStore {
     pub(super) fn apply_frontier(&mut self, record: FrontierRecord) -> Result<(), String> {
+        let has_begin = record.begin.is_some();
+        self.apply_frontier_with_begin(record, has_begin)
+    }
+
+    pub(super) fn apply_frontier_with_begin(
+        &mut self,
+        record: FrontierRecord,
+        has_begin: bool,
+    ) -> Result<(), String> {
         let begin = self
             .begins
             .get(&record.pass_id)
@@ -32,8 +41,17 @@ impl DreamEvidenceStore {
             .admissions
             .get(&record.pass_id)
             .ok_or("frontier lacks admission")?;
-        self.validate_frontier(&record, begin, admission.memory_cut, &self.journal)?;
-        self.frontiers.insert(record.pass_id.clone(), record.into());
+        self.validate_frontier(
+            &record,
+            begin,
+            admission.memory_cut,
+            &self.journal,
+            has_begin,
+        )?;
+        let pass_id = record.pass_id.clone();
+        let mut stored = StoredFrontier::from(record);
+        stored.has_begin = has_begin;
+        self.frontiers.insert(pass_id, stored);
         Ok(())
     }
 
@@ -43,11 +61,12 @@ impl DreamEvidenceStore {
         begin: &StoredBegin,
         memory_cut: u64,
         journal: &DreamFreshnessJournal,
+        has_begin: bool,
     ) -> Result<(), String> {
         if record.owner != self.owner_uuid
             || begin.source_id != record.source.cut().id
             || (begin.native_birth().is_some()
-                && (record.memory_version != memory_cut || record.begin.is_none()))
+                && (record.memory_version != memory_cut || !has_begin))
             || self.frontiers.contains_key(&record.pass_id)
             || journal.pending_ref(&record.pass_id).is_none()
         {
@@ -154,7 +173,13 @@ impl DreamEvidenceStore {
                 &self.journal,
             ),
         };
-        self.validate_frontier(&record, begin, admission.memory_cut, journal)?;
+        self.validate_frontier(
+            &record,
+            begin,
+            admission.memory_cut,
+            journal,
+            record.begin.is_some(),
+        )?;
         let bytes = record.encode()?;
         container.append(&bytes).map_err(|e| e.to_string())?;
         container.sync().map_err(|e| e.to_string())?;

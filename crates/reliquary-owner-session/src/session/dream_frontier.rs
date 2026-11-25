@@ -215,7 +215,7 @@ impl RelWriter {
         self.session
             .common
             .dream_pairs
-            .batch(publication_id)
+            .batch_fingerprint(publication_id)
             .is_some()
     }
 
@@ -229,7 +229,10 @@ impl RelWriter {
 }
 impl PhyWriter {
     pub fn dream_batch_published(&self, publication_id: [u8; 32]) -> bool {
-        self.common.dream_pairs.batch(publication_id).is_some()
+        self.common
+            .dream_pairs
+            .batch_fingerprint(publication_id)
+            .is_some()
     }
     pub fn dream_graph_version(&self) -> u64 {
         self.common.graph.graph_version()
