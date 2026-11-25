@@ -83,22 +83,7 @@ impl DreamEvidenceStore {
                 .unwrap_or(frame.payload);
             if payload.starts_with(BEGIN_MAGIC) {
                 let begin = dream_begin_codec::decode(payload)?;
-                let admission = store
-                    .admissions
-                    .get(&begin.pass_id)
-                    .ok_or("Dream Begin lacks authenticated population admission")?;
-                store.validate_begin(&begin, admission)?;
-                if store.begins.contains_key(&begin.pass_id)
-                    || store
-                        .begins
-                        .values()
-                        .any(|known| known.source_id == begin.source_id)
-                {
-                    return Err("duplicate physical first-cycle Dream Begin".into());
-                }
-                let pass = materialize(&begin, admission);
-                store.journal.ingest_materialized_begin(owner_uuid, pass)?;
-                store.begins.insert(begin.pass_id.clone(), begin);
+                store.ingest_physical_begin(begin)?;
             } else if payload.starts_with(JOURNAL_MAGIC) {
                 store.journal.ingest(payload)?;
             } else if let Some(settlement) = InitialDreamSettlement::decode(payload)? {
@@ -179,6 +164,40 @@ impl DreamEvidenceStore {
         container.sync().map_err(|error| error.to_string())?;
         self.journal = staged;
         Ok(())
+    }
+
+    fn ingest_physical_begin(&mut self, begin: BeginRecord) -> Result<(), String> {
+        let admission = self
+            .admissions
+            .get(&begin.pass_id)
+            .ok_or("Dream Begin lacks authenticated population admission")?;
+        self.validate_begin(&begin, admission)?;
+        if self.begins.contains_key(&begin.pass_id)
+            || self
+                .begins
+                .values()
+                .any(|known| known.source_id == begin.source_id)
+        {
+            return Err("duplicate physical first-cycle Dream Begin".into());
+        }
+        self.journal
+            .ingest_materialized_begin(self.owner_uuid, materialize(&begin, admission))?;
+        self.begins.insert(begin.pass_id.clone(), begin);
+        Ok(())
+    }
+
+    pub(crate) fn replay_initial_frontier(
+        &mut self,
+        record: super::dream_frontier::FrontierRecord,
+        begin: BeginRecord,
+        admission: DreamBeginAdmission,
+    ) -> Result<(), String> {
+        if self.admissions.contains_key(&admission.pass_id) {
+            return Err("duplicate Dream Begin admission".into());
+        }
+        self.admissions.insert(admission.pass_id.clone(), admission);
+        self.ingest_physical_begin(begin)?;
+        self.apply_frontier(record)
     }
 
     fn check_owner(&self, container: &Container) -> Result<(), String> {

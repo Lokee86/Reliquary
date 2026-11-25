@@ -56,7 +56,7 @@ pub(super) fn initial_admission(
     })
 }
 
-fn validate(
+pub(super) fn validate(
     common: &CommonState,
     owner: [u8; 16],
     record: &InitialDreamSettlement,
@@ -157,7 +157,7 @@ fn promotion(
 #[path = "dream_empty/promotion_tests.rs"]
 mod promotion_tests;
 
-fn preflight_source(
+pub(super) fn preflight_source(
     common: &CommonState,
     pass: &str,
     source: DreamMemoryCut,
@@ -233,4 +233,37 @@ fn validate_source(
         return Err(OwnerSessionError::StaleDreamCut);
     }
     Ok(())
+}
+
+pub(super) fn validate_rel_freshness(
+    common: &CommonState,
+    owner: [u8; 16],
+    freshness: &FreshnessStore,
+    record: &InitialDreamSettlement,
+) -> Result<BTreeMap<FreshnessMemoryId, i16>, String> {
+    if record.owner != owner {
+        return Err("Dream Freshness owner mismatch".into());
+    }
+    let begin = common
+        .dreams
+        .begin(&record.pass_id)
+        .ok_or("Dream Freshness lacks Begin")?;
+    let effects = freshness.validate_initial_dream_lifecycle(
+        FreshnessMemoryId(record.source.0),
+        begin.turn,
+        record.accepted_turn,
+        record.graph_version,
+        record.community_generation,
+        &record.freshness_effects,
+        record.admit,
+    )?;
+    if record.credit_roots.is_empty() != effects.is_empty()
+        || effects.contains_key(&FreshnessMemoryId(record.source.0))
+        || record.credit_roots.iter().any(|id| {
+            effects.get(&FreshnessMemoryId(id.0)) != Some(&freshness.policy().linkage_principal)
+        })
+    {
+        return Err("Dream initial roots differ from Freshness evidence".into());
+    }
+    Ok(effects)
 }

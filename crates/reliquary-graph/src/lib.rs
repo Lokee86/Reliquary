@@ -305,11 +305,13 @@ impl GraphStore {
             ))
         })
     }
+    /// The batch decoder applies its effects to the unpublished Graph. A
+    /// replay error discards that Graph, including any partial batch effects.
     pub fn open_with_dream_batches(
         container: &Container,
         admission: &GraphAdmission,
         mut grouped: impl FnMut(&[u8]) -> Result<Option<Relation>, GraphError>,
-        mut batch: impl FnMut(&[u8], &Self) -> Result<Vec<Relation>, GraphError>,
+        mut batch: impl FnMut(&[u8], &mut Self) -> Result<(), GraphError>,
     ) -> Result<Self, GraphError> {
         if admission.owner_id != Some(container.owner_id()) {
             return Err(GraphError::InvalidClosure(
@@ -322,9 +324,7 @@ impl GraphStore {
             if let Some(publication) = clocked_graph_in_frame(frame.payload)? {
                 store.replay_clocked(publication, admission)?;
             } else if frame.payload.starts_with(b"RELDRB") {
-                for relation in batch(frame.payload, &store)? {
-                    store.apply_dream_relation(admission, relation)?;
-                }
+                batch(frame.payload, &mut store)?;
             } else if let Some((owner, relation)) = decode_graph(frame.payload)? {
                 if owner != store.owner {
                     return Err(GraphError::WrongOwner);

@@ -1,10 +1,13 @@
 //! Private, disposable startup state for one admitted REL prefix.
 
+mod dream_suffix;
 mod pages;
 mod private_cache;
 mod suffix;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_dream_suffix;
 #[cfg(test)]
 mod tests_echo;
 #[cfg(test)]

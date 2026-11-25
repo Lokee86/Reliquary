@@ -1,7 +1,7 @@
 use super::freshness_journal::AcceptedGraphCutProof;
 use super::*;
 impl DreamEvidenceStore {
-    pub(super) fn apply_initial_settlement(
+    pub(crate) fn apply_initial_settlement(
         &mut self,
         settlement: InitialDreamSettlement,
     ) -> Result<(), String> {

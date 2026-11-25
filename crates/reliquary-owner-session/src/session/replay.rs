@@ -217,18 +217,7 @@ pub(super) fn open_common_replaying(
             let record = crate::records::dream_batch::DreamBatchRecord::decode(payload)
                 .map_err(|_| GraphError::CorruptRecord("invalid Dream batch"))?
                 .ok_or(GraphError::CorruptRecord("missing Dream batch"))?;
-            if record.owner != container.owner_id() || record.graph_version != graph.graph_version()
-            {
-                return Err(GraphError::WrongOwner);
-            }
-            record
-                .validate_direct(graph)
-                .map_err(|_| GraphError::CorruptRecord("invented Dream direct evidence"))?;
-            record
-                .graph_records
-                .iter()
-                .map(|r| reliquary_graph::dream_relation_in_frame(r, container.owner_id()))
-                .collect()
+            record.replay_graph(graph, &derived_admission)
         },
     )?;
     for relation in graph.history() {

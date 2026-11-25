@@ -204,31 +204,12 @@ impl RelSession {
             |payload, freshness| {
                 let record = crate::records::dream_empty::InitialDreamSettlement::decode(payload)?
                     .ok_or("missing Dream settlement")?;
-                if record.owner != container.owner_id() {
-                    return Err("Dream Freshness owner mismatch".into());
-                }
-                let begin = common
-                    .dreams
-                    .begin(&record.pass_id)
-                    .ok_or("Dream Freshness lacks Begin")?;
-                let effects = freshness.validate_initial_dream_lifecycle(
-                    FreshnessMemoryId(record.source.0),
-                    begin.turn,
-                    record.accepted_turn,
-                    record.graph_version,
-                    record.community_generation,
-                    &record.freshness_effects,
-                    record.admit,
+                super::dream_empty::validate_rel_freshness(
+                    &common,
+                    container.owner_id(),
+                    freshness,
+                    &record,
                 )?;
-                if record.credit_roots.is_empty() != effects.is_empty()
-                    || effects.contains_key(&FreshnessMemoryId(record.source.0))
-                    || record.credit_roots.iter().any(|id| {
-                        effects.get(&FreshnessMemoryId(id.0))
-                            != Some(&freshness.policy().linkage_principal)
-                    })
-                {
-                    return Err("Dream initial roots differ from Freshness evidence".into());
-                }
                 Ok(record.freshness_effects)
             },
         )

@@ -27,7 +27,7 @@ fn admit(
     Ok((container, session, checkpoint))
 }
 
-fn draft() -> MemoryDraft {
+pub(super) fn draft() -> MemoryDraft {
     MemoryDraft {
         title: "Owner history".into(),
         content: "Retained body from before the checkpoint.".into(),

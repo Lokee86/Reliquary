@@ -92,21 +92,13 @@ pub(super) fn validate_graph_prefix(
             crate::records::dream_frontier::FrontierRecord::decode(frame.payload)
                 .map_err(OwnerSessionError::Record)?
         {
-            if frontier.owner != container.owner_id()
-                || frontier.graph_version != graph_version
-                || frontier.memory_version != memory_head
-                || std::iter::once(&frontier.source)
-                    .chain(frontier.candidates.iter())
-                    .any(|o| {
-                        !memory_store
-                            .record_at_cut(MemoryId(o.id), memory_head)
-                            .is_some_and(|r| {
-                                r.revision == o.revision && r.body_id.0 == o.body && !r.archived
-                            })
-                    })
-            {
-                return Err(OwnerSessionError::StaleDreamCut);
-            }
+            validate_frontier_cut(
+                container.owner_id(),
+                memory_store,
+                memory_head,
+                graph_version,
+                &frontier,
+            )?;
             if let Some(payload) = &frontier.begin {
                 let begin = crate::records::dream::dream_begin_codec::decode(payload)
                     .map_err(OwnerSessionError::Record)?;
@@ -164,24 +156,13 @@ pub(super) fn validate_graph_prefix(
         let batch = crate::records::dream_batch::DreamBatchRecord::decode(frame.payload)
             .map_err(OwnerSessionError::Record)?;
         if let Some(record) = &batch {
-            if record.owner != container.owner_id()
-                || record.memory_version != memory_head
-                || record.graph_version != graph_version
-                || record.observed.iter().any(|o| {
-                    !memory_store
-                        .record_at_cut(MemoryId(o.id), memory_head)
-                        .is_some_and(|r| r.revision == o.revision && r.body_id.0 == o.body)
-                })
-                || record.pairs.iter().any(|p| {
-                    [p.source, p.candidate].iter().any(|id| {
-                        !memory_store
-                            .record_at_cut(MemoryId(*id), memory_head)
-                            .is_some_and(|r| !r.archived)
-                    })
-                })
-            {
-                return Err(OwnerSessionError::StaleDreamCut);
-            }
+            validate_batch_cut(
+                container.owner_id(),
+                memory_store,
+                memory_head,
+                graph_version,
+                record,
+            )?;
         }
         let children: Vec<&[u8]> = match &batch {
             Some(record) => record
@@ -434,6 +415,59 @@ pub(super) fn validate_user_memory_prefix(
                 return Err(invalid());
             }
         }
+    }
+    Ok(())
+}
+
+pub(super) fn validate_frontier_cut(
+    owner: [u8; 16],
+    memory_store: &MemoryStore,
+    memory_head: u64,
+    graph_version: u64,
+    frontier: &crate::records::dream_frontier::FrontierRecord,
+) -> Result<(), OwnerSessionError> {
+    if frontier.owner != owner
+        || frontier.graph_version != graph_version
+        || frontier.memory_version != memory_head
+        || std::iter::once(&frontier.source)
+            .chain(frontier.candidates.iter())
+            .any(|o| {
+                !memory_store
+                    .record_at_cut(MemoryId(o.id), memory_head)
+                    .is_some_and(|r| {
+                        r.revision == o.revision && r.body_id.0 == o.body && !r.archived
+                    })
+            })
+    {
+        return Err(OwnerSessionError::StaleDreamCut);
+    }
+    Ok(())
+}
+
+pub(super) fn validate_batch_cut(
+    owner: [u8; 16],
+    memory_store: &MemoryStore,
+    memory_head: u64,
+    graph_version: u64,
+    record: &crate::records::dream_batch::DreamBatchRecord,
+) -> Result<(), OwnerSessionError> {
+    if record.owner != owner
+        || record.memory_version != memory_head
+        || record.graph_version != graph_version
+        || record.observed.iter().any(|o| {
+            !memory_store
+                .record_at_cut(MemoryId(o.id), memory_head)
+                .is_some_and(|r| r.revision == o.revision && r.body_id.0 == o.body)
+        })
+        || record.pairs.iter().any(|p| {
+            [p.source, p.candidate].iter().any(|id| {
+                !memory_store
+                    .record_at_cut(MemoryId(*id), memory_head)
+                    .is_some_and(|r| !r.archived)
+            })
+        })
+    {
+        return Err(OwnerSessionError::StaleDreamCut);
     }
     Ok(())
 }

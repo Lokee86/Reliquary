@@ -175,8 +175,7 @@ impl Container {
         extent: u64,
         clock: PhysicalClock,
     ) -> Result<(), ContainerError> {
-        self.validate_frames_from(offset, extent)?;
-        self.rebuild_clock_from(offset, extent, clock)?;
+        self.validate_and_rebuild_clock_from(offset, extent, clock)?;
         self.require_extent(extent)
     }
 

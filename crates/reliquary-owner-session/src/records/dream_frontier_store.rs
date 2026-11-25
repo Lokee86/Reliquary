@@ -30,6 +30,16 @@ impl DreamEvidenceStore {
     pub fn initial_frontier(&self, pass: &str) -> Option<InitialDreamFrontier> {
         self.frontiers.get(pass).map(FrontierRecord::view)
     }
+    pub(crate) fn frontier_has_bound_begin(&self, pass: &str) -> bool {
+        self.frontiers.get(pass).is_some_and(|frontier| {
+            frontier.begin.is_some()
+                && self.admissions.get(pass).is_some_and(|admission| {
+                    frontier.memory_version == admission.memory_cut
+                        && frontier.graph_version == admission.graph_version_before
+                })
+        })
+    }
+
     pub(crate) fn has_other_pending_frontier(&self, prefix: &str, pass: &str) -> bool {
         self.frontiers
             .keys()

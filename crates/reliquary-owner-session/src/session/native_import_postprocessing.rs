@@ -107,26 +107,8 @@ impl RelWriter {
                 reliquary_archive::EpisodeId(episode),
             )?;
         }
-        let (_, completion) = self
-            .session
-            .grouped_completions
-            .range((WorkEpisodeId(episode), 0)..=(WorkEpisodeId(episode), u32::MAX))
-            .find(|(key, completion)| {
-                self.session
-                    .native_import_grouped_epochs
-                    .get(key)
-                    .is_some_and(|epoch| epoch == import_id)
-                    && completion.memory_ids.contains(&id.0)
-            })
-            .ok_or_else(|| {
-                OwnerSessionError::Record("Memory is outside the accepted import extraction".into())
-            })?;
-        // A grouped receipt can reference an existing Memory. Use its
-        // creation span only when it contains this Memory's first revision.
-        Ok(completion
-            .memory_versions
-            .filter(|(first, last)| (*first..=*last).contains(&record.memory_version))
-            .map(|(first, _)| first))
+        self.session
+            .grouped_import_birth(import_id, &record, episode)
     }
 
     /// Report current active import Memories whose body lacks an accepted
@@ -187,6 +169,32 @@ impl RelWriter {
 }
 
 impl RelSession {
+    pub(in crate::session) fn grouped_import_birth(
+        &self,
+        import_id: &str,
+        record: &reliquary_memory_core::MemoryRecord,
+        episode: [u8; 32],
+    ) -> Result<Option<u64>, OwnerSessionError> {
+        let (_, completion) = self
+            .grouped_completions
+            .range((WorkEpisodeId(episode), 0)..=(WorkEpisodeId(episode), u32::MAX))
+            .find(|(key, completion)| {
+                self.native_import_grouped_epochs
+                    .get(key)
+                    .is_some_and(|epoch| epoch == import_id)
+                    && completion.memory_ids.contains(&record.id.0)
+            })
+            .ok_or_else(|| {
+                OwnerSessionError::Record("Memory is outside the accepted import extraction".into())
+            })?;
+        // A grouped receipt can reference an existing Memory. Use its
+        // creation span only when it contains this Memory's first revision.
+        Ok(completion
+            .memory_versions
+            .filter(|(first, last)| (*first..=*last).contains(&record.memory_version))
+            .map(|(first, _)| first))
+    }
+
     /// Enumerate accepted REL-local outputs in birth order. The epoch's
     /// physical epoch binding also supports sealed and completed reopens.
     pub fn native_import_memory_ids(
