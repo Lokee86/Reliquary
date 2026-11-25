@@ -280,6 +280,8 @@ fn replay_settlement(
         // suffix or in the verified checkpoint. The grouped birth below
         // remains the same immutable revision-one record.
         first_memory_version == birth
+    } else if let Some(first_memory_version) = begin.inferred_explicit_birth() {
+        first_memory_version == birth && admission.preexisting_len() <= 4096
     } else {
         let population = admission.preexisting_ids();
         population.len() <= 4096

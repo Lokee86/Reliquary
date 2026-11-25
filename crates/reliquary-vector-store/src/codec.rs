@@ -1,4 +1,4 @@
-use crate::{PackedVectorError, PackedVectorId};
+use crate::{PackedVectorError, PackedVectorId, PackedVectorInfo};
 use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
 use sha2::{Digest, Sha256};
 
@@ -7,7 +7,7 @@ const FORMAT_SCHEMA: u32 = 1;
 pub(crate) const OBJECT_MAGIC: &[u8; 8] = b"RELPVEC1";
 pub(crate) const OBJECT_HEADER_LEN: usize = 64;
 pub(crate) const PRUNED_MAGIC: &[u8; 8] = b"RELPVRN1";
-const PRUNED_LEN: usize = 128;
+pub(crate) const PRUNED_LEN: usize = 128;
 
 #[derive(Clone, Copy)]
 pub struct DecodedPrunedPackedVector {
@@ -137,6 +137,21 @@ pub fn encode_object(
 }
 
 pub fn decode_object(bytes: &[u8]) -> Result<Option<DecodedPackedVector<'_>>, PackedVectorError> {
+    let Some(info) = decode_object_header(bytes, bytes.len() as u64)? else {
+        return Ok(None);
+    };
+    Ok(Some(DecodedPackedVector {
+        id: info.id,
+        schema: info.schema,
+        count: info.count,
+        bytes: &bytes[OBJECT_HEADER_LEN..],
+    }))
+}
+
+pub(crate) fn decode_object_header(
+    bytes: &[u8],
+    payload_len: u64,
+) -> Result<Option<PackedVectorInfo>, PackedVectorError> {
     if !bytes.starts_with(OBJECT_MAGIC) {
         return Ok(None);
     }
@@ -153,8 +168,7 @@ pub fn decode_object(bytes: &[u8]) -> Result<Option<DecodedPackedVector<'_>>, Pa
         .map_err(|_| PackedVectorError::CorruptRecord("packed-vector schema"))?;
     let count = read_u64(bytes, 48)?;
     let byte_len = read_u64(bytes, 56)?;
-    let matrix = &bytes[OBJECT_HEADER_LEN..];
-    if u64::try_from(matrix.len()).ok() != Some(byte_len) {
+    if payload_len.checked_sub(OBJECT_HEADER_LEN as u64) != Some(byte_len) {
         return Err(PackedVectorError::CorruptRecord(
             "packed-vector byte length",
         ));
@@ -172,11 +186,11 @@ pub fn decode_object(bytes: &[u8]) -> Result<Option<DecodedPackedVector<'_>>, Pa
             "packed-vector matrix shape",
         ));
     }
-    Ok(Some(DecodedPackedVector {
+    Ok(Some(PackedVectorInfo {
         id,
         schema,
         count,
-        bytes: matrix,
+        byte_len,
     }))
 }
 

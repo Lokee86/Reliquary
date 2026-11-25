@@ -31,12 +31,16 @@ impl Serialize for DreamEvidenceStore {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut ordered: Vec<_> = self.admissions.values().collect();
         ordered.sort_by_cached_key(|admission| {
-            // Many native passes can share a frontier cut. Their populations
-            // follow the sequence of source births within that cut.
+            // Multiple frontiers can share a Memory cut while their proven
+            // populations follow the sequence of births before that cut.
             let population_cut = self
                 .begins
                 .get(&admission.pass_id)
-                .and_then(StoredBegin::native_birth)
+                .and_then(|begin| {
+                    begin
+                        .native_birth()
+                        .or_else(|| begin.inferred_explicit_birth())
+                })
                 .map_or(admission.memory_cut, |version| version.saturating_sub(1));
             (population_cut, admission.pass_id.as_str())
         });
@@ -90,7 +94,12 @@ impl<'de> Deserialize<'de> for DreamEvidenceStore {
         let mut begun_sources = BTreeMap::new();
         for (index, entry) in checkpoint.admissions.into_iter().enumerate() {
             let cohort = population_history.snapshot(index + 1);
-            if entry.begin.is_some() && cohort.contains(&entry.source_id) {
+            if matches!(
+                entry.begin,
+                Some(BeginKind::InferredExplicit { first_memory_version })
+                    if !(1..=entry.memory_cut).contains(&first_memory_version)
+            ) || (entry.begin.is_some() && cohort.contains(&entry.source_id))
+            {
                 return Err(de::Error::custom(
                     "invalid Dream checkpoint population delta",
                 ));
@@ -172,7 +181,12 @@ mod tests {
             let cut = 600 + i;
             let turn = i + 1;
             let native_birth = i % 4 == 1;
-            let memory_cut = if native_birth { 600 + PASSES } else { cut };
+            let inferred_explicit = i == 0;
+            let memory_cut = if native_birth || inferred_explicit {
+                600 + PASSES
+            } else {
+                cut
+            };
             let begin = BeginRecord {
                 owner_uuid: owner,
                 pass_id: pass_id.clone(),
@@ -202,7 +216,7 @@ mod tests {
                 preexisting_ids: cohort.clone(),
                 memory_cut,
             };
-            let frontier = FrontierRecord {
+            let mut frontier = FrontierRecord {
                 owner,
                 pass_id: pass_id.clone(),
                 begin: Some(dream_begin_codec::encode(&begin).unwrap()),
@@ -216,9 +230,25 @@ mod tests {
                 graph_version: i,
                 memory_version: memory_cut,
             };
-            store
-                .replay_initial_frontier(frontier, begin, admission)
-                .unwrap();
+            if inferred_explicit {
+                store.admissions.insert(pass_id.clone(), admission.into());
+                frontier.begin = None;
+                store
+                    .ingest_inferred_explicit_frontier(InferredExplicitFrontier {
+                        position: ObjectRef {
+                            offset: 0,
+                            length: 0,
+                        },
+                        frontier,
+                        turn,
+                        first_memory_version: cut + 1,
+                    })
+                    .unwrap();
+            } else {
+                store
+                    .replay_initial_frontier(frontier, begin, admission)
+                    .unwrap();
+            }
             let settlement = InitialDreamSettlement {
                 owner,
                 pass_id,
@@ -283,6 +313,17 @@ mod tests {
         for pass_id in ["pass-0960", "pass-0959", "pass-0001"] {
             assert_eq!(restored.begin(pass_id), store.begin(pass_id));
         }
+        assert_eq!(
+            restored
+                .begun("pass-0960")
+                .unwrap()
+                .inferred_explicit_birth(),
+            Some(601)
+        );
+        assert!(matches!(
+            restored.begin("pass-0960").unwrap().population,
+            BeginPopulation::ExplicitSet(_)
+        ));
         let native = restored.begun("pass-0959").unwrap();
         assert_eq!(native.native_birth(), Some(602));
         assert!(!native.is_compact());

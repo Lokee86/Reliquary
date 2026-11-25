@@ -35,11 +35,11 @@ Native Dream reuses completed extraction cohort verification under the current R
 
 During full replay, Dream evidence admission records the physical position of each accepted Frontier. Settlement validation matches that frame's position, length, and marker on the same lease and reuses the accepted Begin and candidates. It applies its settlement checks in physical order.
 
-When graph-prefix replay proves an embedded explicit Begin against its birth cut and derives the admission, Dream evidence reuses those checked facts at the matching Frontier position. Caller-supplied admissions still compare against the encoded population. The Dream pair projection keeps batch fingerprints for exact retries and the last batch Graph version at which each Memory was archived.
+When graph-prefix replay proves an embedded explicit Begin against its birth cut and derives the admission, Dream evidence reuses those checked facts at the matching Frontier position. It shares the verified population history across birth cuts. Historical Begin reads reconstruct the original explicit set on demand. Caller-supplied admissions still compare against the encoded population. The Dream pair projection keeps batch fingerprints for exact retries and the last batch Graph version at which each Memory was archived.
 
 The standalone Dream proof scan skips raw Frontier bodies after full REL graph-prefix replay validates them. Freshness checkpoint restore rebuilds event, receipt, and turn indexes from the accepted journal, including the events derived from accepted uses.
 
-During full leased REL replay, the packed vector store verifies each matrix and retains its physical location and page digests. The graph-prefix check uses those admitted positions to enforce that Memory vector publications follow their backing matrices.
+During full leased REL replay, the packed vector store verifies each matrix in 64 KiB pages and retains its physical location and page digests. The graph-prefix check uses those admitted positions to enforce that Memory vector publications follow their backing matrices. Memory and Freshness apply their frame size limits to the records they replay.
 
 A failed checkpoint publication keeps the verified hash on the current writer lease. A later refresh on that lease can hash only the appended bytes.
 

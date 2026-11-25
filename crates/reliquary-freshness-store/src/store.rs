@@ -190,7 +190,15 @@ impl FreshnessStore {
         let mut store = Self::new(Some(owner));
         store.identity = Some(container.identity());
         if container.max_frame_length().map_err(display_error)? > MAX_FRAME_BYTES {
-            return Err("Freshness record frame exceeds size limit".into());
+            // Check selected lengths before the clocked scan buffers a payload.
+            let mut frames = container
+                .matching_physical_cursor(freshness_replay_frame)
+                .map_err(display_error)?;
+            while let Some(frame) = frames.next_frame().map_err(display_error)? {
+                if frame.object().length > MAX_FRAME_BYTES {
+                    return Err("Freshness record frame exceeds size limit".into());
+                }
+            }
         }
         let mut frames = container
             .scan_clocked_matching_frames(freshness_replay_frame)

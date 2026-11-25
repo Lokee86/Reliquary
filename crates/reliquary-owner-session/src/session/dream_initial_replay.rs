@@ -290,6 +290,8 @@ pub(super) fn validate(
             let population_valid = if let Some(first) = native_birth {
                 // Native frontier admission already authenticated the exact set.
                 first == birth_version
+            } else if let Some(first) = begin.inferred_explicit_birth() {
+                first == birth_version
             } else if begin.is_compact() {
                 admission.preexisting_ids() == birth_population.at(birth_version)?
             } else {
@@ -348,7 +350,7 @@ pub(super) fn validate(
             }
             let effects = FreshnessStore::initial_dream_effects(&record.freshness_effects)
                 .map_err(OwnerSessionError::Record)?;
-            if (native_birth.is_none() && admission.preexisting_ids().len() > 4096)
+            if (native_birth.is_none() && admission.preexisting_len() > 4096)
                 || effects.len() > 64
                 || effects.keys().any(|id| {
                     !memories

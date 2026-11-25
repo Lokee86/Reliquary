@@ -332,9 +332,6 @@ impl MemoryStore {
                 (store, container.physical_cursor_from(covered_end)?, false)
             }
         };
-        if cold && container.max_frame_length()? > 128 * 1024 * 1024 {
-            return Err(MemoryError::FieldTooLarge);
-        }
         while let Some(mut frame) = cursor.next_frame()? {
             let object = frame.object();
             let len = usize::try_from(object.length).map_err(|_| MemoryError::FieldTooLarge)?;

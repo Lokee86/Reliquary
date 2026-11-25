@@ -129,6 +129,10 @@ impl StoredAdmission {
         self.preexisting_ids.contains(id)
     }
 
+    pub(crate) fn preexisting_len(&self) -> usize {
+        self.preexisting_ids.len()
+    }
+
     pub(crate) fn preexisting_ids(&self) -> &BTreeSet<MemoryId> {
         self.preexisting_ids.as_set()
     }
@@ -147,6 +151,9 @@ enum BeginKind {
     NativeBirth {
         first_memory_version: u64,
         digest: [u8; 32],
+    },
+    InferredExplicit {
+        first_memory_version: u64,
     },
 }
 
@@ -200,6 +207,15 @@ impl StoredBegin {
         }
     }
 
+    pub(crate) fn inferred_explicit_birth(&self) -> Option<u64> {
+        match self.kind {
+            BeginKind::InferredExplicit {
+                first_memory_version,
+            } => Some(first_memory_version),
+            _ => None,
+        }
+    }
+
     fn view(&self, admission: &StoredAdmission) -> &BeginRecord {
         self.view.get_or_init(|| {
             Arc::new(BeginRecord {
@@ -209,7 +225,7 @@ impl StoredBegin {
                 turn: self.turn,
                 graph_version_before: self.graph_version_before,
                 population: match self.kind {
-                    BeginKind::Explicit => {
+                    BeginKind::Explicit | BeginKind::InferredExplicit { .. } => {
                         BeginPopulation::ExplicitSet(admission.preexisting_ids.to_set())
                     }
                     BeginKind::Compact { digest } => BeginPopulation::CompactCut {
@@ -248,6 +264,7 @@ pub(crate) struct InferredExplicitFrontier {
     pub position: ObjectRef,
     pub frontier: FrontierRecord,
     pub turn: u64,
+    pub first_memory_version: u64,
 }
 
 impl DreamEvidenceStore {
@@ -460,7 +477,12 @@ impl DreamEvidenceStore {
         {
             return Err("Dream Begin does not match authenticated owner evidence".into());
         }
-        self.ingest_admitted_physical_begin(frontier.pass_id.clone(), BeginKind::Explicit)?;
+        self.ingest_admitted_physical_begin(
+            frontier.pass_id.clone(),
+            BeginKind::InferredExplicit {
+                first_memory_version: entry.first_memory_version,
+            },
+        )?;
         self.apply_frontier_with_begin(frontier, true)
     }
 

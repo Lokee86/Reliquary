@@ -4,7 +4,7 @@ use crate::store::PackedVectorStore;
 use reliquary_container::{Container, ObjectRef};
 
 pub struct PackedVectorOpenState {
-    store: PackedVectorStore,
+    pub(crate) store: PackedVectorStore,
     format_seen: bool,
 }
 

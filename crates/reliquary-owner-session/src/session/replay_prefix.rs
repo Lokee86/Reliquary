@@ -15,6 +15,7 @@ pub(super) struct DreamReplayPrefix {
     pub explicit_admissions: Vec<DreamBeginAdmission>,
     pub native_admissions: Vec<NativeBirthAdmission>,
     pub explicit_frontiers: Vec<InferredExplicitFrontier>,
+    pub infer_explicit_populations: bool,
 }
 
 pub(super) struct NativeBirthAdmission {
@@ -158,21 +159,25 @@ pub(super) fn validate_graph_prefix(
                         if &ids != birth_population.at(birth_version)? {
                             return Err(OwnerSessionError::StaleDreamCut);
                         }
-                        dreams.explicit_admissions.push(DreamBeginAdmission {
-                            owner_uuid: container.owner_id(),
-                            pass_id: begin.pass_id,
-                            source_id: begin.source_id,
-                            turn: begin.turn,
-                            graph_version_before: begin.graph_version_before,
-                            preexisting_ids: ids,
-                            memory_cut: memory_head,
-                        });
-                        frontier.begin = None;
-                        dreams.explicit_frontiers.push(InferredExplicitFrontier {
-                            position: frame.object,
-                            frontier,
-                            turn: begin.turn,
-                        });
+                        if dreams.infer_explicit_populations {
+                            frontier.begin = None;
+                            dreams.explicit_frontiers.push(InferredExplicitFrontier {
+                                position: frame.object,
+                                frontier,
+                                turn: begin.turn,
+                                first_memory_version: birth_version,
+                            });
+                        } else {
+                            dreams.explicit_admissions.push(DreamBeginAdmission {
+                                owner_uuid: container.owner_id(),
+                                pass_id: begin.pass_id,
+                                source_id: begin.source_id,
+                                turn: begin.turn,
+                                graph_version_before: begin.graph_version_before,
+                                preexisting_ids: ids,
+                                memory_cut: memory_head,
+                            });
+                        }
                     }
                     BeginPopulation::NativeBirth {
                         first_memory_version,

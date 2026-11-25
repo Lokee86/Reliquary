@@ -1,12 +1,15 @@
-use crate::codec::{DecodedPackedVector, encode_format, encode_object};
+use crate::codec::{
+    DecodedPackedVector, OBJECT_HEADER_LEN, PRUNED_LEN, decode_object_header, encode_format,
+    encode_object,
+};
 use crate::{
     ArchiveFragmentId, ArchiveVectorId, CompatibilityProfileId, MemoryBodyId, MemoryVectorId,
     PackedVectorError, PackedVectorId, PackedVectorInfo, PackedVectorStats,
 };
 use lodestone_packed::{PackedVectors, VectorSchema};
-use reliquary_container::{Container, LeasedFrameReader, ObjectRef};
+use reliquary_container::{Container, ContainerError, LeasedFrameReader, ObjectRef};
 use sha2::{Digest, Sha256};
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, io::Read, sync::Arc};
 
 /// Identify a packed payload or retained pruned marker in a physical frame.
 pub fn packed_id_in_frame(payload: &[u8]) -> Result<Option<PackedVectorId>, PackedVectorError> {
@@ -53,6 +56,29 @@ impl PackedVectorBacking {
         }
     }
 
+    fn read_page(
+        &self,
+        reader: &LeasedFrameReader,
+        object: ObjectRef,
+        page_index: usize,
+        matrix_len: usize,
+    ) -> Result<Vec<u8>, PackedVectorError> {
+        let page_start = page_index * MATRIX_PAGE_BYTES;
+        let page_len = (matrix_len - page_start).min(MATRIX_PAGE_BYTES);
+        let digest = *self
+            .pages
+            .get(page_index)
+            .ok_or(PackedVectorError::CorruptRecord(
+                "packed-vector page missing",
+            ))?;
+        Ok(reader.read_frame_range(
+            object,
+            (OBJECT_HEADER_LEN + page_start) as u64,
+            page_len as u64,
+            digest,
+        )?)
+    }
+
     fn read_row(
         &self,
         reader: &LeasedFrameReader,
@@ -64,19 +90,8 @@ impl PackedVectorBacking {
         let mut row = Vec::with_capacity(end - start);
         for page_index in start / MATRIX_PAGE_BYTES..=(end - 1) / MATRIX_PAGE_BYTES {
             let page_start = page_index * MATRIX_PAGE_BYTES;
-            let page_end = matrix_len.min(page_start + MATRIX_PAGE_BYTES);
-            let digest = *self
-                .pages
-                .get(page_index)
-                .ok_or(PackedVectorError::CorruptRecord(
-                    "packed-vector page missing",
-                ))?;
-            let bytes = reader.read_frame_range(
-                object,
-                (crate::codec::OBJECT_HEADER_LEN + page_start) as u64,
-                (page_end - page_start) as u64,
-                digest,
-            )?;
+            let bytes = self.read_page(reader, object, page_index, matrix_len)?;
+            let page_end = page_start + bytes.len();
             row.extend_from_slice(
                 &bytes[start.max(page_start) - page_start..end.min(page_end) - page_start],
             );
@@ -256,28 +271,43 @@ impl PackedVectorStore {
     }
 
     pub fn open(container: &Container) -> Result<Self, PackedVectorError> {
-        Self::open_replaying(container, crate::PackedVectorOpenState::new())
+        let mut state = crate::PackedVectorOpenState::new();
+        let mut frames = container.scan_matching_frames(packed_frame)?;
+        while let Some(frame) = frames.next_frame()? {
+            state.ingest(frame.object, frame.payload)?;
+        }
+        state.finish()
     }
 
     /// Validate retained matrices while keeping only their leased frame locations.
     pub fn open_leased(container: &Container) -> Result<Self, PackedVectorError> {
-        Self::open_replaying(
-            container,
-            crate::PackedVectorOpenState::new_leased(container)?,
-        )
-    }
-
-    fn open_replaying(
-        container: &Container,
-        mut state: crate::PackedVectorOpenState,
-    ) -> Result<Self, PackedVectorError> {
-        let mut frames = container.scan_matching_frames(|prefix| {
-            prefix.starts_with(crate::codec::FORMAT_MAGIC)
-                || prefix.starts_with(crate::codec::OBJECT_MAGIC)
-                || prefix.starts_with(crate::codec::PRUNED_MAGIC)
-        })?;
-        while let Some(frame) = frames.next_frame()? {
-            state.ingest(frame.object, frame.payload)?;
+        let mut state = crate::PackedVectorOpenState::new_leased(container)?;
+        let mut frames = container.matching_physical_cursor(packed_frame)?;
+        let mut page = vec![0; MATRIX_PAGE_BYTES];
+        let mut header = [0; PRUNED_LEN + 1];
+        while let Some(mut frame) = frames.next_frame()? {
+            let object = frame.object();
+            let header_len = object.length.min(OBJECT_HEADER_LEN as u64) as usize;
+            frame
+                .read_exact(&mut header[..header_len])
+                .map_err(ContainerError::from)?;
+            if let Some(info) = decode_object_header(&header[..header_len], object.length)? {
+                state.store.ingest_leased_object(
+                    info,
+                    object,
+                    &header[..header_len],
+                    &mut frame,
+                    &mut page,
+                )?;
+            } else {
+                // One extra byte distinguishes a valid small marker from a
+                // marker with trailing data without buffering its whole frame.
+                let length = object.length.min(header.len() as u64) as usize;
+                frame
+                    .read_exact(&mut header[header_len..length])
+                    .map_err(ContainerError::from)?;
+                state.ingest(object, &header[..length])?;
+            }
         }
         state.finish()
     }
@@ -423,6 +453,72 @@ impl PackedVectorStore {
         Ok(())
     }
 
+    fn ingest_leased_object(
+        &mut self,
+        info: PackedVectorInfo,
+        chunk: ObjectRef,
+        header: &[u8],
+        body: &mut impl Read,
+        page: &mut [u8],
+    ) -> Result<(), PackedVectorError> {
+        let matrix_len =
+            usize::try_from(info.byte_len).map_err(|_| PackedVectorError::SizeOverflow)?;
+        let mut identity = packed_vector_hasher(info.schema);
+        let mut envelope = Sha256::new();
+        envelope.update(header);
+        let mut pages = Vec::new();
+        let mut remaining = matrix_len;
+        while remaining != 0 {
+            let bytes = &mut page[..remaining.min(MATRIX_PAGE_BYTES)];
+            body.read_exact(bytes).map_err(ContainerError::from)?;
+            remaining -= bytes.len();
+            identity.update(&*bytes);
+            envelope.update(&*bytes);
+            pages.push(Sha256::digest(bytes).into());
+        }
+        if PackedVectorId(identity.finalize().into()) != info.id {
+            return Err(PackedVectorError::HashCollision);
+        }
+        let backing = PackedVectorBacking {
+            frame_digest: envelope.finalize().into(),
+            pages,
+        };
+        if let Some(existing) = self.objects.get(&info.id) {
+            if existing.info != info || existing.chunk.is_none() {
+                return Err(PackedVectorError::HashCollision);
+            }
+            let (reader, previous_chunk, previous) = self.backing(existing)?;
+            reader.read_frame_range(
+                previous_chunk,
+                0,
+                OBJECT_HEADER_LEN as u64,
+                Sha256::digest(header).into(),
+            )?;
+            for index in 0..backing.pages.len() {
+                let original = previous
+                    .read_page(reader, previous_chunk, index, matrix_len)
+                    .inspect_err(|_| reader.fence_writes())?;
+                let repeat = backing.read_page(reader, chunk, index, matrix_len)?;
+                if original != repeat {
+                    return Err(PackedVectorError::HashCollision);
+                }
+            }
+            return Ok(());
+        }
+        self.objects.insert(
+            info.id,
+            PackedVectorEntry {
+                info,
+                chunk: Some(chunk),
+                packed: None,
+                backing: Some(backing),
+                marker_chunk: None,
+                manifest_digest: None,
+            },
+        );
+        Ok(())
+    }
+
     pub fn insert_pruned(
         &mut self,
         info: PackedVectorInfo,
@@ -529,6 +625,12 @@ impl PackedVectorStore {
 }
 
 pub fn packed_vector_id(schema: VectorSchema, bytes: &[u8]) -> PackedVectorId {
+    let mut hash = packed_vector_hasher(schema);
+    hash.update(bytes);
+    PackedVectorId(hash.finalize().into())
+}
+
+fn packed_vector_hasher(schema: VectorSchema) -> Sha256 {
     let mut hash = Sha256::new();
     hash.update([
         0x43, 0x56, 0x41, 0x2d, 0x50, 0x41, 0x43, 0x4b, 0x45, 0x44, 0x2d, 0x56, 0x45, 0x43, 0x54,
@@ -536,8 +638,13 @@ pub fn packed_vector_id(schema: VectorSchema, bytes: &[u8]) -> PackedVectorId {
     ]);
     hash.update(schema.dimensions.to_le_bytes());
     hash.update([schema.scalar.tag()]);
-    hash.update(bytes);
-    PackedVectorId(hash.finalize().into())
+    hash
+}
+
+fn packed_frame(prefix: &[u8]) -> bool {
+    prefix.starts_with(crate::codec::FORMAT_MAGIC)
+        || prefix.starts_with(crate::codec::OBJECT_MAGIC)
+        || prefix.starts_with(crate::codec::PRUNED_MAGIC)
 }
 
 pub fn archive_vector_id(
