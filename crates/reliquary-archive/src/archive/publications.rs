@@ -162,10 +162,7 @@ impl Archive {
             )
             || episode.source_through_ns != end.timestamp_ns
             || episode.finalized_at_ns < episode.source_through_ns
-            || !self
-                .branch_path(&episode.conversation_id, &episode.end_node_id)?
-                .iter()
-                .any(|node| node.id == episode.start_node_id)
+            || !self.has_ancestor(end, &episode.start_node_id)?
         {
             return Err(ArchiveError::InvalidEpisodeRange);
         }

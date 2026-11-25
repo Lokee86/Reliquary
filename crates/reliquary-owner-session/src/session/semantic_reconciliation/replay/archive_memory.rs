@@ -172,7 +172,7 @@ pub(super) fn replay_echo(
     counts: &mut ReplayCounts,
 ) -> Result<(), RelReconciliationError> {
     let mut destination = reliquary_archive::EchoStore::open(target).map_err(conflict)?;
-    for event in source.all_records() {
+    for event in source.all_records().map_err(conflict)? {
         counts.archive += usize::from(destination.put(target, event).map_err(conflict)?);
     }
     Ok(())

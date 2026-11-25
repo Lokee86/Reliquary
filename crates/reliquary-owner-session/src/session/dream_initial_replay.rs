@@ -1,11 +1,11 @@
 //! Authenticate first-cycle receipts at their actual physical prefix.
+use super::dream_population::BirthPopulationReplay;
 use super::*;
 use crate::records::{
     dream_empty::InitialDreamSettlement, dream_group::GroupedDreamRelation,
     dream_supersession::GroupedDreamSupersession,
 };
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::Read;
 
 pub(super) fn validate(
     container: &Container,
@@ -15,18 +15,17 @@ pub(super) fn validate(
     birth_versions: &BTreeMap<MemoryId, u64>,
 ) -> Result<(), OwnerSessionError> {
     let mut bodies = BTreeMap::new();
-    let mut active = BTreeSet::new();
-    let mut changed = BTreeSet::new();
+    let mut birth_population = BirthPopulationReplay::new(memories);
     let mut begun = BTreeMap::new();
     let mut frontiers = BTreeMap::new();
     let mut evaluated = BTreeSet::new();
     let mut pair_refs = Vec::new();
     let mut memory_head = 0;
-    let mut receipts = Vec::new();
-    let mut batch_links = Vec::new();
-    let mut archivals = Vec::new();
-    let mut duplicates = Vec::new();
+    let mut direct_links: BTreeMap<MemoryId, BTreeMap<MemoryId, u64>> = BTreeMap::new();
+    let mut archivals = BTreeMap::new();
+    let mut duplicates = BTreeMap::new();
     let mut graph = 0;
+    let mut duplicate_history = graph_store.duplicate_history();
     let mut community = None;
     let mut generation = 0;
     let mut frames = container
@@ -78,13 +77,18 @@ pub(super) fn validate(
             }
             graph = record.graph_version + record.graph_records.len() as u64;
             for event in record.lifecycles.iter().filter(|l| l.archived) {
-                archivals.push((MemoryId(event.id), graph));
-            }
-            for pair in record.pairs.iter().filter(|p| p.direct && p.kind == 5) {
-                duplicates.push((MemoryId(pair.source), graph));
+                record_version(&mut archivals, MemoryId(event.id), graph);
             }
             for pair in record.pairs.iter().filter(|p| p.direct) {
-                batch_links.push((MemoryId(pair.source), MemoryId(pair.candidate), graph));
+                let source = MemoryId(pair.source);
+                if pair.kind == 5 {
+                    record_version(&mut duplicates, source, graph);
+                }
+                record_version(
+                    direct_links.entry(source).or_default(),
+                    MemoryId(pair.candidate),
+                    graph,
+                );
             }
             continue;
         }
@@ -93,17 +97,14 @@ pub(super) fn validate(
         {
             use crate::records::user_memory::UserMemoryEffect;
             let previous = MemoryId(record.previous.id);
-            active.remove(&previous);
-            changed.insert(previous);
             if let UserMemoryEffect::Correction { creation, .. } = &record.effect {
                 let replacement = reliquary_memory_core::decode_grouped_creation(creation)?;
-                active.insert(replacement.id);
                 bodies.insert(replacement.id, replacement.body_id);
                 graph = record
                     .relation()
                     .expect("correction relation")
                     .graph_version;
-                archivals.push((previous, graph));
+                record_version(&mut archivals, previous, graph);
             }
             if let Some(change) = record.history_frames().last() {
                 memory_head = reliquary_memory_core::history_change_in_frame(change)?
@@ -114,11 +115,6 @@ pub(super) fn validate(
         }
         if payload.starts_with(b"RELMCRT1") {
             let record = reliquary_memory_core::decode_grouped_creation(payload)?;
-            if !record.archived
-                && matches!(record.lifecycle_state.as_str(), "knowledge" | "canonical")
-            {
-                active.insert(record.id);
-            }
             memory_head = record.memory_version;
             bodies.insert(record.id, record.body_id);
         } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
@@ -127,18 +123,12 @@ pub(super) fn validate(
                 .memory_records
             {
                 let record = reliquary_memory_core::decode_grouped_creation(&record)?;
-                if !record.archived
-                    && matches!(record.lifecycle_state.as_str(), "knowledge" | "canonical")
-                {
-                    active.insert(record.id);
-                }
                 memory_head = record.memory_version;
                 bodies.insert(record.id, record.body_id);
             }
         }
-        if let Some((id, version)) = reliquary_memory_core::history_change_in_frame(payload)? {
+        if let Some((_, version)) = reliquary_memory_core::history_change_in_frame(payload)? {
             memory_head = version;
-            changed.insert(id);
         }
         if let Some(publication) = reliquary_graph::clocked_graph_in_frame(frame.payload)? {
             graph = publication.graph_version;
@@ -149,11 +139,13 @@ pub(super) fn validate(
             GroupedDreamRelation::decode(payload).map_err(OwnerSessionError::Record)?
         {
             graph = receipt.relation().graph_version;
+            let source = receipt.0.source.id;
+            let candidate = receipt.0.candidate.id;
             if receipt.relation().kind == reliquary_graph::RelationKind::DuplicateOf {
-                duplicates.push((receipt.0.source.id, graph));
+                record_version(&mut duplicates, source, graph);
             }
-            evaluated.insert(ordered(receipt.0.source.id, receipt.0.candidate.id));
-            receipts.push(receipt);
+            evaluated.insert(ordered(source, candidate));
+            record_version(direct_links.entry(source).or_default(), candidate, graph);
         }
         if let Some(receipt) =
             GroupedDreamSupersession::decode(payload).map_err(OwnerSessionError::Record)?
@@ -163,8 +155,7 @@ pub(super) fn validate(
             let (older, version) = reliquary_memory_core::history_change_in_frame(&receipt.delta)?
                 .ok_or(OwnerSessionError::StaleDreamCut)?;
             memory_head = version;
-            changed.insert(older);
-            archivals.push((older, graph));
+            record_version(&mut archivals, older, graph);
         }
         if payload.starts_with(b"CVDREAM2") {
             let begin = crate::records::dream::dream_begin_codec::decode(payload)
@@ -187,8 +178,6 @@ pub(super) fn validate(
             let birth_version = *birth_versions
                 .get(&record.source)
                 .ok_or(OwnerSessionError::StaleDreamCut)?;
-            let physical_population =
-                super::dream_population::birth_population_at(memories, birth_version)?;
             // A destination replay can preserve a verified source Dream's
             // explicit population even after introducing independent left-side
             // births. Compact populations remain exact physical-prefix proofs.
@@ -196,29 +185,19 @@ pub(super) fn validate(
             let population_valid = match &begin.population {
                 crate::records::dream::dream_begin_codec::BeginPopulation::CompactCut {
                     ..
-                } => population == &physical_population,
+                } => population == birth_population.at(birth_version)?,
                 crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(_) => {
-                    population.is_subset(&physical_population)
+                    birth_population.contains(birth_version, population)?
                 }
             };
-            let roots: BTreeSet<_> = receipts
-                .iter()
-                .filter_map(|receipt| {
-                    (receipt.0.source.id == record.source
-                        && population.contains(&receipt.0.candidate.id)
-                        && receipt.relation().graph_version > begin.graph_version_before)
-                        .then_some(receipt.0.candidate.id)
+            let roots: BTreeSet<_> = direct_links
+                .get(&record.source)
+                .into_iter()
+                .flatten()
+                .filter_map(|(candidate, version)| {
+                    (*version > begin.graph_version_before && population.contains(candidate))
+                        .then_some(*candidate)
                 })
-                .chain(
-                    batch_links
-                        .iter()
-                        .filter(|(source, candidate, version)| {
-                            *source == record.source
-                                && population.contains(candidate)
-                                && *version > begin.graph_version_before
-                        })
-                        .map(|(_, candidate, _)| *candidate),
-                )
                 .collect();
             if frontiers.get(&record.pass_id).is_some_and(
                 |f: &crate::records::dream_frontier::FrontierRecord| {
@@ -239,14 +218,16 @@ pub(super) fn validate(
                 .record_at_cut(record.source, memory_head)
                 .ok_or(OwnerSessionError::StaleDreamCut)?;
             let duplicate_origin = duplicates
-                .iter()
-                .any(|(id, version)| *id == record.source && *version > begin.graph_version_before);
-            let archival_origin = archivals.iter().any(|(id, version)| {
-                *id == record.source && *version >= begin.graph_version_before
-            });
-            let graph_view = graph_store.snapshot_at(record.graph_version)?;
-            let (reachable, _) = graph_view
-                .duplicate_context(&record.roots.iter().map(|id| id.0).collect::<Vec<_>>(), 128)?;
+                .get(&record.source)
+                .is_some_and(|version| *version > begin.graph_version_before);
+            let archival_origin = archivals
+                .get(&record.source)
+                .is_some_and(|version| *version >= begin.graph_version_before);
+            let (reachable, _) = duplicate_history.context_at(
+                record.graph_version,
+                &record.roots.iter().map(|id| id.0).collect::<Vec<_>>(),
+                128,
+            )?;
             if record.admit == source.archived
                 || (source.archived && !archival_origin)
                 || (source.archived && !duplicate_origin && !record.credit_roots.is_empty())
@@ -300,12 +281,16 @@ pub(super) fn validate(
                 memory_head = reliquary_memory_core::history_change_in_frame(delta)?
                     .ok_or(OwnerSessionError::StaleDreamCut)?
                     .1;
-                active.insert(record.source);
-                changed.insert(record.source);
             }
         }
     }
     Ok(())
+}
+
+// Every check asks if any event observed so far meets a lower Graph bound.
+fn record_version(index: &mut BTreeMap<MemoryId, u64>, id: MemoryId, version: u64) {
+    let latest = index.entry(id).or_insert(version);
+    *latest = (*latest).max(version);
 }
 
 fn ordered(a: MemoryId, b: MemoryId) -> (MemoryId, MemoryId) {

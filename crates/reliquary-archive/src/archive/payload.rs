@@ -107,7 +107,11 @@ impl Archive {
         })
     }
 
-    fn read_range(&self, range: FrameRange, id: ContentId) -> Result<Vec<u8>, ArchiveError> {
+    pub(super) fn read_range(
+        &self,
+        range: FrameRange,
+        id: ContentId,
+    ) -> Result<Vec<u8>, ArchiveError> {
         let reader = self.reader.as_ref().ok_or(ArchiveError::CorruptRecord(
             "Archive read has no owning lease",
         ))?;

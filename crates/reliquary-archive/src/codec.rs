@@ -42,7 +42,7 @@ pub(crate) fn archive_record_prefix(prefix: &[u8]) -> bool {
 pub(crate) enum Record<'a> {
     Turn(Node, &'a str, Vec<SourceAttachment>),
     FileBlob(ContentId, &'a [u8]),
-    Branch(Branch),
+    Branch(Branch, &'a [u8]),
     Episode(Episode),
     Import(ImportReceipt),
     FragmentDefinitions(Vec<FragmentDefinition>),
@@ -410,7 +410,7 @@ fn decode_branch(bytes: &[u8]) -> Result<Record<'_>, ArchiveError> {
         canonical,
     };
     require_end(bytes, cursor)?;
-    Ok(Record::Branch(branch))
+    Ok(Record::Branch(branch, bytes))
 }
 
 fn decode_episode(bytes: &[u8]) -> Result<Record<'_>, ArchiveError> {

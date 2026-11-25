@@ -250,7 +250,17 @@ struct Key {
     kind: RelationKind,
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+impl Key {
+    fn for_relation(relation: &Relation) -> Self {
+        Self {
+            source: relation.source,
+            target: relation.target,
+            kind: relation.kind,
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct GraphStore {
     owner: [u8; 16],
     identity: ContainerIdentity,
@@ -264,6 +274,20 @@ pub struct GraphStore {
 }
 
 impl GraphStore {
+    fn empty(owner: [u8; 16], identity: ContainerIdentity) -> Self {
+        Self {
+            owner,
+            identity,
+            graph_version: 0,
+            user_associations: BTreeMap::new(),
+            states: BTreeMap::new(),
+            history: Vec::new(),
+            outgoing: BTreeMap::new(),
+            incoming: BTreeMap::new(),
+            duplicate_incident: BTreeMap::new(),
+        }
+    }
+
     pub fn open(container: &Container, admission: &GraphAdmission) -> Result<Self, GraphError> {
         Self::open_with_grouped_dream(container, admission, |_| Ok(None))
     }
@@ -292,17 +316,7 @@ impl GraphStore {
                 "admission belongs to another owner",
             ));
         }
-        let mut store = Self {
-            owner: container.owner_id(),
-            identity: container.identity(),
-            graph_version: 0,
-            user_associations: BTreeMap::new(),
-            states: BTreeMap::new(),
-            history: Vec::new(),
-            outgoing: BTreeMap::new(),
-            incoming: BTreeMap::new(),
-            duplicate_incident: BTreeMap::new(),
-        };
+        let mut store = Self::empty(container.owner_id(), container.identity());
         let mut frames = container.scan_matching_frames(graph_replay_frame)?;
         while let Some(frame) = frames.next_frame()? {
             if let Some(publication) = clocked_graph_in_frame(frame.payload)? {
@@ -617,15 +631,17 @@ impl GraphStore {
         self.apply_relation(relation)
     }
     fn apply_relation(&mut self, relation: Relation) -> Result<(), GraphError> {
-        let key = Key {
-            source: relation.source,
-            target: relation.target,
-            kind: relation.kind,
-        };
+        let key = Key::for_relation(&relation);
         if let Some(previous) = self.states.get(&key).copied() {
             self.remove_index(key, previous);
         }
         self.states.insert(key, relation);
+        self.index_active_relation(key, &relation);
+        self.history.push(relation);
+        self.graph_version = relation.graph_version;
+        Ok(())
+    }
+    fn index_active_relation(&mut self, key: Key, relation: &Relation) {
         if relation.active {
             if relation.kind == RelationKind::DuplicateOf {
                 self.duplicate_incident
@@ -646,9 +662,6 @@ impl GraphStore {
                 .or_default()
                 .insert(key);
         }
-        self.history.push(relation);
-        self.graph_version = relation.graph_version;
-        Ok(())
     }
     fn remove_index(&mut self, key: Key, relation: Relation) {
         if relation.active {
@@ -1226,6 +1239,52 @@ mod tests {
             id,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn duplicate_history_matches_snapshot_across_edge_changes() {
+        let path = Temp::new();
+        let container = container(&path.0, 12);
+        let [a, b, c, d] = [[1; 32], [2; 32], [3; 32], [4; 32]];
+        let admission = GraphAdmission::for_changes(container.owner_id(), [a, b, c, d], []);
+        let mut graph = GraphStore::open(&container, &admission).unwrap();
+        for (version, source, target, kind, active) in [
+            (1, a, b, RelationKind::DuplicateOf, true),
+            (2, c, b, RelationKind::DuplicateOf, true),
+            (2, c, d, RelationKind::Topical, true),
+            (3, a, b, RelationKind::DuplicateOf, false),
+            (4, b, a, RelationKind::DuplicateOf, true),
+            (5, c, b, RelationKind::DuplicateOf, false),
+        ] {
+            graph
+                .apply_relation(Relation {
+                    source: NodeRef::Memory(source),
+                    target: NodeRef::Memory(target),
+                    kind,
+                    active,
+                    origin: RelationOrigin::Dream,
+                    graph_version: version,
+                })
+                .unwrap();
+        }
+        let mut history = graph.duplicate_history();
+        for version in [0, 1, 2, 2, 3, 4, 5, 1, 5] {
+            let snapshot = graph.snapshot_at(version).unwrap();
+            for seeds in [&[a][..], &[c, a], &[]] {
+                assert_eq!(
+                    history.context_at(version, seeds, 4).unwrap(),
+                    snapshot.duplicate_context(seeds, 4).unwrap()
+                );
+            }
+        }
+        assert!(matches!(
+            history.context_at(2, &[a], 2),
+            Err(GraphError::InvalidClosure("duplicate component limit"))
+        ));
+        assert!(matches!(
+            history.context_at(6, &[], 4),
+            Err(GraphError::CorruptRecord("Graph snapshot ahead of owner"))
+        ));
     }
 
     #[test]
@@ -1862,3 +1921,5 @@ pub use dream_batch::dream_relation_in_frame;
 
 #[path = "duplicate_context.rs"]
 mod duplicate_context;
+pub use duplicate_context::DuplicateHistory;
+mod checkpoint;

@@ -1,4 +1,5 @@
 //! Exact owner identity/version cuts at the physical effect prefix.
+use super::dream_population::BirthPopulationReplay;
 use super::identity_receipt::{IdentityHistory, LocalProjection};
 use super::identity_separation::{SeparationHistory, SeparationProjection};
 use super::observations::ObservationPrefix;
@@ -26,6 +27,7 @@ pub(super) fn validate_graph_prefix(
     let mut entities = std::collections::BTreeSet::new();
     let mut graph_version = 0;
     let mut memory_head = 0;
+    let mut birth_population = BirthPopulationReplay::new(memory_store);
     let mut frames = container
         .scan_matching_frames(crate::records::frame_selection::without_archive_publications)?;
     while let Some(frame) = frames.next_frame()? {
@@ -111,13 +113,12 @@ pub(super) fn validate_graph_prefix(
                 let birth_version = *birth_versions
                     .get(&begin.source_id)
                     .ok_or(OwnerSessionError::StaleDreamCut)?;
-                let population =
-                    super::dream_population::birth_population_at(memory_store, birth_version)?;
-                if begin.population
-                    != crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(
-                        population,
-                    )
-                {
+                let population = birth_population.at(birth_version)?;
+                if !matches!(
+                    &begin.population,
+                    crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(ids)
+                        if ids == population
+                ) {
                     return Err(OwnerSessionError::StaleDreamCut);
                 }
             }

@@ -706,9 +706,20 @@ impl Container {
         let mut cursor = self.physical_cursor_at(from, extent)?;
         let mut bytes = Vec::new();
         let mut directory = ReplayDirectory::new(extent, from == HEADER_LEN);
-        while let Some(object) = cursor.read_frame_into(&mut bytes)? {
-            clock.observe_frame(&bytes)?;
-            directory.record(object, &bytes);
+        let mut prefix = [0; REPLAY_PREFIX_BYTES];
+        while let Some(mut frame) = cursor.next_frame()? {
+            let object = frame.object();
+            let prefix = &mut prefix[..object.length.min(REPLAY_PREFIX_BYTES as u64) as usize];
+            frame.read_exact(prefix)?;
+            if version_clock::needs_full_payload(prefix) {
+                bytes.clear();
+                bytes.extend_from_slice(prefix);
+                frame.read_to_end(&mut bytes)?;
+                clock.observe_frame(&bytes)?;
+            } else {
+                clock.observe_frame(prefix)?;
+            }
+            directory.record(object, prefix);
         }
         drop(cursor);
         self.replay_directory = directory;

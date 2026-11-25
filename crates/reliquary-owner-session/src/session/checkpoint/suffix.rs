@@ -24,9 +24,17 @@ pub(super) fn replay(
     if checkpoint.covered_end == extent {
         return Ok(true);
     }
-    // A suspended import has its own publication fence and proof rules.
-    if session.imports.open_epoch().is_some() || !session.common.maintenance.is_empty() {
+    if !session.common.maintenance.is_empty() {
         return Ok(false);
+    }
+    if let Some(epoch) = session.imports.open_epoch() {
+        if epoch.format_version != 2
+            || session.imports.settlement(&epoch.import_id).is_some()
+            || session.has_native_import_historical_freshness(&epoch.import_id)
+        {
+            return Ok(false);
+        }
+        return replay_import_source_suffix(session, container, checkpoint.covered_end);
     }
     let mut frames = container.scan_frames_from(checkpoint.covered_end)?;
     let mut memory_changed = false;
@@ -76,6 +84,29 @@ pub(super) fn replay(
         memory_changed,
         suffix_bodies,
     )
+}
+
+fn replay_import_source_suffix(
+    session: &mut RelSession,
+    container: &Container,
+    covered_end: u64,
+) -> Result<bool, OwnerSessionError> {
+    let mut frames = container.scan_frames_from(covered_end)?;
+    while let Some(frame) = frames.next_frame()? {
+        let payload = frame.payload;
+        if payload.starts_with(b"RELVERS1") || payload.starts_with(b"RELVERS2") {
+            continue;
+        }
+        // Native source staging writes top-level turns and branches.
+        // Episodes, receipts and semantic publications need cross-store proof.
+        if !payload.starts_with(b"RELTURN2") && !payload.starts_with(b"RELBRCH1") {
+            return Ok(false);
+        }
+        session
+            .archive
+            .replay_frame(container, frame.object, payload, 0)?;
+    }
+    Ok(true)
 }
 
 fn native_memory_frame(payload: &[u8]) -> bool {

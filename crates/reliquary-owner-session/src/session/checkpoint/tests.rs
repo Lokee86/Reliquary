@@ -1,6 +1,7 @@
 use super::*;
 use crate::session::{RelWriter, UserMemoryCorrection};
 use reliquary_archive::{Archive, ArchivePublicationCoordinate, TurnInput};
+use reliquary_freshness_store::FreshnessMemoryId;
 use reliquary_graph::GraphAdmission;
 use reliquary_memory_core::{MemoryDraft, PayloadState};
 use std::fs::{self, OpenOptions};
@@ -16,7 +17,14 @@ fn admit(
     let lease =
         Container::prepare_checkpoint_open(owner, writable, FileKind::Reliquary, Some(OWNER))?;
     let extent = lease.extent();
-    open_leased(lease, Some(slot.to_path_buf()), extent, writable)
+    let (container, session, mut checkpoint) =
+        open_leased(lease, Some(slot.to_path_buf()), extent, writable)?;
+    if let Some(checkpoint) = &mut checkpoint
+        && checkpoint.attempted_extent.is_none()
+    {
+        checkpoint.refresh(&container, &session, true);
+    }
+    Ok((container, session, checkpoint))
 }
 
 fn draft() -> MemoryDraft {
@@ -63,6 +71,12 @@ fn restores_a_verified_cut_and_replays_a_bound_turn_and_grouped_correction() {
         .publish(&mut initial.container, None, 0, draft())
         .unwrap()
         .revision;
+    let freshness_id = FreshnessMemoryId(created.record.id.0);
+    initial
+        .session
+        .freshness
+        .create_birth(&mut initial.container, freshness_id, 0, false)
+        .unwrap();
     let reserved = initial.container.reserve_version(Some(-13)).unwrap();
     let untimed = initial.container.reserve_version(None).unwrap();
     let rows = (0..20)
@@ -140,6 +154,19 @@ fn restores_a_verified_cut_and_replays_a_bound_turn_and_grouped_correction() {
     assert!(lease.has_unbound_version_reservation(untimed));
     assert_eq!(lease.transaction_time_ns(untimed), None);
     assert_eq!(warm.current_memory(next.record.id).unwrap(), next);
+    assert_eq!(
+        warm.freshness
+            .memory_changes_after(0, 1, 1)
+            .collect::<Vec<_>>(),
+        [(1, freshness_id)]
+    );
+    let freshness_cut = warm.freshness.cut_through_turn(0);
+    assert_eq!(
+        warm.freshness
+            .records_for_memories_at(&freshness_cut, [freshness_id])
+            .unwrap(),
+        warm.freshness.records_at(&freshness_cut).unwrap(),
+    );
     // This row straddles two verified packed pages.
     assert_eq!(
         warm.common.packed_vectors.read_f32_row(matrix, 14).unwrap(),

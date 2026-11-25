@@ -52,9 +52,7 @@ pub(super) fn birth_population_at(
     memories: &MemoryStore,
     first_birth_version: u64,
 ) -> Result<BTreeSet<MemoryId>, OwnerSessionError> {
-    let cut = first_birth_version
-        .checked_sub(1)
-        .ok_or(OwnerSessionError::StaleDreamCut)?;
+    let cut = before_birth(first_birth_version)?;
     Ok(memories
         .memory_ids()
         .filter(|&id| {
@@ -63,4 +61,65 @@ pub(super) fn birth_population_at(
                 .is_some_and(|record| !record.archived)
         })
         .collect())
+}
+
+/// Advances one active population through successive cohort cuts. A later
+/// Dream pass may refer to an older cohort, so also support backward cuts.
+pub(super) struct BirthPopulationReplay<'a> {
+    memories: &'a MemoryStore,
+    cut: u64,
+    exact: BTreeSet<MemoryId>,
+}
+
+impl<'a> BirthPopulationReplay<'a> {
+    pub(super) fn new(memories: &'a MemoryStore) -> Self {
+        Self {
+            memories,
+            cut: 0,
+            exact: BTreeSet::new(),
+        }
+    }
+
+    pub(super) fn at(
+        &mut self,
+        birth_version: u64,
+    ) -> Result<&BTreeSet<MemoryId>, OwnerSessionError> {
+        let cut = before_birth(birth_version)?.min(self.memories.memory_version());
+        if cut < self.cut {
+            self.exact = birth_population_at(self.memories, birth_version)?;
+        } else {
+            for (version, id) in self.memories.changes_after(self.cut, cut, usize::MAX) {
+                if self
+                    .memories
+                    .record_at_cut(id, version)
+                    .is_some_and(|record| !record.archived)
+                {
+                    self.exact.insert(id);
+                } else {
+                    self.exact.remove(&id);
+                }
+            }
+        }
+        self.cut = cut;
+        Ok(&self.exact)
+    }
+
+    pub(super) fn contains(
+        &self,
+        birth_version: u64,
+        population: &BTreeSet<MemoryId>,
+    ) -> Result<bool, OwnerSessionError> {
+        let cut = before_birth(birth_version)?;
+        Ok(population.iter().all(|&id| {
+            self.memories
+                .record_at_cut(id, cut)
+                .is_some_and(|record| !record.archived)
+        }))
+    }
+}
+
+fn before_birth(birth_version: u64) -> Result<u64, OwnerSessionError> {
+    birth_version
+        .checked_sub(1)
+        .ok_or(OwnerSessionError::StaleDreamCut)
 }

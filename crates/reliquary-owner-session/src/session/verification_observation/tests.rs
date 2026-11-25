@@ -14,7 +14,7 @@ fn observer_holds_the_shared_read_only_lease_until_finalize() {
         std::process::id(),
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));
-    drop(crate::RelWriter::create_current_path(&path, OwnerScope::Project, [0xA1; 16]).unwrap());
+    drop(crate::RelWriter::create_current_path(&path, [0xA1; 16]).unwrap());
 
     let observer = ReadOnlyCurrentOwnerObserver::open(&path).unwrap();
     assert!(matches!(
@@ -40,11 +40,8 @@ fn finalize_rejects_path_replacement_during_held_handle_hash() {
     let path = directory.join(format!("{stem}.rel"));
     let replacement = directory.join(format!("{stem}-replacement.rel"));
     let displaced = directory.join(format!("{stem}-displaced.rel"));
-    drop(crate::RelWriter::create_current_path(&path, OwnerScope::Project, [0xA2; 16]).unwrap());
-    drop(
-        crate::RelWriter::create_current_path(&replacement, OwnerScope::Project, [0xA3; 16])
-            .unwrap(),
-    );
+    drop(crate::RelWriter::create_current_path(&path, [0xA2; 16]).unwrap());
+    drop(crate::RelWriter::create_current_path(&replacement, [0xA3; 16]).unwrap());
 
     let observer = ReadOnlyCurrentOwnerObserver::open(&path).unwrap();
     let finalization = observer

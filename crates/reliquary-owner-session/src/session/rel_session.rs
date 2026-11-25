@@ -88,8 +88,12 @@ impl RelSession {
         require_kind(container, FileKind::Reliquary)?;
         let (archive, observation_archive_cuts) =
             super::observations::open_archive(container, leased)?;
-        let echo = reliquary_archive::EchoStore::open(container)
-            .map_err(|e| OwnerSessionError::Record(e.to_string()))?;
+        let echo = if leased {
+            reliquary_archive::EchoStore::open_leased(container)
+        } else {
+            reliquary_archive::EchoStore::open(container)
+        }
+        .map_err(echo_error)?;
         let accepted_episodes = accepted_episodes.into_iter().collect::<Vec<_>>();
         for order in &accepted_episodes {
             let episode = archive
@@ -418,6 +422,7 @@ impl RelSession {
         self.container_path = canonical_container_path(container)?;
         self.writer_lease_proof = container.writer_lease_proof();
         self.archive.bind_read_lease(container)?;
+        self.echo.bind_read_lease(container).map_err(echo_error)?;
         self.common.packed_vectors.bind_read_lease(container)?;
         self.common.memories.bind_checkpoint_reader(container)?;
         self.grouped_completion_reader = Some(container.leased_frame_reader()?);
@@ -476,12 +481,17 @@ impl RelSession {
         &self,
         conversation: &str,
         message: &str,
-    ) -> Vec<reliquary_archive::EchoEvent> {
-        self.echo.for_turn(conversation, message)
+    ) -> Result<Vec<reliquary_archive::EchoEvent>, OwnerSessionError> {
+        self.echo
+            .for_turn(conversation, message)
+            .map_err(echo_error)
     }
     /// Read immutable Echo evidence for one conversation in deterministic order.
-    pub fn echo_for_conversation(&self, conversation: &str) -> Vec<reliquary_archive::EchoEvent> {
-        self.echo.for_conversation(conversation)
+    pub fn echo_for_conversation(
+        &self,
+        conversation: &str,
+    ) -> Result<Vec<reliquary_archive::EchoEvent>, OwnerSessionError> {
+        self.echo.for_conversation(conversation).map_err(echo_error)
     }
     pub fn archive_source_attachments(
         &self,
@@ -755,5 +765,12 @@ impl RelSession {
             source_episode_id: episode_id.0,
             draft: draft.clone(),
         })
+    }
+}
+
+fn echo_error(error: reliquary_archive::EchoError) -> OwnerSessionError {
+    match error {
+        reliquary_archive::EchoError::Container(error) => error.into(),
+        error => OwnerSessionError::Record(error.to_string()),
     }
 }

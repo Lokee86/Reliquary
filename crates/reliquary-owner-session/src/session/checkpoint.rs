@@ -6,6 +6,10 @@ mod suffix;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
+mod tests_echo;
+#[cfg(test)]
+mod tests_native_import;
+#[cfg(test)]
 mod tests_observations;
 
 use super::{OwnerSessionError, RelSession};
@@ -16,7 +20,7 @@ use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
-const MAGIC: &[u8; 8] = b"RELCP007";
+const MAGIC: &[u8; 8] = b"RELCP009";
 const STATE_START: u64 = 16;
 const MAX_MANIFEST_BYTES: usize = 16 * 1024 * 1024;
 const REFRESH_BYTES: u64 = 16 * 1024 * 1024;
@@ -137,6 +141,7 @@ impl Entry {
 pub(super) struct WriterCheckpoint {
     slot: PathBuf,
     prefix: Option<VerifiedPrefix>,
+    admitted_extent: u64,
     attempted_extent: Option<u64>,
     attempted_epoch: u64,
     refresh_live_cut: bool,
@@ -147,9 +152,15 @@ pub(super) struct WriterCheckpoint {
 }
 
 impl WriterCheckpoint {
-    fn new(slot: PathBuf, prefix: Option<VerifiedPrefix>, session: &RelSession) -> Self {
+    fn new(
+        slot: PathBuf,
+        prefix: Option<VerifiedPrefix>,
+        admitted_extent: u64,
+        session: &RelSession,
+    ) -> Self {
         Self {
             slot,
+            admitted_extent,
             attempted_extent: prefix.as_ref().map(VerifiedPrefix::covered_end),
             #[cfg(feature = "d02-observation")]
             opened_prefix: prefix.as_ref().map(VerifiedPrefix::covered_end),
@@ -175,16 +186,15 @@ impl WriterCheckpoint {
         if epoch > 0 && !self.refresh_live_cut {
             return;
         }
-        if let Some(attempted) = self.attempted_extent {
-            if extent == attempted {
-                return;
-            }
-            if !quiescing
-                && extent.saturating_sub(attempted) < REFRESH_BYTES
-                && epoch.saturating_sub(self.attempted_epoch) < REFRESH_FRAMES
-            {
-                return;
-            }
+        if self.attempted_extent == Some(extent) {
+            return;
+        }
+        let refresh_from = self.attempted_extent.unwrap_or(self.admitted_extent);
+        if !quiescing
+            && extent.saturating_sub(refresh_from) < REFRESH_BYTES
+            && epoch.saturating_sub(self.attempted_epoch) < REFRESH_FRAMES
+        {
+            return;
         }
         self.attempted_extent = Some(extent);
         self.attempted_epoch = epoch;
@@ -294,7 +304,7 @@ fn open_leased(
         container.release_replay_directory();
         let refresh = slot
             .filter(|_| writable)
-            .map(|slot| WriterCheckpoint::new(slot, prefix, &session));
+            .map(|slot| WriterCheckpoint::new(slot, prefix, extent, &session));
         return Ok((container, session, refresh));
     }
     // Full admission can replace this checkpoint. Release its file handle first.
@@ -306,11 +316,11 @@ fn open_leased(
     container.require_extent(extent)?;
     container.release_replay_directory();
 
-    let refresh = slot.filter(|_| writable).map(|slot| {
-        let mut writer = WriterCheckpoint::new(slot, None, &session);
-        writer.refresh(&container, &session, true);
-        writer
-    });
+    // The writer publishes the first cache at its normal refresh boundary or
+    // when it closes. A cache miss should not make admission wait for a cache.
+    let refresh = slot
+        .filter(|_| writable)
+        .map(|slot| WriterCheckpoint::new(slot, None, extent, &session));
     Ok((container, session, refresh))
 }
 use self::pages::{MAX_PROJECTION_BYTES, PAGE_BYTES, PageReader, PageWriter};

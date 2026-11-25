@@ -23,6 +23,7 @@ use crate::{
     ImportReceipt, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
     ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
 };
+use history::BranchRevision;
 use payload::{FrameRange, Payload};
 use reliquary_container::{
     Container, ContainerError, ContainerIdentity, FileKind, LeasedFrameReader, ObjectRef,
@@ -65,7 +66,7 @@ pub struct Archive {
     rel_turn_count: u64,
     file_content: HashMap<ContentId, Payload<Vec<u8>>>,
     branches: BTreeMap<(String, String), Branch>,
-    branch_history: Vec<(u64, Branch)>,
+    branch_history: Vec<(u64, BranchRevision)>,
     episodes: BTreeMap<EpisodeId, Episode>,
     episode_versions: BTreeMap<EpisodeId, u64>,
     import_receipts: BTreeMap<[u8; 32], ImportReceipt>,
@@ -402,8 +403,15 @@ impl Archive {
         let archive_version = self.next_archive_version()?;
         let encoded = encode_branch(&branch)?;
         self.check_publication(container, archive_version, coordinate)?;
-        self.persist_applying(container, coordinate, &encoded)?;
-        self.branch_history.push((archive_version, branch.clone()));
+        let frame = self.persist_applying(container, coordinate, &encoded)?;
+        let range = self
+            .reader
+            .as_ref()
+            .map(|_| FrameRange::new(frame, frame.length - encoded.len() as u64, encoded.len()));
+        self.branch_history.push((
+            archive_version,
+            BranchRevision::new(&branch, range, &encoded),
+        ));
         self.branches
             .insert((branch.conversation_id.clone(), branch.id.clone()), branch);
         self.archive_version = archive_version;
@@ -1103,7 +1111,7 @@ impl Archive {
                     self.file_content.insert(content_id, payload);
                 }
             }
-            Record::Branch(branch) => {
+            Record::Branch(branch, bytes) => {
                 if self
                     .conversation_tombstones
                     .contains_key(&branch.conversation_id)
@@ -1115,22 +1123,20 @@ impl Archive {
                 validate_text(&branch.id, "branch id")?;
                 validate_text(&branch.conversation_id, "conversation id")?;
                 validate_text(&branch.leaf_node_id, "branch leaf node id")?;
-                self.require_node(&branch.conversation_id, &branch.leaf_node_id)?;
+                let leaf = self.require_node(&branch.conversation_id, &branch.leaf_node_id)?;
                 let key = (branch.conversation_id.clone(), branch.id.clone());
                 if let Some(existing) = self.branches.get(&key) {
                     if existing == &branch {
                         return Ok(());
                     }
-                    if !self
-                        .branch_path(&branch.conversation_id, &branch.leaf_node_id)?
-                        .iter()
-                        .any(|node| node.id == existing.leaf_node_id)
-                    {
+                    if !self.has_ancestor(leaf, &existing.leaf_node_id)? {
                         return Err(ArchiveError::InvalidBranchRevision);
                     }
                 }
                 let archive_version = self.next_archive_version()?;
-                self.branch_history.push((archive_version, branch.clone()));
+                let range = self.frame_range(source, bytes)?;
+                self.branch_history
+                    .push((archive_version, BranchRevision::new(&branch, range, bytes)));
                 self.branches.insert(key, branch);
                 self.archive_version = archive_version;
             }
@@ -1187,12 +1193,13 @@ impl Archive {
                 }
                 let mut expected = BTreeMap::new();
                 let mut branch_windows = BTreeMap::new();
+                let mut passage_source = None;
                 for definition in &definitions {
                     if definition.archive_cut != archive_cut {
                         return Err(ArchiveError::CorruptRecord("fragment cut mismatch"));
                     }
                     if definition.fragment.passage.is_some() {
-                        self.validate_passage_definition(definition)?;
+                        self.validate_passage_definition(definition, &mut passage_source)?;
                     } else {
                         let key = (
                             definition.fragment.conversation_id.as_str(),
@@ -1460,6 +1467,22 @@ impl Archive {
                 Ok(())
             }
         }
+    }
+
+    fn has_ancestor<'a>(
+        &'a self,
+        mut node: &'a Node,
+        ancestor_id: &str,
+    ) -> Result<bool, ArchiveError> {
+        // Accepted turns already proved their parents at insertion. Stop once
+        // the requested node is found instead of collecting the path to root.
+        while node.id != ancestor_id {
+            let Some(parent) = &node.parent_id else {
+                return Ok(false);
+            };
+            node = self.require_node(&node.conversation_id, parent)?;
+        }
+        Ok(true)
     }
 
     fn branch_path(

@@ -10,6 +10,7 @@ oracle-support = []
 d02-observation = []
 
 [dependencies]
+blake3 = "1"
 reliquary-container = { path = "../reliquary-container" }
 reliquary-archive = { path = "../reliquary-archive" }
 reliquary-memory-core = { path = "../reliquary-memory-core" }

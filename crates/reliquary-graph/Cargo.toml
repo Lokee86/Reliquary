@@ -10,3 +10,6 @@ serde = { version = "1", features = ["derive"] }
 leiden-rs = { version = "=0.8.1", default-features = false }
 reliquary-container = { path = "../reliquary-container" }
 sha2 = "0.10"
+
+[dev-dependencies]
+rmp-serde = "1.3"

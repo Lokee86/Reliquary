@@ -1,15 +1,14 @@
-use sha2::{Digest, Sha256};
 use std::io::{self, Read, Write};
 
 pub(super) const PAGE_BYTES: usize = 256 * 1024;
 pub(super) const MAX_PROJECTION_BYTES: usize = 256 * 1024 * 1024;
 
 fn digest(seal: &[u8; 32], index: u64, bytes: &[u8]) -> [u8; 32] {
-    let mut hash = Sha256::new();
+    let mut hash = blake3::Hasher::new();
     hash.update(seal);
-    hash.update(index.to_le_bytes());
+    hash.update(&index.to_le_bytes());
     hash.update(bytes);
-    hash.finalize().into()
+    *hash.finalize().as_bytes()
 }
 
 /// One fixed buffer while serializing a typed projection.
