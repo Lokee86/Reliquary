@@ -1,0 +1,54 @@
+name: Copied-source cascade verification
+
+on:
+  push:
+    branches: [ci/copied-source-cascade]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  targeted-test:
+    name: ${{ matrix.name }}
+    runs-on: windows-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Copied-source external consumer
+            manifest: tests/external-consumer/Cargo.toml
+            selector: --test operational_processing
+            test: hermes_copy::hermes_copy_extension_preserves_exact_replay_and_terminal_scope
+          - name: Observation re-review
+            manifest: Cargo.toml
+            selector: -p reliquary-application --lib
+            test: observation_drafts::tests::review_after_source_removal_verifies_same_wording_with_exact_retained_support
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.97.1'
+      - name: Fetch locked dependencies
+        env:
+          MANIFEST: ${{ matrix.manifest }}
+        run: cargo fetch --locked --manifest-path $env:MANIFEST
+      - name: Run the exact fixture
+        env:
+          MANIFEST: ${{ matrix.manifest }}
+          SELECTOR: ${{ matrix.selector }}
+          TEST_NAME: ${{ matrix.test }}
+          CARGO_TERM_COLOR: never
+        run: |
+          $selector = $env:SELECTOR.Split(' ')
+          cargo test --locked --offline --manifest-path $env:MANIFEST @selector -j 1 $env:TEST_NAME -- --exact --test-threads=1 2>&1 | Tee-Object -Variable output
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          if (-not ($output | Select-String -SimpleMatch 'test result: ok. 1 passed;')) {
+            throw "Expected exactly one passing test: $env:TEST_NAME"
+          }
