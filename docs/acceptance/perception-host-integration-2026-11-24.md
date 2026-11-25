@@ -31,6 +31,13 @@ The final Core revision passed all 15 focused Gateway retrieval tests and the mo
 
 The source pins and Windows artifact listed above belong to the first integration. This follow-up pins the new Core in Hermes `d0601047` and Mercury `28a5e11`. Hermes applies its normal result limit to the combined return. Both hosts rely on Core for current Observation standing and retain their copied-source verification.
 
+## Host paraphrase and review acceptance
+
+- Hermes `662a8763ab935a7a13e57ad0669e7a0b01380e76` passed the signed paraphrase test in 55.02 seconds on a disposable REL and PHY. The zero-overlap paraphrase returned the verified Observation and exact copied-source citation across a restart. The fixture then admitted a material challenge and left Verify unresolved. The same paraphrase returned the supporting Memory while the Observation was in review. The fixture also passed review recovery and the delayed source fence.
+- Mercury `406baebb909eff1a1024c1fb98c4cde66f410165` passed the native Gateway WebSocket fixture in 59.26 seconds on a disposable profile. The zero-overlap paraphrase returned the same Observation revision and exact support citation as the keyword query. A fresh authorized turn returned the same supporting Memory while a challenge-bound Verify request was held. Releasing Verify restored the exact Observation before the terminal source check.
+
+Both runs used scripted local inference and Core `8d0b432dafc023b31dade2c06c46b75c1ab266bf`. The signed fixtures cover host delivery as well as Core selection. The separate processing profile stayed outside the test setup.
+
 ## Related docs
 
 - [Host integration spec](../planning/perception-host-integration-spec-2026-11-24.md)
