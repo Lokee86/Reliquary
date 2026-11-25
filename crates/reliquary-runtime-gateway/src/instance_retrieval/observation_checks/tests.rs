@@ -250,6 +250,21 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
     let before = search(10);
     assert_eq!(before.observations.len(), 4);
     assert!(before.memories.is_empty());
+    let inspecting = alice
+        .begin_memory_retrieval(
+            fixture.owner,
+            "inspection-disclosure",
+            RetrievalMode::Inspect,
+        )
+        .unwrap();
+    let observation_version = before.cut.observation_version.unwrap();
+    alice
+        .accept_inspected_observations(&inspecting, observation_version, &[independent])
+        .unwrap();
+    assert_eq!(
+        inspecting.state.lock().unwrap().provided_observations,
+        BTreeSet::from([independent])
+    );
     let host = Arc::new(Host::default());
     let router = connect(&fixture.gateway, host.clone());
     let accepted = alice
@@ -297,6 +312,10 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
     );
     assert_eq!(after.observations.len(), 1);
     assert_eq!(after.observations[0].claim.citation, independent);
+    assert!(matches!(
+        alice.accept_inspected_observations(&inspecting, observation_version, &[first_cite]),
+        Err(GatewayError::StaleRetrieval)
+    ));
     assert!(
         alice
             .list_observations(fixture.owner, Some(&cursor), 1)

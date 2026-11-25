@@ -46,6 +46,45 @@ impl Instance {
         })
     }
 
+    /// Confirm the exact Observation revisions disclosed by an inspecting host.
+    /// This advances turn-local recall state without publishing accepted Memory use.
+    pub fn accept_inspected_observations(
+        &self,
+        turn: &MemoryRetrievalTurn,
+        observation_version: u64,
+        citations: &[ObservationCitation],
+    ) -> Result<(), GatewayError> {
+        if turn.mode != RetrievalMode::Inspect || citations.len() > MAX_AGENTIC_OBSERVATIONS {
+            return Err(GatewayError::InvalidPreparedRetrieval);
+        }
+        let _delivery = turn
+            .delivery
+            .try_lock()
+            .map_err(|_| GatewayError::HostStatusUnknown)?;
+        let mut state = turn
+            .state
+            .lock()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        validate_turn_binding(self, turn, turn.owner, &turn.turn_id)?;
+        self.with_reliquary(turn.owner, |rel| {
+            let current = ObservationReadCut::capture(rel);
+            if current.publication != observation_version
+                || citations.iter().any(|cite| {
+                    !current.contains(*cite) || rel.observation_citation_text(cite).is_err()
+                })
+            {
+                return Err(GatewayError::StaleRetrieval);
+            }
+            Ok(())
+        })??;
+        self.ensure_credential_active()?;
+        state
+            .provided_observations
+            .extend(citations.iter().copied());
+        state.generation = state.generation.saturating_add(1);
+        Ok(())
+    }
+
     pub fn prepare_agentic_memory_delivery(
         &self,
         turn: &MemoryRetrievalTurn,
