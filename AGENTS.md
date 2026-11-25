@@ -25,7 +25,7 @@ Documentation is part of the implementation. Update the canonical owner and affe
 - Only authenticated Instances with owner-specific grants perform hosted operations. Revocation is checked by the operation paths; filesystem paths and identifiers are not credentials.
 - Writes publish through the owning session and its durable commit boundary. Do not describe a completed in-memory step as durable until the product operation reports success.
 - Credential values and master keys must not appear in logs, CLI arguments, JSON reports, examples, or committed configuration.
-- A provider route or embedding profile used by durable work is bound according to the recorded workflow plan; resume must follow that plan.
+- Native import resume verifies the accepted embedding compatibility profile and uses the current inference routes. Other workflows follow their recorded bindings.
 - Retrieval, browsing and CLI display do not prove external consumption or earn accepted-use credit.
 - Copy maintenance is create-only: destination paths must not be replaced.
 

@@ -319,23 +319,8 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
         ],
         true,
     );
-    assert_eq!(
-        instance
-            .resume_held_processing(owner, &other_runtime, options.clone(), EpisodeId(episode))
-            .err()
-            .expect("a different Dream route must reject before retry")
-            .kind(),
-        ProductErrorKind::Conflict
-    );
-    assert_eq!(
-        instance
-            .processing_status(owner, Some(&stage.import_id))
-            .unwrap()
-            .held,
-        1
-    );
     let report = instance
-        .resume_held_processing(owner, &runtime, options.clone(), EpisodeId(episode))
+        .resume_held_processing(owner, &other_runtime, options.clone(), EpisodeId(episode))
         .unwrap()
         .join()
         .unwrap();
@@ -373,13 +358,6 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
         let (gateway, admission, instance, reopened_owner, reopened_destination) =
             mount(&rel, &phy);
         assert_eq!((reopened_owner, reopened_destination), (owner, destination));
-        assert_eq!(
-            instance
-                .process_and_drain(owner, &other_runtime, options.clone())
-                .unwrap_err()
-                .kind(),
-            ProductErrorKind::Conflict
-        );
         fixture.changed_profile.store(true, Ordering::Release);
         assert_eq!(
             instance
@@ -405,6 +383,7 @@ fn configured_import_processes_rel_and_phy_and_reopens_without_republication() {
         serde_json::to_value(report).unwrap()
     };
     let before_restart = replay(&runtime);
+    assert_eq!(replay(&other_runtime), before_restart);
     drop(runtime);
     let restarted_runtime = ConfiguredRuntime::from_path(&config).unwrap();
     assert_eq!(replay(&restarted_runtime), before_restart);

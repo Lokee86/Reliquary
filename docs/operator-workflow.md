@@ -60,7 +60,7 @@ reliquary rel process project.rel --import IMPORT_ID --config reliquary.cfg --un
 reliquary rel work status project.rel --import IMPORT_ID
 ```
 
-The pipeline uses the recorded processing plan for that import, including model routes, compatibility profile and stage policy. `--phy` routes private work when supported. Expected result is a processing report showing completed/held/remaining work and import state. A result with `ok: false` is nonzero and must not be treated as ready.
+The pipeline reads model routes from the supplied config on each run and checks the import's accepted embedding compatibility profile on resume. `--phy` routes private work when supported. Expected result is a processing report showing completed/held/remaining work and import state. A result with `ok: false` is nonzero and must not be treated as ready.
 
 For an existing live REL conversation queue, use `rel process project.rel --config reliquary.cfg --until idle` to drain Insomnia; named stage commands include `rel dream run project.rel --config reliquary.cfg`, `rel entity-resolution run project.rel --config reliquary.cfg`, and `rel vectors build project.rel --config reliquary.cfg`. Check status using `rel insomnia status project.rel`, `rel dream status project.rel`, `rel entity-resolution status project.rel` and `rel freshness status project.rel`. `dream` and `entity-resolution` live commands accept `--phy`; the current CLI vector status requires `--profile HEX`.
 
