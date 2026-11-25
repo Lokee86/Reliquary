@@ -487,6 +487,106 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
 }
 
 #[test]
+fn committed_source_removal_fences_prepared_and_retained_returns() {
+    let fixture = Fixture::new();
+    let support = source(&fixture);
+    let (first, upstream) = create_observation(&fixture, support, 18, "A handoff was approved.");
+    let (second, _) =
+        create_observation(&fixture, upstream, 19, "The approved handoff can proceed.");
+    let alice = fixture.alice();
+    let prepare = |turn: &MemoryRetrievalTurn| {
+        alice
+            .prepare_agentic_memory_delivery(
+                turn,
+                &route(),
+                RetrievalAction::Query("needle approved handoff".into()),
+                None,
+                None,
+            )
+            .unwrap()
+            .prepared
+            .unwrap()
+    };
+    let turn = alice
+        .begin_memory_retrieval_turn(fixture.owner, "before-source-removal")
+        .unwrap();
+    let token = prepare(&turn);
+    let preview = alice
+        .preview_agentic_memory_delivery(&turn, &token)
+        .unwrap();
+    assert!(!preview.memories.is_empty());
+    assert_eq!(preview.observations.len(), 2);
+
+    let host = Arc::new(Host::default());
+    let router = connect(&fixture.gateway, host.clone());
+    let confirmed = alice
+        .begin_memory_retrieval_turn(fixture.owner, "confirmed-copy")
+        .unwrap();
+    let confirmed_token = prepare(&confirmed);
+    alice
+        .deliver_agentic_memory_confirmed(&confirmed, &confirmed_token, &router)
+        .unwrap();
+
+    assert!(
+        alice
+            .with_rel_writer(fixture.owner, |writer| writer
+                .tombstone_conversation("accepted"))
+            .unwrap()
+            .unwrap()
+    );
+    assert!(matches!(
+        alice.preview_agentic_memory_delivery(&turn, &token),
+        Err(GatewayError::StaleRetrieval)
+    ));
+    assert!(matches!(
+        alice.deliver_agentic_memory_confirmed(&turn, &token, &router),
+        Err(GatewayError::StaleRetrieval)
+    ));
+    let recovery = alice
+        .begin_memory_retrieval_turn(fixture.owner, "confirmed-copy")
+        .unwrap();
+    // Accounting may replay an existing receipt. It cannot return claim bodies.
+    if alice
+        .recover_agentic_memory_delivery(&recovery, confirmed_token.stable_id(), &router)
+        .is_ok()
+    {
+        assert!(
+            recovery
+                .state
+                .lock()
+                .unwrap()
+                .provided_observations
+                .is_empty()
+        );
+    }
+    assert_eq!(host.calls.load(Ordering::Relaxed), 1);
+    let search = alice
+        .search_rel_memories(
+            fixture.owner,
+            "needle approved handoff",
+            SearchMode::Lexical,
+            Some(20),
+            None,
+        )
+        .unwrap();
+    assert!(!search.memories.is_empty());
+    assert!(search.observations.is_empty());
+    for id in [first, second] {
+        let historical = alice
+            .inspect_observation(fixture.owner, id, Some(1))
+            .unwrap()
+            .unwrap();
+        assert!(historical.claim.proposition.is_empty());
+    }
+    assert!(
+        alice
+            .inspect_observation_evidence(fixture.owner, first, 1, support)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
 fn paraphrase_uses_the_shared_memory_search_until_observation_review() {
     let fixture = Fixture::new();
     let support = source(&fixture);
