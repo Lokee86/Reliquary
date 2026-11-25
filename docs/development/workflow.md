@@ -36,6 +36,8 @@ The workspace contains the Root consumer package, a separate CLI package, and fo
 
 Expected result: formatting, compilation, relevant tests and dependency checks pass for the changed boundary, and documentation describes the implementation and tested failure/recovery behavior. A passing package test is not full product or standards-compliance acceptance.
 
+The detached CLI and external consumer each lock the Root package version. Refresh their lockfiles alongside the workspace lock when preparing a Core release.
+
 For Community recompute, the focused Root test covers archived graph members. The real-corpus acceptance runs preview, apply, and fresh reopen on an inactive copy according to the [Leiden execution plan](../planning/leiden-community-recomputation-plan-2026-11-18.md).
 
 For Archive vector search acceptance, set `RELIQUARY_ARCHIVE_FIXTURE` to an existing REL 2.1 with a published Archive vector generation and run `cargo test --locked --offline -j 1 --test public_api archive_search_matches_reference_and_reopens -- --ignored --nocapture`. The test uses a disposable copy under `.test-tmp` and compares exact and hybrid top-10 against full reference scans before and after index publication and reopen. It uses the same 20 stored embeddings as the latency benchmark and up to 12 terms from each source fragment. It verifies idempotent publication, the original file prefix and the indexed copy checksum after searches. The owner-session `archive_lexical_publication_recovers_and_retries_without_duplicate_frames` test covers incomplete tail repair and invalid records. Measure first-query and mount latency separately on fresh release-build sessions with stored embeddings, and verify reported index bytes against the REL size delta.

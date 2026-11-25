@@ -13,7 +13,7 @@ use std::{
     process::ExitCode,
 };
 
-const HELP: &str = r#"reliquary 0.1.0
+const HELP: &str = r#"
 Supported Reliquary 2.1 operator CLI
 
 USAGE:
@@ -84,7 +84,7 @@ existing destination. There is deliberately no cva alias.
 fn main() -> ExitCode {
     let args = env::args().skip(1).collect::<Vec<_>>();
     if args.is_empty() || args == ["--help"] || args == ["-h"] {
-        print!("{HELP}");
+        print!("reliquary {}{HELP}", env!("CARGO_PKG_VERSION"));
         return ExitCode::SUCCESS;
     }
     match run_cli(args, io::stdin().lock(), io::stdout().lock()) {

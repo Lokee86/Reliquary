@@ -42,7 +42,7 @@ Paths below are relative to the repository root. A focused owner serves several 
 | `reliquary-project-environment` | [Semantic processing](../architecture/semantic-processing.md) | crate composition tests; project-source consumer |
 | `reliquary-cli` — `cli/` (separate Cargo workspace) | [CLI](../reference/cli.md), [operator workflow](../operator-workflow.md) | `cli/tests/cli.rs`, `cli/tests/g4_corpus.rs` |
 
-Unless otherwise stated, crate code roots are `crates/<package>/`. Vendored `quinn-proto` is a third-party Cargo patch, not a new Reliquary authority; dependency/lock changes require system and build review. Test-only dev dependencies do not change production ownership.
+Unless otherwise stated, crate code roots are `crates/<package>/`. The `quinn-proto` vendor patch is covered by the system architecture and the build review. Verify upstream security fixes against the exact vendored source and run the locked workspace and Lore project-history checks. Test-only dev dependencies do not change production ownership.
 
 ## Public and machine-readable contracts
 
