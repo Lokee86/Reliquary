@@ -5,7 +5,7 @@ use reliquary_application::native_import_source as source;
 use reliquary_vectors::SwitchboardEmbeddingEndpoint;
 use std::{path::Path, sync::Arc};
 
-pub use reliquary_runtime_gateway::ArchiveVectorPublication;
+pub use reliquary_runtime_gateway::ArchiveVectorPublication as NativeImportArchiveVectorPublication;
 pub use source::{
     HermesCopiedAuthor, HermesCopiedEcho, HermesCopiedEchoKind, HermesCopiedMessage,
     HermesCopiedRole, HermesCopiedSnapshot, HermesCopiedSource, HermesCopiedSourceTurn,
@@ -165,7 +165,7 @@ impl Instance {
         owner: OwnerId,
         import_id: &str,
         endpoint: Arc<dyn EmbeddingEndpoint>,
-    ) -> Result<ArchiveVectorPublication, ProductError> {
+    ) -> Result<NativeImportArchiveVectorPublication, ProductError> {
         self.require(OwnerGrant::OperateRel(owner))?;
         validate_import_id(import_id)?;
         Ok(self.inner.publish_native_import_archive_vectors(

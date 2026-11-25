@@ -314,7 +314,7 @@ fn archive_vectors_publish_through_a_staged_import_without_processing() {
                 .is_err()
         );
         assert_eq!(endpoint.calls.load(Ordering::Relaxed), 0);
-        let published = operator
+        let published: reliquary_memory::NativeImportArchiveVectorPublication = operator
             .publish_native_import_archive_vectors(owner, &staged.import_id, endpoint.clone())
             .unwrap();
         assert!(published.fragment_count > 1);

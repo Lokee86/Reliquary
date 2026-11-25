@@ -521,7 +521,7 @@ fn configured_archive_publication_activates_searchable_generation() {
             .kind(),
         ProductErrorKind::Unauthorized
     );
-    let generation = operator
+    let generation: crate::ArchiveVectorPublication = operator
         .publish_archive_vectors(owner, &runtime, None)
         .unwrap()
         .unwrap();
