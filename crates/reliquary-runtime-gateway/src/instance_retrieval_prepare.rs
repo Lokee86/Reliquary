@@ -70,7 +70,7 @@ impl Instance {
             let current = ObservationReadCut::capture(rel);
             if current.publication != observation_version
                 || citations.iter().any(|cite| {
-                    !current.contains(*cite) || rel.observation_citation_text(cite).is_err()
+                    !current.contains(cite) || rel.observation_citation_text(cite).is_err()
                 })
             {
                 return Err(GatewayError::StaleRetrieval);
