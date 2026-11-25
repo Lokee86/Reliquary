@@ -485,3 +485,58 @@ fn freshness_rejects_other_container_kind_with_same_owner_id() {
     let mut reopened = FreshnessStore::open(&rel).unwrap();
     assert!(reopened.initialize(&mut phy).is_err());
 }
+
+#[test]
+fn first_cycle_preflight_stages_only_the_source_birth() {
+    let temp = TempDir::new();
+    let owner = [91; 16];
+    let mut container = Container::create(
+        temp.0.join("initial-group.rel"),
+        ContainerIdentity::reliquary(ReliquaryScope::Project),
+        owner,
+    )
+    .unwrap();
+    let mut store = FreshnessStore::new(Some(owner));
+    store.initialize(&mut container).unwrap();
+    let source = FreshnessMemoryId([92; 32]);
+    let target = FreshnessMemoryId([93; 32]);
+    let principal = store.policy().linkage_principal;
+    let effects = [(target, principal)]
+        .into_iter()
+        .collect::<std::collections::BTreeMap<_, _>>();
+
+    assert_eq!(
+        store.apply_grouped_births(owner, 2, vec![target, target]),
+        Err("Freshness birth already exists".into())
+    );
+    assert_eq!(
+        store.prepare_initial_dream(source, 3, 5, 4, None, effects.clone()),
+        Err("Freshness event references unenrolled Memory".into())
+    );
+    store
+        .preflight_grouped_births(owner, 2, vec![target])
+        .unwrap();
+    assert_eq!(
+        store.prepare_initial_dream(source, 3, 5, 4, None, effects.clone()),
+        Err("Freshness event references unenrolled Memory".into())
+    );
+    store.apply_grouped_births(owner, 2, vec![target]).unwrap();
+
+    let payloads = store
+        .prepare_initial_dream(source, 3, 5, 4, None, effects.clone())
+        .unwrap();
+    assert_eq!(payloads.len(), 3);
+    assert_eq!(
+        store.ingest_payload(&payloads[2]),
+        Err("Freshness activity lacks its enrolled Dream source principal".into())
+    );
+    assert_eq!(
+        store
+            .validate_initial_dream(source, 3, 5, 4, None, &payloads)
+            .unwrap(),
+        effects
+    );
+    for payload in payloads {
+        store.ingest_payload(&payload).unwrap();
+    }
+}

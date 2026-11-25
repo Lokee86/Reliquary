@@ -18,6 +18,13 @@ mod history_cut;
 #[path = "initial_dream.rs"]
 mod initial_dream;
 
+// A first-cycle birth being validated before it is applied to the store.
+#[derive(Clone, Copy)]
+struct PendingBirth {
+    memory_id: FreshnessMemoryId,
+    accepted_turn: u64,
+}
+
 const MAX_FRAME_BYTES: u64 = 128 * 1024 * 1024;
 
 fn freshness_replay_frame(prefix: &[u8]) -> bool {
@@ -173,7 +180,7 @@ impl FreshnessStore {
                     }
                     // Retained completions used default v1 before the explicit policy record.
                     if payload.starts_with(b"RELINSC8") && !store.policy_persisted {
-                        store.apply_grouped_births_at(owner, turn, memory_ids)?;
+                        store.apply_grouped_births_at(owner, turn, memory_ids, false)?;
                     } else {
                         store.apply_grouped_births(owner, turn, memory_ids)?;
                     }
@@ -201,8 +208,7 @@ impl FreshnessStore {
         accepted_turn: u64,
         memory_ids: Vec<FreshnessMemoryId>,
     ) -> Result<(), String> {
-        let mut projected = self.clone();
-        projected.apply_grouped_births(owner, accepted_turn, memory_ids)
+        self.validate_grouped_births(owner, accepted_turn, &memory_ids, true)
     }
 
     pub fn apply_grouped_births(
@@ -211,10 +217,7 @@ impl FreshnessStore {
         accepted_turn: u64,
         memory_ids: Vec<FreshnessMemoryId>,
     ) -> Result<(), String> {
-        if !self.policy_persisted {
-            return Err("grouped Freshness birth precedes owner policy".into());
-        }
-        self.apply_grouped_births_at(owner, accepted_turn, memory_ids)
+        self.apply_grouped_births_at(owner, accepted_turn, memory_ids, true)
     }
 
     fn apply_grouped_births_at(
@@ -222,24 +225,46 @@ impl FreshnessStore {
         owner: [u8; 16],
         accepted_turn: u64,
         memory_ids: Vec<FreshnessMemoryId>,
+        require_policy: bool,
     ) -> Result<(), String> {
+        self.validate_grouped_births(owner, accepted_turn, &memory_ids, require_policy)?;
+        for memory_id in memory_ids {
+            self.apply_entry(JournalEntry::Birth {
+                memory_id,
+                accepted_turn,
+                admitted_at_birth: false,
+            })?;
+        }
+        Ok(())
+    }
+
+    fn validate_grouped_births(
+        &self,
+        owner: [u8; 16],
+        accepted_turn: u64,
+        memory_ids: &[FreshnessMemoryId],
+        require_policy: bool,
+    ) -> Result<(), String> {
+        if require_policy && !self.policy_persisted {
+            return Err("grouped Freshness birth precedes owner policy".into());
+        }
         if self.owner_uuid.is_some_and(|actual| actual != owner) {
             return Err("grouped Freshness birth belongs to another owner".into());
         }
         if self.owner_uuid.is_none() {
             return Err("grouped Freshness owner identity is required".into());
         }
-        let mut next = self.clone();
-        for memory_id in memory_ids {
-            let entry = JournalEntry::Birth {
+        let mut seen = BTreeSet::new();
+        for &memory_id in memory_ids {
+            self.validate_entry(&JournalEntry::Birth {
                 memory_id,
                 accepted_turn,
                 admitted_at_birth: false,
-            };
-            next.validate_entry(&entry)?;
-            next.apply_entry(entry)?;
+            })?;
+            if !seen.insert(memory_id) {
+                return Err("Freshness birth already exists".into());
+            }
         }
-        *self = next;
         Ok(())
     }
 
@@ -724,6 +749,26 @@ impl FreshnessStore {
     }
 
     fn validate_entry(&self, entry: &JournalEntry) -> Result<(), String> {
+        self.validate_entry_with_birth(entry, None)
+    }
+
+    fn birth_with_pending(
+        &self,
+        memory_id: &FreshnessMemoryId,
+        pending_birth: Option<PendingBirth>,
+    ) -> Option<(u64, bool)> {
+        self.births.get(memory_id).copied().or_else(|| {
+            pending_birth
+                .filter(|birth| birth.memory_id == *memory_id)
+                .map(|birth| (birth.accepted_turn, false))
+        })
+    }
+
+    fn validate_entry_with_birth(
+        &self,
+        entry: &JournalEntry,
+        pending_birth: Option<PendingBirth>,
+    ) -> Result<(), String> {
         match entry {
             JournalEntry::Birth {
                 memory_id,
@@ -740,9 +785,7 @@ impl FreshnessStore {
                 accepted_turn,
             } => {
                 let (birth_turn, admitted_at_birth) = self
-                    .births
-                    .get(memory_id)
-                    .copied()
+                    .birth_with_pending(memory_id, pending_birth)
                     .ok_or("Freshness admission has no accepted birth")?;
                 if *accepted_turn < birth_turn {
                     return Err("Freshness admission precedes accepted birth".into());
@@ -751,7 +794,7 @@ impl FreshnessStore {
                     return Err("Freshness admission cannot be reanchored".into());
                 }
             }
-            JournalEntry::Event(event) => self.validate_event(event)?,
+            JournalEntry::Event(event) => self.validate_event(event, pending_birth)?,
             JournalEntry::AcceptedUse(receipt, proof) => {
                 proof.validate()?;
                 if receipt.use_id.trim().is_empty()
@@ -783,7 +826,11 @@ impl FreshnessStore {
         Ok(())
     }
 
-    fn validate_event(&self, event: &FreshnessEvent) -> Result<(), String> {
+    fn validate_event(
+        &self,
+        event: &FreshnessEvent,
+        pending_birth: Option<PendingBirth>,
+    ) -> Result<(), String> {
         event.proof.validate()?;
         let owner = self
             .owner_uuid
@@ -814,9 +861,8 @@ impl FreshnessStore {
         }
         let source_id = decode_hex_32(&event.event_id[source_prefix.len()..])?;
         if !self
-            .births
-            .get(&FreshnessMemoryId(source_id))
-            .is_some_and(|(birth, _)| *birth <= event.accepted_turn)
+            .birth_with_pending(&FreshnessMemoryId(source_id), pending_birth)
+            .is_some_and(|(birth, _)| birth <= event.accepted_turn)
             || !event
                 .effects
                 .values()
@@ -826,10 +872,9 @@ impl FreshnessStore {
         }
         for memory_id in event.effects.keys() {
             let (birth_turn, _) = self
-                .births
-                .get(memory_id)
+                .birth_with_pending(memory_id, pending_birth)
                 .ok_or("Freshness event references unenrolled Memory")?;
-            if *birth_turn > event.accepted_turn {
+            if birth_turn > event.accepted_turn {
                 return Err("Freshness event precedes Memory birth".into());
             }
         }
