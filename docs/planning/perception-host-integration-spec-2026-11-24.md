@@ -51,6 +51,7 @@ Prepare an updated Hermes package and exact catalog candidate using the existing
 
 ## Related docs
 
+- [Host integration acceptance](../acceptance/perception-host-integration-2026-11-24.md)
 - [Same-REL Core implementation plan](perception-implementation-plan-2026-11-24.md)
 - [Native route configuration](../configured-runtime.md)
 - [Core public retrieval API](../public-product-api.md#same-rel-observations)
