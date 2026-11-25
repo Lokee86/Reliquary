@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -63,7 +64,11 @@ def main() -> int:
         clean = docs(repo)
         if clean["findings"] or clean["baselined_findings"]:
             raise RuntimeError("clean fixture has documentation debt: " + json.dumps(clean))
-        require_ok(run(repo, sys.executable, "scripts/check_architecture.py"))
+        architecture_baseline = run(repo, sys.executable, "scripts/check_architecture.py")
+        require_ok(architecture_baseline)
+        test_edges = re.search(r"^Test-only dependency edges: (\d+);", architecture_baseline.stdout, re.M)
+        if test_edges is None:
+            raise RuntimeError("architecture baseline did not report test-only edges: " + architecture_baseline.stdout)
         require_ok(run(repo, sys.executable, "scripts/check_documentation_entrypoints.py"))
         print("PASS clean documentation and exact DAG baseline")
 
@@ -169,11 +174,12 @@ def main() -> int:
         # Dev dependencies are reported for context but remain outside the runtime DAG.
         manifest.write_text(content.replace(
             "[dev-dependencies]",
-            '[dev-dependencies]\ntest-leaky = { package = "reliquary-container", path = "crates/reliquary-container" }',
+            '[dev-dependencies]\ntest-perception = { package = "reliquary-perception", path = "crates/reliquary-perception" }',
             1,
         ), encoding="utf-8")
         result = run(repo, sys.executable, "scripts/check_architecture.py")
-        if result.returncode or "Test-only dependency edges: 15; not part of production DAG." not in result.stdout:
+        expected_test_edges = int(test_edges[1]) + 1
+        if result.returncode or f"Test-only dependency edges: {expected_test_edges}; not part of production DAG." not in result.stdout:
             raise RuntimeError("permitted dev dependency was rejected or miscounted: " + result.stdout + result.stderr)
         print("PASS allowed test-only package dependency")
         manifest.write_bytes(original)

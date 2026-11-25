@@ -33,6 +33,10 @@ const C: &str = "Atlas payment review precedes the release step.";
 const RELATIONAL: &str = "Mira supervises Atlas purchasing.";
 const QUALIFIED: &str =
     "Atlas purchase requests other than emergency purchases are reviewed before payment.";
+const B_QUALIFIED: &str =
+    "The Atlas purchase procedure places review before payment for nonemergency purchases.";
+const C_QUALIFIED: &str =
+    "For nonemergency Atlas purchases, review precedes the payment release step.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum Call {
@@ -126,19 +130,25 @@ impl GeneralEndpoint for Script {
                         input["proposal_sources"].clone(),
                         input["proposal_participants"].clone(),
                     )
-                } else if proposition == A {
+                } else if matches!(proposition, A | B | C) {
+                    let (successor, required_text) = match proposition {
+                        A => (QUALIFIED, &[BASE, LIMIT][..]),
+                        B => (B_QUALIFIED, &[QUALIFIED][..]),
+                        C => (C_QUALIFIED, &[B_QUALIFIED][..]),
+                        _ => unreachable!(),
+                    };
                     let evidence = input["source_slots"].as_array().unwrap();
-                    let supporting = evidence
+                    let supporting = required_text
                         .iter()
-                        .filter(|row| row["text"] == BASE || row["text"] == LIMIT)
+                        .filter_map(|text| evidence.iter().find(|row| row["text"] == *text))
                         .map(|row| row["slot"].clone())
                         .collect::<Vec<_>>();
-                    if supporting.len() < 2 {
+                    if supporting.len() != required_text.len() {
                         return Err(GeneralEndpointError::InvalidResponse(
                             "missing supported review sources",
                         ));
                     }
-                    draft(QUALIFIED, json!(supporting), json!([]))
+                    draft(successor, json!(supporting), json!([]))
                 } else {
                     Value::Null
                 };
@@ -628,9 +638,14 @@ fn mounted_worker_publishes_ordinary_relational_and_derived_claims_and_reviews_n
         .append(&[("atlas-qualification".into(), LIMIT)], 0)
         .remove(0);
     let reviewed = run(&fixture, 5, 4, &calls, |items| {
-        items.iter().any(|item| {
-            item.claim.proposition == QUALIFIED && item.standing == ObservationStanding::Current
-        })
+        [QUALIFIED, B_QUALIFIED, C_QUALIFIED]
+            .iter()
+            .all(|expected| {
+                items.iter().any(|item| {
+                    item.claim.proposition == *expected
+                        && item.standing == ObservationStanding::Current
+                })
+            })
     });
     let review_calls = calls.lock().unwrap()[before_review..].to_vec();
     assert!(
@@ -651,6 +666,19 @@ fn mounted_worker_publishes_ordinary_relational_and_derived_claims_and_reviews_n
     assert_eq!(observation_id(latest.claim.citation), a_id);
     assert_eq!(latest.predecessor, Some(1));
     assert_eq!(latest.claim.citation.revision, 2);
+    let b_successor = claim(&reviewed, B_QUALIFIED);
+    let c_successor = claim(&reviewed, C_QUALIFIED);
+    assert_eq!(
+        observation_id(b_successor.claim.citation),
+        observation_id(b.claim.citation)
+    );
+    assert_eq!(
+        observation_id(c_successor.claim.citation),
+        observation_id(c.claim.citation)
+    );
+    assert_eq!(b_successor.claim.support, vec![latest.claim.citation]);
+    assert_eq!(c_successor.claim.support, vec![b_successor.claim.citation]);
+    assert_eq!(c_successor.claim.lineage, latest.claim.lineage);
     let qualification = latest
         .claim
         .support
