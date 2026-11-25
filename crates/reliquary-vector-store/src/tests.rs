@@ -534,10 +534,12 @@ fn archive_mapping_replay_preserves_pruned_packed_backing() {
 fn packed_payload_and_profile_persist_and_reopen() {
     let temp = TempDir::new();
     let packed_path = temp.0.join("packed.rel");
+    let row = [1.0f32, -2.5, 3.75];
+    let rows = 6_000;
     let vectors = PackedVectors::from_bytes(
-        VectorSchema::new(2, ScalarType::F32).unwrap(),
-        [1.0f32, -2.5f32]
-            .into_iter()
+        VectorSchema::new(3, ScalarType::F32).unwrap(),
+        (0..rows)
+            .flat_map(|_| row)
             .flat_map(f32::to_le_bytes)
             .collect(),
     )
@@ -554,13 +556,32 @@ fn packed_payload_and_profile_persist_and_reopen() {
         let mut store = PackedVectorStore::default();
         store.initialize(&mut container).unwrap();
         id = store.put(&mut container, vectors).unwrap();
+        container
+            .append(&crate::codec::encode_object(id, &expected).unwrap())
+            .unwrap();
         container.sync().unwrap();
     }
     let mut container = Container::open_read_only(&packed_path).unwrap();
     let store = PackedVectorStore::open(&container).unwrap();
     assert_eq!(store.get(&mut container, id).unwrap(), expected);
-    assert_eq!(store.read_f32_row(id, 0).unwrap(), vec![1.0, -2.5]);
-    assert!(store.read_f32_row(id, 1).is_err());
+    assert_eq!(store.read_f32_row(id, 0).unwrap(), row);
+    assert!(store.read_f32_row(id, rows).is_err());
+    let leased = PackedVectorStore::open_leased(&container).unwrap();
+    assert_eq!(leased.get(&mut container, id).unwrap(), expected);
+    assert_eq!(leased.read_f32_row(id, 0).unwrap(), row);
+    // Twelve-byte rows straddle the first 64 KiB page boundary.
+    assert_eq!(leased.read_f32_row(id, 5_461).unwrap(), row);
+    assert_eq!(
+        leased.object_positions().collect::<Vec<_>>(),
+        store.object_positions().collect::<Vec<_>>()
+    );
+    drop(container);
+    assert!(matches!(
+        leased.view(id),
+        Err(PackedVectorError::Container(
+            reliquary_container::ContainerError::UnstableSnapshot
+        ))
+    ));
 
     let profile_path = temp.0.join("profiles.rel");
     let expected_profile = profile();
@@ -609,6 +630,10 @@ fn open_rejects_packed_payload_with_invalid_identity_backing() {
     let container = Container::open_read_only(&path).unwrap();
     assert!(matches!(
         PackedVectorStore::open(&container),
+        Err(PackedVectorError::HashCollision)
+    ));
+    assert!(matches!(
+        PackedVectorStore::open_leased(&container),
         Err(PackedVectorError::HashCollision)
     ));
 }

@@ -1,18 +1,16 @@
 use super::*;
 impl DreamPairs {
-    pub(crate) fn batch(
-        &self,
-        id: [u8; 32],
-    ) -> Option<&crate::records::dream_batch::DreamBatchRecord> {
-        self.batches.get(&id)
+    pub(crate) fn batch_fingerprint(&self, id: [u8; 32]) -> Option<[u8; 32]> {
+        self.batch_fingerprints.get(&id).copied()
     }
     pub(crate) fn archival_origin(&self, source: MemoryId, before: u64) -> bool {
-        self.batches.values().any(|b| {
-            b.graph_version + b.graph_records.len() as u64 >= before
-                && b.lifecycles.iter().any(|l| l.id == source.0 && l.archived)
-        }) || self.supersessions.values().any(|s| {
-            s.relation().graph_version > before && s.cut.change.target == NodeRef::Memory(source.0)
-        })
+        self.batch_archivals
+            .get(&source)
+            .is_some_and(|version| *version >= before)
+            || self.supersessions.values().any(|s| {
+                s.relation().graph_version > before
+                    && s.cut.change.target == NodeRef::Memory(source.0)
+            })
     }
     pub(crate) fn duplicate_origin(&self, source: MemoryId, before: u64) -> bool {
         self.initial_links(source, before)
@@ -36,7 +34,7 @@ impl DreamPairs {
         &mut self,
         batch: crate::records::dream_batch::DreamBatchRecord,
     ) -> Result<(), OwnerSessionError> {
-        if self.batches.contains_key(&batch.publication_id)
+        if self.batch_fingerprints.contains_key(&batch.publication_id)
             || batch
                 .pairs
                 .iter()
@@ -60,7 +58,15 @@ impl DreamPairs {
                 );
             }
         }
-        self.batches.insert(batch.publication_id, batch);
+        for lifecycle in batch.lifecycles.into_iter().filter(|l| l.archived) {
+            let latest = self
+                .batch_archivals
+                .entry(MemoryId(lifecycle.id))
+                .or_insert(version);
+            *latest = (*latest).max(version);
+        }
+        self.batch_fingerprints
+            .insert(batch.publication_id, batch.fingerprint);
         Ok(())
     }
 }

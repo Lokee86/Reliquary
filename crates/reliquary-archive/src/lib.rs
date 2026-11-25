@@ -22,8 +22,9 @@ pub use retained::{
 };
 
 pub use archive::{
-    Archive, ArchiveSearchResult, MAX_EVIDENCE_RESULT_BYTES, MAX_EVIDENCE_SEARCH_BYTES,
-    MAX_EVIDENCE_SEARCH_RESULTS, MAX_EVIDENCE_SEARCH_SCAN, MAX_EVIDENCE_TURNS,
+    Archive, ArchiveReplayFrame, ArchiveSearchResult, ImportReceiptIdentity, ImportedTurnReference,
+    MAX_EVIDENCE_RESULT_BYTES, MAX_EVIDENCE_SEARCH_BYTES, MAX_EVIDENCE_SEARCH_RESULTS,
+    MAX_EVIDENCE_SEARCH_SCAN, MAX_EVIDENCE_TURNS,
 };
 pub use echo_model::{EchoError, EchoEvent, EchoEventKind};
 pub use echo_store::EchoStore;

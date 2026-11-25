@@ -1,17 +1,102 @@
 //! Exact owner identity/version cuts at the physical effect prefix.
+use super::dream_population::BirthPopulationReplay;
 use super::identity_receipt::{IdentityHistory, LocalProjection};
 use super::identity_separation::{SeparationHistory, SeparationProjection};
 use super::observations::ObservationPrefix;
 use super::*;
+use crate::records::dream::InferredExplicitFrontier;
+use crate::records::dream::dream_begin_codec::{self, BeginPopulation, BeginRecord};
 use crate::records::user_memory::{UserMemoryEffect, UserMemoryRecord};
 use reliquary_perception_store::observation::ObservationStore;
+use std::io::Read;
+
+#[derive(Default)]
+pub(super) struct DreamReplayPrefix {
+    pub birth_versions: BTreeMap<MemoryId, u64>,
+    pub explicit_admissions: Vec<DreamBeginAdmission>,
+    pub native_admissions: Vec<NativeBirthAdmission>,
+    pub explicit_frontiers: Vec<InferredExplicitFrontier>,
+    pub infer_explicit_populations: bool,
+}
+
+pub(super) struct NativeBirthAdmission {
+    pub begin: BeginRecord,
+    pub first_memory_version: u64,
+    pub memory_cut: u64,
+}
+
+pub(super) struct DreamArchivePrefix<'a> {
+    pub archive: &'a Archive,
+    pub cuts: &'a BTreeMap<u64, (u64, u64)>,
+}
+
+fn graph_prefix_frame(prefix: &[u8]) -> bool {
+    graph_prefix_frame_with_identity(prefix, false)
+}
+
+fn graph_and_identity_prefix_frame(prefix: &[u8]) -> bool {
+    graph_prefix_frame_with_identity(prefix, true)
+}
+
+fn graph_prefix_frame_with_identity(prefix: &[u8], identity: bool) -> bool {
+    if crate::records::import::is_import_epoch_marker(prefix) {
+        return true;
+    }
+    let body = match reliquary_container::decode_publication(prefix) {
+        Ok(Some(envelope)) => envelope.body,
+        Ok(None) => prefix,
+        Err(_) => return true,
+    };
+    let families: &[&[u8]] = &[
+        b"RELDR",
+        b"RELMCOR",
+        b"RELMRET",
+        b"CVDREAM2",
+        b"RELINSC7",
+        b"RELINSC8",
+        b"RELCPRO1",
+        b"RELPVRN1",
+        b"RELMVEC1",
+        b"RELGPB",
+        b"RELASC",
+        b"RELGRF01",
+        b"RELCOM01",
+        b"RELCOM02",
+        b"RELCMP01",
+        b"RELCMN01",
+        b"RELEPB",
+        b"RELPER01",
+        b"RELERH01",
+        b"RELERL01",
+    ];
+    crate::records::memory_prune_proof::memory_history_record(body)
+        || families.iter().any(|marker| body.starts_with(marker))
+        // Packed objects normally arrive through separately proved positions.
+        // Preserve the existing scan fence for an incomplete object header.
+        || (prefix.len() < 64 && prefix.starts_with(b"RELPVEC1"))
+        || (identity
+            && [
+                super::observations::PREFIX,
+                super::identity_receipt::PREFIX,
+                super::identity_separation::PREFIX,
+                b"RELMBOD1",
+                b"RELETM01",
+                b"RELRLP01",
+            ]
+            .iter()
+            .any(|marker| body.starts_with(marker)))
+}
+
 pub(super) fn validate_graph_prefix(
     container: &Container,
     memory_store: &MemoryStore,
+    packed_store: &PackedVectorStore,
     identity_context: Option<(&PerceptionStore, [u8; 32])>,
     pruned_bodies: &BTreeSet<MemoryBodyId>,
     observation_archive: Option<(&Archive, &BTreeMap<u64, (u64, u64)>)>,
     compatibility_profiles: &CompatibilityProfileStore,
+    dream_archive: Option<DreamArchivePrefix<'_>>,
+    dreams: &mut DreamReplayPrefix,
 ) -> Result<(IdentityHistory, SeparationHistory, ObservationStore), OwnerSessionError> {
     let mut observations = ObservationStore::default();
     let mut receipts = IdentityHistory::default();
@@ -21,16 +106,71 @@ pub(super) fn validate_graph_prefix(
     let mut observed_bodies = BTreeSet::new();
     let mut memories = std::collections::BTreeSet::new();
     let mut memory_bodies = std::collections::BTreeSet::new();
-    let mut birth_bodies = std::collections::BTreeMap::new();
     let mut profiles = std::collections::BTreeSet::new();
     let mut active_profiles = std::collections::BTreeSet::new();
     let mut packed_vectors = std::collections::BTreeSet::new();
     let mut entities = std::collections::BTreeSet::new();
     let mut graph_version = 0;
     let mut memory_head = 0;
-    let mut frames = container
-        .scan_matching_frames(crate::records::frame_selection::without_archive_publications)?;
-    while let Some(frame) = frames.next_frame()? {
+    let mut birth_population = BirthPopulationReplay::new(memory_store);
+    let mut imports = ImportEpochStore::prefix(container.owner_id());
+    let mut native_births = BTreeMap::new();
+    let mut native_receipt = None;
+    let mut native_episodes = BTreeSet::new();
+    // The packed store checked the full matrices. Advance their admitted
+    // positions alongside the other frames to preserve the mapping cut.
+    let mut packed_positions: Vec<_> = packed_store.object_positions().collect();
+    packed_positions.sort_unstable_by_key(|(object, _)| object.offset);
+    let mut packed_positions = packed_positions.into_iter().peekable();
+    let select: fn(&[u8]) -> bool = if identity_context.is_some() {
+        graph_and_identity_prefix_frame
+    } else {
+        graph_prefix_frame
+    };
+    let mut frames = container.matching_physical_cursor(select)?;
+    let mut buffer = Vec::new();
+    while let Some(mut reader) = frames.next_frame()? {
+        let object = reader.object();
+        buffer.clear();
+        if identity_context.is_some() {
+            // A timed envelope can occupy 25 bytes. The standalone Memory
+            // body ID follows the eight-byte marker in the next 32 bytes.
+            buffer.resize(object.length.min(65) as usize, 0);
+            reader
+                .read_exact(&mut buffer)
+                .map_err(ContainerError::from)?;
+            let envelope = reliquary_container::decode_publication(&buffer)?;
+            let body = envelope
+                .as_ref()
+                .map_or(buffer.as_slice(), |entry| entry.body);
+            if let Some(id) = reliquary_memory_core::body_id_in_frame(body)? {
+                observed_bodies.insert(id);
+                continue;
+            }
+        }
+        reader
+            .read_to_end(&mut buffer)
+            .map_err(ContainerError::from)?;
+        let frame = reliquary_container::ScannedFrame {
+            object,
+            payload: &buffer,
+        };
+        while let Some((_, id)) =
+            packed_positions.next_if(|(object, _)| object.offset < frame.object.offset)
+        {
+            packed_vectors.insert(id.0);
+        }
+        if crate::records::import::is_import_epoch_marker(frame.payload) {
+            imports
+                .ingest_prefix(frame.payload)
+                .map_err(OwnerSessionError::Record)?;
+            if imports.open_epoch().is_none() {
+                native_births.clear();
+                native_receipt = None;
+                native_episodes.clear();
+            }
+            continue;
+        }
         if let Some((perception, history_generation)) = identity_context {
             let envelope = reliquary_container::decode_publication(frame.payload)?;
             let body = envelope.as_ref().map_or(frame.payload, |entry| entry.body);
@@ -97,47 +237,148 @@ pub(super) fn validate_graph_prefix(
             {
                 retained_ordinal_cut = Some(ordinal);
             }
-            if let Some(id) = reliquary_memory_core::body_id_in_frame(body)? {
-                observed_bodies.insert(id);
-            }
             if let Some(version) =
                 reliquary_perception_store::perception_version_in_frame(frame.payload)?
             {
                 perception_cut = version;
             }
         }
-        if let Some(frontier) =
-            crate::records::dream_frontier::FrontierRecord::decode(frame.payload)
+        if let Some((mut frontier, begin)) =
+            crate::records::dream_frontier::FrontierRecord::decode_with_begin(frame.payload)
                 .map_err(OwnerSessionError::Record)?
         {
-            if frontier.owner != container.owner_id()
-                || frontier.graph_version != graph_version
-                || frontier.memory_version != memory_head
-                || std::iter::once(&frontier.source)
-                    .chain(frontier.candidates.iter())
-                    .any(|o| {
-                        !memory_store
-                            .record_at_cut(MemoryId(o.id), memory_head)
-                            .is_some_and(|r| {
-                                r.revision == o.revision && r.body_id.0 == o.body && !r.archived
+            validate_frontier_cut(
+                container.owner_id(),
+                memory_store,
+                memory_head,
+                graph_version,
+                &frontier,
+            )?;
+            if let Some(begin) = begin {
+                let birth_version = *dreams
+                    .birth_versions
+                    .get(&begin.source_id)
+                    .ok_or(OwnerSessionError::StaleDreamCut)?;
+                match begin.population {
+                    BeginPopulation::ExplicitSet(ids) => {
+                        if &ids != birth_population.at(birth_version)? {
+                            return Err(OwnerSessionError::StaleDreamCut);
+                        }
+                        if dreams.infer_explicit_populations {
+                            frontier.begin = None;
+                            dreams.explicit_frontiers.push(InferredExplicitFrontier {
+                                position: frame.object,
+                                frontier,
+                                turn: begin.turn,
+                                first_memory_version: birth_version,
+                            });
+                        } else {
+                            dreams.explicit_admissions.push(DreamBeginAdmission {
+                                owner_uuid: container.owner_id(),
+                                pass_id: begin.pass_id,
+                                source_id: begin.source_id,
+                                turn: begin.turn,
+                                graph_version_before: begin.graph_version_before,
+                                preexisting_ids: ids,
+                                memory_cut: memory_head,
+                            });
+                        }
+                    }
+                    BeginPopulation::NativeBirth {
+                        first_memory_version,
+                        ..
+                    } => {
+                        let epoch = imports
+                            .open_epoch()
+                            .filter(|epoch| {
+                                epoch.format_version == 2
+                                    && imports.settlement(&epoch.import_id).is_none()
                             })
-                    })
-            {
-                return Err(OwnerSessionError::StaleDreamCut);
+                            .ok_or(OwnerSessionError::StaleDreamCut)?;
+                        let (first, episode_id) = native_births
+                            .get(&begin.source_id)
+                            .copied()
+                            .ok_or(OwnerSessionError::StaleDreamCut)?;
+                        let archive = dream_archive
+                            .as_ref()
+                            .ok_or(OwnerSessionError::StaleDreamCut)?;
+                        let &(archive_cut, turn) = archive
+                            .cuts
+                            .get(&frame.object.offset)
+                            .ok_or(OwnerSessionError::StaleDreamCut)?;
+                        if first != first_memory_version
+                            || birth_version != first_memory_version
+                            || first_memory_version <= epoch.pre.memory_version
+                            || begin.pass_id
+                                != RelWriter::native_import_dream_identity(
+                                    &epoch.import_id,
+                                    begin.source_id,
+                                )
+                                .0
+                            || turn != begin.turn
+                        {
+                            return Err(OwnerSessionError::StaleDreamCut);
+                        }
+                        if native_receipt.is_none() {
+                            let key = super::native_import::decode_import_key(&epoch.import_key)
+                                .ok_or(OwnerSessionError::StaleDreamCut)?;
+                            let version = archive
+                                .archive
+                                .import_receipt_archive_version(&key)
+                                .ok_or(OwnerSessionError::StaleDreamCut)?;
+                            let receipt = archive
+                                .archive
+                                .import_receipt(&key)?
+                                .ok_or(OwnerSessionError::StaleDreamCut)?;
+                            native_receipt = Some((
+                                version,
+                                super::native_import::ImportSourceMap::from_receipt(
+                                    receipt.as_ref(),
+                                ),
+                            ));
+                        }
+                        let (receipt_version, mapped) =
+                            native_receipt.as_ref().expect("native receipt loaded");
+                        if *receipt_version > archive_cut {
+                            return Err(OwnerSessionError::StaleDreamCut);
+                        }
+                        if native_episodes.insert(episode_id)
+                            && !super::native_import::native_dream_episode_is_mapped(
+                                archive.archive,
+                                episode_id,
+                                |conversation, node| mapped.contains(conversation, node),
+                            )?
+                        {
+                            return Err(OwnerSessionError::StaleDreamCut);
+                        }
+                        dreams.native_admissions.push(NativeBirthAdmission {
+                            begin,
+                            first_memory_version,
+                            memory_cut: memory_head,
+                        });
+                    }
+                    _ => return Err(OwnerSessionError::StaleDreamCut),
+                }
             }
-            if let Some(payload) = &frontier.begin {
-                let begin = crate::records::dream::dream_begin_codec::decode(payload)
-                    .map_err(OwnerSessionError::Record)?;
-                let population = super::dream_population::birth_population(
-                    container,
-                    memory_store,
-                    begin.source_id,
-                )?;
-                if begin.population
-                    != crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(
-                        population,
-                    )
-                {
+        } else if frame.payload.starts_with(b"CVDREAM2") {
+            let begin =
+                dream_begin_codec::decode(frame.payload).map_err(OwnerSessionError::Record)?;
+            match begin.population {
+                BeginPopulation::ExplicitSet(ids) => {
+                    dreams.explicit_admissions.push(DreamBeginAdmission {
+                        owner_uuid: container.owner_id(),
+                        pass_id: begin.pass_id,
+                        source_id: begin.source_id,
+                        turn: begin.turn,
+                        graph_version_before: begin.graph_version_before,
+                        preexisting_ids: ids,
+                        memory_cut: memory_store
+                            .first_memory_version(begin.source_id)
+                            .unwrap_or_default(),
+                    });
+                }
+                BeginPopulation::CompactCut { .. } => (),
+                BeginPopulation::NativeBirth { .. } => {
                     return Err(OwnerSessionError::StaleDreamCut);
                 }
             }
@@ -183,24 +424,13 @@ pub(super) fn validate_graph_prefix(
         let batch = crate::records::dream_batch::DreamBatchRecord::decode(frame.payload)
             .map_err(OwnerSessionError::Record)?;
         if let Some(record) = &batch {
-            if record.owner != container.owner_id()
-                || record.memory_version != memory_head
-                || record.graph_version != graph_version
-                || record.observed.iter().any(|o| {
-                    !memory_store
-                        .record_at_cut(MemoryId(o.id), memory_head)
-                        .is_some_and(|r| r.revision == o.revision && r.body_id.0 == o.body)
-                })
-                || record.pairs.iter().any(|p| {
-                    [p.source, p.candidate].iter().any(|id| {
-                        !memory_store
-                            .record_at_cut(MemoryId(*id), memory_head)
-                            .is_some_and(|r| !r.archived)
-                    })
-                })
-            {
-                return Err(OwnerSessionError::StaleDreamCut);
-            }
+            validate_batch_cut(
+                container.owner_id(),
+                memory_store,
+                memory_head,
+                graph_version,
+                record,
+            )?;
         }
         let children: Vec<&[u8]> = match &batch {
             Some(record) => record
@@ -225,7 +455,9 @@ pub(super) fn validate_graph_prefix(
                 memories.insert(record.id.0);
                 memory_bodies.insert(record.body_id.0);
                 if record.revision == 1 {
-                    birth_bodies.insert(record.id.0, record.body_id.0);
+                    dreams
+                        .birth_versions
+                        .insert(record.id, record.memory_version);
                 }
             } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
                 let completion = GroupedInsomniaCompletion::decode(payload)
@@ -233,13 +465,27 @@ pub(super) fn validate_graph_prefix(
                 if identity_context.is_some() {
                     observed_bodies.extend(completion.bodies.iter().map(|body| body.id));
                 }
+                // Memory replay validated the creations in contiguous version
+                // order. Every sibling shares the first version of this frame.
+                let mut cohort_birth = None;
+                let native = imports.open_epoch().is_some_and(|epoch| {
+                    epoch.format_version == 2 && imports.settlement(&epoch.import_id).is_none()
+                });
                 for record in completion.memory_records {
                     let record = reliquary_memory_core::decode_grouped_creation(&record)?;
                     memory_head = record.memory_version;
                     memories.insert(record.id.0);
                     memory_bodies.insert(record.body_id.0);
-                    if record.revision == 1 {
-                        birth_bodies.insert(record.id.0, record.body_id.0);
+                    let first = *cohort_birth.get_or_insert(record.memory_version);
+                    dreams.birth_versions.insert(record.id, first);
+                    if native
+                        && record.revision == 1
+                        && record.source_episode_id == Some(completion.episode_id)
+                    {
+                        native_births.insert(
+                            record.id,
+                            (first, reliquary_archive::EpisodeId(completion.episode_id)),
+                        );
                     }
                 }
             }
@@ -456,6 +702,59 @@ pub(super) fn validate_user_memory_prefix(
                 return Err(invalid());
             }
         }
+    }
+    Ok(())
+}
+
+pub(super) fn validate_frontier_cut(
+    owner: [u8; 16],
+    memory_store: &MemoryStore,
+    memory_head: u64,
+    graph_version: u64,
+    frontier: &crate::records::dream_frontier::FrontierRecord,
+) -> Result<(), OwnerSessionError> {
+    if frontier.owner != owner
+        || frontier.graph_version != graph_version
+        || frontier.memory_version != memory_head
+        || std::iter::once(&frontier.source)
+            .chain(frontier.candidates.iter())
+            .any(|o| {
+                !memory_store
+                    .record_at_cut(MemoryId(o.id), memory_head)
+                    .is_some_and(|r| {
+                        r.revision == o.revision && r.body_id.0 == o.body && !r.archived
+                    })
+            })
+    {
+        return Err(OwnerSessionError::StaleDreamCut);
+    }
+    Ok(())
+}
+
+pub(super) fn validate_batch_cut(
+    owner: [u8; 16],
+    memory_store: &MemoryStore,
+    memory_head: u64,
+    graph_version: u64,
+    record: &crate::records::dream_batch::DreamBatchRecord,
+) -> Result<(), OwnerSessionError> {
+    if record.owner != owner
+        || record.memory_version != memory_head
+        || record.graph_version != graph_version
+        || record.observed.iter().any(|o| {
+            !memory_store
+                .record_at_cut(MemoryId(o.id), memory_head)
+                .is_some_and(|r| r.revision == o.revision && r.body_id.0 == o.body)
+        })
+        || record.pairs.iter().any(|p| {
+            [p.source, p.candidate].iter().any(|id| {
+                !memory_store
+                    .record_at_cut(MemoryId(*id), memory_head)
+                    .is_some_and(|r| !r.archived)
+            })
+        })
+    {
+        return Err(OwnerSessionError::StaleDreamCut);
     }
     Ok(())
 }

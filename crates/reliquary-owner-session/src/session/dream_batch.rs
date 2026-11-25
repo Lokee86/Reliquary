@@ -2,17 +2,18 @@
 use super::dream_batch_model::*;
 use super::*;
 use crate::records::dream_batch::{self, DreamBatchRecord, Lifecycle, Observation, Pair};
+use std::borrow::Cow;
 fn prepare(
     common: &CommonState,
     owner: [u8; 16],
     cut: &DreamBatchCut,
-) -> Result<Option<DreamBatchRecord>, OwnerSessionError> {
+) -> Result<Option<(DreamBatchRecord, Vec<u8>)>, OwnerSessionError> {
     if cut.owner != owner {
         return Err(OwnerSessionError::StaleDreamCut);
     }
     let digest = dream_batch::fingerprint(cut).map_err(OwnerSessionError::Record)?;
-    if let Some(prior) = common.dream_pairs.batch(cut.publication_id) {
-        return if prior.fingerprint == digest {
+    if let Some(prior) = common.dream_pairs.batch_fingerprint(cut.publication_id) {
+        return if prior == digest {
             Ok(None)
         } else {
             Err(OwnerSessionError::StaleDreamCut)
@@ -48,7 +49,7 @@ fn prepare(
             return Err(OwnerSessionError::StaleDreamCut);
         }
         for id in [pair.source, pair.candidate] {
-            if common.memories.current(id)?.record.archived
+            if common.memories.revision_record(id, None)?.archived
                 && !(id == pair.candidate && pair.rejected && pair.kind.is_none())
             {
                 return Err(OwnerSessionError::StaleDreamCut);
@@ -56,17 +57,10 @@ fn prepare(
         }
     }
     let admission = GraphAdmission::for_changes(owner, cut.observed.iter().map(|o| o.id.0), []);
-    let graph_records = common
+    let (graph_records, graph) = common
         .graph
         .prepare_dream_changes(&admission, &cut.changes)?;
-    let mut graph = common.graph.clone();
-    for bytes in &graph_records {
-        graph.apply_dream_relation(
-            &admission,
-            reliquary_graph::dream_relation_in_frame(bytes, owner)?,
-        )?;
-    }
-    let mut memories = common.memories.clone();
+    let mut memories = Cow::Borrowed(&common.memories);
     let mut lifecycles = Vec::new();
     for intent in &cut.lifecycles {
         let observed = cut
@@ -89,7 +83,7 @@ fn prepare(
             delta: vec![],
         };
         event.delta = memories.prepare_dream_lifecycle(&event)?;
-        memories.apply_dream_lifecycle(&event)?;
+        memories.to_mut().apply_dream_lifecycle(&event)?;
         lifecycles.push(Lifecycle {
             id: event.id.0,
             revision: event.previous_revision,
@@ -131,8 +125,8 @@ fn prepare(
         lifecycles,
         updated_at_ns: cut.updated_at_ns,
     };
-    record.encode().map_err(OwnerSessionError::Record)?;
-    Ok(Some(record))
+    let bytes = record.encode().map_err(OwnerSessionError::Record)?;
+    Ok(Some((record, bytes)))
 }
 fn apply(common: &mut CommonState, record: DreamBatchRecord) -> Result<(), OwnerSessionError> {
     for l in &record.lifecycles {
@@ -231,7 +225,7 @@ impl RelWriter {
         {
             return Err(OwnerSessionError::StaleDreamCut);
         }
-        let Some(record) = prepare(&self.session.common, self.owner_id(), &cut)? else {
+        let Some((record, bytes)) = prepare(&self.session.common, self.owner_id(), &cut)? else {
             return Ok(false);
         };
         if cut.observed.iter().any(|row| {
@@ -242,8 +236,7 @@ impl RelWriter {
             return Err(OwnerSessionError::StaleDreamCut);
         }
         let result = (|| {
-            self.container
-                .append(&record.encode().map_err(OwnerSessionError::Record)?)?;
+            self.container.append(&bytes)?;
             self.container.sync()?;
             apply(&mut self.session.common, record)
         })();
@@ -263,12 +256,11 @@ impl PhyWriter {
         {
             return Err(OwnerSessionError::StaleDreamCut);
         }
-        let Some(record) = prepare(&self.common, self.owner_id, &cut)? else {
+        let Some((record, bytes)) = prepare(&self.common, self.owner_id, &cut)? else {
             return Ok(false);
         };
         let result = (|| {
-            self.container
-                .append(&record.encode().map_err(OwnerSessionError::Record)?)?;
+            self.container.append(&bytes)?;
             self.container.sync()?;
             apply(&mut self.common, record)
         })();

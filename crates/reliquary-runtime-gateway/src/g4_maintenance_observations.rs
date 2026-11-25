@@ -54,9 +54,16 @@ pub(crate) fn compare_preserved_authority(
             "maintenance changed an authored Episode"
         );
     }
-    for receipt in source_archive.import_receipts() {
-        assert!(
-            destination_archive.import_receipts().contains(&receipt),
+    for receipt in source_archive
+        .import_receipts()
+        .expect("read source receipts")
+    {
+        assert_eq!(
+            destination_archive
+                .import_receipt(&receipt.import_key)
+                .expect("read destination receipt")
+                .as_deref(),
+            Some(&receipt),
             "maintenance dropped or changed an accepted import receipt"
         );
     }
@@ -212,7 +219,7 @@ pub(crate) fn compare_preserved_authority(
     json!({
         "owner_id": owner.iter().map(|byte| format!("{byte:02x}")).collect::<String>(),
         "original_episodes_preserved": source_episodes.len(),
-        "import_receipts_preserved": source_archive.import_receipts().len(),
+        "import_receipts_preserved": source_archive.import_receipt_count(),
         "insomnia_operation_records_preserved": source_insomnia.len(),
         "memory_histories_preserved": memory_ids.len(),
         "memory_vector_mappings_preserved": source_memory_vectors.len(),

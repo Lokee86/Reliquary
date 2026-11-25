@@ -1,6 +1,7 @@
 use super::*;
 use crate::session::{RelWriter, UserMemoryCorrection};
 use reliquary_archive::{Archive, ArchivePublicationCoordinate, TurnInput};
+use reliquary_freshness_store::{FreshnessEventProof, FreshnessMemoryId};
 use reliquary_graph::GraphAdmission;
 use reliquary_memory_core::{MemoryDraft, PayloadState};
 use std::fs::{self, OpenOptions};
@@ -16,10 +17,50 @@ fn admit(
     let lease =
         Container::prepare_checkpoint_open(owner, writable, FileKind::Reliquary, Some(OWNER))?;
     let extent = lease.extent();
-    open_leased(lease, Some(slot.to_path_buf()), extent, writable)
+    let (container, session, mut checkpoint) =
+        open_leased(lease, Some(slot.to_path_buf()), extent, writable)?;
+    if let Some(checkpoint) = &mut checkpoint
+        && checkpoint.attempted_extent.is_none()
+    {
+        checkpoint.refresh(&container, &session, true);
+    }
+    Ok((container, session, checkpoint))
 }
 
-fn draft() -> MemoryDraft {
+#[test]
+fn failed_checkpoint_publish_keeps_the_verified_prefix_on_the_lease() {
+    let directory = tempfile::tempdir().unwrap();
+    let owner = directory.path().join("owner.rel");
+    let cache = directory.path().join("private");
+    let slot = cache.join("owner.checkpoint");
+    let mut writer = RelWriter::create_current_path(&owner, OWNER).unwrap();
+    let first = writer.container.extent().unwrap();
+    let mut checkpoint = WriterCheckpoint::new(slot.clone(), None, first, &writer.session);
+
+    checkpoint.refresh(&writer.container, &writer.session, true);
+    assert!(!slot.exists());
+    assert_eq!(checkpoint.prefix.as_ref().unwrap().covered_end(), first);
+
+    writer.container.reserve_version(None).unwrap();
+    writer.container.sync().unwrap();
+    writer.session.writer_lease_proof = writer.container.writer_lease_proof();
+    private_cache::test_directory(&cache).unwrap();
+    checkpoint.refresh(&writer.container, &writer.session, true);
+
+    let covered = writer.container.extent().unwrap();
+    assert!(covered > first);
+    assert_eq!(checkpoint.prefix.as_ref().unwrap().covered_end(), covered);
+    let mut entry = Entry::open(&slot).unwrap();
+    assert_eq!(entry.manifest.physical.covered_end, covered);
+    assert!(entry.session().is_ok());
+    drop(writer);
+    let lease = Container::prepare_checkpoint_open(&owner, false, FileKind::Reliquary, Some(OWNER))
+        .unwrap();
+    let (_, verified) = lease.finish(Some(entry.manifest.physical)).unwrap();
+    assert_eq!(verified.unwrap().covered_end(), covered);
+}
+
+pub(super) fn draft() -> MemoryDraft {
     MemoryDraft {
         title: "Owner history".into(),
         content: "Retained body from before the checkpoint.".into(),
@@ -228,6 +269,36 @@ fn restores_a_verified_cut_and_replays_a_bound_turn_and_grouped_correction() {
         .publish(&mut initial.container, None, 0, draft())
         .unwrap()
         .revision;
+    let freshness_id = FreshnessMemoryId(created.record.id.0);
+    initial
+        .session
+        .freshness
+        .create_birth(&mut initial.container, freshness_id, 0, false)
+        .unwrap();
+    initial.session.writer_lease_proof = initial.container.writer_lease_proof();
+    let use_id = "checkpoint-accepted-use";
+    assert!(
+        initial
+            .record_external_accepted_use(
+                use_id,
+                vec![freshness_id],
+                0,
+                FreshnessEventProof {
+                    graph_version: 0,
+                    community_generation: None,
+                    community_graph_version: None,
+                },
+            )
+            .unwrap()
+    );
+    let accepted_use = initial
+        .session
+        .accepted_external_use(use_id)
+        .unwrap()
+        .clone();
+    let accepted_events = initial.session.freshness.accepted_events();
+    let accepted_cut = initial.session.freshness.cut_through_turn(0);
+    assert_eq!(accepted_events.len(), 1);
     let reserved = initial.container.reserve_version(Some(-13)).unwrap();
     let untimed = initial.container.reserve_version(None).unwrap();
     let rows = (0..20)
@@ -305,6 +376,23 @@ fn restores_a_verified_cut_and_replays_a_bound_turn_and_grouped_correction() {
     assert!(lease.has_unbound_version_reservation(untimed));
     assert_eq!(lease.transaction_time_ns(untimed), None);
     assert_eq!(warm.current_memory(next.record.id).unwrap(), next);
+    assert_eq!(
+        warm.freshness
+            .memory_changes_after(0, 1, 1)
+            .collect::<Vec<_>>(),
+        [(1, freshness_id)]
+    );
+    let freshness_cut = warm.freshness.cut_through_turn(0);
+    assert_eq!(freshness_cut, accepted_cut);
+    assert_eq!(warm.accepted_external_use(use_id), Some(&accepted_use));
+    assert_eq!(warm.freshness.accepted_events(), accepted_events);
+    assert!(warm.freshness.is_authoritative_cut(&freshness_cut));
+    assert_eq!(
+        warm.freshness
+            .records_for_memories_at(&freshness_cut, [freshness_id])
+            .unwrap(),
+        warm.freshness.records_at(&freshness_cut).unwrap(),
+    );
     // This row straddles two verified packed pages.
     assert_eq!(
         warm.common.packed_vectors.read_f32_row(matrix, 14).unwrap(),

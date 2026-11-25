@@ -15,6 +15,8 @@ const MAGIC: [u8; 8] = *b"REL\0\r\n\x1a\n";
 const HEADER_LEN: u64 = 40;
 const FRAME_HEADER_LEN: u64 = 8;
 const SCAN_BUFFER_SIZE: usize = 64 * 1024;
+// Physical validation usually reads only frame headers and clock prefixes.
+const VALIDATION_BUFFER_SIZE: usize = 8 * 1024;
 const CURRENT_VERSION: FormatVersion = FormatVersion { major: 2, minor: 1 };
 
 mod checkpoint;
@@ -697,19 +699,37 @@ impl Container {
         Ok(())
     }
 
-    fn rebuild_clock_from(
+    fn validate_and_rebuild_clock_from(
         &mut self,
         from: u64,
         extent: u64,
         mut clock: PhysicalClock,
     ) -> Result<(), ContainerError> {
-        let mut cursor = self.physical_cursor_at(from, extent)?;
+        let mut cursor = self.physical_cursor_at(from, extent, VALIDATION_BUFFER_SIZE)?;
         let mut bytes = Vec::new();
         let mut directory = ReplayDirectory::new(extent, from == HEADER_LEN);
-        while let Some(object) = cursor.read_frame_into(&mut bytes)? {
-            clock.observe_frame(&bytes)?;
-            directory.record(object, &bytes);
+        let mut prefix = [0; REPLAY_PREFIX_BYTES];
+        let mut clock_result: Result<(), ContainerError> = Ok(());
+        while let Some(mut frame) = cursor.next_frame()? {
+            // Finish validating frame boundaries if clock replay fails so a
+            // torn tail still takes precedence and can be repaired explicitly.
+            clock_result = clock_result.and_then(|()| {
+                let object = frame.object();
+                let prefix = &mut prefix[..object.length.min(REPLAY_PREFIX_BYTES as u64) as usize];
+                frame.read_exact(prefix)?;
+                if version_clock::needs_full_payload(prefix) {
+                    bytes.clear();
+                    bytes.extend_from_slice(prefix);
+                    frame.read_to_end(&mut bytes)?;
+                    clock.observe_frame(&bytes)?;
+                } else {
+                    clock.observe_frame(prefix)?;
+                }
+                directory.record(object, prefix);
+                Ok(())
+            });
         }
+        clock_result?;
         drop(cursor);
         self.replay_directory = directory;
         (
@@ -802,7 +822,7 @@ impl Container {
     /// Replay from an admitted physical frame boundary, through the current extent.
     pub fn scan_frames_from(&self, offset: u64) -> Result<FrameScan<'_>, ContainerError> {
         Ok(FrameScan {
-            cursor: self.physical_cursor_at(offset, self.extent()?)?,
+            cursor: self.physical_cursor_from(offset)?,
             payload: Vec::new(),
         })
     }
@@ -813,13 +833,14 @@ impl Container {
 
     /// Stream frames from a previously admitted frame boundary.
     pub fn physical_cursor_from(&self, offset: u64) -> Result<PhysicalCursor<'_>, ContainerError> {
-        self.physical_cursor_at(offset, self.extent()?)
+        self.physical_cursor_at(offset, self.extent()?, SCAN_BUFFER_SIZE)
     }
 
     fn physical_cursor_at(
         &self,
         offset: u64,
         extent: u64,
+        buffer_size: usize,
     ) -> Result<PhysicalCursor<'_>, ContainerError> {
         if !(HEADER_LEN..=extent).contains(&offset) {
             return Err(ContainerError::InvalidFrameReference);
@@ -828,7 +849,7 @@ impl Container {
         let file = self.file.try_clone()?;
         Ok(PhysicalCursor {
             _container: self,
-            reader: BufReader::with_capacity(SCAN_BUFFER_SIZE, PositionedFile { file, offset }),
+            reader: BufReader::with_capacity(buffer_size, PositionedFile { file, offset }),
             next_offset: offset,
             file_len: extent,
             done: false,
@@ -836,14 +857,6 @@ impl Container {
             directory: &[],
             prefix: [0; REPLAY_PREFIX_BYTES],
         })
-    }
-
-    fn validate_frames_from(&self, offset: u64, extent: u64) -> Result<(), ContainerError> {
-        let mut cursor = self.physical_cursor_at(offset, extent)?;
-        while let Some(frame) = cursor.next_frame()? {
-            drop(frame);
-        }
-        Ok(())
     }
 
     pub fn plan_tail_repair(&mut self) -> Result<Option<TailRepairPlan>, ContainerError> {
@@ -1352,6 +1365,35 @@ mod tests {
         repair.repair_incomplete_tail(plan).unwrap();
         drop(repair);
         assert!(prepare(&p).finish(Some(checkpoint)).unwrap().1.is_some());
+    }
+
+    #[test]
+    fn torn_tail_takes_precedence_over_an_earlier_clock_error() {
+        let d = Dir::new();
+        let p = d.0.join("invalid-clock-and-tail.rel");
+        let mut writer = Container::create(&p, rel(), [5; 16]).unwrap();
+        writer.append(&version_clock::encode(2, None)).unwrap();
+        writer.append(b"complete trailing frame").unwrap();
+        writer.sync().unwrap();
+        let valid_end = writer.extent().unwrap();
+        drop(writer);
+
+        let mut file = OpenOptions::new().append(true).open(&p).unwrap();
+        file.write_all(&[1]).unwrap();
+        drop(file);
+        assert!(matches!(
+            Container::open_read_only(&p),
+            Err(ContainerError::RepairRequired { valid_end: end }) if end == valid_end
+        ));
+
+        let mut repair = Container::open_for_repair(&p, FileKind::Reliquary).unwrap();
+        let plan = repair.plan_tail_repair().unwrap().unwrap();
+        repair.repair_incomplete_tail(plan).unwrap();
+        drop(repair);
+        assert!(matches!(
+            Container::open_read_only(&p),
+            Err(ContainerError::InvalidVersionRecord)
+        ));
     }
 
     #[test]

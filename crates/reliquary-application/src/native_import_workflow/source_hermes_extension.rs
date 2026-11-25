@@ -17,6 +17,7 @@ pub(in crate::native_import_source) fn attach_predecessor(
             &branch.conversation_id,
             predecessor,
         )
+        .map_err(NativeImportStageError::Owner)?
         .ok_or(NativeImportStageError::Conflict)?;
     if branch.id != head.branch_id {
         return Err(NativeImportStageError::Conflict);
@@ -34,6 +35,6 @@ pub(in crate::native_import_source) fn attach_predecessor(
     }
     // A partial retry keeps the original anchor after its own branch advanced.
     // Source ancestry remains unknown in the import receipt.
-    turns[0].0.parent_id = head.node_id.map(str::to_owned);
+    turns[0].0.parent_id = head.node_id;
     Ok(())
 }

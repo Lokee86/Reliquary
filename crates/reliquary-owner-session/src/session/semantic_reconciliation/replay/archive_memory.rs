@@ -78,16 +78,21 @@ pub(super) fn replay_archive(
         }
         counts.archive += usize::from(inserted);
     }
-    for receipt in source.import_receipts() {
-        if destination.import_receipt(&receipt.import_key) == Some(&receipt) {
+    for receipt in source.import_receipts().map_err(conflict)? {
+        if destination
+            .import_receipt(&receipt.import_key)
+            .map_err(conflict)?
+            .as_deref()
+            == Some(&receipt)
+        {
             // A retained receipt was checked at its accepted branch head.
             continue;
         }
-        let before = destination.import_receipts().len();
+        let before = destination.import_receipt_count();
         destination
             .put_import_receipt(target, receipt)
             .map_err(conflict)?;
-        counts.archive += usize::from(destination.import_receipts().len() > before);
+        counts.archive += usize::from(destination.import_receipt_count() > before);
     }
     let definitions = source.fragment_definitions();
     for definition in definitions
@@ -172,7 +177,7 @@ pub(super) fn replay_echo(
     counts: &mut ReplayCounts,
 ) -> Result<(), RelReconciliationError> {
     let mut destination = reliquary_archive::EchoStore::open(target).map_err(conflict)?;
-    for event in source.all_records() {
+    for event in source.all_records().map_err(conflict)? {
         counts.archive += usize::from(destination.put(target, event).map_err(conflict)?);
     }
     Ok(())

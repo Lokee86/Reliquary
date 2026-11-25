@@ -71,7 +71,7 @@ fn batch_replay_rejects_fabricated_direct_receipts_and_unrelated_lifecycle_delta
     for variant in 0..2 {
         let (path, owner, cut) = fixture(false);
         let mut w = PhyWriter::open_path(&path.0, &graph(owner), []).unwrap();
-        let mut record = prepare(&w.common, owner, &cut).unwrap().unwrap();
+        let (mut record, _) = prepare(&w.common, owner, &cut).unwrap().unwrap();
         if variant == 0 {
             record.pairs[0].direct = false;
         } else {

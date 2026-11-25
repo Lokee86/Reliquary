@@ -35,7 +35,7 @@ impl RelWriter {
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         self.ensure_write_ready()?;
-        self.begin_initial_dream_pass_after_fence(pass_id, source, turn)
+        self.begin_initial_dream_pass_after_fence(pass_id, source, turn, None)
     }
 
     pub fn begin_native_import_initial_dream_pass(
@@ -45,8 +45,8 @@ impl RelWriter {
         source: DreamMemoryCut,
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
-        self.validate_native_import_memory(import_id, source.id)?;
-        self.begin_initial_dream_pass_after_fence(pass_id, source, turn)
+        let birth_version = self.native_import_memory_birth_version(import_id, source.id)?;
+        self.begin_initial_dream_pass_after_fence(pass_id, source, turn, birth_version)
     }
 
     /// Import replay preserves the source-authenticated historical population.
@@ -61,8 +61,14 @@ impl RelWriter {
         retained_preexisting: &BTreeSet<MemoryId>,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         self.ensure_import_scope(import_id)?;
-        let mut admission =
-            initial_admission(&self.container, &self.session.common, source, pass_id, turn)?;
+        let mut admission = initial_admission(
+            &self.container,
+            &self.session.common,
+            source,
+            pass_id,
+            turn,
+            InitialDreamBirth::Physical,
+        )?;
         // The caller has independently reopened and authenticated the source
         // Begin. Only identities already eligible at this destination birth
         // may retain membership; new left-side births are not added.
@@ -78,6 +84,7 @@ impl RelWriter {
         pass_id: String,
         source: DreamMemoryCut,
         turn: u64,
+        birth_version: Option<u64>,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         if self.session.common.dreams.begin(&pass_id).is_none()
             && !self
@@ -86,8 +93,14 @@ impl RelWriter {
         {
             return Err(OwnerSessionError::StaleDreamCut);
         }
-        let admission =
-            initial_admission(&self.container, &self.session.common, source, pass_id, turn)?;
+        let admission = initial_admission(
+            &self.container,
+            &self.session.common,
+            source,
+            pass_id,
+            turn,
+            birth_version.map_or(InitialDreamBirth::Physical, InitialDreamBirth::Grouped),
+        )?;
         self.append_checked_initial_begin(admission)
     }
 
@@ -264,7 +277,7 @@ impl RelWriter {
                         .session
                         .common
                         .dreams
-                        .begin(pass_id)
+                        .begun(pass_id)
                         .ok_or(OwnerSessionError::StaleDreamCut)?;
                     self.session
                         .freshness

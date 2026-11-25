@@ -1,47 +1,211 @@
 //! Authenticate first-cycle receipts at their actual physical prefix.
+use super::dream_population::BirthPopulationReplay;
 use super::*;
 use crate::records::{
-    dream_empty::InitialDreamSettlement, dream_group::GroupedDreamRelation,
+    dream::{dream_begin_codec::BeginPopulation, freshness_journal::DreamEntry},
+    dream_empty::InitialDreamSettlement,
+    dream_group::GroupedDreamRelation,
     dream_supersession::GroupedDreamSupersession,
 };
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
+
+fn dream_initial_frame(prefix: &[u8]) -> bool {
+    // Import epochs and the legacy Dream journal are inspected before
+    // unwrapping publication envelopes.
+    if crate::records::import::is_import_epoch_marker(prefix) || prefix.starts_with(b"CVDREAM1") {
+        return true;
+    }
+    let payload = match reliquary_container::decode_publication(prefix) {
+        Ok(Some(envelope)) => envelope.body,
+        Ok(None) => prefix,
+        Err(_) => return true,
+    };
+    if crate::records::insomnia_completion::is_grouped_completion(payload) {
+        return true;
+    }
+    // Keep owner families that reject unknown versions, and exact markers
+    // for the remaining records that carry the Memory, Graph or Dream cuts.
+    payload.starts_with(b"RELMCOR")
+        || payload.starts_with(b"RELMRET")
+        || [
+            b"RELDRB", b"RELDRC", b"RELDRF", b"RELDRG", b"RELDRS", b"RELGPB", b"RELASC",
+        ]
+        .iter()
+        .any(|marker| payload.starts_with(*marker))
+        || [
+            b"CVDREAM2",
+            b"RELDRM01",
+            b"RELDRP02",
+            b"RELMCRT1",
+            b"RELMDLT1",
+            b"RELMTMB1",
+            b"RELGRF01",
+            b"RELCOM01",
+            b"RELCOM02",
+            b"RELCMP01",
+            b"RELCMN01",
+        ]
+        .iter()
+        .any(|marker| payload.starts_with(*marker))
+}
+
+#[test]
+fn initial_replay_selects_clocked_proofs_but_skips_unrelated_bodies() {
+    let timed_envelope = |marker: &[u8; 8]| {
+        let mut bytes = b"RELPUB01".to_vec();
+        bytes.extend_from_slice(&1u64.to_le_bytes());
+        bytes.push(1);
+        bytes.extend_from_slice(&0i64.to_le_bytes());
+        bytes.extend_from_slice(marker);
+        bytes
+    };
+
+    assert!(dream_initial_frame(b"RELIEPS2"));
+    assert!(!dream_initial_frame(&timed_envelope(b"RELIEPS2")));
+    assert!(dream_initial_frame(&timed_envelope(b"RELGPB99")));
+    assert!(dream_initial_frame(b"RELDRF99"));
+    assert!(dream_initial_frame(b"RELPUB99"));
+    assert!(!dream_initial_frame(b"RELMBOD1"));
+    assert!(!dream_initial_frame(&timed_envelope(b"RELMBOD1")));
+}
 
 pub(super) fn validate(
     container: &Container,
     dreams: &DreamEvidenceStore,
     memories: &MemoryStore,
     graph_store: &GraphStore,
+    birth_versions: &BTreeMap<MemoryId, u64>,
+    check_native_policy: bool,
+    frontier_positions: &[(reliquary_container::ObjectRef, String)],
 ) -> Result<(), OwnerSessionError> {
     let mut bodies = BTreeMap::new();
-    let mut active = BTreeSet::new();
-    let mut changed = BTreeSet::new();
+    let mut birth_population = BirthPopulationReplay::new(memories);
     let mut begun = BTreeMap::new();
     let mut frontiers = BTreeMap::new();
+    let mut pending_frontiers = BTreeSet::<String>::new();
+    let mut settled_passes = BTreeSet::new();
+    let mut imports = check_native_policy.then(|| ImportEpochStore::prefix(container.owner_id()));
     let mut evaluated = BTreeSet::new();
     let mut pair_refs = Vec::new();
     let mut memory_head = 0;
-    let mut receipts = Vec::new();
-    let mut batch_links = Vec::new();
-    let mut archivals = Vec::new();
-    let mut duplicates = Vec::new();
+    let mut direct_links: BTreeMap<MemoryId, BTreeMap<MemoryId, u64>> = BTreeMap::new();
+    let mut archivals = BTreeMap::new();
+    let mut duplicates = BTreeMap::new();
     let mut graph = 0;
+    let mut duplicate_history = graph_store.duplicate_history();
     let mut community = None;
     let mut generation = 0;
-    let mut frames = container
-        .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
-    while let Some(frame) = frames.next_frame()? {
-        let envelope = reliquary_container::decode_publication(frame.payload)?;
-        let payload = envelope.as_ref().map_or(frame.payload, |e| e.body);
-        if let Some(frontier) = crate::records::dream_frontier::FrontierRecord::decode(payload)
-            .map_err(OwnerSessionError::Record)?
+    let mut accepted_frontiers = frontier_positions.iter().peekable();
+    let mut frames = container.matching_physical_cursor(dream_initial_frame)?;
+    let mut buffer = Vec::new();
+    while let Some(mut frame) = frames.next_frame()? {
+        let object = frame.object();
+        if accepted_frontiers
+            .peek()
+            .is_some_and(|(position, _)| position.offset < object.offset)
         {
-            if let Some(payload) = &frontier.begin {
-                let begin = crate::records::dream::dream_begin_codec::decode(payload)
-                    .map_err(OwnerSessionError::Record)?;
-                begun.insert(begin.pass_id, (graph, memory_head));
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
+        let accepted = accepted_frontiers.next_if(|(position, _)| position.offset == object.offset);
+        buffer.clear();
+        // Reuse only the raw Frontier admitted at this position on this lease.
+        // Any other carrier still follows the ordinary decode path.
+        if let Some((position, _)) = accepted {
+            let mut magic = [0; 8];
+            frame
+                .read_exact(&mut magic)
+                .map_err(reliquary_container::ContainerError::from)?;
+            if *position != object || &magic != b"RELDRC01" {
+                return Err(OwnerSessionError::StaleDreamCut);
             }
-            frontiers.insert(frontier.pass_id.clone(), frontier);
+        } else {
+            frame
+                .read_to_end(&mut buffer)
+                .map_err(reliquary_container::ContainerError::from)?;
+        }
+        let frame_payload = buffer.as_slice();
+        if let Some(imports) = &mut imports {
+            if crate::records::import::is_import_epoch_marker(frame_payload) {
+                imports
+                    .ingest_prefix(frame_payload)
+                    .map_err(OwnerSessionError::Record)?;
+                continue;
+            }
+            if let Some(DreamEntry::Settled(pass) | DreamEntry::ReplaySettled(pass)) = dreams
+                .journal()
+                .replay_entry(frame_payload)
+                .map_err(OwnerSessionError::Record)?
+            {
+                pending_frontiers.remove(&pass);
+            }
+        }
+        let envelope = reliquary_container::decode_publication(frame_payload)?;
+        let payload = envelope.as_ref().map_or(frame_payload, |e| e.body);
+        let frontier = if let Some((_, pass_id)) = accepted {
+            let (candidates, has_begin) = dreams
+                .frontier_replay_facts(pass_id)
+                .ok_or(OwnerSessionError::StaleDreamCut)?;
+            let begin = if has_begin {
+                let begin = dreams
+                    .begun(pass_id)
+                    .ok_or(OwnerSessionError::StaleDreamCut)?;
+                Some((begin.source_id, begin.native_birth().is_some()))
+            } else {
+                None
+            };
+            Some((pass_id.clone(), Cow::Borrowed(candidates), begin))
+        } else {
+            crate::records::dream_frontier::FrontierRecord::decode_with_begin(payload)
+                .map_err(OwnerSessionError::Record)?
+                .map(|(frontier, begin)| {
+                    let begin = begin.map(|begin| {
+                        (
+                            begin.source_id,
+                            matches!(begin.population, BeginPopulation::NativeBirth { .. }),
+                        )
+                    });
+                    (frontier.pass_id, Cow::Owned(frontier.candidates), begin)
+                })
+        };
+        if let Some((pass_id, candidates, begin)) = frontier {
+            if let Some((source, native_birth)) = begin {
+                if native_birth {
+                    let epoch = imports
+                        .as_ref()
+                        .and_then(ImportEpochStore::open_epoch)
+                        .ok_or(OwnerSessionError::StaleDreamCut)?;
+                    let prefix = super::native_import::native_import_dream_prefix(&epoch.import_id);
+                    let has_other_pending = pending_frontiers
+                        .range(prefix.clone()..)
+                        .take_while(|pass| pass.starts_with(&prefix))
+                        .any(|pass| pass != &pass_id);
+                    if has_other_pending
+                        || candidates.iter().any(|candidate| {
+                            let id = MemoryId(candidate.id);
+                            evaluated.contains(&ordered(source, id))
+                                || (!memories
+                                    .first_memory_version(id)
+                                    .is_some_and(|version| version <= epoch.pre.memory_version)
+                                    && !settled_passes.contains(
+                                        &RelWriter::native_import_dream_identity(
+                                            &epoch.import_id,
+                                            id,
+                                        )
+                                        .0,
+                                    ))
+                        })
+                    {
+                        return Err(OwnerSessionError::StaleDreamCut);
+                    }
+                }
+                begun.insert(pass_id.clone(), (graph, memory_head));
+            }
+            if check_native_policy {
+                pending_frontiers.insert(pass_id.clone());
+            }
+            frontiers.insert(pass_id, candidates);
             continue;
         }
         if payload.starts_with(b"RELDRM01") {
@@ -77,13 +241,18 @@ pub(super) fn validate(
             }
             graph = record.graph_version + record.graph_records.len() as u64;
             for event in record.lifecycles.iter().filter(|l| l.archived) {
-                archivals.push((MemoryId(event.id), graph));
-            }
-            for pair in record.pairs.iter().filter(|p| p.direct && p.kind == 5) {
-                duplicates.push((MemoryId(pair.source), graph));
+                record_version(&mut archivals, MemoryId(event.id), graph);
             }
             for pair in record.pairs.iter().filter(|p| p.direct) {
-                batch_links.push((MemoryId(pair.source), MemoryId(pair.candidate), graph));
+                let source = MemoryId(pair.source);
+                if pair.kind == 5 {
+                    record_version(&mut duplicates, source, graph);
+                }
+                record_version(
+                    direct_links.entry(source).or_default(),
+                    MemoryId(pair.candidate),
+                    graph,
+                );
             }
             continue;
         }
@@ -92,17 +261,14 @@ pub(super) fn validate(
         {
             use crate::records::user_memory::UserMemoryEffect;
             let previous = MemoryId(record.previous.id);
-            active.remove(&previous);
-            changed.insert(previous);
             if let UserMemoryEffect::Correction { creation, .. } = &record.effect {
                 let replacement = reliquary_memory_core::decode_grouped_creation(creation)?;
-                active.insert(replacement.id);
                 bodies.insert(replacement.id, replacement.body_id);
                 graph = record
                     .relation()
                     .expect("correction relation")
                     .graph_version;
-                archivals.push((previous, graph));
+                record_version(&mut archivals, previous, graph);
             }
             if let Some(change) = record.history_frames().last() {
                 memory_head = reliquary_memory_core::history_change_in_frame(change)?
@@ -113,11 +279,6 @@ pub(super) fn validate(
         }
         if payload.starts_with(b"RELMCRT1") {
             let record = reliquary_memory_core::decode_grouped_creation(payload)?;
-            if !record.archived
-                && matches!(record.lifecycle_state.as_str(), "knowledge" | "canonical")
-            {
-                active.insert(record.id);
-            }
             memory_head = record.memory_version;
             bodies.insert(record.id, record.body_id);
         } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
@@ -126,20 +287,14 @@ pub(super) fn validate(
                 .memory_records
             {
                 let record = reliquary_memory_core::decode_grouped_creation(&record)?;
-                if !record.archived
-                    && matches!(record.lifecycle_state.as_str(), "knowledge" | "canonical")
-                {
-                    active.insert(record.id);
-                }
                 memory_head = record.memory_version;
                 bodies.insert(record.id, record.body_id);
             }
         }
-        if let Some((id, version)) = reliquary_memory_core::history_change_in_frame(payload)? {
+        if let Some((_, version)) = reliquary_memory_core::history_change_in_frame(payload)? {
             memory_head = version;
-            changed.insert(id);
         }
-        if let Some(publication) = reliquary_graph::clocked_graph_in_frame(frame.payload)? {
+        if let Some(publication) = reliquary_graph::clocked_graph_in_frame(frame_payload)? {
             graph = publication.graph_version;
         } else if let Some(relation) = reliquary_graph::relation_in_frame(payload)? {
             graph = relation.graph_version;
@@ -148,11 +303,13 @@ pub(super) fn validate(
             GroupedDreamRelation::decode(payload).map_err(OwnerSessionError::Record)?
         {
             graph = receipt.relation().graph_version;
+            let source = receipt.0.source.id;
+            let candidate = receipt.0.candidate.id;
             if receipt.relation().kind == reliquary_graph::RelationKind::DuplicateOf {
-                duplicates.push((receipt.0.source.id, graph));
+                record_version(&mut duplicates, source, graph);
             }
-            evaluated.insert(ordered(receipt.0.source.id, receipt.0.candidate.id));
-            receipts.push(receipt);
+            evaluated.insert(ordered(source, candidate));
+            record_version(direct_links.entry(source).or_default(), candidate, graph);
         }
         if let Some(receipt) =
             GroupedDreamSupersession::decode(payload).map_err(OwnerSessionError::Record)?
@@ -162,8 +319,7 @@ pub(super) fn validate(
             let (older, version) = reliquary_memory_core::history_change_in_frame(&receipt.delta)?
                 .ok_or(OwnerSessionError::StaleDreamCut)?;
             memory_head = version;
-            changed.insert(older);
-            archivals.push((older, graph));
+            record_version(&mut archivals, older, graph);
         }
         if payload.starts_with(b"CVDREAM2") {
             let begin = crate::records::dream::dream_begin_codec::decode(payload)
@@ -178,51 +334,43 @@ pub(super) fn validate(
             InitialDreamSettlement::decode(payload).map_err(OwnerSessionError::Record)?
         {
             let begin = dreams
-                .begin(&record.pass_id)
+                .begun(&record.pass_id)
                 .ok_or(OwnerSessionError::StaleDreamCut)?;
             let admission = dreams
                 .admission(&record.pass_id)
                 .ok_or(OwnerSessionError::StaleDreamCut)?;
-            let physical_population =
-                super::dream_initial::birth_population(container, memories, record.source)?;
+            let birth_version = *birth_versions
+                .get(&record.source)
+                .ok_or(OwnerSessionError::StaleDreamCut)?;
             // A destination replay can preserve a verified source Dream's
             // explicit population even after introducing independent left-side
             // births. Compact populations remain exact physical-prefix proofs.
-            let population = &admission.preexisting_ids;
-            let population_valid = match &begin.population {
-                crate::records::dream::dream_begin_codec::BeginPopulation::CompactCut {
-                    ..
-                } => population == &physical_population,
-                crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(_) => {
-                    population.is_subset(&physical_population)
-                }
+            let native_birth = begin.native_birth();
+            let population_valid = if let Some(first) = native_birth {
+                // Native frontier admission already authenticated the exact set.
+                first == birth_version
+            } else if let Some(first) = begin.inferred_explicit_birth() {
+                first == birth_version
+            } else if begin.is_compact() {
+                admission.preexisting_ids() == birth_population.at(birth_version)?
+            } else {
+                birth_population.contains(birth_version, admission.preexisting_ids())?
             };
-            let roots: BTreeSet<_> = receipts
-                .iter()
-                .filter_map(|receipt| {
-                    (receipt.0.source.id == record.source
-                        && population.contains(&receipt.0.candidate.id)
-                        && receipt.relation().graph_version > begin.graph_version_before)
-                        .then_some(receipt.0.candidate.id)
+            let roots: BTreeSet<_> = direct_links
+                .get(&record.source)
+                .into_iter()
+                .flatten()
+                .filter_map(|(candidate, version)| {
+                    (*version > begin.graph_version_before
+                        && admission.preexisting_contains(candidate))
+                    .then_some(*candidate)
                 })
-                .chain(
-                    batch_links
-                        .iter()
-                        .filter(|(source, candidate, version)| {
-                            *source == record.source
-                                && population.contains(candidate)
-                                && *version > begin.graph_version_before
-                        })
-                        .map(|(_, candidate, _)| *candidate),
-                )
                 .collect();
-            if frontiers.get(&record.pass_id).is_some_and(
-                |f: &crate::records::dream_frontier::FrontierRecord| {
-                    f.candidates
-                        .iter()
-                        .any(|c| !evaluated.contains(&ordered(record.source, MemoryId(c.id))))
-                },
-            ) {
+            if frontiers.get(&record.pass_id).is_some_and(|candidates| {
+                candidates
+                    .iter()
+                    .any(|c| !evaluated.contains(&ordered(record.source, MemoryId(c.id))))
+            }) {
                 return Err(OwnerSessionError::StaleDreamCut);
             }
             if !memories
@@ -235,18 +383,23 @@ pub(super) fn validate(
                 .record_at_cut(record.source, memory_head)
                 .ok_or(OwnerSessionError::StaleDreamCut)?;
             let duplicate_origin = duplicates
-                .iter()
-                .any(|(id, version)| *id == record.source && *version > begin.graph_version_before);
-            let archival_origin = archivals.iter().any(|(id, version)| {
-                *id == record.source && *version >= begin.graph_version_before
-            });
-            let graph_view = graph_store.snapshot_at(record.graph_version)?;
-            let (reachable, _) = graph_view
-                .duplicate_context(&record.roots.iter().map(|id| id.0).collect::<Vec<_>>(), 128)?;
+                .get(&record.source)
+                .is_some_and(|version| *version > begin.graph_version_before);
+            let archival_origin = archivals
+                .get(&record.source)
+                .is_some_and(|version| *version >= begin.graph_version_before);
+            let (reachable, _) = duplicate_history.context_at(
+                record.graph_version,
+                &record.roots.iter().map(|id| id.0).collect::<Vec<_>>(),
+                128,
+            )?;
             if record.admit == source.archived
                 || (source.archived && !archival_origin)
                 || (source.archived && !duplicate_origin && !record.credit_roots.is_empty())
-                || !record.credit_roots.is_subset(&population)
+                || record
+                    .credit_roots
+                    .iter()
+                    .any(|id| !admission.preexisting_contains(id))
                 || record
                     .credit_roots
                     .iter()
@@ -256,7 +409,7 @@ pub(super) fn validate(
             }
             let effects = FreshnessStore::initial_dream_effects(&record.freshness_effects)
                 .map_err(OwnerSessionError::Record)?;
-            if population.len() > 4096
+            if (native_birth.is_none() && admission.preexisting_len() > 4096)
                 || effects.len() > 64
                 || effects.keys().any(|id| {
                     !memories
@@ -296,12 +449,23 @@ pub(super) fn validate(
                 memory_head = reliquary_memory_core::history_change_in_frame(delta)?
                     .ok_or(OwnerSessionError::StaleDreamCut)?
                     .1;
-                active.insert(record.source);
-                changed.insert(record.source);
+            }
+            if check_native_policy {
+                pending_frontiers.remove(&record.pass_id);
+                settled_passes.insert(record.pass_id);
             }
         }
     }
+    if accepted_frontiers.next().is_some() {
+        return Err(OwnerSessionError::StaleDreamCut);
+    }
     Ok(())
+}
+
+// Every check asks if any event observed so far meets a lower Graph bound.
+fn record_version(index: &mut BTreeMap<MemoryId, u64>, id: MemoryId, version: u64) {
+    let latest = index.entry(id).or_insert(version);
+    *latest = (*latest).max(version);
 }
 
 fn ordered(a: MemoryId, b: MemoryId) -> (MemoryId, MemoryId) {

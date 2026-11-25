@@ -4,8 +4,8 @@ use crate::dream_workflow::{
 };
 use crate::*;
 use reliquary_dream::{
-    DreamClassifier, DreamRelationKind, DreamVerificationPolicy, DreamVerificationVerdict,
-    DreamVerifier, MemoryFact,
+    DreamClassifier, DreamOrganizationError, DreamRelationKind, DreamVerificationPolicy,
+    DreamVerificationVerdict, DreamVerifier, EvaluationPlan, MemoryFact, plan_organization,
 };
 use reliquary_owner_session::model::{MemoryId, RelationKind};
 use reliquary_owner_session::{
@@ -13,6 +13,9 @@ use reliquary_owner_session::{
 };
 use reliquary_switchboard::GeneralEndpoint;
 use std::collections::BTreeMap;
+
+const NATIVE_DREAM_LIFECYCLE_RETRIES: usize = 2;
+
 pub fn draft_dream_batch_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
     owner: &EntityOwnerSession<'_>,
     authorized: [u8; 16],
@@ -26,6 +29,7 @@ pub fn draft_dream_batch_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
         .evaluate(classifier, verifier, policy)
 }
 
+#[derive(Clone)]
 pub(crate) struct PreparedDreamBatch {
     base: PreparedDreamOrganization,
     source: MemoryId,
@@ -60,6 +64,31 @@ impl PreparedDreamBatch {
         classifier: &DreamClassifier<C>,
         verifier: Option<&DreamVerifier<V>>,
         policy: DreamVerificationPolicy,
+    ) -> Result<DreamOrganizationDraft, DreamWorkflowError> {
+        self.evaluate_proposal(classifier, verifier, policy, false)
+    }
+
+    pub(crate) fn evaluate_import<C: GeneralEndpoint, V: GeneralEndpoint>(
+        self,
+        classifier: &DreamClassifier<C>,
+        verifier: Option<&DreamVerifier<V>>,
+        policy: DreamVerificationPolicy,
+    ) -> Result<DreamOrganizationDraft, DreamWorkflowError> {
+        for _ in 0..NATIVE_DREAM_LIFECYCLE_RETRIES {
+            match self.clone().evaluate(classifier, verifier, policy) {
+                Err(DreamWorkflowError::ConflictingLifecycle) => continue,
+                result => return result,
+            }
+        }
+        self.evaluate_proposal(classifier, verifier, policy, true)
+    }
+
+    fn evaluate_proposal<C: GeneralEndpoint, V: GeneralEndpoint>(
+        self,
+        classifier: &DreamClassifier<C>,
+        verifier: Option<&DreamVerifier<V>>,
+        policy: DreamVerificationPolicy,
+        reject_conflicting_pairs: bool,
     ) -> Result<DreamOrganizationDraft, DreamWorkflowError> {
         let Self {
             base,
@@ -128,15 +157,51 @@ impl PreparedDreamBatch {
             !denied
         });
         draft.skipped.extend(blocked);
-        draft.plan = reliquary_dream::plan_organization(
-            source,
-            &draft.accepted_decisions,
-            &draft.facts,
-            &draft.relations,
-        )
-        .map_err(|e| DreamWorkflowError::OwnerRead(format!("Dream organization: {e:?}")))?;
+        draft.plan = plan_batch(source, &mut draft, reject_conflicting_pairs)?;
         draft.batch_ready = true;
         Ok(draft)
+    }
+}
+
+fn plan_batch(
+    source: MemoryId,
+    draft: &mut DreamOrganizationDraft,
+    reject_conflicting_pairs: bool,
+) -> Result<EvaluationPlan, DreamWorkflowError> {
+    let plan = |decisions: &[reliquary_dream::PairDecision]| {
+        plan_organization(source, decisions, &draft.facts, &draft.relations)
+    };
+    match plan(&draft.accepted_decisions) {
+        Err(DreamOrganizationError::ConflictingLifecycle) if reject_conflicting_pairs => (),
+        result => return result.map_err(organization_error),
+    }
+
+    // Keep the validated prefix in pinned candidate order. A rejected pair
+    // can settle with no link without discarding compatible proposals.
+    let mut compatible = plan(&[]).map_err(organization_error)?;
+    for decision in std::mem::take(&mut draft.accepted_decisions) {
+        draft.accepted_decisions.push(decision);
+        match plan(&draft.accepted_decisions) {
+            Ok(plan) => compatible = plan,
+            Err(DreamOrganizationError::ConflictingLifecycle) => {
+                draft.accepted_decisions.pop();
+                let candidate = if decision.a == source {
+                    decision.b
+                } else {
+                    decision.a
+                };
+                draft.skipped.push(candidate);
+            }
+            Err(error) => return Err(organization_error(error)),
+        }
+    }
+    Ok(compatible)
+}
+
+fn organization_error(error: DreamOrganizationError) -> DreamWorkflowError {
+    match error {
+        DreamOrganizationError::ConflictingLifecycle => DreamWorkflowError::ConflictingLifecycle,
+        error => DreamWorkflowError::OwnerRead(format!("Dream organization: {error:?}")),
     }
 }
 

@@ -8,6 +8,20 @@ use std::collections::{BTreeMap, BTreeSet};
 const MEMORY: &[u8; 8] = b"RELDRM01";
 const PAIR: &[u8; 8] = b"RELDRP02";
 
+fn dream_pair_frame(prefix: &[u8]) -> bool {
+    let payload = match reliquary_container::decode_publication(prefix) {
+        Ok(Some(envelope)) => envelope.body,
+        Ok(None) => prefix,
+        // Malformed envelopes still go through the normal decoder.
+        Err(_) => return true,
+    };
+    payload.starts_with(b"RELMCRT1")
+        || crate::records::insomnia_completion::is_grouped_completion(payload)
+        || [b"RELDRB", b"RELDRG", b"RELDRS", b"RELDRM", b"RELDRP"]
+            .iter()
+            .any(|marker| payload.starts_with(*marker))
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct DreamPairs {
     owner: [u8; 16],
@@ -16,7 +30,8 @@ pub(crate) struct DreamPairs {
     refs: BTreeMap<MemoryId, u32>,
     pairs: BTreeSet<(MemoryId, MemoryId)>,
     grouped_receipts: BTreeMap<(MemoryId, MemoryId), GroupedDreamRelation>,
-    batches: BTreeMap<[u8; 32], crate::records::dream_batch::DreamBatchRecord>,
+    batch_fingerprints: BTreeMap<[u8; 32], [u8; 32]>,
+    batch_archivals: BTreeMap<MemoryId, u64>,
     initial: BTreeMap<MemoryId, BTreeMap<MemoryId, (reliquary_graph::RelationKind, u64)>>,
     supersessions: BTreeMap<(MemoryId, MemoryId), GroupedDreamSupersession>,
 }
@@ -30,13 +45,13 @@ impl DreamPairs {
             refs: BTreeMap::new(),
             pairs: BTreeSet::new(),
             grouped_receipts: BTreeMap::new(),
-            batches: BTreeMap::new(),
+            batch_fingerprints: BTreeMap::new(),
+            batch_archivals: BTreeMap::new(),
             initial: BTreeMap::new(),
             supersessions: BTreeMap::new(),
         };
         let mut memories = BTreeSet::new();
-        let mut frames = container
-            .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
+        let mut frames = container.scan_matching_frames(dream_pair_frame)?;
         while let Some(frame) = frames.next_frame()? {
             let envelope = reliquary_container::decode_publication(frame.payload)?;
             let payload = envelope.as_ref().map_or(frame.payload, |value| value.body);

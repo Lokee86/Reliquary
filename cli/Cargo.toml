@@ -1,6 +1,6 @@
 [package]
 name = "reliquary-cli"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MPL-2.0"
 publish = false
@@ -19,6 +19,9 @@ zeroize = "1"
 
 [dev-dependencies]
 reliquary-memory = { path = "..", features = ["test-support"] }
+
+[profile.dev.package.sha2]
+opt-level = 3
 
 [patch.crates-io]
 quinn-proto = { path = "../vendor/quinn-proto" }

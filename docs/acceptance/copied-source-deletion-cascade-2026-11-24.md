@@ -14,7 +14,7 @@ Archiving and restoring retain the accepted source, its knowledge, and the captu
 
 All 38 Archive tests passed, including an independent copied branch whose shared evidence survived a rewind. The owner-session tests passed verified rewind checkpoint recovery and the direct, grounding and episode provenance cases across reopen. The 16 mounted Gateway retrieval tests passed, including stale prepared and retained Observation disclosures after a committed tombstone. They used synthetic data and disposable RELs.
 
-The product source revision pinned in both hosts is `91b6ea7081d4b5c2e7bf1eaab1145da235abd`. The later checkpoint test correction changes fixture code only. A Community snapshot that contains an ineligible Memory is hidden until the existing Community recomputation publishes a current snapshot.
+The product source revision pinned in both hosts is `91b6ea7081d4b5c2e7bf1eaab1145da345235abd`. The later checkpoint test correction changes fixture code only. A Community snapshot that contains an ineligible Memory is hidden until the existing Community recomputation publishes a current snapshot.
 
 ## Hermes verification
 

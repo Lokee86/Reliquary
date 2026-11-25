@@ -9,6 +9,7 @@ const MAX_FRAME_BYTES: usize = 2048;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ImportProcessingBinding {
+    /// The plan fingerprint captured at first processing and retained for replay.
     pub policy: [u8; 32],
     pub destination: Option<[u8; 16]>,
     pub profile: Option<[u8; 32]>,

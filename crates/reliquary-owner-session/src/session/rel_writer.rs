@@ -78,6 +78,7 @@ impl RelWriter {
             container,
             session,
             checkpoint: None,
+            verified_dream_import: None,
         })
     }
 
@@ -100,6 +101,7 @@ impl RelWriter {
             container,
             session,
             checkpoint: None,
+            verified_dream_import: None,
         })
     }
 
@@ -118,6 +120,7 @@ impl RelWriter {
             container,
             session,
             checkpoint,
+            verified_dream_import: None,
         })
     }
 
@@ -188,7 +191,7 @@ impl RelWriter {
                     &request.source_id,
                     &request.conversation_id,
                     &request.source_sha256,
-                )
+                )?
                 .is_none()
         {
             return Err(OwnerSessionError::ManagementStale);

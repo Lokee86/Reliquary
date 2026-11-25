@@ -4,8 +4,8 @@ use super::{
     Container, ContainerError, ContainerIdentity, FileKind, FormatVersion, HEADER_LEN, Mode,
     PhysicalClock, PositionedFile,
 };
+use blake3::Hasher;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 use std::path::Path;
@@ -49,7 +49,7 @@ pub struct PhysicalCheckpoint {
 pub struct VerifiedPrefix {
     lease_token: [u8; 16],
     covered_end: u64,
-    hash: Sha256,
+    hash: Hasher,
 }
 
 impl VerifiedPrefix {
@@ -126,9 +126,9 @@ impl LeasedContainer {
             return Ok(None);
         }
         container.require_extent(self.extent)?;
-        let hash = container.hash_physical_bytes(0, checkpoint.covered_end, Sha256::new())?;
+        let hash = container.hash_physical_bytes(0, checkpoint.covered_end, Hasher::new())?;
         container.require_extent(self.extent)?;
-        let digest: [u8; 32] = hash.clone().finalize().into();
+        let digest: [u8; 32] = *hash.finalize().as_bytes();
         if digest != checkpoint.digest {
             return Ok(None);
         }
@@ -175,8 +175,7 @@ impl Container {
         extent: u64,
         clock: PhysicalClock,
     ) -> Result<(), ContainerError> {
-        self.validate_frames_from(offset, extent)?;
-        self.rebuild_clock_from(offset, extent, clock)?;
+        self.validate_and_rebuild_clock_from(offset, extent, clock)?;
         self.require_extent(extent)
     }
 
@@ -194,12 +193,12 @@ impl Container {
         let (from, hash) = previous
             .filter(|old| old.lease_token == self.lease_token && old.covered_end <= covered_end)
             .map_or_else(
-                || (0, Sha256::new()),
+                || (0, Hasher::new()),
                 |old| (old.covered_end, old.hash.clone()),
             );
         let hash = self.hash_physical_bytes(from, covered_end, hash)?;
         self.require_extent(covered_end)?;
-        let digest = hash.clone().finalize().into();
+        let digest = *hash.finalize().as_bytes();
         Ok((
             PhysicalCheckpoint {
                 identity: self.identity(),
@@ -226,8 +225,8 @@ impl Container {
         &self,
         offset: u64,
         end: u64,
-        mut hash: Sha256,
-    ) -> Result<Sha256, ContainerError> {
+        mut hash: Hasher,
+    ) -> Result<Hasher, ContainerError> {
         if offset == end {
             return Ok(hash);
         }

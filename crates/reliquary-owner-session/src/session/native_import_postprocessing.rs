@@ -1,8 +1,27 @@
 //! Owner admission for semantic work on the durable import extraction cohort.
 use super::*;
+use crate::records::dream::Population;
 use crate::session::grouped_completion::StoredGroupedCompletion;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
+
+pub(in crate::session) struct VerifiedDreamImport {
+    import_id: String,
+    archive_version: u64,
+    completion_count: usize,
+    epoch_binding_count: usize,
+    episodes: BTreeSet<WorkEpisodeId>,
+    birth_populations: Option<BTreeMap<u64, Population>>,
+}
+
+impl VerifiedDreamImport {
+    fn matches(&self, session: &RelSession, import_id: &str) -> bool {
+        self.import_id == import_id
+            && self.archive_version == session.archive.archive_version()
+            && self.completion_count == session.grouped_completions.len()
+            && self.epoch_binding_count == session.native_import_grouped_epochs.len()
+    }
+}
 
 impl RelWriter {
     pub fn native_import_dream_identity(import_id: &str, source: MemoryId) -> (String, [u8; 32]) {
@@ -27,6 +46,63 @@ impl RelWriter {
         Ok(())
     }
 
+    pub(in crate::session) fn verify_native_import_dream_cohort(
+        &mut self,
+        import_id: &str,
+    ) -> Result<(), OwnerSessionError> {
+        self.ensure_import_scope(import_id)?;
+        if self
+            .verified_dream_import
+            .as_ref()
+            .is_some_and(|verified| verified.matches(&self.session, import_id))
+        {
+            return Ok(());
+        }
+
+        // The verified Episodes have terminal Insomnia work and immutable
+        // grouped receipts. An Archive or receipt-cohort change requires
+        // rechecking the source paths under this writer lease.
+        let episodes = self
+            .session
+            .native_import_completed_outputs(import_id)?
+            .into_iter()
+            .map(|completion| WorkEpisodeId(completion.episode_id))
+            .collect();
+        self.verified_dream_import = Some(VerifiedDreamImport {
+            import_id: import_id.into(),
+            archive_version: self.session.archive.archive_version(),
+            completion_count: self.session.grouped_completions.len(),
+            epoch_binding_count: self.session.native_import_grouped_epochs.len(),
+            episodes,
+            birth_populations: None,
+        });
+        Ok(())
+    }
+
+    pub(in crate::session) fn native_dream_birth_population(
+        &mut self,
+        import_id: &str,
+        birth: u64,
+    ) -> Result<Population, OwnerSessionError> {
+        let verified = self
+            .verified_dream_import
+            .as_mut()
+            .filter(|verified| verified.matches(&self.session, import_id))
+            .ok_or(OwnerSessionError::StaleDreamCut)?;
+        // Only mutations before a cohort's immutable first birth affect it.
+        // Reuse the history until the verified extraction cohort changes.
+        if verified.birth_populations.is_none() {
+            verified.birth_populations =
+                Some(self.session.native_import_birth_populations(import_id)?);
+        }
+        verified
+            .birth_populations
+            .as_ref()
+            .and_then(|populations| populations.get(&birth))
+            .cloned()
+            .ok_or(OwnerSessionError::StaleDreamCut)
+    }
+
     /// Verify membership in this epoch's accepted local extraction. Source
     /// provenance alone is insufficient to authorize an import mutation.
     pub fn validate_native_import_memory(
@@ -34,29 +110,32 @@ impl RelWriter {
         import_id: &str,
         id: MemoryId,
     ) -> Result<(), OwnerSessionError> {
+        self.native_import_memory_birth_version(import_id, id)
+            .map(|_| ())
+    }
+
+    pub(in crate::session) fn native_import_memory_birth_version(
+        &self,
+        import_id: &str,
+        id: MemoryId,
+    ) -> Result<Option<u64>, OwnerSessionError> {
         self.ensure_import_scope(import_id)?;
         let record = self.session.common.memories.revision(id, 1)?.record;
         let episode = record
             .source_episode_id
             .ok_or_else(|| OwnerSessionError::Record("Memory lacks an imported Episode".into()))?;
-        self.validate_import_episode_identity(import_id, reliquary_archive::EpisodeId(episode))?;
-        if !self
-            .session
-            .grouped_completions
-            .range((WorkEpisodeId(episode), 0)..=(WorkEpisodeId(episode), u32::MAX))
-            .any(|(key, completion)| {
-                self.session
-                    .native_import_grouped_epochs
-                    .get(key)
-                    .is_some_and(|epoch| epoch == import_id)
-                    && completion.memory_ids.contains(&id.0)
-            })
-        {
-            return Err(OwnerSessionError::Record(
-                "Memory is outside the accepted import extraction".into(),
-            ));
+        let verified_episode = self.verified_dream_import.as_ref().is_some_and(|verified| {
+            verified.matches(&self.session, import_id)
+                && verified.episodes.contains(&WorkEpisodeId(episode))
+        });
+        if !verified_episode {
+            self.validate_import_episode_identity(
+                import_id,
+                reliquary_archive::EpisodeId(episode),
+            )?;
         }
-        Ok(())
+        self.session
+            .grouped_import_birth(import_id, &record, episode)
     }
 
     /// Report current active import Memories whose body lacks an accepted
@@ -117,6 +196,53 @@ impl RelWriter {
 }
 
 impl RelSession {
+    pub(in crate::session) fn native_import_birth_populations(
+        &self,
+        import_id: &str,
+    ) -> Result<BTreeMap<u64, Population>, OwnerSessionError> {
+        let births = self
+            .grouped_completions
+            .iter()
+            .filter_map(|(key, completion)| {
+                if self
+                    .native_import_grouped_epochs
+                    .get(key)
+                    .is_some_and(|epoch| epoch == import_id)
+                {
+                    completion.memory_versions.map(|(first, _)| first)
+                } else {
+                    None
+                }
+            });
+        crate::session::dream_population::birth_population_history(&self.common.memories, births)
+    }
+
+    pub(in crate::session) fn grouped_import_birth(
+        &self,
+        import_id: &str,
+        record: &reliquary_memory_core::MemoryRecord,
+        episode: [u8; 32],
+    ) -> Result<Option<u64>, OwnerSessionError> {
+        let (_, completion) = self
+            .grouped_completions
+            .range((WorkEpisodeId(episode), 0)..=(WorkEpisodeId(episode), u32::MAX))
+            .find(|(key, completion)| {
+                self.native_import_grouped_epochs
+                    .get(key)
+                    .is_some_and(|epoch| epoch == import_id)
+                    && completion.memory_ids.contains(&record.id.0)
+            })
+            .ok_or_else(|| {
+                OwnerSessionError::Record("Memory is outside the accepted import extraction".into())
+            })?;
+        // A grouped receipt can reference an existing Memory. Use its
+        // creation span only when it contains this Memory's first revision.
+        Ok(completion
+            .memory_versions
+            .filter(|(first, last)| (*first..=*last).contains(&record.memory_version))
+            .map(|(first, _)| first))
+    }
+
     /// Enumerate accepted REL-local outputs in birth order. The epoch's
     /// physical epoch binding also supports sealed and completed reopens.
     pub fn native_import_memory_ids(
@@ -173,13 +299,12 @@ impl RelSession {
         };
         let key = super::decode_import_key(&start.import_key)
             .ok_or_else(|| OwnerSessionError::Record("invalid native import key".into()))?;
-        let receipt = self.archive.import_receipt(&key).ok_or_else(|| {
+        let mapped = self.native_import_sources(&key)?.ok_or_else(|| {
             OwnerSessionError::Record("native import receipt is unavailable".into())
         })?;
         if open && self.imports.settlement(import_id).is_none() {
-            self.validate_import_work_complete(receipt)?;
+            self.validate_import_work_complete(&mapped)?;
         }
-        let mapped = super::work::mapped_source_nodes(receipt);
         let mut result = Vec::new();
         for (key, completion) in &self.grouped_completions {
             if self
@@ -209,4 +334,23 @@ impl RelSession {
 
 pub(in crate::session) fn native_import_dream_prefix(import_id: &str) -> String {
     format!("native-import-dream:{import_id}:")
+}
+
+pub(in crate::session) fn native_dream_episode_is_mapped(
+    archive: &Archive,
+    id: reliquary_archive::EpisodeId,
+    maps_node: impl Fn(&str, &str) -> bool,
+) -> Result<bool, OwnerSessionError> {
+    let Some(episode) = archive
+        .episode(id)
+        .filter(|episode| episode.origin == reliquary_archive::EpisodeOrigin::Import)
+    else {
+        return Ok(false);
+    };
+    Ok(archive.episode_node_ids(id)?.is_some_and(|nodes| {
+        !nodes.is_empty()
+            && nodes
+                .iter()
+                .all(|node| maps_node(&episode.conversation_id, node))
+    }))
 }

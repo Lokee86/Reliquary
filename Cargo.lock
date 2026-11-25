@@ -3172,6 +3172,7 @@ dependencies = [
 name = "reliquary-container"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "serde",
  "sha2",
  "uuid",
@@ -3250,6 +3251,7 @@ version = "0.1.0"
 dependencies = [
  "leiden-rs",
  "reliquary-container",
+ "rmp-serde",
  "serde",
  "sha2",
 ]
@@ -3276,7 +3278,7 @@ dependencies = [
 
 [[package]]
 name = "reliquary-memory"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "blake3",
  "reliquary-application",
@@ -3328,6 +3330,7 @@ dependencies = [
 name = "reliquary-owner-session"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "directories",
  "libc",
  "lodestone-packed",

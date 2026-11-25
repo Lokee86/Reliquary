@@ -292,6 +292,7 @@ fn applicable_dream_admissions(
                     && admission.graph_version_before == begin.graph_version_before
                     && match &begin.population {
                         BeginPopulation::ExplicitSet(ids) => &admission.preexisting_ids == ids,
+                        BeginPopulation::NativeBirth { .. } => false,
                         BeginPopulation::CompactCut { memory_cut, digest } => {
                             admission.memory_cut == *memory_cut
                                 && crate::records::dream::population_digest(

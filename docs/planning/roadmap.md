@@ -36,7 +36,7 @@ Perception synthesizes the proposed claim and its citations, generates draft rec
 
 Core `v0.1.0` shipped the complete same-REL Observation lifecycle. After an Observation is published, Perception uses one batched Jev request to decide whether new evidence warrants review. Review and initial creation share the tested Jev Verify contract for exact drafts. Pending standing governs recall and how upstream revisions affect claims that cite them. The contribution contract passed a fresh live rerun on both authored sets, spanning 30 Observations and 150 hits. [Reconsideration specification](observation-reconsideration-spec-2026-11-24.md) · [Core acceptance](../acceptance/perception-same-rel-2026-11-24.md)
 
-The next step is hosting the worker and returning typed Observations in Hermes and Mercury recall on a shared compatible Core revision. [Host integration specification](perception-host-integration-spec-2026-11-24.md)
+Hermes and Mercury passed native Jev and shared Observation recall checks on a compatible Core revision. Hermes v0.3.2 includes the copied-source deletion cascade. Mercury merged its matching integration upstream. Archiving keeps eligible knowledge available. Committed deletion and rewind remove the retired source and affected derived evidence from current retrieval. [Host acceptance](../acceptance/perception-host-integration-2026-11-24.md) · [Cascade acceptance](../acceptance/copied-source-deletion-cascade-2026-11-24.md) · [Hermes release](https://github.com/Lokee86/reliquary-hermes/releases/tag/v0.3.2) · [Mercury integration](https://github.com/itsflownium/mercury-hermes-rust-rewrite/pull/11)
 
 ## Implementation sequence and acceptance
 

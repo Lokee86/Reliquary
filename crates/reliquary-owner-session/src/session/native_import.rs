@@ -5,6 +5,7 @@ use crate::records::import::is_import_epoch_marker;
 use crate::records::{
     ImportEpochStatus, ImportFreshnessSettlement, ImportStart, ImportWatermarks, import_id,
 };
+use std::borrow::Cow;
 
 #[path = "native_import_completion.rs"]
 mod completion;
@@ -14,10 +15,13 @@ mod freshness;
 mod plan;
 #[path = "native_import_postprocessing.rs"]
 mod postprocessing;
-pub(super) use postprocessing::native_import_dream_prefix;
+pub(super) use postprocessing::{
+    VerifiedDreamImport, native_dream_episode_is_mapped, native_import_dream_prefix,
+};
 #[path = "native_import_work.rs"]
 mod work;
 pub use work::InsomniaEpisodeStatus;
+pub(super) use work::{ActiveImportSource, ImportSourceMap};
 #[path = "native_import_writer.rs"]
 mod writer;
 
@@ -32,8 +36,14 @@ impl RelSession {
     pub fn native_import_receipt(
         &self,
         import_key: &[u8; 32],
-    ) -> Option<&crate::model::ImportReceipt> {
-        self.archive.import_receipt(import_key)
+    ) -> Result<Option<Cow<'_, crate::model::ImportReceipt>>, OwnerSessionError> {
+        Ok(self.archive.import_receipt(import_key)?)
+    }
+
+    pub fn native_import_receipt_digest(&self, import_key: &[u8; 32]) -> Option<[u8; 32]> {
+        self.archive
+            .import_receipt_identity(import_key)
+            .map(|identity| identity.receipt_digest)
     }
 
     pub fn native_import_settlement(&self, import_id: &str) -> Option<&ImportFreshnessSettlement> {
@@ -45,133 +55,126 @@ pub(super) fn validate_native_import_receipts(
     container: &Container,
     imports: &ImportEpochStore,
     archive: &Archive,
+    receipt_positions: &[(u64, [u8; 32])],
 ) -> Result<(), OwnerSessionError> {
     let mut prefix = ImportEpochStore::prefix(container.owner_id());
     let mut received = std::collections::BTreeSet::new();
     let mut rewind_heads = std::collections::BTreeSet::new();
-    let publications = archive.publication_bindings();
-    let mut cursor = container.matching_physical_cursor(|prefix| {
-        is_import_epoch_marker(prefix)
-            || reliquary_archive::import_receipt_candidate(prefix)
-            || reliquary_archive::copied_source_change_candidate(prefix)
+    // Archive has already validated every receipt, including repeated raw
+    // frames. Check their positions against the epoch and source changes.
+    let mut receipts = receipt_positions.iter().peekable();
+    let mut markers = container.scan_matching_frames(|payload| {
+        is_import_epoch_marker(payload)
+            || reliquary_archive::copied_source_change_candidate(payload)
     })?;
-    while let Some(mut frame) = cursor.next_frame()? {
-        use std::io::Read;
-        let mut magic = [0u8; 8];
-        if frame.object().length < 8 {
-            continue;
+    while let Some(marker) = markers.next_frame()? {
+        while let Some((_, key)) = receipts.next_if(|(offset, _)| *offset < marker.object.offset) {
+            received.insert(validate_receipt_at_epoch(&prefix, imports, archive, key)?);
         }
-        frame
-            .read_exact(&mut magic)
-            .map_err(reliquary_container::ContainerError::from)?;
-        let epoch_marker = is_import_epoch_marker(&magic);
-        let archive_publication = publications
-            .binary_search_by_key(&frame.object().offset, |entry| entry.object.offset)
-            .is_ok();
-        if !epoch_marker && !archive_publication && &magic != b"CVAIMPT1" {
-            continue;
-        }
-        let mut payload = magic.to_vec();
-        frame
-            .read_to_end(&mut payload)
-            .map_err(reliquary_container::ContainerError::from)?;
-        if epoch_marker {
-            if &magic == crate::records::IMPORT_PROCESSING_MAGIC
-                && !received.contains(
-                    &crate::records::processing_marker_id(&payload)
-                        .map_err(OwnerSessionError::Record)?,
-                )
+        if !is_import_epoch_marker(marker.payload) {
+            if let Some(change) = reliquary_archive::copied_source_change_in_frame(marker.payload)?
             {
-                return Err(OwnerSessionError::Record(
-                    "import processing plan precedes its Archive receipt".into(),
-                ));
+                let head = change.request.source_sha256;
+                let key = head
+                    .iter()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect::<String>();
+                let id = import_id(container.owner_id(), &key);
+                if prefix.open_epoch().is_some()
+                    || !(rewind_heads.contains(&head)
+                        || (received.contains(&id)
+                            && matches!(
+                                prefix.status(&id),
+                                Some(ImportEpochStatus::Completed { .. })
+                            )))
+                {
+                    return Err(OwnerSessionError::Record(
+                        "copied source change has no completed owner head at its physical position"
+                            .into(),
+                    ));
+                }
+                rewind_heads.extend(change.receipt.resulting_head_sha256);
             }
-            prefix
-                .ingest_prefix(&payload)
-                .map_err(OwnerSessionError::Record)?;
             continue;
         }
-        if let Some(change) = reliquary_archive::copied_source_change_in_frame(&payload)? {
-            let head = change.request.source_sha256;
-            let key = head
-                .iter()
-                .map(|byte| format!("{byte:02x}"))
-                .collect::<String>();
-            let id = import_id(container.owner_id(), &key);
-            if prefix.open_epoch().is_some()
-                || !(rewind_heads.contains(&head)
-                    || (received.contains(&id)
-                        && matches!(
-                            prefix.status(&id),
-                            Some(ImportEpochStatus::Completed { .. })
-                        )))
-            {
-                return Err(OwnerSessionError::Record(
-                    "copied source change has no completed owner head at its physical position"
-                        .into(),
-                ));
-            }
-            rewind_heads.extend(change.receipt.resulting_head_sha256);
-            continue;
-        }
-        let Some(receipt) = reliquary_archive::import_receipt_in_frame(&payload)? else {
-            if archive_publication {
-                continue;
-            }
-            return Err(OwnerSessionError::Record(
-                "missing Archive import receipt".into(),
-            ));
-        };
-        let key = receipt
-            .import_key
-            .iter()
-            .map(|byte| format!("{byte:02x}"))
-            .collect::<String>();
-        let id = import_id(receipt.owner_uuid, &key);
-        if prefix
-            .open_epoch()
-            .is_none_or(|start| start.import_id != id)
+        if marker
+            .payload
+            .starts_with(crate::records::IMPORT_PROCESSING_MAGIC)
+            && !received.contains(
+                &crate::records::processing_marker_id(marker.payload)
+                    .map_err(OwnerSessionError::Record)?,
+            )
         {
             return Err(OwnerSessionError::Record(
-                "Archive import receipt has no owner epoch at its physical position".into(),
+                "import processing plan precedes its Archive receipt".into(),
             ));
         }
-        let (start, completion) = match imports.status(&id) {
-            Some(ImportEpochStatus::Open(start)) => (start, None),
-            Some(ImportEpochStatus::Completed { start, complete }) => (start, Some(complete)),
-            None => {
-                return Err(OwnerSessionError::Record(
-                    "Archive import receipt has no owner epoch".into(),
-                ));
-            }
-        };
-        if start.format_version != 2
-            || start.import_key != key
-            || start.source_namespace != receipt.source_namespace
-            || start.source_format != receipt.source_format
-        {
-            return Err(OwnerSessionError::Record(
-                "Archive import receipt differs from its owner epoch".into(),
-            ));
-        }
-        if let Some(completion) = completion {
-            let digest = receipt
-                .receipt_digest
-                .iter()
-                .map(|byte| format!("{byte:02x}"))
-                .collect::<String>();
-            if completion.receipt_digest != digest {
-                return Err(OwnerSessionError::Record(
-                    "Archive import receipt differs from its completion".into(),
-                ));
-            }
-        }
-        received.insert(id);
+        prefix
+            .ingest_prefix(marker.payload)
+            .map_err(OwnerSessionError::Record)?;
+    }
+    for (_, key) in receipts {
+        validate_receipt_at_epoch(&prefix, imports, archive, key)?;
     }
     Ok(())
 }
 
-fn decode_import_key(value: &str) -> Option<[u8; 32]> {
+fn validate_receipt_at_epoch(
+    prefix: &ImportEpochStore,
+    imports: &ImportEpochStore,
+    archive: &Archive,
+    key: &[u8; 32],
+) -> Result<String, OwnerSessionError> {
+    let receipt = archive
+        .import_receipt_identity(key)
+        .ok_or_else(|| OwnerSessionError::Record("missing Archive import receipt".into()))?;
+    let key = key
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let id = import_id(receipt.owner_uuid, &key);
+    if prefix
+        .open_epoch()
+        .is_none_or(|start| start.import_id != id)
+    {
+        return Err(OwnerSessionError::Record(
+            "Archive import receipt has no owner epoch at its physical position".into(),
+        ));
+    }
+    let (start, completion) = match imports.status(&id) {
+        Some(ImportEpochStatus::Open(start)) => (start, None),
+        Some(ImportEpochStatus::Completed { start, complete }) => (start, Some(complete)),
+        None => {
+            return Err(OwnerSessionError::Record(
+                "Archive import receipt has no owner epoch".into(),
+            ));
+        }
+    };
+    if start.format_version != 2
+        || start.import_key != key
+        || start.source_namespace != receipt.source_namespace
+        || start.source_format != receipt.source_format
+    {
+        return Err(OwnerSessionError::Record(
+            "Archive import receipt differs from its owner epoch".into(),
+        ));
+    }
+    if let Some(completion) = completion {
+        let digest = receipt
+            .receipt_digest
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        if completion.receipt_digest != digest {
+            return Err(OwnerSessionError::Record(
+                "Archive import receipt differs from its completion".into(),
+            ));
+        }
+    }
+    Ok(id)
+}
+
+pub(super) fn decode_import_key(value: &str) -> Option<[u8; 32]> {
     if value.len() != 64 {
         return None;
     }

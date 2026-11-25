@@ -780,8 +780,8 @@ fn replayed_import_dream_preserves_source_population_with_extra_left_birth() {
     )
     .unwrap();
     let retained = merged.common.dreams.admission(&dream.pass_id).unwrap();
-    assert_eq!(retained.preexisting_ids, dream.preexisting_ids);
-    assert!(!retained.preexisting_ids.contains(&left_only));
+    assert_eq!(retained.preexisting_ids(), &dream.preexisting_ids);
+    assert!(!retained.preexisting_contains(&left_only));
     assert_eq!(
         merged.current_memory(source_id).unwrap().record.id,
         source_id

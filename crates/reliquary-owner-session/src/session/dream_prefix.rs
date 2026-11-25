@@ -16,12 +16,64 @@ struct Birth {
     mutation: Option<String>,
 }
 
-/// Resolve compact Begin populations from evidence strictly before each Begin.
+/// Resolve compact Begin populations after graph replay verified Frontier carriers.
+pub(super) fn observe_after_graph_replay(
+    container: &Container,
+    admissions: &[DreamBeginAdmission],
+) -> Result<Vec<DreamBeginAdmission>, OwnerSessionError> {
+    let select = if container.identity().file_kind == reliquary_container::FileKind::Reliquary {
+        rel_compact_prefix_frame
+    } else {
+        compact_prefix_frame
+    };
+    collect_compact_dream_prefix(container, admissions, true, select)
+}
+
+fn rel_compact_prefix_frame(prefix: &[u8]) -> bool {
+    // Graph replay already verified these Frontiers. The Freshness store
+    // validates its journal independently of standalone Dream births.
+    !prefix.starts_with(b"RELDRC01")
+        && !prefix.starts_with(b"RELFRS02")
+        && compact_prefix_frame(prefix)
+}
+
+fn compact_prefix_frame(prefix: &[u8]) -> bool {
+    let Some(magic) = prefix.first_chunk::<8>() else {
+        return false;
+    };
+    if magic.starts_with(b"RELPUB") {
+        return crate::records::frame_selection::without_archive_publications(prefix);
+    }
+    matches!(
+        magic,
+        b"RELMCRT1"
+            | b"RELMDLT1"
+            | b"RELMTMB1"
+            | b"RELIFRS1"
+            | b"RELINSC7"
+            | b"RELINSC8"
+            | b"CVDREAM2"
+            | b"RELGRF01"
+            | b"RELASC01"
+            | b"CVDREAM1"
+            | crate::records::IMPORT_PROCESSING_MAGIC
+    ) || [
+        b"RELDR".as_slice(),
+        b"RELFRS",
+        b"RELIEP",
+        b"RELMCOR",
+        b"RELMRET",
+    ]
+    .iter()
+    .any(|marker| magic.starts_with(marker))
+}
+
+#[cfg(test)]
 pub(crate) fn observe_compact_dream_prefix(
     container: &Container,
     admissions: &[DreamBeginAdmission],
 ) -> Result<Vec<DreamBeginAdmission>, OwnerSessionError> {
-    collect_compact_dream_prefix(container, admissions, true)
+    collect_compact_dream_prefix(container, admissions, true, compact_prefix_frame)
 }
 
 #[cfg(test)]
@@ -29,13 +81,14 @@ pub(crate) fn validate_compact_dream_prefix(
     container: &Container,
     admissions: &[DreamBeginAdmission],
 ) -> Result<(), OwnerSessionError> {
-    collect_compact_dream_prefix(container, admissions, false).map(|_| ())
+    collect_compact_dream_prefix(container, admissions, false, compact_prefix_frame).map(|_| ())
 }
 
 fn collect_compact_dream_prefix(
     container: &Container,
     admissions: &[DreamBeginAdmission],
     derive: bool,
+    select: fn(&[u8]) -> bool,
 ) -> Result<Vec<DreamBeginAdmission>, OwnerSessionError> {
     let mut observed: Vec<DreamBeginAdmission> = Vec::new();
     let mut births = BTreeMap::<MemoryId, Birth>::new();
@@ -47,8 +100,7 @@ fn collect_compact_dream_prefix(
     let mut imports = ImportEpochStore::prefix(container.owner_id());
     let mut import_head = None;
     let mut unsupported = false;
-    let mut cursor = container
-        .matching_physical_cursor(crate::records::frame_selection::without_archive_or_packed)?;
+    let mut cursor = container.matching_physical_cursor(select)?;
     while let Some(mut frame) = cursor.next_frame()? {
         if frame.object().length < 8 {
             continue;

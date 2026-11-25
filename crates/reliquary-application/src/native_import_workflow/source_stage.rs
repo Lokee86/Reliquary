@@ -67,9 +67,8 @@ pub fn native_import_status(session: &RelSession, id: &str) -> Option<NativeImpo
         ImportEpochStatus::Open(start) => (start, None),
         ImportEpochStatus::Completed { start, complete } => (start, Some(complete.completed_at_ns)),
     };
-    let receipt_digest = decode_key(&start.import_key)
-        .and_then(|key| session.native_import_receipt(&key))
-        .map(|receipt| receipt.receipt_digest);
+    let receipt_digest =
+        decode_key(&start.import_key).and_then(|key| session.native_import_receipt_digest(&key));
     let state = if completed_at_ns.is_some() {
         NativeImportState::Completed
     } else if session.native_import_settlement(id).is_some() {
@@ -118,7 +117,9 @@ impl NativeImportPlan {
         {
             return Err(NativeImportStageError::Conflict);
         }
-        let already_staged = session.native_import_receipt(&self.import_key).is_some();
+        let already_staged = session
+            .native_import_receipt_digest(&self.import_key)
+            .is_some();
         let status = session.import_status(&id);
         let mut turns = self.turns;
         let anchored = if let NativeSource::HermesCopy {

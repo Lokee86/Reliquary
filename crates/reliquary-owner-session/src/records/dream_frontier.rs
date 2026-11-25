@@ -1,4 +1,5 @@
 //! Durable identity of the bounded candidates that must finish before settlement.
+use crate::records::dream::dream_begin_codec::{self, BeginPopulation, BeginRecord};
 use crate::records::dream_batch::Observation;
 use crate::{DreamMemoryCut, MemoryId};
 use serde::{Deserialize, Serialize};
@@ -20,15 +21,8 @@ pub(crate) struct FrontierRecord {
     pub memory_version: u64,
 }
 impl FrontierRecord {
-    pub fn view(&self) -> InitialDreamFrontier {
-        InitialDreamFrontier {
-            source: self.source.cut(),
-            candidates: self.candidates.iter().map(Observation::cut).collect(),
-            graph_version: self.graph_version,
-        }
-    }
     pub fn encode(&self) -> Result<Vec<u8>, String> {
-        self.validate()?;
+        self.validate_begin()?;
         let mut out = b"RELDRC01".to_vec();
         out.extend(serde_json::to_vec(self).map_err(|e| e.to_string())?);
         if out.len() > 256 * 1024 {
@@ -37,6 +31,10 @@ impl FrontierRecord {
         Ok(out)
     }
     pub fn decode(bytes: &[u8]) -> Result<Option<Self>, String> {
+        Ok(Self::decode_with_begin(bytes)?.map(|(frontier, _)| frontier))
+    }
+
+    pub fn decode_with_begin(bytes: &[u8]) -> Result<Option<(Self, Option<BeginRecord>)>, String> {
         if !bytes.starts_with(b"RELDRC") {
             return Ok(None);
         }
@@ -44,10 +42,11 @@ impl FrontierRecord {
             return Err("invalid Dream frontier".into());
         }
         let result: Self = serde_json::from_slice(&bytes[8..]).map_err(|e| e.to_string())?;
-        result.validate()?;
-        Ok(Some(result))
+        let begin = result.validate_begin()?;
+        Ok(Some((result, begin)))
     }
-    fn validate(&self) -> Result<(), String> {
+
+    fn validate_begin(&self) -> Result<Option<BeginRecord>, String> {
         let ids: std::collections::BTreeSet<_> = self.candidates.iter().map(|o| o.id).collect();
         if self.pass_id.is_empty()
             || self.pass_id.len() > 256
@@ -60,15 +59,18 @@ impl FrontierRecord {
             return Err("invalid Dream frontier cut".into());
         }
         if let Some(payload) = &self.begin {
-            let begin = crate::records::dream::dream_begin_codec::decode(payload)?;
+            let begin = dream_begin_codec::decode(payload)?;
             if begin.owner_uuid != self.owner
                 || begin.pass_id != self.pass_id
                 || begin.source_id != MemoryId(self.source.id)
                 || begin.graph_version_before != self.graph_version
+                || matches!(begin.population, BeginPopulation::NativeBirth { first_memory_version, .. }
+                    if first_memory_version > self.memory_version)
             {
                 return Err("frontier Begin mismatch".into());
             }
+            return Ok(Some(begin));
         }
-        Ok(())
+        Ok(None)
     }
 }

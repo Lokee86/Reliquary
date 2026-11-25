@@ -3163,6 +3163,7 @@ dependencies = [
 name = "reliquary-container"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "serde",
  "sha2",
  "uuid",
@@ -3274,7 +3275,7 @@ dependencies = [
 
 [[package]]
 name = "reliquary-memory"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "blake3",
  "reliquary-application",
@@ -3325,6 +3326,7 @@ dependencies = [
 name = "reliquary-owner-session"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "directories",
  "libc",
  "reliquary-archive",

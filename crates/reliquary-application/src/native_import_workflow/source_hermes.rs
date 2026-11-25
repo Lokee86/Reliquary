@@ -2,7 +2,7 @@
 
 use super::graph::{SourceConversation, SourceTurn};
 use super::*;
-use reliquary_owner_session::{RelSession, RelWriter};
+use reliquary_owner_session::{OwnerSessionError, RelSession, RelWriter};
 
 #[path = "source_hermes_echo.rs"]
 mod echo;
@@ -53,21 +53,24 @@ impl HermesCopyScope {
         stage::principal_namespace(&format!("hermes/profile/{}", self.profile_id), principal)
     }
 
-    fn accepted_conversation<'a>(
+    fn accepted_conversation(
         &self,
-        session: &'a RelSession,
+        session: &RelSession,
         source_sha256: &[u8; 32],
         namespace: &str,
-    ) -> Option<&'a ImportedConversation> {
-        let receipt = session.native_import_receipt(source_sha256)?;
+    ) -> Result<Option<ImportedConversation>, OwnerSessionError> {
+        let Some(receipt) = session.native_import_receipt(source_sha256)? else {
+            return Ok(None);
+        };
         if receipt.source_namespace != namespace || receipt.source_format != FORMAT {
-            return None;
+            return Ok(None);
         }
         let id = self.conversation_id();
-        receipt
+        Ok(receipt
             .conversations
             .iter()
             .find(|row| row.source_id == self.session_id && row.conversation_id == id)
+            .cloned())
     }
 }
 
@@ -336,6 +339,7 @@ pub fn tombstone_hermes_copy(
             &id,
             &source_sha256,
         )
+        .map_err(NativeImportStageError::Owner)?
         .is_none()
     {
         return Err(NativeImportStageError::Conflict);

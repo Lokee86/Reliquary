@@ -3,13 +3,13 @@ use super::*;
 use crate::records::ImportProcessingBinding;
 
 impl RelWriter {
-    /// Bind selected routes and stage policy before claims or provider calls.
-    /// A held, unpaired import may attach its first authorized destination
-    /// before reaching the vector stage.
+    /// Record the initial processing plan before claims or provider calls.
+    /// Resumes use the current model routes. The authorized destination and
+    /// embedding profile keep their existing bindings.
     pub fn bind_native_import_processing(
         &mut self,
         import_id: &str,
-        policy: [u8; 32],
+        initial_policy: [u8; 32],
         destination: Option<[u8; 16]>,
     ) -> Result<(), OwnerSessionError> {
         if destination.is_some()
@@ -26,14 +26,11 @@ impl RelWriter {
             return Err(OwnerSessionError::ManagementConflict);
         }
         if let Some(previous) = self.session.imports.processing_binding(import_id) {
-            if previous.policy != policy
-                || previous.destination.is_some() && previous.destination != destination
-                || previous.profile.is_some() && previous.destination != destination
-            {
-                return Err(OwnerSessionError::ManagementConflict);
-            }
             if previous.destination == destination {
                 return Ok(());
+            }
+            if previous.destination.is_some() || previous.profile.is_some() {
+                return Err(OwnerSessionError::ManagementConflict);
             }
             return self.record_import_processing_binding(
                 import_id,
@@ -57,7 +54,7 @@ impl RelWriter {
         self.record_import_processing_binding(
             import_id,
             ImportProcessingBinding {
-                policy,
+                policy: initial_policy,
                 destination,
                 profile: None,
             },
@@ -113,7 +110,7 @@ impl RelWriter {
             .open_epoch()
             .expect("validated open epoch");
         if super::decode_import_key(&start.import_key)
-            .and_then(|key| self.session.native_import_receipt(&key))
+            .and_then(|key| self.session.native_import_receipt_digest(&key))
             .is_none()
         {
             return Err(OwnerSessionError::Record(

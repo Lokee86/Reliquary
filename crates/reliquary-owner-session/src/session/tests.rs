@@ -325,11 +325,13 @@ fn rel_session_reopens_native_archive_with_source_keyed_echo() {
         "assistant"
     );
     assert_eq!(
-        session.echo_for_turn("conversation-echo", "assistant-1"),
+        session
+            .echo_for_turn("conversation-echo", "assistant-1")
+            .unwrap(),
         vec![event.clone()]
     );
     assert_eq!(
-        session.echo_for_conversation("conversation-echo"),
+        session.echo_for_conversation("conversation-echo").unwrap(),
         vec![event]
     );
 }

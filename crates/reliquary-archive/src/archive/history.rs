@@ -1,5 +1,40 @@
 use super::*;
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(super) enum BranchRevision {
+    Resident(Box<Branch>),
+    Leased(FrameRange, ContentId),
+}
+
+impl BranchRevision {
+    pub(super) fn new(branch: &Branch, range: Option<FrameRange>, bytes: &[u8]) -> Self {
+        if let Some(range) = range {
+            Self::Leased(range, ContentId(Sha256::digest(bytes).into()))
+        } else {
+            Self::Resident(Box::new(branch.clone()))
+        }
+    }
+
+    fn read(&self, archive: &Archive) -> Result<Branch, ArchiveError> {
+        let (range, digest) = match self {
+            Self::Resident(branch) => return Ok(branch.as_ref().clone()),
+            Self::Leased(range, digest) => (*range, *digest),
+        };
+        let bytes = archive.read_range(range, digest)?;
+        match decode_record(&bytes) {
+            Ok(Some(Record::Branch(branch, _))) => Ok(branch),
+            result => {
+                if let Some(reader) = &archive.reader {
+                    reader.fence_writes();
+                }
+                Err(result
+                    .err()
+                    .unwrap_or(ArchiveError::CorruptRecord("Archive branch revision frame")))
+            }
+        }
+    }
+}
+
 impl Archive {
     /// Project retained Archive semantics at an exact owner-local version.
     pub fn history_at(&self, version: u64) -> Result<crate::ArchiveHistorySnapshot, ArchiveError> {
@@ -7,15 +42,21 @@ impl Archive {
             return Err(ArchiveError::InvalidField("future Archive version"));
         }
         let mut branches = BTreeMap::new();
-        for (accepted, branch) in self
+        let mut branch_revisions = Vec::new();
+        for (accepted, revision) in self
             .branch_history
             .iter()
             .take_while(|(accepted, _)| *accepted <= version)
         {
+            let branch = revision.read(self)?;
             branches.insert(
                 (branch.conversation_id.clone(), branch.id.clone()),
                 (*accepted, branch.clone()),
             );
+            branch_revisions.push(crate::HistoricalArchiveBranch {
+                archive_version: *accepted,
+                branch,
+            });
         }
         let copied_source_changes = self
             .copied_sources
@@ -66,15 +107,7 @@ impl Archive {
                 .max()
                 .unwrap_or(0),
             turns,
-            branch_revisions: self
-                .branch_history
-                .iter()
-                .take_while(|(accepted, _)| *accepted <= version)
-                .map(|(archive_version, branch)| crate::HistoricalArchiveBranch {
-                    archive_version: *archive_version,
-                    branch: branch.clone(),
-                })
-                .collect(),
+            branch_revisions,
             branches: branches.into_values().map(|(_, branch)| branch).collect(),
             copied_source_changes,
             episodes: self
@@ -95,8 +128,8 @@ impl Archive {
                         .get(*key)
                         .is_some_and(|seen| *seen <= version)
                 })
-                .map(|(_, receipt)| receipt.clone())
-                .collect(),
+                .map(|(key, slot)| self.read_import_receipt(key, slot).map(Cow::into_owned))
+                .collect::<Result<_, _>>()?,
             fragment_definitions: self
                 .fragment_definitions
                 .iter()

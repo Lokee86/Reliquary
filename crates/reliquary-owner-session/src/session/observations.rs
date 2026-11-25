@@ -20,25 +20,55 @@ fn is_observation(prefix: &[u8]) -> bool {
     }
 }
 
+#[derive(Default)]
+pub(super) struct ArchiveReplayCuts {
+    pub observations: BTreeMap<u64, (u64, u64)>,
+    pub grouped_publications: BTreeMap<u64, (u64, u64)>,
+    pub import_receipts: Vec<(u64, [u8; 32])>,
+}
+
 pub(super) fn open_archive(
     container: &Container,
     leased: bool,
-) -> Result<(Archive, BTreeMap<u64, (u64, u64)>), OwnerSessionError> {
-    let mut cuts = BTreeMap::new();
-    let archive = Archive::open_observing_prefixes(
+) -> Result<(Archive, ArchiveReplayCuts), OwnerSessionError> {
+    let mut cuts = ArchiveReplayCuts::default();
+    // Find the grouped carrier positions without reading their bodies. The
+    // Archive replay can supply each preceding cut as it advances over them.
+    let mut grouped = container.matching_physical_cursor(|prefix| {
+        prefix.starts_with(b"RELINSC") || prefix.starts_with(b"RELDRC01")
+    })?;
+    while let Some(frame) = grouped.next_frame()? {
+        cuts.grouped_publications
+            .insert(frame.object().offset, (0, 0));
+    }
+    drop(grouped);
+    let mut grouped = cuts.grouped_publications.iter_mut().peekable();
+    let archive = Archive::open_observing_frames(
         container,
         leased,
         |prefix| is_observation(prefix) || reliquary_archive::archive_replay_frame(prefix),
-        |payload, archive, turn| {
-            if let Ok(Some(frame)) = reliquary_container::decode_publication(payload)
-                && frame.body.starts_with(PREFIX)
+        |frame| {
+            let cut = (frame.archive_version, frame.activity);
+            while let Some((_, grouped_cut)) =
+                grouped.next_if(|(offset, _)| **offset < frame.object.offset)
             {
-                cuts.insert(frame.version, (archive, turn));
+                *grouped_cut = cut;
+            }
+            if let Some(key) = frame.import_receipt_key {
+                cuts.import_receipts.push((frame.object.offset, key));
+            }
+            if let Ok(Some(publication)) = reliquary_container::decode_publication(frame.payload)
+                && publication.body.starts_with(PREFIX)
+            {
+                cuts.observations.insert(publication.version, cut);
             }
         },
     )?;
+    for (_, cut) in grouped {
+        *cut = (archive.archive_version(), archive.rel_turn_count());
+    }
     // A naked Observation marker has no clock and must never be ignored.
-    if cuts.is_empty() {
+    if cuts.observations.is_empty() {
         let mut frames = container.matching_physical_cursor(|prefix| prefix.starts_with(PREFIX))?;
         if frames.next_frame()?.is_some() {
             return Err(invalid("unclocked Observation carrier"));

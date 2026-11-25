@@ -6,6 +6,7 @@
 pub(crate) mod copied_source;
 mod fragment_passages;
 mod history;
+mod import_receipts;
 mod payload;
 mod publications;
 mod retained;
@@ -24,11 +25,15 @@ use crate::{
     ImportReceipt, Node, ProjectAttachmentInput, ProjectFileRef, ProjectRepositoryKind,
     ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
 };
+use history::BranchRevision;
+use import_receipts::ImportReceiptSlot;
+pub use import_receipts::{ImportReceiptIdentity, ImportedTurnReference};
 use payload::{FrameRange, Payload};
 use reliquary_container::{
     Container, ContainerError, ContainerIdentity, FileKind, LeasedFrameReader, ObjectRef,
 };
 use sha2::{Digest, Sha256};
+use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::num::NonZeroU64;
 use std::sync::Arc;
@@ -55,6 +60,16 @@ pub use evidence::{
     MAX_EVIDENCE_SEARCH_RESULTS, MAX_EVIDENCE_SEARCH_SCAN, MAX_EVIDENCE_TURNS,
 };
 
+/// A successfully replayed physical frame and its preceding Archive cuts.
+pub struct ArchiveReplayFrame<'a> {
+    pub object: ObjectRef,
+    pub payload: &'a [u8],
+    pub archive_version: u64,
+    pub activity: u64,
+    /// The key of a physical import receipt admitted at this frame.
+    pub import_receipt_key: Option<[u8; 32]>,
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Archive {
     #[serde(skip)]
@@ -66,10 +81,10 @@ pub struct Archive {
     rel_turn_count: u64,
     file_content: HashMap<ContentId, Payload<Vec<u8>>>,
     branches: BTreeMap<(String, String), Branch>,
-    branch_history: Vec<(u64, Branch)>,
+    branch_history: Vec<(u64, BranchRevision)>,
     episodes: BTreeMap<EpisodeId, Episode>,
     episode_versions: BTreeMap<EpisodeId, u64>,
-    import_receipts: BTreeMap<[u8; 32], ImportReceipt>,
+    import_receipts: BTreeMap<[u8; 32], ImportReceiptSlot>,
     import_receipt_versions: BTreeMap<[u8; 32], u64>,
     fragment_definitions: BTreeMap<crate::FragmentId, crate::FragmentDefinition>,
     fragment_versions: BTreeMap<crate::FragmentId, u64>,
@@ -140,7 +155,7 @@ impl Archive {
     }
 
     fn open_with_payloads(container: &Container, leased: bool) -> Result<Self, ArchiveError> {
-        Self::open_observing_prefixes(container, leased, archive_replay_frame, |_, _, _| {})
+        Self::open_observing_frames(container, leased, archive_replay_frame, |_| {})
     }
 
     /// Observe Archive version and activity at selected physical frames.
@@ -149,7 +164,25 @@ impl Archive {
         container: &Container,
         leased: bool,
         select: fn(&[u8]) -> bool,
-        mut observe: impl FnMut(&[u8], u64, u64),
+        mut observe: impl FnMut(ObjectRef, &[u8], u64, u64),
+    ) -> Result<Self, ArchiveError> {
+        Self::open_observing_frames(container, leased, select, |frame| {
+            observe(
+                frame.object,
+                frame.payload,
+                frame.archive_version,
+                frame.activity,
+            );
+        })
+    }
+
+    /// Observe selected physical frames after replay admits them.
+    /// The selector must include all frames selected by `archive_replay_frame`.
+    pub fn open_observing_frames(
+        container: &Container,
+        leased: bool,
+        select: fn(&[u8]) -> bool,
+        mut observe: impl FnMut(ArchiveReplayFrame<'_>),
     ) -> Result<Self, ArchiveError> {
         let mut archive = Self::empty();
         if leased {
@@ -166,27 +199,22 @@ impl Archive {
         if has_project_clock {
             let mut frames = container.scan_clocked_matching_frames(select)?;
             while let Some(frame) = frames.next_frame()? {
-                observe(
-                    frame.payload,
-                    archive.archive_version,
-                    archive.rel_turn_count,
-                );
-                archive.replay_frame(
+                observe(archive.replay_observed_frame(
                     container,
                     frame.object,
                     frame.payload,
                     frame.global_version,
-                )?;
+                )?);
             }
         } else {
             let mut frames = container.scan_matching_frames(select)?;
             while let Some(frame) = frames.next_frame()? {
-                observe(
+                observe(archive.replay_observed_frame(
+                    container,
+                    frame.object,
                     frame.payload,
-                    archive.archive_version,
-                    archive.rel_turn_count,
-                );
-                archive.replay_frame(container, frame.object, frame.payload, 0)?;
+                    0,
+                )?);
             }
         }
         Ok(archive)
@@ -201,8 +229,39 @@ impl Archive {
         payload: &[u8],
         global_version: u64,
     ) -> Result<(), ArchiveError> {
+        self.replay_observed_frame(container, object, payload, global_version)?;
+        Ok(())
+    }
+
+    fn replay_observed_frame<'a>(
+        &mut self,
+        container: &Container,
+        object: ObjectRef,
+        payload: &'a [u8],
+        global_version: u64,
+    ) -> Result<ArchiveReplayFrame<'a>, ArchiveError> {
+        let archive_version = self.archive_version;
+        let activity = self.rel_turn_count;
+        let import_receipt_key =
+            self.replay_receipt_key(container, object, payload, global_version)?;
+        Ok(ArchiveReplayFrame {
+            object,
+            payload,
+            archive_version,
+            activity,
+            import_receipt_key,
+        })
+    }
+
+    fn replay_receipt_key(
+        &mut self,
+        container: &Container,
+        object: ObjectRef,
+        payload: &[u8],
+        global_version: u64,
+    ) -> Result<Option<[u8; 32]>, ArchiveError> {
         if let Some(publication) = crate::publication::in_frame(payload)? {
-            self.replay_publication(container, object, payload, publication)?;
+            return self.replay_publication(container, object, payload, publication);
         } else if let Some(record) = decode_record(payload)? {
             match &record {
                 Record::CopiedSourceChange(_) => {
@@ -227,9 +286,23 @@ impl Archive {
                 }
                 _ => {}
             }
-            self.apply_record(record, false, Some((object, payload)))?;
+            return self.apply_replayed_record(record, false, (object, payload));
         }
-        Ok(())
+        Ok(None)
+    }
+
+    fn apply_replayed_record(
+        &mut self,
+        record: Record<'_>,
+        allow_retained_project_identity: bool,
+        source: (ObjectRef, &[u8]),
+    ) -> Result<Option<[u8; 32]>, ArchiveError> {
+        let import_receipt_key = match &record {
+            Record::Import(receipt) => Some(receipt.import_key),
+            _ => None,
+        };
+        self.apply_record(record, allow_retained_project_identity, Some(source))?;
+        Ok(import_receipt_key)
     }
 
     /// Accept a source turn once. Its stable node ID is supplied by the source;
@@ -421,8 +494,15 @@ impl Archive {
         let archive_version = self.next_archive_version()?;
         let encoded = encode_branch(&branch)?;
         self.check_publication(container, archive_version, coordinate)?;
-        self.persist_applying(container, coordinate, &encoded)?;
-        self.branch_history.push((archive_version, branch.clone()));
+        let frame = self.persist_applying(container, coordinate, &encoded)?;
+        let range = self
+            .reader
+            .as_ref()
+            .map(|_| FrameRange::new(frame, frame.length - encoded.len() as u64, encoded.len()));
+        self.branch_history.push((
+            archive_version,
+            BranchRevision::new(&branch, range, &encoded),
+        ));
         self.branches
             .insert((branch.conversation_id.clone(), branch.id.clone()), branch);
         self.archive_version = archive_version;
@@ -505,54 +585,23 @@ impl Archive {
         }
         receipt.receipt_digest = import_receipt_digest(&receipt)?;
         self.validate_import_receipt(&receipt)?;
-        if let Some(existing) = self.import_receipts.get(&receipt.import_key) {
-            return if existing == &receipt {
-                Ok(existing.clone())
+        if let Some(existing) = self.import_receipt(&receipt.import_key)? {
+            return if existing.as_ref() == &receipt {
+                Ok(existing.into_owned())
             } else {
                 Err(ArchiveError::ConflictingImportReceipt)
             };
         }
         let next_version = self.next_archive_version()?;
         let encoded = encode_import_receipt(&receipt)?;
-        container.append(&encoded)?;
+        let object = container.append(&encoded)?;
         container.sync()?;
-        self.import_receipts
-            .insert(receipt.import_key, receipt.clone());
+        let slot = self.receipt_slot(Cow::Borrowed(&receipt), Some((object, &encoded)))?;
+        self.import_receipts.insert(receipt.import_key, slot);
         self.import_receipt_versions
             .insert(receipt.import_key, next_version);
         self.archive_version = next_version;
         Ok(receipt)
-    }
-
-    pub fn import_receipt(&self, import_key: &[u8; 32]) -> Option<&ImportReceipt> {
-        self.import_receipts.get(import_key)
-    }
-
-    pub fn import_receipts(&self) -> Vec<ImportReceipt> {
-        self.import_receipts.values().cloned().collect()
-    }
-
-    /// Return one accepted receipt witness for an exact native node.
-    pub fn imported_turn_reference(
-        &self,
-        conversation: &str,
-        node: &str,
-    ) -> Option<(
-        &ImportReceipt,
-        &crate::ImportedConversation,
-        &crate::ImportedMessage,
-    )> {
-        self.import_receipts.values().find_map(|receipt| {
-            let conversation = receipt
-                .conversations
-                .iter()
-                .find(|record| record.conversation_id == conversation)?;
-            let message = conversation
-                .messages
-                .iter()
-                .find(|record| record.node_id.as_deref() == Some(node))?;
-            Some((receipt, conversation, message))
-        })
     }
 
     pub fn branch_turns(
@@ -671,16 +720,34 @@ impl Archive {
     /// The returned text and source identities are rehydrated from this
     /// Archive. The Episode start must be an ancestor of its end node.
     pub fn episode_turns(&self, id: EpisodeId) -> Result<Option<Vec<ResolvedTurn>>, ArchiveError> {
+        self.episode_path(id)?
+            .map(|path| self.resolve_path(path))
+            .transpose()
+    }
+
+    /// Return the Episode's accepted source path without loading turn text.
+    pub fn episode_node_ids(&self, id: EpisodeId) -> Result<Option<Vec<&str>>, ArchiveError> {
+        Ok(self
+            .episode_path(id)?
+            .map(|path| path.into_iter().map(|node| node.id.as_str()).collect()))
+    }
+
+    fn episode_path(&self, id: EpisodeId) -> Result<Option<Vec<&Node>>, ArchiveError> {
         let Some(episode) = self.episodes.get(&id) else {
             return Ok(None);
         };
-        let mut path = self.branch_path(&episode.conversation_id, &episode.end_node_id)?;
-        let start = path
-            .iter()
-            .position(|node| node.id == episode.start_node_id)
-            .ok_or(ArchiveError::InvalidEpisodeRange)?;
-        let selected = path.drain(start..).collect();
-        self.resolve_path(selected).map(Some)
+        let mut node = self.require_node(&episode.conversation_id, &episode.end_node_id)?;
+        let mut path = vec![node];
+        while node.id != episode.start_node_id {
+            let parent = node
+                .parent_id
+                .as_deref()
+                .ok_or(ArchiveError::InvalidEpisodeRange)?;
+            node = self.require_node(&episode.conversation_id, parent)?;
+            path.push(node);
+        }
+        path.reverse();
+        Ok(Some(path))
     }
 
     /// Rehydrate one turn by its immutable conversation and node identity.
@@ -833,13 +900,9 @@ impl Archive {
             .get(conversation_id)
             .map(|title| title.title.as_str())
             .or_else(|| {
-                self.import_receipts.values().find_map(|receipt| {
-                    receipt
-                        .conversations
-                        .iter()
-                        .find(|conversation| conversation.conversation_id == conversation_id)
-                        .and_then(|conversation| conversation.title.as_deref())
-                })
+                self.import_receipts
+                    .values()
+                    .find_map(|slot| slot.title(conversation_id))
             })
     }
 
@@ -922,6 +985,11 @@ impl Archive {
     /// Archive clock assigned when this Episode was first accepted.
     pub fn episode_archive_version(&self, id: EpisodeId) -> Option<u64> {
         self.episode_versions.get(&id).copied()
+    }
+
+    /// Archive clock assigned when this source receipt was accepted.
+    pub fn import_receipt_archive_version(&self, import_key: &[u8; 32]) -> Option<u64> {
+        self.import_receipt_versions.get(import_key).copied()
     }
 
     /// Archive clock assigned when this immutable source node was first
@@ -1135,7 +1203,7 @@ impl Archive {
                     self.file_content.insert(content_id, payload);
                 }
             }
-            Record::Branch(branch) => {
+            Record::Branch(branch, bytes) => {
                 if self
                     .conversation_tombstones
                     .contains_key(&branch.conversation_id)
@@ -1150,22 +1218,20 @@ impl Archive {
                 if self.source_removed(&branch.conversation_id, &branch.leaf_node_id) {
                     return Err(ArchiveError::InvalidBranchRevision);
                 }
-                self.require_node(&branch.conversation_id, &branch.leaf_node_id)?;
+                let leaf = self.require_node(&branch.conversation_id, &branch.leaf_node_id)?;
                 let key = (branch.conversation_id.clone(), branch.id.clone());
                 if let Some(existing) = self.branches.get(&key) {
                     if existing == &branch {
                         return Ok(());
                     }
-                    if !self
-                        .branch_path(&branch.conversation_id, &branch.leaf_node_id)?
-                        .iter()
-                        .any(|node| node.id == existing.leaf_node_id)
-                    {
+                    if !self.has_ancestor(leaf, &existing.leaf_node_id)? {
                         return Err(ArchiveError::InvalidBranchRevision);
                     }
                 }
                 let archive_version = self.next_archive_version()?;
-                self.branch_history.push((archive_version, branch.clone()));
+                let range = self.frame_range(source, bytes)?;
+                self.branch_history
+                    .push((archive_version, BranchRevision::new(&branch, range, bytes)));
                 self.branches.insert(key, branch);
                 self.archive_version = archive_version;
             }
@@ -1192,17 +1258,18 @@ impl Archive {
                     ));
                 }
                 self.validate_import_receipt(&receipt)?;
-                if let Some(existing) = self.import_receipts.get(&receipt.import_key) {
-                    return if existing == &receipt {
+                let key = receipt.import_key;
+                if let Some(existing) = self.import_receipt(&key)? {
+                    return if existing.as_ref() == &receipt {
                         Ok(())
                     } else {
                         Err(ArchiveError::ConflictingImportReceipt)
                     };
                 }
                 let archive_version = self.next_archive_version()?;
-                self.import_receipt_versions
-                    .insert(receipt.import_key, archive_version);
-                self.import_receipts.insert(receipt.import_key, receipt);
+                let slot = self.receipt_slot(Cow::Owned(receipt), source)?;
+                self.import_receipt_versions.insert(key, archive_version);
+                self.import_receipts.insert(key, slot);
                 self.archive_version = archive_version;
             }
             Record::FragmentDefinitions(definitions) => {
@@ -1222,12 +1289,13 @@ impl Archive {
                 }
                 let mut expected = BTreeMap::new();
                 let mut branch_windows = BTreeMap::new();
+                let mut passage_source = None;
                 for definition in &definitions {
                     if definition.archive_cut != archive_cut {
                         return Err(ArchiveError::CorruptRecord("fragment cut mismatch"));
                     }
                     if definition.fragment.passage.is_some() {
-                        self.validate_passage_definition(definition)?;
+                        self.validate_passage_definition(definition, &mut passage_source)?;
                     } else {
                         let key = (
                             definition.fragment.conversation_id.as_str(),
@@ -1492,6 +1560,22 @@ impl Archive {
         }
     }
 
+    fn has_ancestor<'a>(
+        &'a self,
+        mut node: &'a Node,
+        ancestor_id: &str,
+    ) -> Result<bool, ArchiveError> {
+        // Accepted turns already proved their parents at insertion. Stop once
+        // the requested node is found instead of collecting the path to root.
+        while node.id != ancestor_id {
+            let Some(parent) = &node.parent_id else {
+                return Ok(false);
+            };
+            node = self.require_node(&node.conversation_id, parent)?;
+        }
+        Ok(true)
+    }
+
     fn branch_path(
         &self,
         conversation_id: &str,
@@ -1548,11 +1632,90 @@ fn valid_import_text(value: &str) -> bool {
 }
 
 fn import_receipt_digest(receipt: &ImportReceipt) -> Result<[u8; 32], ArchiveError> {
+    // The field order must match the durable ImportReceipt JSON.
+    #[derive(serde::Serialize)]
+    struct UnsignedImportReceipt<'a> {
+        schema_version: u32,
+        owner_uuid: &'a [u8; 16],
+        import_key: &'a [u8; 32],
+        source_namespace: &'a str,
+        source_format: &'a str,
+        source_digest: &'a [u8; 32],
+        conversations: &'a [crate::ImportedConversation],
+        receipt_digest: [u8; 32],
+    }
+
+    let unsigned = UnsignedImportReceipt {
+        schema_version: receipt.schema_version,
+        owner_uuid: &receipt.owner_uuid,
+        import_key: &receipt.import_key,
+        source_namespace: &receipt.source_namespace,
+        source_format: &receipt.source_format,
+        source_digest: &receipt.source_digest,
+        conversations: &receipt.conversations,
+        receipt_digest: [0; 32],
+    };
+    let invalid = || ArchiveError::CorruptRecord("invalid import receipt");
+    let mut writer = std::io::BufWriter::new(Sha256::new());
+    serde_json::to_writer(&mut writer, &unsigned).map_err(|_| invalid())?;
+    let hasher = writer.into_inner().map_err(|_| invalid())?;
+    Ok(hasher.finalize().into())
+}
+
+#[test]
+fn import_receipt_digest_preserves_canonical_json() {
+    let message = crate::ImportedMessage {
+        source_id: "first".into(),
+        revision: "v1".into(),
+        source_parent_id: None,
+        replaces: None,
+        deleted: false,
+        node_id: Some("node".into()),
+        fingerprint: [3; 32],
+        artifacts: vec![crate::ImportedArtifact {
+            source_id: "image".into(),
+            source_ref: "file\\\"image.png".into(),
+            sha256: [4; 32],
+            file_id: [5; 32],
+        }],
+        source_author: Some(crate::ImportedSourceAuthor {
+            id: Some("author".into()),
+            is_bot: None,
+        }),
+    };
+    let receipt = ImportReceipt {
+        schema_version: 1,
+        owner_uuid: [1; 16],
+        import_key: [2; 32],
+        source_namespace: "source\nnamespace".into(),
+        source_format: crate::HERMES_COPIED_SOURCE_FORMAT.into(),
+        source_digest: [2; 32],
+        conversations: vec![crate::ImportedConversation {
+            source_id: "thread".into(),
+            conversation_id: "conversation".into(),
+            title: Some("Archive \"夜\"\n".repeat(1024)),
+            messages: vec![
+                message.clone(),
+                crate::ImportedMessage {
+                    source_id: "second".into(),
+                    source_parent_id: Some(message.source_id.clone()),
+                    source_author: None,
+                    ..message
+                },
+            ],
+            branches: vec![crate::ImportedBranch {
+                source_id: "main".into(),
+                branch_id: "branch".into(),
+                leaf_node_id: Some("node".into()),
+                canonical: true,
+            }],
+        }],
+        receipt_digest: [6; 32],
+    };
     let mut unsigned = receipt.clone();
     unsigned.receipt_digest = [0; 32];
-    let bytes = serde_json::to_vec(&unsigned)
-        .map_err(|_| ArchiveError::CorruptRecord("invalid import receipt"))?;
-    Ok(Sha256::digest(bytes).into())
+    let expected: [u8; 32] = Sha256::digest(serde_json::to_vec(&unsigned).unwrap()).into();
+    assert_eq!(import_receipt_digest(&receipt).unwrap(), expected);
 }
 
 fn activity_role(role: &str) -> bool {

@@ -44,7 +44,7 @@ For REL dependency changes, use the Root topology and context fixture, the maint
 
 For changes to REL creation or scope metadata, the [homogeneity execution plan](../planning/rel-homogeneity-plan-2026-11-18.md) describes the focused Core and CLI checks, the pre-change 2.1 files, and the matched Hermes setup check.
 
-For REL checkpoint changes, run the owner-session suffix and cache recovery case, the Container and store tests affected by leased reads, and the separate locked CLI and native host builds. Use verified copies for the [startup proof workloads](../planning/rel-checkpoint-open-plan-2026-11-20.md). Bump the private checkpoint format marker when changing a retained projection or its replay interpretation.
+For REL checkpoint changes, run the owner-session suffix and cache recovery case, the Container and store tests affected by leased reads, and the separate locked CLI and native host builds. Use verified copies for the [startup proof workloads](../planning/rel-checkpoint-open-plan-2026-11-20.md). Record the build profile and whether the open used a checkpoint. The Core and CLI development profiles optimize SHA-256 so Archive digest verification does not dominate local startup measurements. Bump the private checkpoint format marker when changing a retained projection or its replay interpretation.
 
 For host mount lifecycle changes, exercise the public Root admission and quiescence tests in `tests/public_api.rs`. Focus on the target mount, grant checks and unaffected owners.
 

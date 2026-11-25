@@ -107,7 +107,9 @@ fn echo_is_separate_source_keyed_evidence_and_reopens_without_activity_effects()
     assert_eq!(reopened_archive.rel_turn_count(), 1);
     assert_eq!(reopened_echo.owner_id(), Some([0xE1; 16]));
     assert_eq!(
-        reopened_echo.for_turn("conversation-echo", "assistant-1"),
+        reopened_echo
+            .for_turn("conversation-echo", "assistant-1")
+            .unwrap(),
         vec![
             event(0, EchoEventKind::ReasoningSummary),
             event(1, EchoEventKind::ToolCall),
@@ -165,7 +167,8 @@ fn fresh_echo_store_replays_before_checking_sequence() {
     assert_eq!(
         EchoStore::open(&container)
             .unwrap()
-            .for_turn("conversation-echo", "assistant-1"),
+            .for_turn("conversation-echo", "assistant-1")
+            .unwrap(),
         vec![original]
     );
 }

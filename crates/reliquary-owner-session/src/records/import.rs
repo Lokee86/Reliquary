@@ -5,6 +5,7 @@ use super::{
 use reliquary_container::Container;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
+use std::io::Read;
 
 const START_MAGIC_V1: &[u8; 8] = b"RELIEPS1";
 const COMPLETE_MAGIC_V1: &[u8; 8] = b"RELIEPC1";
@@ -42,6 +43,10 @@ pub struct ImportEpochStore {
 }
 
 impl ImportEpochStore {
+    pub(crate) fn has_legacy_markers(&self) -> bool {
+        self.starts.values().any(|start| start.format_version == 1)
+    }
+
     pub(crate) fn prefix(owner: [u8; 16]) -> Self {
         Self {
             owner: Some(owner),
@@ -69,70 +74,71 @@ impl ImportEpochStore {
     }
 
     pub fn open(container: &Container) -> Result<Self, String> {
-        let owner = container.owner_id();
-        let mut store = Self {
-            owner: Some(owner),
-            ..Self::default()
-        };
-        // A settlement hashes every preceding payload, but owners with no
-        // epoch markers need no source-prefix digest at all.
+        let mut store = Self::prefix(container.owner_id());
         let mut markers = container
             .matching_physical_cursor(is_import_epoch_marker)
             .map_err(|e| e.to_string())?;
-        let mut last_marker = None;
-        while let Some(frame) = markers.next_frame().map_err(|e| e.to_string())? {
-            last_marker = Some(frame.object().offset);
-        }
-        let Some(last_marker) = last_marker else {
-            return Ok(store);
-        };
-        let mut prefix_hash = import_settlement::prefix_hasher();
-        let mut frames = container.scan_frames().map_err(|e| e.to_string())?;
-        while let Some(frame) = frames.next_frame().map_err(|e| e.to_string())? {
-            if frame.payload.starts_with(import_settlement::MAGIC) {
-                let settlement = ImportFreshnessSettlement::decode(frame.payload)?;
-                let expected = format!("{:x}", prefix_hash.clone().finalize());
-                if settlement.prefix_digest != expected {
-                    return Err("import settlement physical source prefix mismatch".into());
+        let mut payload = Vec::new();
+        while let Some(mut frame) = markers.next_frame().map_err(|e| e.to_string())? {
+            payload.resize(8, 0);
+            frame.read_exact(&mut payload).map_err(|e| e.to_string())?;
+            if payload.starts_with(import_settlement::MAGIC) {
+                let mut last_marker = frame.object().offset;
+                while let Some(marker) = markers.next_frame().map_err(|e| e.to_string())? {
+                    last_marker = marker.object().offset;
                 }
-                store.ingest_settlement(settlement)?;
-            } else if frame.payload.starts_with(IMPORT_PROCESSING_MAGIC) {
-                store.ingest_processing_binding(frame.payload)?;
-            } else if frame.payload.starts_with(START_MAGIC)
-                || frame.payload.starts_with(START_MAGIC_V1)
-            {
-                let magic = if frame.payload.starts_with(START_MAGIC) {
-                    START_MAGIC
-                } else {
-                    START_MAGIC_V1
-                };
-                let start = decode::<ImportStart>(frame.payload, magic)?;
-                if start.owner_uuid != owner {
-                    return Err("import epoch owner mismatch".into());
-                }
-                store.ingest_start(start)?;
-            } else if frame.payload.starts_with(COMPLETE_MAGIC)
-                || frame.payload.starts_with(COMPLETE_MAGIC_V1)
-            {
-                let magic = if frame.payload.starts_with(COMPLETE_MAGIC) {
-                    COMPLETE_MAGIC
-                } else {
-                    COMPLETE_MAGIC_V1
-                };
-                let complete = decode::<ImportComplete>(frame.payload, magic)?;
-                if complete.owner_uuid != owner {
-                    return Err("import epoch owner mismatch".into());
-                }
-                store.ingest_complete(complete)?;
-            } else if store
-                .open
-                .as_ref()
-                .is_some_and(|id| store.settlements.contains_key(id))
-            {
-                return Err("import mutation followed settlement before completion".into());
+                return Self::open_with_settlement_proof(container, last_marker);
             }
-            import_settlement::push_frame(&mut prefix_hash, frame.payload);
-            if frame.object.offset == last_marker
+            frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+            store.ingest_prefix(&payload)?;
+        }
+        // Without a settlement, the epoch journal is independent of the
+        // bytes of unrelated owner records, including native Archive text.
+        Ok(store)
+    }
+
+    fn open_with_settlement_proof(container: &Container, last_marker: u64) -> Result<Self, String> {
+        let mut store = Self::prefix(container.owner_id());
+        let mut prefix_hash = import_settlement::prefix_hasher();
+        let mut frames = container.physical_cursor().map_err(|e| e.to_string())?;
+        let mut buffer = vec![0; import_settlement::PREFIX_BUFFER_BYTES];
+        let mut payload = Vec::new();
+        while let Some(mut frame) = frames.next_frame().map_err(|e| e.to_string())? {
+            let object = frame.object();
+            let mut marker = [0; 8];
+            let prefix = &mut marker[..object.length.min(8) as usize];
+            frame.read_exact(prefix).map_err(|e| e.to_string())?;
+            if is_import_epoch_marker(prefix) {
+                payload.clear();
+                payload.extend_from_slice(prefix);
+                frame.read_to_end(&mut payload).map_err(|e| e.to_string())?;
+                if prefix.starts_with(import_settlement::MAGIC) {
+                    let settlement = ImportFreshnessSettlement::decode(&payload)?;
+                    let expected = format!("{:x}", prefix_hash.clone().finalize());
+                    if settlement.prefix_digest != expected {
+                        return Err("import settlement physical source prefix mismatch".into());
+                    }
+                    store.ingest_settlement(settlement)?;
+                } else {
+                    store.ingest_prefix(&payload)?;
+                }
+                import_settlement::push_frame(&mut prefix_hash, &payload);
+            } else {
+                if store
+                    .open
+                    .as_ref()
+                    .is_some_and(|id| store.settlements.contains_key(id))
+                {
+                    return Err("import mutation followed settlement before completion".into());
+                }
+                import_settlement::push_streamed_frame(
+                    &mut prefix_hash,
+                    prefix,
+                    &mut frame,
+                    &mut buffer,
+                )?;
+            }
+            if object.offset == last_marker
                 && !store
                     .open
                     .as_ref()

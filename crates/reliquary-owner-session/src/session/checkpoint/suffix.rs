@@ -24,9 +24,25 @@ pub(super) fn replay(
     if checkpoint.covered_end == extent {
         return Ok(true);
     }
-    // A suspended import has its own publication fence and proof rules.
-    if session.imports.open_epoch().is_some() || !session.common.maintenance.is_empty() {
+    if !session.common.maintenance.is_empty() {
         return Ok(false);
+    }
+    if let Some(epoch) = session.imports.open_epoch() {
+        if epoch.format_version != 2
+            || session.imports.settlement(&epoch.import_id).is_some()
+            || session.has_native_import_historical_freshness(&epoch.import_id)
+        {
+            return Ok(false);
+        }
+        let import_id = epoch.import_id.clone();
+        let pre_import_memory = epoch.pre.memory_version;
+        return replay_import_suffix(
+            session,
+            container,
+            checkpoint.covered_end,
+            &import_id,
+            pre_import_memory,
+        );
     }
     let mut frames = container.scan_frames_from(checkpoint.covered_end)?;
     let mut memory_changed = false;
@@ -80,6 +96,52 @@ pub(super) fn replay(
     )
 }
 
+fn replay_import_suffix(
+    session: &mut RelSession,
+    container: &Container,
+    covered_end: u64,
+    import_id: &str,
+    pre_import_memory: u64,
+) -> Result<bool, OwnerSessionError> {
+    let mut frames = container.scan_frames_from(covered_end)?;
+    let mut source_tail = false;
+    let mut dream_tail = false;
+    let mut native_sources = super::dream_suffix::NativeDreamSources::default();
+    while let Some(frame) = frames.next_frame()? {
+        let payload = frame.payload;
+        if payload.starts_with(b"RELVERS1") || payload.starts_with(b"RELVERS2") {
+            continue;
+        }
+        if payload.starts_with(b"RELTURN2") || payload.starts_with(b"RELBRCH1") {
+            if dream_tail {
+                return Ok(false);
+            }
+            source_tail = true;
+            session
+                .archive
+                .replay_frame(container, frame.object, payload, 0)?;
+        } else {
+            // Current Dream only changes projections it can validate against a
+            // fixed Archive and extraction cohort. Other histories go through
+            // canonical replay, which discards this provisional session.
+            if source_tail
+                || super::dream_suffix::replay(
+                    session,
+                    payload,
+                    import_id,
+                    pre_import_memory,
+                    &mut native_sources,
+                )
+                .is_err()
+            {
+                return Ok(false);
+            }
+            dream_tail = true;
+        }
+    }
+    Ok(true)
+}
+
 fn native_memory_frame(payload: &[u8]) -> bool {
     [b"RELMBOD1", b"RELMCRT1", b"RELMDLT1", b"RELMTMB1"]
         .iter()
@@ -126,7 +188,7 @@ fn replay_typed_suffix(
                         &request.source_id,
                         &request.conversation_id,
                         &request.source_sha256,
-                    )
+                    )?
                     .is_none()
                 {
                     return Err(OwnerSessionError::Record(

@@ -16,7 +16,14 @@ fn reopen_at_checkpoint(
     let lease =
         Container::prepare_checkpoint_open(owner, true, FileKind::Reliquary, Some(OWNER)).unwrap();
     let extent = lease.extent();
-    open_leased(lease, Some(slot.to_path_buf()), extent, true).unwrap()
+    let (container, session, mut checkpoint) =
+        open_leased(lease, Some(slot.to_path_buf()), extent, true).unwrap();
+    if let Some(checkpoint) = &mut checkpoint
+        && checkpoint.attempted_extent.is_none()
+    {
+        checkpoint.refresh(&container, &session, true);
+    }
+    (container, session, checkpoint)
 }
 
 fn open_writer(owner: &Path) -> RelWriter {

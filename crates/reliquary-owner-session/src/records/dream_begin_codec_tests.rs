@@ -49,6 +49,40 @@ fn compact_cut_encoder_matches_independent_golden_bytes() {
 }
 
 #[test]
+fn native_birth_encoder_matches_independent_golden_bytes() {
+    let record = base(BeginPopulation::NativeBirth {
+        first_memory_version: 4,
+        digest: [0xBB; 32],
+    });
+    let expected = from_hex(concat!(
+        "4356445245414d32",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "02",
+        "01000000",
+        "70",
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "0200000000000000",
+        "0300000000000000",
+        "0400000000000000",
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    ));
+    assert_eq!(expected.len(), 118);
+    assert_eq!(encode(&record).unwrap(), expected);
+    assert_eq!(decode(&expected).unwrap(), record);
+
+    let mut zero_birth = expected;
+    zero_birth[78..86].copy_from_slice(&0_u64.to_le_bytes());
+    assert!(decode(&zero_birth).is_err());
+    assert!(
+        encode(&base(BeginPopulation::NativeBirth {
+            first_memory_version: 0,
+            digest: [0xBB; 32],
+        }))
+        .is_err()
+    );
+}
+
+#[test]
 fn explicit_nonempty_set_encoder_matches_independent_golden_bytes() {
     let mut record = base(BeginPopulation::ExplicitSet(BTreeSet::from([
         MemoryId([0x33; 32]),
@@ -133,6 +167,10 @@ fn every_proper_golden_prefix_is_rejected() {
             [0x22; 32],
         )]))),
         base(BeginPopulation::ExplicitSet(BTreeSet::new())),
+        base(BeginPopulation::NativeBirth {
+            first_memory_version: 1,
+            digest: [0xBB; 32],
+        }),
     ] {
         let encoded = encode(&record).unwrap();
         for end in 0..encoded.len() {
@@ -159,7 +197,7 @@ fn decoder_rejects_unknown_framing_trailers_and_invalid_pass_id() {
     foreign_magic[..8].copy_from_slice(b"OLDWIRE1");
     assert!(decode(&foreign_magic).is_err());
     let mut unknown_variant = compact.clone();
-    unknown_variant[24] = 2;
+    unknown_variant[24] = 3;
     assert!(decode(&unknown_variant).is_err());
 
     let mut empty_pass_id = compact.clone();

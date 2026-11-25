@@ -32,7 +32,14 @@ impl PhyWriter {
         source: DreamMemoryCut,
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
-        let admission = initial_admission(&self.container, &self.common, source, pass_id, turn)?;
+        let admission = initial_admission(
+            &self.container,
+            &self.common,
+            source,
+            pass_id,
+            turn,
+            InitialDreamBirth::Physical,
+        )?;
         if self.poisoned
             || self.container.writer_lease_proof().is_none()
             || self.container.writer_lease_proof() != self.writer_lease_proof

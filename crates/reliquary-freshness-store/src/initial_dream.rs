@@ -10,6 +10,7 @@ impl FreshnessStore {
         accepted: u64,
     ) -> Result<Vec<Vec<u8>>, String> {
         self.prepare_initial_enrollment(id, birth, accepted, true)
+            .map(|(payloads, _)| payloads)
     }
     fn prepare_initial_enrollment(
         &self,
@@ -17,7 +18,7 @@ impl FreshnessStore {
         birth_turn: u64,
         accepted_turn: u64,
         admit: bool,
-    ) -> Result<Vec<Vec<u8>>, String> {
+    ) -> Result<(Vec<Vec<u8>>, Option<PendingBirth>), String> {
         if !self.policy_persisted
             || birth_turn == 0
             || accepted_turn < birth_turn
@@ -35,33 +36,35 @@ impl FreshnessStore {
         let owner = self
             .owner_uuid
             .ok_or("Freshness owner identity is required")?;
-        let mut staged = self.clone();
         let mut effects = Vec::new();
-        if !staged.births.contains_key(&memory_id) {
-            let payload = encode_entry(
-                owner,
-                &JournalEntry::Birth {
+        let (admitted_at_birth, pending_birth) = match self.births.get(&memory_id) {
+            Some((_, admitted)) => (*admitted, None),
+            None => {
+                let entry = JournalEntry::Birth {
                     memory_id,
                     accepted_turn: birth_turn,
                     admitted_at_birth: false,
-                },
-            )?;
-            staged.ingest_payload(&payload)?;
-            effects.push(payload);
+                };
+                self.validate_entry(&entry)?;
+                effects.push(encode_entry(owner, &entry)?);
+                (
+                    false,
+                    Some(PendingBirth {
+                        memory_id,
+                        accepted_turn: birth_turn,
+                    }),
+                )
+            }
+        };
+        if admit && !admitted_at_birth && !self.admissions.contains_key(&memory_id) {
+            let entry = JournalEntry::Admission {
+                memory_id,
+                accepted_turn,
+            };
+            self.validate_entry_with_birth(&entry, pending_birth)?;
+            effects.push(encode_entry(owner, &entry)?);
         }
-        let (_, admitted) = staged.births[&memory_id];
-        if admit && !admitted && !staged.admissions.contains_key(&memory_id) {
-            let payload = encode_entry(
-                owner,
-                &JournalEntry::Admission {
-                    memory_id,
-                    accepted_turn,
-                },
-            )?;
-            staged.ingest_payload(&payload)?;
-            effects.push(payload);
-        }
-        Ok(effects)
+        Ok((effects, pending_birth))
     }
 
     /// Encode an Application-evaluated first-cycle event after ordinary store
@@ -87,12 +90,8 @@ impl FreshnessStore {
         effects: BTreeMap<FreshnessMemoryId, i16>,
         admit: bool,
     ) -> Result<Vec<Vec<u8>>, String> {
-        let mut payloads =
+        let (mut payloads, pending_birth) =
             self.prepare_initial_enrollment(memory_id, birth_turn, accepted_turn, admit)?;
-        let mut staged = self.clone();
-        for payload in &payloads {
-            staged.ingest_payload(payload)?;
-        }
         if !effects.is_empty() {
             let owner = self.owner_uuid.ok_or("Freshness owner missing")?;
             let event_id = format!("dream-initial:{}:{}", hex(&owner), hex(&memory_id.0));
@@ -113,8 +112,9 @@ impl FreshnessStore {
                 },
                 effects,
             };
-            let payload = encode_entry(owner, &JournalEntry::Event(event))?;
-            staged.ingest_payload(&payload)?;
+            let entry = JournalEntry::Event(event);
+            let payload = encode_entry(owner, &entry)?;
+            self.validate_entry_with_birth(&entry, pending_birth)?;
             payloads.push(payload);
         }
         Ok(payloads)

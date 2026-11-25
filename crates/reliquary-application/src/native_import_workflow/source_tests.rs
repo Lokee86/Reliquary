@@ -78,6 +78,7 @@ fn raw_branch_selection_resumes_after_interrupted_staging() {
         let receipt = writer
             .read_session()
             .native_import_receipt(&plan().import_key)
+            .unwrap()
             .unwrap();
         let sources = &receipt.conversations[0].messages;
         assert_eq!(sources[0].source_id, "user-message");
@@ -153,6 +154,7 @@ fn copied_echo_resumes_after_interrupted_staging() {
             writer
                 .read_session()
                 .echo_for_turn(&conversation, "reply")
+                .unwrap()
                 .len(),
             1
         );
@@ -160,6 +162,7 @@ fn copied_echo_resumes_after_interrupted_staging() {
             writer
                 .read_session()
                 .native_import_receipt(&source)
+                .unwrap()
                 .is_none()
         );
         assert!(

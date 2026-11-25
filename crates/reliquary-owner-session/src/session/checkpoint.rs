@@ -1,10 +1,17 @@
 //! Private, disposable startup state for one admitted REL prefix.
 
+mod dream_suffix;
 mod pages;
 mod private_cache;
 mod suffix;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_dream_suffix;
+#[cfg(test)]
+mod tests_echo;
+#[cfg(test)]
+mod tests_native_import;
 #[cfg(test)]
 mod tests_observations;
 
@@ -16,7 +23,7 @@ use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
-const MAGIC: &[u8; 8] = b"RELCP008";
+const MAGIC: &[u8; 8] = b"RELCP017";
 const STATE_START: u64 = 16;
 const MAX_MANIFEST_BYTES: usize = 16 * 1024 * 1024;
 const REFRESH_BYTES: u64 = 16 * 1024 * 1024;
@@ -137,6 +144,7 @@ impl Entry {
 pub(super) struct WriterCheckpoint {
     slot: PathBuf,
     prefix: Option<VerifiedPrefix>,
+    admitted_extent: u64,
     attempted_extent: Option<u64>,
     attempted_epoch: u64,
     refresh_live_cut: bool,
@@ -147,9 +155,15 @@ pub(super) struct WriterCheckpoint {
 }
 
 impl WriterCheckpoint {
-    fn new(slot: PathBuf, prefix: Option<VerifiedPrefix>, session: &RelSession) -> Self {
+    fn new(
+        slot: PathBuf,
+        prefix: Option<VerifiedPrefix>,
+        admitted_extent: u64,
+        session: &RelSession,
+    ) -> Self {
         Self {
             slot,
+            admitted_extent,
             attempted_extent: prefix.as_ref().map(VerifiedPrefix::covered_end),
             #[cfg(feature = "d02-observation")]
             opened_prefix: prefix.as_ref().map(VerifiedPrefix::covered_end),
@@ -175,34 +189,33 @@ impl WriterCheckpoint {
         if epoch > 0 && !self.refresh_live_cut {
             return;
         }
-        if let Some(attempted) = self.attempted_extent {
-            if extent == attempted {
-                return;
-            }
-            if !quiescing
-                && extent.saturating_sub(attempted) < REFRESH_BYTES
-                && epoch.saturating_sub(self.attempted_epoch) < REFRESH_FRAMES
-            {
-                return;
-            }
+        if self.attempted_extent == Some(extent) {
+            return;
+        }
+        let refresh_from = self.attempted_extent.unwrap_or(self.admitted_extent);
+        if !quiescing
+            && extent.saturating_sub(refresh_from) < REFRESH_BYTES
+            && epoch.saturating_sub(self.attempted_epoch) < REFRESH_FRAMES
+        {
+            return;
         }
         self.attempted_extent = Some(extent);
         self.attempted_epoch = epoch;
-        match self.publish(container, session) {
-            Ok(prefix) => self.prefix = Some(prefix),
-            Err(_error) => {
-                #[cfg(feature = "d02-observation")]
-                {
-                    self.refresh_error = Some(_error.to_string());
-                }
+        if let Err(_error) = self.publish(container, session) {
+            #[cfg(feature = "d02-observation")]
+            {
+                self.refresh_error = Some(_error.to_string());
             }
         }
     }
 
-    fn publish(&self, container: &Container, session: &RelSession) -> io::Result<VerifiedPrefix> {
+    fn publish(&mut self, container: &Container, session: &RelSession) -> io::Result<()> {
         let (physical, prefix) = container
             .capture_checkpoint(self.prefix.as_ref())
             .map_err(io::Error::other)?;
+        // The same lease can reuse this verified hash even when the
+        // disposable checkpoint cannot be installed.
+        self.prefix = Some(prefix);
         let parent = self.slot.parent().ok_or_else(invalid_cache)?;
         let mut staged = private_cache::stage(parent)?;
         staged.write_all(MAGIC)?;
@@ -211,9 +224,14 @@ impl WriterCheckpoint {
             &mut staged,
             cut_seal(&physical, &session.history_generation),
         );
-        session
-            .serialize(&mut rmp_serde::Serializer::new(&mut pages).with_struct_map())
-            .map_err(io::Error::other)?;
+        let mut serializer = rmp_serde::Serializer::new(&mut pages);
+        // Legacy import records omit their leading format-version field.
+        if session.imports.has_legacy_markers() {
+            session.serialize(&mut serializer.with_struct_map())
+        } else {
+            session.serialize(&mut serializer)
+        }
+        .map_err(io::Error::other)?;
         let state_len = pages.finish()?;
         let manifest_at = staged.stream_position()?;
         let manifest = encode(&Manifest {
@@ -243,7 +261,7 @@ impl WriterCheckpoint {
             .map_err(|failure| failure.error)?;
         #[cfg(unix)]
         File::open(parent)?.sync_all()?;
-        Ok(prefix)
+        Ok(())
     }
 }
 
@@ -294,7 +312,7 @@ fn open_leased(
         container.release_replay_directory();
         let refresh = slot
             .filter(|_| writable)
-            .map(|slot| WriterCheckpoint::new(slot, prefix, &session));
+            .map(|slot| WriterCheckpoint::new(slot, prefix, extent, &session));
         return Ok((container, session, refresh));
     }
     // Full admission can replace this checkpoint. Release its file handle first.
@@ -306,11 +324,11 @@ fn open_leased(
     container.require_extent(extent)?;
     container.release_replay_directory();
 
-    let refresh = slot.filter(|_| writable).map(|slot| {
-        let mut writer = WriterCheckpoint::new(slot, None, &session);
-        writer.refresh(&container, &session, true);
-        writer
-    });
+    // The writer publishes the first cache at its normal refresh boundary or
+    // when it closes. A cache miss should not make admission wait for a cache.
+    let refresh = slot
+        .filter(|_| writable)
+        .map(|slot| WriterCheckpoint::new(slot, None, extent, &session));
     Ok((container, session, refresh))
 }
 use self::pages::{MAX_PROJECTION_BYTES, PAGE_BYTES, PageReader, PageWriter};

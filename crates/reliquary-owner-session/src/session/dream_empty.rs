@@ -1,7 +1,14 @@
 //! Owner-lease admission of a no-candidate initial Dream completion.
 //! The accepted Graph cut and final journal settlement share one frame.
 use super::*;
+use crate::records::dream::{Population, StoredAdmission};
 use crate::records::{DreamMemoryCut, dream_empty::InitialDreamSettlement};
+
+pub(super) enum InitialDreamBirth {
+    Physical,
+    Grouped(u64),
+    NativeFrontier(Population),
+}
 
 pub(super) fn initial_admission(
     container: &Container,
@@ -9,14 +16,27 @@ pub(super) fn initial_admission(
     source: DreamMemoryCut,
     pass_id: String,
     turn: u64,
+    birth: InitialDreamBirth,
 ) -> Result<DreamBeginAdmission, OwnerSessionError> {
+    initial_stored_admission(container, common, source, pass_id, turn, birth)
+        .map(|admission| admission.to_admission())
+}
+
+pub(super) fn initial_stored_admission(
+    container: &Container,
+    common: &CommonState,
+    source: DreamMemoryCut,
+    pass_id: String,
+    turn: u64,
+    birth: InitialDreamBirth,
+) -> Result<StoredAdmission, OwnerSessionError> {
     if pass_id.is_empty() || pass_id.trim() != pass_id || pass_id.len() > 256 || turn == 0 {
         return Err(OwnerSessionError::StaleDreamCut);
     }
     if common.dreams.has_other_initial_pass(source.id, &pass_id) {
         return Err(OwnerSessionError::StaleDreamCut);
     }
-    if let Some(begin) = common.dreams.begin(&pass_id) {
+    if let Some(begin) = common.dreams.begun(&pass_id) {
         if begin.source_id == source.id && begin.turn == turn {
             let admission = common
                 .dreams
@@ -29,7 +49,7 @@ pub(super) fn initial_admission(
             {
                 return Err(OwnerSessionError::StaleDreamCut);
             }
-            return Ok(common.dreams.admission(&pass_id).unwrap().clone());
+            return Ok(admission.clone());
         }
         return Err(OwnerSessionError::StaleDreamCut);
     }
@@ -37,23 +57,37 @@ pub(super) fn initial_admission(
     if source.revision == 0 || turn == 0 {
         return Err(OwnerSessionError::StaleDreamCut);
     }
-    let population =
-        super::dream_initial::birth_population(container, &common.memories, source.id)?;
-    if population.len() > 4096 {
-        return Err(OwnerSessionError::StaleDreamCut);
-    }
-    Ok(DreamBeginAdmission {
-        owner_uuid: container.owner_id(),
+    let population = match birth {
+        InitialDreamBirth::NativeFrontier(population) => population,
+        legacy => {
+            let population = match legacy {
+                InitialDreamBirth::Grouped(version) => {
+                    super::dream_population::birth_population_at(&common.memories, version)?
+                }
+                _ => super::dream_population::birth_population(
+                    container,
+                    &common.memories,
+                    source.id,
+                )?,
+            };
+            if population.len() > 4096 {
+                return Err(OwnerSessionError::StaleDreamCut);
+            }
+            Population::from_set(population)
+        }
+    };
+    Ok(StoredAdmission::new(
+        container.owner_id(),
         pass_id,
-        source_id: source.id,
+        source.id,
         turn,
-        graph_version_before: common.graph.graph_version(),
-        preexisting_ids: population,
-        memory_cut: common.memories.memory_version(),
-    })
+        common.graph.graph_version(),
+        common.memories.memory_version(),
+        population,
+    ))
 }
 
-fn validate(
+pub(super) fn validate(
     common: &CommonState,
     owner: [u8; 16],
     record: &InitialDreamSettlement,
@@ -63,7 +97,7 @@ fn validate(
     }
     let begun = common
         .dreams
-        .begin(&record.pass_id)
+        .begun(&record.pass_id)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
     if record.accepted_turn < begun.turn
         || record.validate().is_err()
@@ -154,7 +188,7 @@ fn promotion(
 #[path = "dream_empty/promotion_tests.rs"]
 mod promotion_tests;
 
-fn preflight_source(
+pub(super) fn preflight_source(
     common: &CommonState,
     pass: &str,
     source: DreamMemoryCut,
@@ -175,7 +209,7 @@ fn preflight_source(
     }
     let begin = common
         .dreams
-        .begin(pass)
+        .begun(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
     if begin.source_id != source.id
         || source.revision == 0
@@ -214,7 +248,7 @@ fn validate_source(
         .map_err(|_| OwnerSessionError::StaleDreamCut)?;
     let begin = common
         .dreams
-        .begin(pass)
+        .begun(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
     if current.record.revision != source.revision
         || current.record.body_id != source.body_id
@@ -230,4 +264,37 @@ fn validate_source(
         return Err(OwnerSessionError::StaleDreamCut);
     }
     Ok(())
+}
+
+pub(super) fn validate_rel_freshness(
+    common: &CommonState,
+    owner: [u8; 16],
+    freshness: &FreshnessStore,
+    record: &InitialDreamSettlement,
+) -> Result<BTreeMap<FreshnessMemoryId, i16>, String> {
+    if record.owner != owner {
+        return Err("Dream Freshness owner mismatch".into());
+    }
+    let begin = common
+        .dreams
+        .begun(&record.pass_id)
+        .ok_or("Dream Freshness lacks Begin")?;
+    let effects = freshness.validate_initial_dream_lifecycle(
+        FreshnessMemoryId(record.source.0),
+        begin.turn,
+        record.accepted_turn,
+        record.graph_version,
+        record.community_generation,
+        &record.freshness_effects,
+        record.admit,
+    )?;
+    if record.credit_roots.is_empty() != effects.is_empty()
+        || effects.contains_key(&FreshnessMemoryId(record.source.0))
+        || record.credit_roots.iter().any(|id| {
+            effects.get(&FreshnessMemoryId(id.0)) != Some(&freshness.policy().linkage_principal)
+        })
+    {
+        return Err("Dream initial roots differ from Freshness evidence".into());
+    }
+    Ok(effects)
 }

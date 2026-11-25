@@ -106,10 +106,14 @@ impl RelSession {
         leased: bool,
     ) -> Result<Self, OwnerSessionError> {
         require_kind(container, FileKind::Reliquary)?;
-        let (archive, observation_archive_cuts) =
-            super::observations::open_archive(container, leased)?;
-        let echo = reliquary_archive::EchoStore::open(container)
-            .map_err(|e| OwnerSessionError::Record(e.to_string()))?;
+        let (archive, archive_cuts) = super::observations::open_archive(container, leased)?;
+        let observation_archive_cuts = archive_cuts.observations;
+        let echo = if leased {
+            reliquary_archive::EchoStore::open_leased(container)
+        } else {
+            reliquary_archive::EchoStore::open(container)
+        }
+        .map_err(echo_error)?;
         let accepted_episodes = accepted_episodes.into_iter().collect::<Vec<_>>();
         for order in &accepted_episodes {
             let episode = archive
@@ -139,7 +143,12 @@ impl RelSession {
                 start_node_id: episode.start_node_id,
             })
             .collect::<Vec<_>>();
-        let replay = validate_rel_replay_admission(container, &archive, leased)?;
+        let replay = validate_rel_replay_admission(
+            container,
+            &archive,
+            &archive_cuts.grouped_publications,
+            leased,
+        )?;
         let grouped_completions = replay.completions;
         let local_owner_id: String = container
             .owner_id()
@@ -158,7 +167,7 @@ impl RelSession {
         }
         let history_generation = owner_history_generation_from_container(container)
             .map_err(OwnerSessionError::Record)?;
-        let (mut common, identity_history, identity_separation_history, observations) =
+        let (common, identity_history, identity_separation_history, observations) =
             super::replay::open_common_replaying(
                 container,
                 graph_admission.owner_id().ok_or(GraphError::WrongOwner)?,
@@ -172,6 +181,10 @@ impl RelSession {
                 (replay.has_identity_history || !observation_archive_cuts.is_empty())
                     .then_some(history_generation),
                 Some((&archive, &observation_archive_cuts)),
+                Some(super::replay_prefix::DreamArchivePrefix {
+                    archive: &archive,
+                    cuts: &archive_cuts.grouped_publications,
+                }),
             )?;
         if archive
             .project_correlations()
@@ -220,31 +233,12 @@ impl RelSession {
             |payload, freshness| {
                 let record = crate::records::dream_empty::InitialDreamSettlement::decode(payload)?
                     .ok_or("missing Dream settlement")?;
-                if record.owner != container.owner_id() {
-                    return Err("Dream Freshness owner mismatch".into());
-                }
-                let begin = common
-                    .dreams
-                    .begin(&record.pass_id)
-                    .ok_or("Dream Freshness lacks Begin")?;
-                let effects = freshness.validate_initial_dream_lifecycle(
-                    FreshnessMemoryId(record.source.0),
-                    begin.turn,
-                    record.accepted_turn,
-                    record.graph_version,
-                    record.community_generation,
-                    &record.freshness_effects,
-                    record.admit,
+                super::dream_empty::validate_rel_freshness(
+                    &common,
+                    container.owner_id(),
+                    freshness,
+                    &record,
                 )?;
-                if record.credit_roots.is_empty() != effects.is_empty()
-                    || effects.contains_key(&FreshnessMemoryId(record.source.0))
-                    || record.credit_roots.iter().any(|id| {
-                        effects.get(&FreshnessMemoryId(id.0))
-                            != Some(&freshness.policy().linkage_principal)
-                    })
-                {
-                    return Err("Dream initial roots differ from Freshness evidence".into());
-                }
                 Ok(record.freshness_effects)
             },
         )
@@ -299,7 +293,12 @@ impl RelSession {
             ));
         }
         let imports = ImportEpochStore::open(container).map_err(OwnerSessionError::Record)?;
-        super::native_import::validate_native_import_receipts(container, &imports, &archive)?;
+        super::native_import::validate_native_import_receipts(
+            container,
+            &imports,
+            &archive,
+            &archive_cuts.import_receipts,
+        )?;
         let archive_vectors = ArchiveVectorStore::open(container, &common.packed_vectors)?;
         let generations =
             VectorGenerationStore::open(container, &common.profiles, &archive_vectors)?;
@@ -337,9 +336,6 @@ impl RelSession {
         let container_path = canonical_container_path(container)?;
         let container_file_identity = container.physical_file_identity()?;
         let writer_lease_proof = container.writer_lease_proof();
-        if leased {
-            common.packed_vectors.bind_read_lease(container)?;
-        }
         Ok(Self {
             owner_id: container.owner_id(),
             rel_dependencies: replay.dependencies,
@@ -353,6 +349,7 @@ impl RelSession {
             freshness,
             insomnia,
             imports,
+            active_import_source: Default::default(),
             archive_vectors,
             generations,
             archive_hybrid_cache: ArchiveHybridCache::default(),
@@ -438,6 +435,7 @@ impl RelSession {
         self.container_path = canonical_container_path(container)?;
         self.writer_lease_proof = container.writer_lease_proof();
         self.archive.bind_read_lease(container)?;
+        self.echo.bind_read_lease(container).map_err(echo_error)?;
         self.common.packed_vectors.bind_read_lease(container)?;
         self.common.memories.bind_checkpoint_reader(container)?;
         self.grouped_completion_reader = Some(container.leased_frame_reader()?);
@@ -468,12 +466,8 @@ impl RelSession {
         &self,
         conversation: &str,
         node: &str,
-    ) -> Option<(
-        &crate::model::ImportReceipt,
-        &crate::model::ImportedConversation,
-        &crate::model::ImportedMessage,
-    )> {
-        self.archive.imported_turn_reference(conversation, node)
+    ) -> Result<Option<reliquary_archive::ImportedTurnReference<'_>>, OwnerSessionError> {
+        Ok(self.archive.imported_turn_reference(conversation, node)?)
     }
 
     pub fn archive_branch(
@@ -537,8 +531,8 @@ impl RelSession {
         source_id: &str,
         conversation_id: &str,
         source_sha256: &[u8; 32],
-    ) -> Option<crate::model::CopiedSourceHead<'_>> {
-        if self.native_import_receipt(source_sha256).is_some() {
+    ) -> Result<Option<crate::model::CopiedSourceHead>, OwnerSessionError> {
+        if self.native_import_receipt_digest(source_sha256).is_some() {
             let key = source_sha256
                 .iter()
                 .map(|byte| format!("{byte:02x}"))
@@ -548,17 +542,18 @@ impl RelSession {
                 self.import_status(&id),
                 Some(ImportEpochStatus::Completed { .. })
             ) {
-                return None;
+                return Ok(None);
             }
         }
-        self.archive
-            .copied_source_head(namespace, source_id, conversation_id, source_sha256)
+        Ok(self
+            .archive
+            .copied_source_head(namespace, source_id, conversation_id, source_sha256)?)
     }
 
     pub fn copied_source_head_is_current(
         &self,
         conversation_id: &str,
-        head: &crate::model::CopiedSourceHead<'_>,
+        head: &crate::model::CopiedSourceHead,
     ) -> bool {
         self.archive
             .copied_source_head_is_current(conversation_id, head)
@@ -569,19 +564,25 @@ impl RelSession {
         &self,
         conversation: &str,
         message: &str,
-    ) -> Vec<reliquary_archive::EchoEvent> {
+    ) -> Result<Vec<reliquary_archive::EchoEvent>, OwnerSessionError> {
         if self.archive_source_removed(conversation, message) {
-            return Vec::new();
+            return Ok(Vec::new());
         }
-        self.echo.for_turn(conversation, message)
+        self.echo
+            .for_turn(conversation, message)
+            .map_err(echo_error)
     }
     /// Read currently eligible Echo evidence for one conversation in deterministic order.
-    pub fn echo_for_conversation(&self, conversation: &str) -> Vec<reliquary_archive::EchoEvent> {
-        self.echo
+    pub fn echo_for_conversation(
+        &self,
+        conversation: &str,
+    ) -> Result<Vec<reliquary_archive::EchoEvent>, OwnerSessionError> {
+        let mut events = self
+            .echo
             .for_conversation(conversation)
-            .into_iter()
-            .filter(|event| !self.archive_source_removed(conversation, &event.message_id))
-            .collect()
+            .map_err(echo_error)?;
+        events.retain(|event| !self.archive_source_removed(conversation, &event.message_id));
+        Ok(events)
     }
     pub fn archive_source_attachments(
         &self,
@@ -902,5 +903,12 @@ impl RelSession {
             source_episode_id: episode_id.0,
             draft: draft.clone(),
         })
+    }
+}
+
+fn echo_error(error: reliquary_archive::EchoError) -> OwnerSessionError {
+    match error {
+        reliquary_archive::EchoError::Container(error) => error.into(),
+        error => OwnerSessionError::Record(error.to_string()),
     }
 }

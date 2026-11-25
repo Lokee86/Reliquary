@@ -5,7 +5,7 @@ use crate::{
 };
 use reliquary_insomnia::{InsomniaCandidate, InsomniaExtraction, InsomniaOwnership};
 use reliquary_owner_session::{
-    CompletionCheck, RelSession,
+    CompletionCheck, GraphAdmission, RelSession,
     model::{ImportedBranch, ImportedConversation, ImportedMessage, InsomniaEpisodeId},
 };
 use std::{
@@ -24,7 +24,9 @@ fn prepared_real_import_publication_keeps_epoch_fence_and_reopens() {
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));
     let owner = [0x6f; 16];
-    let text = "The release uses a staged rollout.";
+    let rollout = "The release uses a staged rollout.";
+    let rollback = "A rollback can be triggered from the dashboard.";
+    let text = format!("{rollout} {rollback}");
     let mut writer = RelWriter::create_current_path(&path, owner).unwrap();
     let source = ImportReceipt {
         schema_version: 1,
@@ -68,7 +70,7 @@ fn prepared_real_import_publication_keeps_epoch_fence_and_reopens() {
                 role: "user".into(),
                 principal_id: Some("alice".into()),
                 timestamp_ns: 1,
-                content: text.into(),
+                content: text,
                 attachments: vec![],
                 project_attachments: vec![],
             },
@@ -94,25 +96,28 @@ fn prepared_real_import_publication_keeps_epoch_fence_and_reopens() {
     let prepared = prepare_native_ingest_from_claim(
         &claim,
         InsomniaExtraction {
-            candidates: vec![InsomniaCandidate {
-                authority_kind: "direct".into(),
-                category: "fact".into(),
-                memory_type: "project".into(),
-                temporal_status: "current".into(),
-                ownership: InsomniaOwnership::Project,
-                title: "Release rollout".into(),
-                content: text.into(),
-                source_node_id: "n".into(),
-                source_quote: text.into(),
-                authority_source: None,
-                grounding_source: None,
-                routing_mentions: vec![],
-            }],
+            candidates: [("Release rollout", rollout), ("Release rollback", rollback)]
+                .into_iter()
+                .map(|(title, content)| InsomniaCandidate {
+                    authority_kind: "direct".into(),
+                    category: "fact".into(),
+                    memory_type: "project".into(),
+                    temporal_status: "current".into(),
+                    ownership: InsomniaOwnership::Project,
+                    title: title.into(),
+                    content: content.into(),
+                    source_node_id: "n".into(),
+                    source_quote: content.into(),
+                    authority_source: None,
+                    grounding_source: None,
+                    routing_mentions: vec![],
+                })
+                .collect(),
             rejected: vec![],
         },
     )
     .unwrap();
-    assert_eq!(prepared.project_memories().count(), 1);
+    assert_eq!(prepared.project_memories().count(), 2);
     drop(writer);
     let before = fs::read(&path).unwrap();
     writer = RelWriter::open_path_current(&path).unwrap();
@@ -186,52 +191,48 @@ fn prepared_real_import_publication_keeps_epoch_fence_and_reopens() {
     drop(writer);
     assert_eq!(fs::read(&path).unwrap(), accepted);
     writer = RelWriter::open_path_current(&path).unwrap();
-    let memory_id = writer
-        .read_session()
-        .insomnia_receipt(InsomniaEpisodeId(episode.0), claim.work.attempt_count)
-        .unwrap()
-        .memory_ids[0];
-    let record = writer
-        .read_session()
-        .current_memory(reliquary_owner_session::model::MemoryId(memory_id.0))
-        .unwrap()
-        .record;
-    let cut = reliquary_owner_session::DreamMemoryCut {
-        id: record.id,
-        revision: record.revision,
-        body_id: record.body_id,
-    };
+    let ids = writer.native_import_memory_ids(&staged.import_id).unwrap();
+    assert_eq!(ids.len(), 2);
     let turn = writer.read_session().rel_turn_count();
-    let admission = writer
-        .begin_native_import_initial_dream_pass(
-            &staged.import_id,
-            "only-source-memory".into(),
-            cut,
-            turn,
-        )
-        .unwrap();
-    assert!(admission.preexisting_ids.is_empty());
-    writer
-        .commit_native_import_initial_dream_pass(
-            &staged.import_id,
-            "only-source-memory",
-            cut,
-            writer.read_session().graph_version(),
-            turn,
-            Default::default(),
-            true,
-        )
-        .unwrap();
+    for id in ids {
+        let record = writer.read_session().current_memory(id).unwrap().record;
+        let cut = reliquary_owner_session::DreamMemoryCut {
+            id: record.id,
+            revision: record.revision,
+            body_id: record.body_id,
+        };
+        let pass = RelWriter::native_import_dream_identity(&staged.import_id, id).0;
+        let admission = writer
+            .begin_native_import_dream_frontier(&staged.import_id, pass.clone(), cut, vec![], turn)
+            .unwrap();
+        // The second sibling has a higher version in the same birth frame.
+        // Its historical population must still exclude both siblings.
+        assert!(admission.preexisting_ids.is_empty());
+        assert!(
+            writer
+                .commit_native_import_initial_dream_pass(
+                    &staged.import_id,
+                    &pass,
+                    cut,
+                    writer.read_session().graph_version(),
+                    turn,
+                    Default::default(),
+                    true,
+                )
+                .unwrap()
+        );
+    }
     settle_native_import(&mut writer, &staged.import_id).unwrap();
     writer
         .complete_native_import(&staged.import_id, 22)
         .unwrap();
     drop(writer);
-    let reopened = RelSession::open_path_current(&path).unwrap();
+    let grant = GraphAdmission::for_replay(owner, [], [], [], [], []);
+    let reopened = RelSession::open_path(&path, &grant, [], []).unwrap();
     let receipt = reopened
         .insomnia_receipt(InsomniaEpisodeId(episode.0), claim.work.attempt_count)
         .unwrap();
-    assert_eq!(receipt.memory_ids.len(), 1);
+    assert_eq!(receipt.memory_ids.len(), 2);
     assert!(matches!(
         reopened.import_status(&staged.import_id),
         Some(reliquary_owner_session::records::ImportEpochStatus::Completed { .. })

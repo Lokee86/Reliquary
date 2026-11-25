@@ -43,7 +43,7 @@ impl PreparedNativeImportDream {
             owner: self.owner,
             import_id: self.import_id,
             source: self.source,
-            draft: self.batch.evaluate(classifier, verifier, policy)?,
+            draft: self.batch.evaluate_import(classifier, verifier, policy)?,
         })
     }
 }

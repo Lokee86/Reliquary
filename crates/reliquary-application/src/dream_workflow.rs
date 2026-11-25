@@ -38,6 +38,7 @@ pub enum DreamWorkflowError {
     TemporalInferenceUnavailable,
     UnsupportedPublication,
     IncompleteFrontier,
+    ConflictingLifecycle,
     OwnerWrite(String),
     Classifier(String),
     Verifier(String),
@@ -62,6 +63,9 @@ impl fmt::Display for DreamWorkflowError {
             Self::IncompleteFrontier => f.write_str(
                 "Dream frontier has pending or uncertain decisions; retry before settlement",
             ),
+            Self::ConflictingLifecycle => {
+                f.write_str("Dream proposal has conflicting lifecycle changes")
+            }
             Self::UnsupportedPublication => {
                 f.write_str("Dream publication requires a single evaluated zero-link decision")
             }
@@ -119,6 +123,7 @@ impl DreamOrganizationDraft {
     }
 }
 
+#[derive(Clone)]
 struct CandidateSet {
     source: DreamMemory,
     candidates: Vec<DreamMemory>,
@@ -157,6 +162,7 @@ pub fn draft_dream_organization<C: GeneralEndpoint, V: GeneralEndpoint>(
     )
 }
 
+#[derive(Clone)]
 pub(crate) struct PreparedDreamOrganization {
     owner_id: [u8; 16],
     graph_version: u64,

@@ -46,6 +46,12 @@ fn resolve_scoped_evidence(
     let mut results = Vec::with_capacity(requests.len());
     let mut turns: Vec<EvidenceTurn> = Vec::new();
     let mut bytes = 0;
+    let source_allowed = |conversation: &str, node: &str| match import_id {
+        Some(id) => rel
+            .native_import_source_contains(id, conversation, node)
+            .map_err(|error| error.to_string()),
+        None => Ok(true),
+    };
     for request in requests {
         let conversation = request.conversation_id.trim();
         let mut truncated = false;
@@ -91,20 +97,23 @@ fn resolve_scoped_evidence(
         match found {
             Err(_) => result.error = Some("requested Archive evidence is unavailable".into()),
             Ok(found) => {
-                if let Some(id) = import_id
-                    && request.kind != "archive_search"
-                    && found.iter().any(|(conversation, turn)| {
-                        !rel.native_import_source_contains(id, conversation, &turn.node_id)
-                    })
-                {
-                    result.error = Some("requested Archive evidence is unavailable".into());
-                    results.push(result);
-                    continue;
+                if import_id.is_some() && request.kind != "archive_search" {
+                    let outside_import = found.iter().try_fold(
+                        false,
+                        |outside, (conversation, turn)| -> Result<bool, String> {
+                            Ok(outside || !source_allowed(conversation, &turn.node_id)?)
+                        },
+                    )?;
+                    if outside_import {
+                        result.error = Some("requested Archive evidence is unavailable".into());
+                        results.push(result);
+                        continue;
+                    }
                 }
                 for (conversation_id, turn) in found {
-                    if import_id.is_some_and(|id| {
-                        !rel.native_import_source_contains(id, &conversation_id, &turn.node_id)
-                    }) {
+                    if request.kind == "archive_search"
+                        && !source_allowed(&conversation_id, &turn.node_id)?
+                    {
                         result.truncated = true;
                         continue;
                     }

@@ -1,5 +1,7 @@
 use crate::MemoryId;
 
+use super::{StoredAdmission, population_history::Population};
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -44,23 +46,184 @@ pub struct InitialDreamPass {
     pub roots: BTreeSet<MemoryId>,
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename = "InitialDreamPass")]
+pub(super) struct StoredDreamPass {
+    pub(super) pass_id: String,
+    pub(super) source_id: MemoryId,
+    pub(super) first_revision: u64,
+    pub(super) turn: u64,
+    pub(super) accepted_settlement_turn: Option<u64>,
+    #[serde(with = "population_as_set")]
+    pub(super) preexisting_ids: Population,
+    pub(super) graph_version_before: u64,
+    pub(super) roots: BTreeSet<MemoryId>,
+}
+
+mod population_as_set {
+    use super::*;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub(super) fn serialize<S: Serializer>(
+        population: &Population,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        population.as_set().serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Population, D::Error> {
+        BTreeSet::deserialize(deserializer).map(Population::from_set)
+    }
+}
+
+impl From<InitialDreamPass> for StoredDreamPass {
+    fn from(pass: InitialDreamPass) -> Self {
+        Self {
+            pass_id: pass.pass_id,
+            source_id: pass.source_id,
+            first_revision: pass.first_revision,
+            turn: pass.turn,
+            accepted_settlement_turn: pass.accepted_settlement_turn,
+            preexisting_ids: Population::from_set(pass.preexisting_ids),
+            graph_version_before: pass.graph_version_before,
+            roots: pass.roots,
+        }
+    }
+}
+
+impl StoredDreamPass {
+    fn to_initial(&self) -> InitialDreamPass {
+        InitialDreamPass {
+            pass_id: self.pass_id.clone(),
+            source_id: self.source_id,
+            first_revision: self.first_revision,
+            turn: self.turn,
+            accepted_settlement_turn: self.accepted_settlement_turn,
+            preexisting_ids: self.preexisting_ids.to_set(),
+            graph_version_before: self.graph_version_before,
+            roots: self.roots.clone(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct DreamFreshnessJournal {
     owner_uuid: Option<[u8; 16]>,
-    pending: BTreeMap<String, InitialDreamPass>,
+    pending: BTreeMap<String, StoredDreamPass>,
     settled: BTreeSet<String>,
     pending_initializations: BTreeMap<MemoryId, (String, u64, bool)>,
     publication_births: BTreeSet<MemoryId>,
     accepted_graph_cuts: BTreeMap<String, (u64, AcceptedGraphCutProof)>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(super) struct JournalCheckpoint<'a> {
+    owner_uuid: Option<[u8; 16]>,
+    pending: BTreeMap<String, PendingCheckpoint<'a>>,
+    settled: Cow<'a, BTreeSet<String>>,
+    pending_initializations: Cow<'a, BTreeMap<MemoryId, (String, u64, bool)>>,
+    publication_births: Cow<'a, BTreeSet<MemoryId>>,
+    accepted_graph_cuts: Cow<'a, BTreeMap<String, (u64, AcceptedGraphCutProof)>>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct PendingCheckpoint<'a> {
+    source_id: MemoryId,
+    first_revision: u64,
+    turn: u64,
+    accepted_settlement_turn: Option<u64>,
+    preexisting_ids: Option<Cow<'a, BTreeSet<MemoryId>>>,
+    graph_version_before: u64,
+    roots: Cow<'a, BTreeSet<MemoryId>>,
+}
+
+impl JournalCheckpoint<'_> {
+    pub(super) fn restore(
+        self,
+        admissions: &BTreeMap<String, StoredAdmission>,
+    ) -> Result<DreamFreshnessJournal, String> {
+        let pending = self
+            .pending
+            .into_iter()
+            .map(|(pass_id, pass)| {
+                let preexisting_ids = match pass.preexisting_ids {
+                    Some(ids) => Population::from_set(ids.into_owned()),
+                    None => admissions
+                        .get(&pass_id)
+                        .ok_or("Dream checkpoint pending pass lacks population admission")?
+                        .preexisting_ids
+                        .clone(),
+                };
+                Ok((
+                    pass_id.clone(),
+                    StoredDreamPass {
+                        pass_id,
+                        source_id: pass.source_id,
+                        first_revision: pass.first_revision,
+                        turn: pass.turn,
+                        accepted_settlement_turn: pass.accepted_settlement_turn,
+                        preexisting_ids,
+                        graph_version_before: pass.graph_version_before,
+                        roots: pass.roots.into_owned(),
+                    },
+                ))
+            })
+            .collect::<Result<_, String>>()?;
+        Ok(DreamFreshnessJournal {
+            owner_uuid: self.owner_uuid,
+            pending,
+            settled: self.settled.into_owned(),
+            pending_initializations: self.pending_initializations.into_owned(),
+            publication_births: self.publication_births.into_owned(),
+            accepted_graph_cuts: self.accepted_graph_cuts.into_owned(),
+        })
+    }
+}
+
 impl DreamFreshnessJournal {
+    pub(super) fn checkpoint<'a>(
+        &'a self,
+        admissions: &BTreeMap<String, StoredAdmission>,
+    ) -> JournalCheckpoint<'a> {
+        JournalCheckpoint {
+            owner_uuid: self.owner_uuid,
+            pending: self
+                .pending
+                .iter()
+                .map(|(pass_id, pass)| {
+                    let matches_admitted_population = admissions
+                        .get(pass_id)
+                        .is_some_and(|admission| admission.preexisting_ids == pass.preexisting_ids);
+                    (
+                        pass_id.clone(),
+                        PendingCheckpoint {
+                            source_id: pass.source_id,
+                            first_revision: pass.first_revision,
+                            turn: pass.turn,
+                            accepted_settlement_turn: pass.accepted_settlement_turn,
+                            preexisting_ids: (!matches_admitted_population)
+                                .then(|| Cow::Borrowed(pass.preexisting_ids.as_set())),
+                            graph_version_before: pass.graph_version_before,
+                            roots: Cow::Borrowed(&pass.roots),
+                        },
+                    )
+                })
+                .collect(),
+            settled: Cow::Borrowed(&self.settled),
+            pending_initializations: Cow::Borrowed(&self.pending_initializations),
+            publication_births: Cow::Borrowed(&self.publication_births),
+            accepted_graph_cuts: Cow::Borrowed(&self.accepted_graph_cuts),
+        }
+    }
+
     /// Clock-neutral accepted resume state for the test-only equivalence oracle.
     #[cfg(feature = "oracle-support")]
     pub fn historical_oracle_value(&self) -> serde_json::Value {
         use serde_json::json;
         json!({
-            "pending": self.pending.values().map(historical_pass_value).collect::<Vec<_>>(),
+            "pending": self.pending.values().map(|pass| historical_pass_value(&pass.to_initial())).collect::<Vec<_>>(),
             "settled": self.settled,
             "pending_initializations": self.pending_initializations.iter().map(|(id, (mutation, turn, admitted))| json!([id.0, mutation, turn, admitted])).collect::<Vec<_>>(),
             "publication_births": self.publication_births.iter().map(|id| id.0).collect::<Vec<_>>(),
@@ -281,6 +444,14 @@ impl DreamFreshnessJournal {
         owner: [u8; 16],
         pass: InitialDreamPass,
     ) -> Result<(), String> {
+        self.ingest_admitted_begin(owner, pass.into())
+    }
+
+    pub(super) fn ingest_admitted_begin(
+        &mut self,
+        owner: [u8; 16],
+        pass: StoredDreamPass,
+    ) -> Result<(), String> {
         if self.owner_uuid.is_some_and(|expected| expected != owner) {
             return Err("Dream Freshness pass owner mismatch".into());
         }
@@ -295,7 +466,7 @@ impl DreamFreshnessJournal {
         Ok(())
     }
 
-    fn admit_begin(&mut self, pass: InitialDreamPass) -> Result<(), String> {
+    fn admit_begin(&mut self, pass: StoredDreamPass) -> Result<(), String> {
         match self.pending.get(&pass.pass_id) {
             Some(existing)
                 if existing.source_id == pass.source_id
@@ -312,15 +483,45 @@ impl DreamFreshnessJournal {
     }
 
     pub fn begin_is_retry(&self, pass: &InitialDreamPass) -> Result<bool, String> {
-        if self.settled.contains(&pass.pass_id) {
+        self.check_begin_retry(
+            &pass.pass_id,
+            pass.source_id,
+            pass.first_revision,
+            pass.turn,
+            pass.graph_version_before,
+            |population| population.matches_set(&pass.preexisting_ids),
+        )
+    }
+
+    pub(super) fn begin_is_admitted_retry(&self, pass: &StoredDreamPass) -> Result<bool, String> {
+        self.check_begin_retry(
+            &pass.pass_id,
+            pass.source_id,
+            pass.first_revision,
+            pass.turn,
+            pass.graph_version_before,
+            |population| *population == pass.preexisting_ids,
+        )
+    }
+
+    fn check_begin_retry(
+        &self,
+        pass_id: &str,
+        source_id: MemoryId,
+        first_revision: u64,
+        turn: u64,
+        graph_version_before: u64,
+        population_matches: impl FnOnce(&Population) -> bool,
+    ) -> Result<bool, String> {
+        if self.settled.contains(pass_id) {
             return Err("Dream Freshness pass already settled".into());
         }
-        if let Some(existing) = self.pending.get(&pass.pass_id) {
-            if existing.source_id == pass.source_id
-                && existing.first_revision == pass.first_revision
-                && existing.turn == pass.turn
-                && existing.preexisting_ids == pass.preexisting_ids
-                && existing.graph_version_before == pass.graph_version_before
+        if let Some(existing) = self.pending_ref(pass_id) {
+            if existing.source_id == source_id
+                && existing.first_revision == first_revision
+                && existing.turn == turn
+                && existing.graph_version_before == graph_version_before
+                && population_matches(&existing.preexisting_ids)
             {
                 return Ok(true);
             }
@@ -439,13 +640,20 @@ impl DreamFreshnessJournal {
     }
 
     pub fn pending_for_source(&self, source: MemoryId) -> Option<InitialDreamPass> {
-        self.pending
-            .values()
-            .find(|pass| pass.source_id == source)
-            .cloned()
+        self.pending_for_source_ref(source)
+            .map(StoredDreamPass::to_initial)
+    }
+    pub(super) fn pending_for_source_ref(&self, source: MemoryId) -> Option<&StoredDreamPass> {
+        self.pending.values().find(|pass| pass.source_id == source)
     }
     pub fn pending(&self, pass_id: &str) -> Option<InitialDreamPass> {
-        self.pending.get(pass_id).cloned()
+        self.pending_ref(pass_id).map(StoredDreamPass::to_initial)
+    }
+    pub(super) fn pending_ref(&self, pass_id: &str) -> Option<&StoredDreamPass> {
+        self.pending.get(pass_id)
+    }
+    pub(super) fn pending_pass_ids(&self) -> impl Iterator<Item = &str> {
+        self.pending.keys().map(String::as_str)
     }
     pub fn is_settled(&self, pass_id: &str) -> bool {
         self.settled.contains(pass_id)

@@ -1,6 +1,8 @@
 //! Bind the initial candidate frontier before any model calls start.
+use super::dream_empty::InitialDreamBirth;
 use super::*;
 use crate::DreamMemoryCut;
+use crate::records::dream::StoredAdmission;
 fn validate(
     common: &CommonState,
     source: DreamMemoryCut,
@@ -27,7 +29,8 @@ impl RelWriter {
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         self.ensure_write_ready()?;
-        self.begin_initial_dream_frontier_after_fence(pass, source, candidates, turn)
+        self.begin_initial_dream_frontier_after_fence(pass, source, candidates, turn, None)
+            .map(|admission| admission.to_admission())
     }
 
     pub fn begin_native_import_dream_frontier(
@@ -38,8 +41,33 @@ impl RelWriter {
         candidates: Vec<DreamMemoryCut>,
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
-        self.validate_native_import_memory(import_id, source.id)?;
-        self.validate_native_import_postprocessing(import_id)?;
+        self.publish_native_import_dream_frontier(import_id, pass, source, candidates, turn)
+            .map(|admission| admission.to_admission())
+    }
+
+    /// Bind a native import frontier for processing without expanding its historical population.
+    pub fn bind_native_import_dream_frontier(
+        &mut self,
+        import_id: &str,
+        pass: String,
+        source: DreamMemoryCut,
+        candidates: Vec<DreamMemoryCut>,
+        turn: u64,
+    ) -> Result<(), OwnerSessionError> {
+        self.publish_native_import_dream_frontier(import_id, pass, source, candidates, turn)
+            .map(|_| ())
+    }
+
+    fn publish_native_import_dream_frontier(
+        &mut self,
+        import_id: &str,
+        pass: String,
+        source: DreamMemoryCut,
+        candidates: Vec<DreamMemoryCut>,
+        turn: u64,
+    ) -> Result<StoredAdmission, OwnerSessionError> {
+        let birth_version = self.native_import_memory_birth_version(import_id, source.id)?;
+        self.verify_native_import_dream_cohort(import_id)?;
         if turn != self.session.archive.rel_turn_count()
             || pass != Self::native_import_dream_identity(import_id, source.id).0
             || self.session.common.dreams.has_other_pending_frontier(
@@ -56,7 +84,13 @@ impl RelWriter {
         {
             return Err(OwnerSessionError::StaleDreamCut);
         }
-        self.begin_initial_dream_frontier_after_fence(pass, source, candidates, turn)
+        let native_birth = birth_version
+            .map(|birth| {
+                self.native_dream_birth_population(import_id, birth)
+                    .map(|population| (birth, population))
+            })
+            .transpose()?;
+        self.begin_initial_dream_frontier_after_fence(pass, source, candidates, turn, native_birth)
     }
 
     fn begin_initial_dream_frontier_after_fence(
@@ -65,7 +99,8 @@ impl RelWriter {
         source: DreamMemoryCut,
         candidates: Vec<DreamMemoryCut>,
         turn: u64,
-    ) -> Result<DreamBeginAdmission, OwnerSessionError> {
+        native_birth: Option<(u64, crate::records::dream::Population)>,
+    ) -> Result<StoredAdmission, OwnerSessionError> {
         if self.container.writer_lease_proof().is_none()
             || self.container.writer_lease_proof() != self.session.writer_lease_proof
         {
@@ -81,12 +116,19 @@ impl RelWriter {
             }
             validate(&self.session.common, source, &candidates)?;
         }
-        let admission = super::dream_empty::initial_admission(
+        let (birth_version, birth) = match native_birth {
+            Some((version, population)) => {
+                (Some(version), InitialDreamBirth::NativeFrontier(population))
+            }
+            None => (None, InitialDreamBirth::Physical),
+        };
+        let admission = super::dream_empty::initial_stored_admission(
             &self.container,
             &self.session.common,
             source,
             pass,
             turn,
+            birth,
         )?;
         let result = self.session.common.dreams.append_frontier(
             &mut self.container,
@@ -95,6 +137,7 @@ impl RelWriter {
             candidates,
             self.session.common.graph.graph_version(),
             self.session.common.memories.memory_version(),
+            birth_version,
         );
         match result {
             Ok(value) => {
@@ -125,12 +168,13 @@ impl PhyWriter {
         if self.common.dreams.initial_frontier(&pass).is_none() {
             validate(&self.common, source, &candidates)?;
         }
-        let admission = super::dream_empty::initial_admission(
+        let admission = super::dream_empty::initial_stored_admission(
             &self.container,
             &self.common,
             source,
             pass,
             turn,
+            InitialDreamBirth::Physical,
         )?;
         let result = self.common.dreams.append_frontier(
             &mut self.container,
@@ -139,11 +183,12 @@ impl PhyWriter {
             candidates,
             self.common.graph.graph_version(),
             self.common.memories.memory_version(),
+            None,
         );
         match result {
             Ok(value) => {
                 self.writer_lease_proof = self.container.writer_lease_proof();
-                Ok(value)
+                Ok(value.to_admission())
             }
             Err(e) => {
                 self.poisoned = true;
@@ -177,7 +222,7 @@ impl RelWriter {
         self.session
             .common
             .dream_pairs
-            .batch(publication_id)
+            .batch_fingerprint(publication_id)
             .is_some()
     }
 
@@ -191,7 +236,10 @@ impl RelWriter {
 }
 impl PhyWriter {
     pub fn dream_batch_published(&self, publication_id: [u8; 32]) -> bool {
-        self.common.dream_pairs.batch(publication_id).is_some()
+        self.common
+            .dream_pairs
+            .batch_fingerprint(publication_id)
+            .is_some()
     }
     pub fn dream_graph_version(&self) -> u64 {
         self.common.graph.graph_version()

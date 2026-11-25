@@ -44,9 +44,9 @@ pub struct AcceptedCopiedSourceChange {
 }
 
 #[derive(Clone)]
-pub struct CopiedSourceHead<'a> {
-    pub branch_id: &'a str,
-    pub node_id: Option<&'a str>,
+pub struct CopiedSourceHead {
+    pub branch_id: String,
+    pub node_id: Option<String>,
     pub archive_version: u64,
 }
 
@@ -184,51 +184,70 @@ impl Archive {
         source_id: &str,
         conversation_id: &str,
         source_sha256: &[u8; 32],
-    ) -> Option<CopiedSourceHead<'_>> {
+    ) -> Result<Option<CopiedSourceHead>, ArchiveError> {
         if let Some(index) = self.copied_sources.resulting_heads.get(source_sha256) {
-            let accepted = self.copied_sources.changes.get(*index)?;
+            let Some(accepted) = self.copied_sources.changes.get(*index) else {
+                return Ok(None);
+            };
             let request = &accepted.request;
             if request.namespace != namespace
                 || request.source_id != source_id
                 || request.conversation_id != conversation_id
             {
-                return None;
+                return Ok(None);
             }
-            return Some(CopiedSourceHead {
-                branch_id: accepted.branch_id.as_deref()?,
-                node_id: accepted.surviving_node.as_deref(),
-                archive_version: accepted.receipt.archive_version,
-            });
+            return Ok(accepted
+                .branch_id
+                .as_ref()
+                .map(|branch_id| CopiedSourceHead {
+                    branch_id: branch_id.clone(),
+                    node_id: accepted.surviving_node.clone(),
+                    archive_version: accepted.receipt.archive_version,
+                }));
         }
-        let receipt = self.import_receipt(source_sha256)?;
+        let Some(archive_version) = self.import_receipt_archive_version(source_sha256) else {
+            return Ok(None);
+        };
+        let Some(receipt) = self.import_receipt(source_sha256)? else {
+            return Ok(None);
+        };
         if receipt.source_namespace != namespace
             || receipt.source_format != crate::HERMES_COPIED_SOURCE_FORMAT
         {
-            return None;
+            return Ok(None);
         }
-        let conversation = receipt
+        let Some(conversation) = receipt
             .conversations
             .iter()
-            .find(|row| row.source_id == source_id && row.conversation_id == conversation_id)?;
-        let node_id = conversation.messages.last()?.node_id.as_deref()?;
+            .find(|row| row.source_id == source_id && row.conversation_id == conversation_id)
+        else {
+            return Ok(None);
+        };
+        let Some(node_id) = conversation
+            .messages
+            .last()
+            .and_then(|row| row.node_id.as_deref())
+        else {
+            return Ok(None);
+        };
         let branch_id = match conversation.branches.as_slice() {
             [] => "hermes-copy:authorized-view",
             [branch] if branch.canonical && branch.leaf_node_id.as_deref() == Some(node_id) => {
                 branch.branch_id.as_str()
             }
-            _ => return None,
+            _ => return Ok(None),
         };
-        Some(CopiedSourceHead {
-            branch_id,
-            node_id: Some(node_id),
-            archive_version: *self.import_receipt_versions.get(source_sha256)?,
-        })
+        Ok(Some(CopiedSourceHead {
+            branch_id: branch_id.to_owned(),
+            node_id: Some(node_id.to_owned()),
+            archive_version,
+        }))
     }
 
     pub fn copied_source_head_is_current(
         &self,
         conversation: &str,
-        head: &CopiedSourceHead<'_>,
+        head: &CopiedSourceHead,
     ) -> bool {
         if self.conversation_tombstones.contains_key(conversation)
             || self
@@ -239,7 +258,10 @@ impl Archive {
         {
             return false;
         }
-        match (self.branch(conversation, head.branch_id), head.node_id) {
+        match (
+            self.branch(conversation, &head.branch_id),
+            head.node_id.as_deref(),
+        ) {
             (Some(branch), Some(node)) => branch.canonical && branch.leaf_node_id == node,
             (None, None) => true,
             _ => false,
@@ -307,7 +329,7 @@ impl Archive {
                 &request.source_id,
                 conversation,
                 &request.source_sha256,
-            )
+            )?
             .ok_or_else(invalid)?;
         if !valid_identifier(&request.event_id) {
             return Err(invalid());
@@ -337,7 +359,7 @@ impl Archive {
         if !self.copied_source_head_is_current(conversation, &head) {
             return Err(invalid());
         }
-        let path = match head.node_id {
+        let path = match head.node_id.as_deref() {
             Some(leaf) => self.branch_path(conversation, leaf)?,
             None => Vec::new(),
         };
@@ -349,9 +371,10 @@ impl Archive {
                 .iter()
                 .position(|node| node.id == *uid)
                 .ok_or_else(invalid)?;
-            let (receipt, _, message) = self
-                .imported_turn_reference(conversation, uid)
+            let reference = self
+                .imported_turn_reference(conversation, uid)?
                 .ok_or_else(invalid)?;
+            let (receipt, _, message) = reference.get();
             if receipt.source_namespace != request.namespace
                 || receipt.source_format != crate::HERMES_COPIED_SOURCE_FORMAT
                 || message.source_id != *uid
@@ -378,8 +401,8 @@ impl Archive {
             .filter(|node| !surviving.contains(node.id.as_str()))
             .map(|node| node.id.clone())
             .collect();
-        record.branch_id = Some(head.branch_id.to_owned());
-        record.prior_leaf = head.node_id.map(str::to_owned);
+        record.branch_id = Some(head.branch_id);
+        record.prior_leaf = head.node_id;
         record.surviving_node = last_surviving_message_uid.clone();
         record.receipt.last_surviving_message_uid = last_surviving_message_uid.clone();
         let mut hash = Sha256::new();
@@ -418,7 +441,8 @@ impl Archive {
                     leaf_node_id: anchor.clone(),
                     canonical: true,
                 };
-                self.branch_history.push((version, branch.clone()));
+                self.branch_history
+                    .push((version, BranchRevision::new(&branch, None, &[])));
                 self.branches.insert(key.clone(), branch);
             } else {
                 self.branches.remove(&key);

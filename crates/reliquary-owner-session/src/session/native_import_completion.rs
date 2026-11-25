@@ -1,6 +1,6 @@
 //! Terminal import admission, with owner-derived Freshness evidence.
 
-use super::work::{mapped_source_nodes, source_path_is_mapped};
+use super::work::source_path_is_mapped;
 use super::*;
 use crate::records::import_settlement::source_prefix_digest;
 use crate::records::{
@@ -46,9 +46,15 @@ impl RelWriter {
         let key = super::decode_import_key(&start.import_key).ok_or_else(|| {
             OwnerSessionError::Record("import epoch has an invalid source key".into())
         })?;
-        let receipt = self.session.archive.import_receipt(&key).ok_or_else(|| {
-            OwnerSessionError::Record("import completion requires a durable Archive receipt".into())
-        })?;
+        let receipt = self
+            .session
+            .archive
+            .import_receipt_identity(&key)
+            .ok_or_else(|| {
+                OwnerSessionError::Record(
+                    "import completion requires a durable Archive receipt".into(),
+                )
+            })?;
         if receipt.source_namespace != start.source_namespace
             || receipt.source_format != start.source_format
             || receipt.source_digest != key
@@ -76,7 +82,10 @@ impl RelWriter {
                 "import processing plan lacks its accepted embedding profile".into(),
             ));
         }
-        self.session.validate_import_work_complete(receipt)?;
+        let mapped = self.session.native_import_sources(&key)?.ok_or_else(|| {
+            OwnerSessionError::Record("import completion requires a durable Archive receipt".into())
+        })?;
+        self.session.validate_import_work_complete(&mapped)?;
 
         let settlement = if let Some(accepted) = self.session.imports.settlement(import_id) {
             if accepted.receipt_digest != receipt_digest
@@ -243,6 +252,7 @@ impl RelWriter {
             }
         };
         self.session.writer_lease_proof = self.container.writer_lease_proof();
+        self.session.clear_active_import_source();
         Ok((complete, written))
     }
 }
@@ -250,9 +260,8 @@ impl RelWriter {
 impl RelSession {
     pub(super) fn validate_import_work_complete(
         &self,
-        receipt: &crate::model::ImportReceipt,
+        mapped: &ImportSourceMap,
     ) -> Result<(), OwnerSessionError> {
-        let mapped = mapped_source_nodes(receipt);
         let mut covered = BTreeSet::new();
         for episode in self.archive.episodes() {
             if episode.origin != EpisodeOrigin::Import {
@@ -261,13 +270,13 @@ impl RelSession {
             let turns = self.archive.episode_turns(episode.id)?.ok_or_else(|| {
                 OwnerSessionError::Record("import Episode path is unavailable".into())
             })?;
-            let covered_by_receipt = turns.iter().any(|turn| {
-                mapped.contains(&(episode.conversation_id.as_str(), turn.node_id.as_str()))
-            });
+            let covered_by_receipt = turns
+                .iter()
+                .any(|turn| mapped.contains(&episode.conversation_id, &turn.node_id));
             if !covered_by_receipt {
                 continue;
             }
-            if !source_path_is_mapped(&mapped, &episode.conversation_id, &turns) {
+            if !source_path_is_mapped(mapped, &episode.conversation_id, &turns) {
                 return Err(OwnerSessionError::Record(
                     "import Episode path escapes its receipt source set".into(),
                 ));

@@ -260,6 +260,8 @@ pub struct RelSession {
     freshness: FreshnessStore,
     insomnia: InsomniaStore,
     imports: ImportEpochStore,
+    #[serde(skip)]
+    active_import_source: std::sync::Mutex<Option<native_import::ActiveImportSource>>,
     archive_vectors: ArchiveVectorStore,
     generations: VectorGenerationStore,
     #[serde(skip)]
@@ -295,6 +297,7 @@ pub struct RelWriter {
     container: Container,
     session: RelSession,
     checkpoint: Option<checkpoint::WriterCheckpoint>,
+    verified_dream_import: Option<native_import::VerifiedDreamImport>,
 }
 
 /// Immutable read cut for retrieval. Reading this value never reinforces

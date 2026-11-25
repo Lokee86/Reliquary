@@ -26,6 +26,8 @@ For temporal requests, Application applies the source-time or Chronos predicate 
 
 Cross-owner workflows keep each mutable authority local. When an operation affects REL and PHY, it uses explicit receipts, copy/reopen verification, or reconciliation rather than exposing a shared store. Retry behavior uses stable request/owner identities and current cuts; stale preparations are rejected or recomputed instead of applied over newer state.
 
+Native import Dream retries a conflicting lifecycle proposal up to twice on the same pinned Memory frontier before any later Memory can publish. If the conflict persists, Application evaluates the final judgments in pinned candidate order, retains the compatible decisions, and records each incompatible pair as rejected. The validated effects and pair outcomes are published through the same grouped owner commit before the next Memory advances. Provider errors and stale owner evidence still follow their existing failure paths.
+
 Inspection projects a Memory summary for one ID at an exact owner cut. It shares the paginated list's lifecycle, canonical status, and Community projection.
 
 Inspection selects the retained revision metadata before loading its payload. Application propagates a failed leased Memory or Archive read as a verification error. A recorded tombstone or pruned body retains its typed availability.
@@ -46,7 +48,7 @@ The key invariants are: no semantic output is treated as truth without validatio
 
 - Workflow composition and validation: [`crates/reliquary-application/src/lib.rs`](../../crates/reliquary-application/src/lib.rs).
 - Workflow modules include [`conversation_workflow.rs`](../../crates/reliquary-application/src/conversation_workflow.rs), [`ingest_publication.rs`](../../crates/reliquary-application/src/ingest_publication.rs), [`dream_publication.rs`](../../crates/reliquary-application/src/dream_publication.rs), [`management_workflow.rs`](../../crates/reliquary-application/src/management_workflow.rs), [`verified_copy_workflow.rs`](../../crates/reliquary-application/src/verified_copy_workflow.rs), and [`context_workflow.rs`](../../crates/reliquary-application/src/context_workflow.rs).
-- Unit tests in `lib.rs` include forged-source rejection, bounded evidence checks, owner-lease idempotency, and reopen recovery. Workflow-local tests cover stale Dream preparation, project-source validation, entity reopen/retry, and copy divergence. Native import publication and source replay fixtures open new RELs through the current owner-session initializer.
+- Unit tests in `lib.rs` include forged-source rejection, bounded evidence checks, owner-lease idempotency, and reopen recovery. Workflow-local tests cover stale Dream preparation, project-source validation, entity reopen/retry, and copy divergence. Native import publication and source replay fixtures open new RELs through the current owner-session initializer. The native import publication fixture verifies that sibling Memories from one extraction share a historical Dream population on full owner replay.
 - Public facade and external consumer contract are rooted at [`src/lib.rs`](../../src/lib.rs) and the external integration suite under [`tests/external-consumer`](../../tests/external-consumer).
 
 ## Extension seams

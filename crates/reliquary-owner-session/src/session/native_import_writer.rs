@@ -98,7 +98,8 @@ impl RelWriter {
             .ok_or_else(|| OwnerSessionError::Record("invalid native import key".into()))?;
         let accepted = self
             .session
-            .native_import_receipt(&key)
+            .archive
+            .import_receipt_identity(&key)
             .is_some_and(|receipt| {
                 receipt.owner_uuid == self.session.owner_id
                     && receipt.source_digest == key
@@ -153,7 +154,7 @@ impl RelWriter {
             _ => false,
         };
         if start.source_format != reliquary_archive::HERMES_COPIED_SOURCE_FORMAT
-            || self.session.archive.import_receipt(&key).is_some()
+            || self.session.native_import_receipt_digest(&key).is_some()
             || !start.pre.archive_version.is_some_and(|prior| {
                 self.session
                     .archive

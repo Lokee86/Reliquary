@@ -36,11 +36,12 @@ pub fn read_hermes_copy_source(
             &scope.session_id,
             &conversation,
             &source_sha256,
-        ) else {
+        )?
+        else {
             return Ok(None);
         };
         if !session.copied_source_head_is_current(&conversation, &head)
-            || !copied_ancestry(session, &conversation, head.node_id)
+            || !copied_ancestry(session, &conversation, head.node_id.as_deref())
                 .any(|uid| uid == end_message_uid)
         {
             return Ok(None);
@@ -54,7 +55,7 @@ pub fn read_hermes_copy_source(
             principal,
         )
     };
-    let Some(copy) = scope.accepted_conversation(session, &source_sha256, &namespace) else {
+    let Some(copy) = scope.accepted_conversation(session, &source_sha256, &namespace)? else {
         return current_range();
     };
     if session
@@ -118,14 +119,15 @@ pub fn read_hermes_copy_active_message_uids(
         &scope.session_id,
         &conversation,
         &source_sha256,
-    ) else {
+    )?
+    else {
         return Ok(None);
     };
     if !session.copied_source_head_is_current(&conversation, &head) {
         return Ok(None);
     }
     Ok(Some(
-        copied_ancestry(session, &conversation, head.node_id)
+        copied_ancestry(session, &conversation, head.node_id.as_deref())
             .skip(from_leaf)
             .take(limit)
             .map(str::to_owned)
@@ -169,11 +171,10 @@ pub fn read_hermes_archive_range(
         {
             return Ok(None);
         }
-        let Some((receipt, conversation, message)) =
-            session.imported_archive_source(conversation_id, node_id)
-        else {
+        let Some(reference) = session.imported_archive_source(conversation_id, node_id)? else {
             return Ok(None);
         };
+        let (receipt, conversation, message) = reference.get();
         let Some(profile_id) = receipt
             .source_namespace
             .strip_prefix("hermes/profile/")
@@ -247,7 +248,7 @@ fn read_copied_turn(
         return Ok(None);
     };
     let echo = session
-        .echo_for_turn(conversation_id, node_id)
+        .echo_for_turn(conversation_id, node_id)?
         .into_iter()
         .filter_map(copied_echo)
         .collect();

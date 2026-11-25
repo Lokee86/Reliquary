@@ -126,6 +126,7 @@ impl Archive {
     pub(super) fn validate_passage_definition(
         &self,
         definition: &FragmentDefinition,
+        previous_source: &mut Option<(ContentId, Arc<String>)>,
     ) -> Result<(), ArchiveError> {
         let fragment = &definition.fragment;
         let span = fragment.passage.ok_or(invalid_passage())?;
@@ -155,17 +156,25 @@ impl Archive {
         let nodes = &parent_nodes[start..=end];
         let mut rendered_bytes = nodes.len() - 1;
         for (index, node) in nodes.iter().enumerate() {
-            let Some(text) = self.content_for_node(&node.conversation_id, &node.id)? else {
-                // A terminal-prune copy retains source identities and proofs
-                // while deliberately dropping the original payload frames.
-                if !self
-                    .turns
-                    .get(&node.conversation_id, &node.id)
-                    .is_some_and(|turn| turn.prune.is_some())
-                {
-                    return Err(ArchiveError::MissingContent);
-                }
+            let turn = self
+                .turns
+                .get(&node.conversation_id, &node.id)
+                .ok_or(ArchiveError::MissingContent)?;
+            // A terminal-prune copy retains source identities and proofs
+            // while deliberately dropping the original payload frames.
+            if turn.prune.is_some() {
                 continue;
+            }
+            // Several passages can cover the same large source turn. Reuse
+            // its verified text within this record while checking each range.
+            let text = match previous_source {
+                Some((id, text)) if *id == node.content_id => text,
+                _ => {
+                    let text = self
+                        .read_text(node.content_id)?
+                        .ok_or(ArchiveError::MissingContent)?;
+                    &mut previous_source.insert((node.content_id, text)).1
+                }
             };
             let range = source_range(fragment, index, nodes.len(), text.len())?;
             if text.get(range.clone()).is_none() {
