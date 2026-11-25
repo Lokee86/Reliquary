@@ -207,8 +207,8 @@ fn copied_rewind_is_admitted_as_a_verified_checkpoint_suffix() {
     let cut = cold.current_historical_cut();
     assert_eq!(seeded.current_historical_cut(), cut);
     assert_eq!(
-        seeded.historical_proof(OWNER, cut).unwrap(),
-        cold.historical_proof(OWNER, cut).unwrap()
+        seeded.historical_proof(OWNER, &cut).unwrap(),
+        cold.historical_proof(OWNER, &cut).unwrap()
     );
 }
 
