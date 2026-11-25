@@ -40,6 +40,8 @@ Agentic temporal search binds its window to the query generation and includes it
 
 For a copied Hermes range, Gateway checks the authenticated REL grant and the copy's principal before reading source receipts, Archive rows and attached Echo. The read uses the requested Archive version and exact ancestry. The Root chat controller also checks the current inspection cut and records which references the host disclosed in the turn.
 
+Gateway passes committed transcript removals through the existing owner writer admission. Its bounded current-head UID lookup lets a host identify the copied portion of a committed rewind. Retrieval preparation, disclosure and historical recovery recheck durable removal eligibility. A previously accepted delivery receipt can still support accounting. A stale handoff cannot expose changed source bodies.
+
 Conversation submission state lives in a Gateway-owned append/replay journal, separate from REL semantic storage. The flow captures a submission, arbitrates finalize/cancel, commits the accepted turn through the mounted REL writer, and records an Archive receipt. A host handoff has a stable operation id and payload digest. Gateway syncs a handoff intent before calling the host; after an ambiguous result or restart, it queries host status and reconciles instead of blindly issuing the operation again. Generation delivery/checkpoints and memory-delivery intents are similarly tracked with stable identities and bounded replay surfaces.
 
 A trusted path mount prepares the owner state under its file lease and checks the requested kind and any expected ID before publishing it. The Root registry and the runtime mount update together after preparation. A quiesced reopen checks the registered owner on the actual new handle.
