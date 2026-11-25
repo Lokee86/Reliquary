@@ -538,8 +538,8 @@ impl ConfiguredDecisionEndpoint {
             ));
         }
         let url = validated_http_url(url).map_err(DecisionEndpointError::InvalidConfiguration)?;
-        let invalid_key = |_| DecisionEndpointError::InvalidConfiguration("invalid API key");
-        reqwest::header::HeaderValue::from_str(api_key).map_err(invalid_key)?;
+        reqwest::header::HeaderValue::from_str(api_key)
+            .map_err(|_| DecisionEndpointError::InvalidConfiguration("invalid API key"))?;
         let api_key = SecretString::new(api_key)
             .map_err(|_| DecisionEndpointError::InvalidConfiguration("invalid API key"))?;
         Self::with_transport(url, model.to_owned(), api_key)
@@ -580,12 +580,10 @@ impl DecisionEndpoint for ConfiguredDecisionEndpoint {
         questions: &Value,
         max_response_bytes: usize,
     ) -> Result<Value, DecisionEndpointError> {
-        let auth = SecretString::new(format!("Bearer {}", self.api_key.0))
-            .expect("API key was validated as non-empty");
         let response = self
             .client
             .post(self.url.clone())
-            .header(reqwest::header::AUTHORIZATION, auth.0.as_str())
+            .bearer_auth(self.api_key.0.as_str())
             .json(&json!({"model": self.model, "state": state, "questions": questions}))
             .send()
             .map_err(|_error| DecisionEndpointError::Failure("provider request failed".into()))?;
