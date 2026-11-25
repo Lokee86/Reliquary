@@ -31,6 +31,10 @@ The Gateway retrieval suite passed 13 tests. A pending upstream claim and its de
 
 The Application fixture allowed one resynthesis after Verify requested a revision. It verified a qualification successor, rejected the result under a changed route binding, and reaffirmed unchanged support after a triggering Observation was withdrawn. Its reaffirmation retained the historical trigger reference. Five focused owner tests passed. They covered propagation and release through a 70-Observation chain, exact checkpoint and suffix recovery, verified copy, successor replay after reopen, and idempotent +25 and +50 awards. [Application tests](../../crates/reliquary-application/src/observation_drafts/tests.rs) · [Owner tests](../../crates/reliquary-owner-session/src/session/checkpoint/tests_observations.rs)
 
+## Workspace verification
+
+The locked offline workspace suite completed with 826 passed, zero failures, and 11 tests marked ignored. The mounted Perception test passed in that run. The separate locked offline CLI build check, Rust formatting check, production dependency guard, gate controls, and repository documentation checks passed. [Verification commands](../development/workflow.md)
+
 ## Related docs
 
 - [Implementation plan](../planning/perception-implementation-plan-2026-11-24.md)
