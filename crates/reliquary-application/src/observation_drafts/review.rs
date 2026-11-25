@@ -310,6 +310,21 @@ fn capture_review(
                 break;
             }
         }
+        if synthesis.proposal.profile == reliquary_perception::ObservationProfile::Relational
+            && !synthesis
+                .proposal
+                .citations
+                .iter()
+                .any(|cite| matches!(cite.source, reliquary_memory_audit::SourceId::Memory(_)))
+            && let Some(direct) = synthesis.source_slots.iter().find(|passage| {
+                matches!(
+                    passage.citation.source,
+                    reliquary_memory_audit::SourceId::Memory(_)
+                )
+            })
+        {
+            synthesis.proposal.citations.push(direct.citation);
+        }
     }
     let initial_judgments = head
         .triggering_evidence
