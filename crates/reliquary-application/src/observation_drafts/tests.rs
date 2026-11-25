@@ -61,6 +61,7 @@ struct Script<'a> {
     held: &'a AtomicBool,
     decisions: Mutex<Vec<Value>>,
     embeddings: Mutex<Vec<Vec<String>>>,
+    replacement_support: Option<&'static str>,
 }
 
 impl GeneralEndpoint for Script<'_> {
@@ -86,7 +87,13 @@ impl GeneralEndpoint for Script<'_> {
         }
         assert_eq!(schema_name, "observation_synthesis_v1");
         let state: Value = serde_json::from_str(packet).unwrap();
-        let (claim, slots) = if state["revision"].is_null() {
+        let (claim, slots) = if let Some(replacement) = self.replacement_support {
+            assert!(!state["revision"].is_null());
+            let rows = state["source_slots"].as_array().unwrap();
+            assert_eq!(rows.len(), 1);
+            assert_eq!(rows[0]["text"], replacement);
+            (CLAIM, vec![0])
+        } else if state["revision"].is_null() {
             (CLAIM, vec![0])
         } else {
             let slot = state["source_slots"]
@@ -251,6 +258,7 @@ fn prepares_and_rechecks_a_verified_successor_outside_owner_read_closures() {
         held: &held,
         decisions: Mutex::default(),
         embeddings: Mutex::default(),
+        replacement_support: None,
     };
     let routes = ObservationDraftRoutes {
         general: &script,
@@ -441,4 +449,192 @@ fn prepares_and_rechecks_a_verified_successor_outside_owner_read_closures() {
     let calls = script.decisions.lock().unwrap();
     assert_eq!(calls.len(), 4);
     assert_eq!(calls[3]["backcheck_hits"].as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn review_after_source_removal_verifies_same_wording_with_exact_retained_support() {
+    use reliquary_owner_session::model::{MemoryDraft, MemorySourceRef};
+
+    const RETAINED: &str = "A concierge must be on duty to admit visitors.";
+    let path = Path::new();
+    let mut writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, [13; 16]).unwrap();
+    let prepare_source = |writer: &mut RelWriter, key: &str, content: &str| {
+        crate::commit_native_conversation_turn(
+            writer,
+            crate::NativeConversationCommit {
+                node_id: "turn".into(),
+                conversation_id: key.into(),
+                parent_node_id: None,
+                branch_id: "main".into(),
+                principal_id: "fixture".into(),
+                committed_timestamp_ns: 1,
+                content: content.into(),
+            },
+        )
+        .unwrap();
+        let memory = writer
+            .publish_direct_memory(
+                "fixture",
+                MemoryDraft {
+                    title: key.into(),
+                    content: content.into(),
+                    category: "fact".into(),
+                    memory_type: "semantic".into(),
+                    authority_kind: "direct".into(),
+                    temporal_status: "current".into(),
+                    scope: "local".into(),
+                    lifecycle_state: "knowledge".into(),
+                    archived: false,
+                    parent_id: None,
+                    superseded_by: None,
+                    source_node_id: None,
+                    content_source_conversation_id: None,
+                    content_source_node_id: None,
+                    grounding_source_conversation_id: None,
+                    grounding_source_node_id: None,
+                    source_episode_id: None,
+                    source_ref: Some(MemorySourceRef {
+                        owner_id: "0d".repeat(16),
+                        principal_id: Some("fixture".into()),
+                        source_episode_id: [0; 32],
+                        source_node_id: "turn".into(),
+                        content_source_conversation_id: Some(key.into()),
+                        content_source_node_id: Some("turn".into()),
+                        grounding_source_conversation_id: None,
+                        grounding_source_node_id: None,
+                    }),
+                    source_time_ns: Some(1),
+                    temporal_inference: None,
+                    mutation_id: key.into(),
+                    created_at_ns: 1,
+                    updated_at_ns: 1,
+                },
+            )
+            .unwrap()
+            .record;
+        let cut = writer.read_session().perception_source_cut();
+        let observation = DreamMemoryCut {
+            id: memory.id,
+            revision: memory.revision,
+            body_id: memory.body_id,
+        };
+        writer
+            .begin_first_empty_dream_pass(key.into(), observation, cut.rel_turn)
+            .unwrap();
+        assert!(
+            writer
+                .commit_empty_dream_pass(key, observation, cut.graph, cut.rel_turn)
+                .unwrap()
+        );
+        ObservationCitation {
+            owner_id: cut.owner_id,
+            history_generation: cut.history_generation,
+            source: ObservationSource::Memory(memory.id.0),
+            revision: memory.revision,
+            body_id: memory.body_id.0,
+            field: MemoryTextField::Content,
+            start_byte: 0,
+            end_byte: content.len() as u32,
+        }
+    };
+    let removed = prepare_source(&mut writer, "copied", CLAIM);
+    let supporting = prepare_source(&mut writer, "independent", RETAINED);
+    let policy = ObservationPolicy {
+        version: 1,
+        general_route: [3; 32],
+        decision_route: [3; 32],
+    };
+    let request = |input_fingerprint, operations| ObservationBatch {
+        owner_id: removed.owner_id,
+        history_generation: removed.history_generation,
+        input_fingerprint,
+        policy,
+        operations,
+        progress: None,
+    };
+    let row = writer
+        .publish_observation_batch(request(
+            [1; 32],
+            vec![ObservationOperation::Create {
+                draft: ObservationDraft {
+                    proposition: CLAIM.into(),
+                    profile: ObservationProfile::Ordinary,
+                    status: ObservationStatus::Observed,
+                    time_scope: ObservationTimeScope::Current,
+                    validity: None,
+                    citations: vec![removed],
+                    reviewed: vec![supporting],
+                    receptors: [
+                        ObservationReceptorKind::Support,
+                        ObservationReceptorKind::Challenge,
+                        ObservationReceptorKind::Qualification,
+                        ObservationReceptorKind::Change,
+                    ]
+                    .into_iter()
+                    .map(|kind| ObservationReceptor {
+                        kind,
+                        description: "Gallery policy".into(),
+                        embedding_profile: [5; 32],
+                        vector: vec![1., 0.],
+                    })
+                    .collect(),
+                },
+            }],
+        ))
+        .unwrap();
+    let (id, _) = row.revisions[0];
+    assert!(writer.tombstone_conversation("copied").unwrap());
+    assert_eq!(
+        writer.read_session().observation(id).unwrap().standing,
+        ObservationStanding::Pending(ObservationPendingReason::ChangedSupport)
+    );
+    let held = AtomicBool::new(false);
+    let script = Script {
+        held: &held,
+        decisions: Mutex::default(),
+        embeddings: Mutex::default(),
+        replacement_support: Some(RETAINED),
+    };
+    let routes = ObservationDraftRoutes {
+        general: &script,
+        verification: &script,
+        embedding: &script,
+        route_identity: [3; 32],
+        embedding_profile: [5; 32],
+        memory_vector_profile: None,
+    };
+    let review = evaluate_review(
+        &Read {
+            writer: &writer,
+            held: &held,
+        },
+        &routes,
+        id,
+    )
+    .unwrap()
+    .unwrap();
+    review
+        .revalidate(writer.read_session(), routes.route_identity)
+        .unwrap();
+    let ObservationOperation::Successor {
+        draft,
+        change: ObservationChange::Equivalent,
+        ..
+    } = &review.operation
+    else {
+        panic!("expected successor with unchanged wording");
+    };
+    assert_eq!(draft.proposition, CLAIM);
+    assert_eq!(draft.citations, [supporting]);
+    let calls = script.decisions.lock().unwrap();
+    assert_eq!(calls.len(), 1);
+    assert_eq!(calls[0]["citations"][0]["text"], RETAINED);
+    drop(calls);
+    writer
+        .publish_observation_batch(request(review.input_fingerprint, vec![review.operation]))
+        .unwrap();
+    assert_eq!(
+        writer.read_session().observation(id).unwrap().standing,
+        ObservationStanding::Current
+    );
 }

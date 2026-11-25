@@ -218,6 +218,25 @@ fn capture_review(
     all_current.extend(required.iter().copied());
     all_current.sort_unstable();
     all_current.dedup();
+    let mut retained = Vec::new();
+    if !unchanged {
+        for &cite in &head_draft.reviewed {
+            if all_current.len() >= MAX_DRAFT_SLICES {
+                break;
+            }
+            if all_current.contains(&cite) {
+                continue;
+            }
+            match capture.citation(cite) {
+                Ok((passage, grade)) => {
+                    retained.push(passage.audit(grade));
+                    all_current.push(cite);
+                }
+                Err(Error::Stale | Error::PendingEvidence) => continue,
+                Err(error) => return Err(error),
+            }
+        }
+    }
     let mut alternatives = Vec::new();
     if !unchanged && all_current.len() < MAX_DRAFT_SLICES {
         let mut original = Vec::new();
@@ -279,6 +298,11 @@ fn capture_review(
         for &cite in &required {
             let (row, grade) = capture.citation(cite)?;
             synthesis.add(row.audit(grade))?;
+        }
+        for passage in retained {
+            if let Err(Error::EvidenceLimit) = synthesis.add(passage) {
+                break;
+            }
         }
         for alternate in alternatives {
             let (row, grade) = capture.citation(alternate.citation)?;
@@ -378,7 +402,7 @@ fn resolve(
                     current = successor;
                     continue;
                 }
-                if record.archived {
+                if record.archived || !owner.memory_is_source_eligible(current) {
                     return Ok(None);
                 }
                 if current.0 == id
