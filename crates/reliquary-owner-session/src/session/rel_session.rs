@@ -171,7 +171,7 @@ impl RelSession {
                 },
                 (replay.has_identity_history || !observation_archive_cuts.is_empty())
                     .then_some(history_generation),
-                &observation_archive_cuts,
+                Some((&archive, &observation_archive_cuts)),
             )?;
         if archive
             .project_correlations()

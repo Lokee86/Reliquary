@@ -74,6 +74,9 @@ pub fn capture_contribution(
     samples_only: bool,
     profile: Option<CompatibilityProfileId>,
 ) -> Result<ContributionWork, OwnerSessionError> {
+    if page.cut.source_removal != rel.archive_source_removal_version() {
+        return Err(OwnerSessionError::ManagementStale);
+    }
     let position = usize::from(page.contribution_cursor);
     let end = (position + MAX_HITS).min(page.sources.len());
     if samples_only && !page.sources[position..].iter().any(|source| source.sampled) {
@@ -107,6 +110,7 @@ pub fn capture_contribution(
     let id = inspection.revision.id;
     let target = if inspection.revision.publication_version <= page.cut.observation
         && accepts_contribution(inspection.standing)
+        && rel.observation_revision_source_eligible(id, inspection.revision.revision)
     {
         let mut evidence = Vec::new();
         let mut seen_lineage = BTreeSet::new();
@@ -204,7 +208,11 @@ pub fn capture_duplicate_contribution(
 ) -> Result<ContributionWork, OwnerSessionError> {
     let target = rel
         .observation(id)
-        .filter(|head| head.revision.revision == revision && accepts_contribution(head.standing))
+        .filter(|head| {
+            head.revision.revision == revision
+                && accepts_contribution(head.standing)
+                && rel.observation_revision_source_eligible(id, revision)
+        })
         .map(|head| {
             let mut unique = BTreeSet::new();
             let mut available = Vec::new();

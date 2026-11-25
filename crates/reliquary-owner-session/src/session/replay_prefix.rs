@@ -10,7 +10,7 @@ pub(super) fn validate_graph_prefix(
     memory_store: &MemoryStore,
     identity_context: Option<(&PerceptionStore, [u8; 32])>,
     pruned_bodies: &BTreeSet<MemoryBodyId>,
-    observation_archive_cuts: &BTreeMap<u64, (u64, u64)>,
+    observation_archive: Option<(&Archive, &BTreeMap<u64, (u64, u64)>)>,
     compatibility_profiles: &CompatibilityProfileStore,
 ) -> Result<(IdentityHistory, SeparationHistory, ObservationStore), OwnerSessionError> {
     let mut observations = ObservationStore::default();
@@ -35,6 +35,13 @@ pub(super) fn validate_graph_prefix(
             let envelope = reliquary_container::decode_publication(frame.payload)?;
             let body = envelope.as_ref().map_or(frame.payload, |entry| entry.body);
             if body.starts_with(super::observations::PREFIX) {
+                let (archive, archive_cuts) = observation_archive.ok_or_else(|| {
+                    OwnerSessionError::Record("Observation Archive replay context absent".into())
+                })?;
+                let archive_cut = envelope
+                    .as_ref()
+                    .and_then(|entry| archive_cuts.get(&entry.version))
+                    .map_or(0, |&(cut, _)| cut);
                 let prefix = ObservationPrefix {
                     owner: container.owner_id(),
                     generation: history_generation,
@@ -46,11 +53,16 @@ pub(super) fn validate_graph_prefix(
                     retained_ordinal_cut,
                     observed_bodies: Some(&observed_bodies),
                     unobserved_suffix_bodies: None,
+                    source_eligibility: super::source_eligibility::SourceEligibility::new(
+                        archive,
+                        container.owner_id(),
+                        archive_cut,
+                    ),
                 };
                 prefix.admit(
                     &mut observations,
                     frame.payload,
-                    observation_archive_cuts,
+                    archive_cuts,
                     &active_profiles,
                 )?;
                 continue;

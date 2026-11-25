@@ -86,6 +86,9 @@ impl RelWriter {
         &mut self,
         request: CreateRelationshipRequest,
     ) -> Result<Relationship, OwnerSessionError> {
+        if self.session.memory_source_removed(request.source_memory_id) {
+            return Err(OwnerSessionError::ManagementStale);
+        }
         let before = self.container.writer_lease_proof();
         if before.is_none() || before != self.session.writer_lease_proof {
             return Err(OwnerSessionError::Record(

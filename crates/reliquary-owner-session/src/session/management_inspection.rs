@@ -52,13 +52,24 @@ impl PhyWriter {
     }
 }
 
-impl ManagementRead<'_> {
+impl<'a> ManagementRead<'a> {
     /// Open the renderer's bounded semantic graph view at this read's exact owner cut.
     pub fn semantic_graph_snapshot(&self) -> super::SemanticGraphSnapshot<'_> {
+        self.make_semantic_graph_snapshot()
+    }
+
+    pub(in crate::session) fn into_semantic_graph_snapshot(
+        self,
+    ) -> super::SemanticGraphSnapshot<'a> {
+        self.make_semantic_graph_snapshot()
+    }
+
+    fn make_semantic_graph_snapshot(&self) -> super::SemanticGraphSnapshot<'a> {
         let (memory, perception, relationship, graph) = self.versions();
         let community = self.community().map(|snapshot| snapshot.generation);
         super::SemanticGraphSnapshot {
             common: self.common,
+            rel: self.rel,
             cut: super::SemanticGraphCut {
                 owner_id: self.owner_id,
                 generation: self.history_generation,
@@ -78,7 +89,11 @@ impl ManagementRead<'_> {
     }
 
     pub fn mention(&self, key: MemoryEntityMentionKey) -> Option<&MemoryEntityResolution> {
-        self.common.perception.mention(key)
+        (!self
+            .rel
+            .is_some_and(|rel| rel.memory_source_removed(MemoryId(key.memory_id))))
+        .then(|| self.common.perception.mention(key))
+        .flatten()
     }
 
     pub fn versions(&self) -> (u64, u64, u64, u64) {
@@ -116,6 +131,13 @@ impl ManagementRead<'_> {
         id: MemoryId,
         revision: Option<u64>,
     ) -> Result<(&MemoryRecord, Option<Cow<'_, MemoryBody>>), MemoryError> {
+        let record = self.common.memories.revision_record(id, revision)?;
+        if self
+            .rel
+            .is_some_and(|rel| !rel.source_eligibility().allows(record))
+        {
+            return Ok((record, None));
+        }
         self.common.memories.revision_projection(id, revision)
     }
 
@@ -128,19 +150,37 @@ impl ManagementRead<'_> {
     }
 
     pub fn memory_terminal(&self, id: MemoryId, cut: u64) -> Option<TerminalTombstone> {
-        self.common.memories.terminal_at_cut(id, cut)
+        self.common.memories.terminal_at_cut(id, cut).or_else(|| {
+            let record = self.common.memories.record_at_cut(id, cut)?;
+            self.rel
+                .is_some_and(|rel| !rel.source_eligibility().allows(record))
+                .then_some(TerminalTombstone {
+                    revision: record.revision,
+                    memory_version: record.memory_version,
+                })
+        })
     }
 
     pub fn memory_is_readable(&self, id: MemoryId) -> bool {
-        self.common.memories.current_body_available(id)
+        self.memory_is_source_eligible(id) && self.common.memories.current_body_available(id)
+    }
+
+    pub fn memory_is_source_eligible(&self, id: MemoryId) -> bool {
+        !self.rel.is_some_and(|rel| rel.memory_source_removed(id))
     }
 
     pub fn entities(&self) -> impl Iterator<Item = &Entity> {
-        self.common.perception.entities()
+        self.common.perception.entities().filter(|entity| {
+            self.rel
+                .is_none_or(|rel| rel.entity_source_eligible(entity.id))
+        })
     }
 
     pub fn entity(&self, id: EntityId) -> Option<&Entity> {
-        self.common.perception.entity(id)
+        self.common
+            .perception
+            .entity(id)
+            .filter(|_| self.rel.is_none_or(|rel| rel.entity_source_eligible(id)))
     }
 
     pub fn entity_terminal(&self, id: EntityId) -> bool {
@@ -148,11 +188,23 @@ impl ManagementRead<'_> {
     }
 
     pub fn relationships(&self) -> impl Iterator<Item = &Relationship> {
-        self.common.perception.relationships()
+        self.common
+            .perception
+            .relationships()
+            .filter(|relationship| {
+                self.rel
+                    .is_none_or(|rel| rel.relationship_source_eligible(relationship))
+            })
     }
 
     pub fn relationship(&self, id: RelationshipId) -> Option<&Relationship> {
-        self.common.perception.relationship(id)
+        self.common
+            .perception
+            .relationship(id)
+            .filter(|relationship| {
+                self.rel
+                    .is_none_or(|rel| rel.relationship_source_eligible(relationship))
+            })
     }
 
     pub fn relationship_terminal(&self, id: RelationshipId) -> bool {
@@ -160,11 +212,20 @@ impl ManagementRead<'_> {
     }
 
     pub fn incident_relations(&self, node: NodeRef) -> impl Iterator<Item = &Relation> {
-        self.common.graph.incident_relations(node)
+        self.common
+            .graph
+            .incident_relations(node)
+            .filter(|relation| {
+                self.rel
+                    .is_none_or(|rel| rel.relation_source_eligible(relation))
+            })
     }
 
     pub fn active_relations(&self) -> impl Iterator<Item = &Relation> {
-        self.common.graph.active_relations()
+        self.common.graph.active_relations().filter(|relation| {
+            self.rel
+                .is_none_or(|rel| rel.relation_source_eligible(relation))
+        })
     }
 
     pub fn relation_state_count(&self) -> usize {
@@ -177,14 +238,32 @@ impl ManagementRead<'_> {
         target: NodeRef,
         kind: reliquary_graph::RelationKind,
     ) -> Option<&Relation> {
-        self.common.graph.relation(source, target, kind)
+        self.common
+            .graph
+            .relation(source, target, kind)
+            .filter(|relation| {
+                self.rel
+                    .is_none_or(|rel| rel.relation_source_eligible(relation))
+            })
     }
 
     pub fn community(&self) -> Option<&CommunitySnapshot> {
-        self.common.communities.current()
+        self.rel.map_or_else(
+            || self.common.communities.current(),
+            RelSession::eligible_community_snapshot,
+        )
     }
 
     pub fn community_name(&self, id: reliquary_graph::CommunityId) -> Option<&str> {
+        if self
+            .rel
+            .is_some_and(|rel| rel.archive_source_removal_version() != 0)
+        {
+            self.community()?
+                .communities
+                .iter()
+                .find(|group| group.id == id)?;
+        }
         self.common.communities.user_name(id)
     }
 

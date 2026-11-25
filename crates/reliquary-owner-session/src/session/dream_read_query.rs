@@ -5,6 +5,7 @@ impl DreamReadIndex {
         &self,
         query: &str,
         limit: usize,
+        eligible: impl Fn(MemoryId) -> bool,
     ) -> Vec<MemoryId> {
         let mut terms = super::tokens(query)
             .into_iter()
@@ -13,7 +14,7 @@ impl DreamReadIndex {
         terms.sort_by(|(a, a_ids), (b, b_ids)| (a_ids.len(), a).cmp(&(b_ids.len(), b)));
         let mut scores = BTreeMap::<MemoryId, usize>::new();
         for (_, ids) in terms.into_iter().take(16) {
-            for id in ids.iter().take(32) {
+            for id in ids.iter().filter(|id| eligible(**id)).take(32) {
                 *scores.entry(*id).or_default() += 1;
             }
         }
@@ -29,11 +30,12 @@ impl DreamReadIndex {
         time: Option<i64>,
         profile: CompatibilityProfileId,
         row: &[f32],
+        eligible: impl Fn(MemoryId) -> bool,
     ) -> DreamCandidatePool {
         let mut ids = BTreeSet::new();
         let mut examined = 0;
         if self.active.len() <= 128 {
-            ids.extend(self.active.iter().copied());
+            ids.extend(self.active.iter().copied().filter(|&id| eligible(id)));
             examined = self.active.len();
         } else {
             let mut semantic = BTreeSet::new();
@@ -41,7 +43,7 @@ impl DreamReadIndex {
                 let code = locality(row, table);
                 for probe in std::iter::once(code).chain((0..12).map(|bit| code ^ (1 << bit))) {
                     if let Some(bucket) = self.semantic.get(&(profile.0, table, probe)) {
-                        for id in bucket.iter().take(16) {
+                        for id in bucket.iter().filter(|id| eligible(**id)).take(16) {
                             examined += 1;
                             if *id != source {
                                 semantic.insert(*id);
@@ -71,7 +73,7 @@ impl DreamReadIndex {
                 .collect();
             terms.sort_by(|a, b| (a.0, &a.1).cmp(&(b.0, &b.1)));
             for (_, _, bucket) in terms.into_iter().take(16) {
-                for id in bucket.iter().take(4) {
+                for id in bucket.iter().filter(|id| eligible(**id)).take(4) {
                     examined += 1;
                     if *id != source {
                         lexical.insert(*id);
@@ -87,16 +89,30 @@ impl DreamReadIndex {
             ids.extend(lexical);
             if let Some(time) = time {
                 use std::ops::Bound::{Excluded, Unbounded};
-                for (_, id) in self.times.range(..(time, source)).rev().take(12).chain(
-                    self.times
-                        .range((Excluded((time, source)), Unbounded))
-                        .take(12),
-                ) {
+                for (_, id) in self
+                    .times
+                    .range(..(time, source))
+                    .rev()
+                    .filter(|(_, id)| eligible(*id))
+                    .take(12)
+                    .chain(
+                        self.times
+                            .range((Excluded((time, source)), Unbounded))
+                            .filter(|(_, id)| eligible(*id))
+                            .take(12),
+                    )
+                {
                     examined += 1;
                     ids.insert(*id);
                 }
             }
-            for (_, id) in self.recent.range(..(version, source)).rev().take(8) {
+            for (_, id) in self
+                .recent
+                .range(..(version, source))
+                .rev()
+                .filter(|(_, id)| eligible(*id))
+                .take(8)
+            {
                 examined += 1;
                 ids.insert(*id);
             }

@@ -79,6 +79,13 @@ impl RelWriter {
         source: DreamMemoryCut,
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
+        if self.session.common.dreams.begin(&pass_id).is_none()
+            && !self
+                .session
+                .memory_revision_source_eligible(source.id, source.revision)
+        {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
         let admission =
             initial_admission(&self.container, &self.session.common, source, pass_id, turn)?;
         self.append_checked_initial_begin(admission)
@@ -164,6 +171,21 @@ impl RelWriter {
     ) -> Result<bool, OwnerSessionError> {
         let lease = self.container.writer_lease_proof();
         if lease.is_none() || lease != self.session.writer_lease_proof {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
+        if self
+            .session
+            .common
+            .dreams
+            .settlement_record(pass_id)
+            .is_none()
+            && (!self
+                .session
+                .memory_revision_source_eligible(observed.id, observed.revision)
+                || effects
+                    .keys()
+                    .any(|id| self.session.memory_source_removed(*id)))
+        {
             return Err(OwnerSessionError::StaleDreamCut);
         }
         preflight_source(

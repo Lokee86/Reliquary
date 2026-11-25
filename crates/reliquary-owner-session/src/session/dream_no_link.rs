@@ -51,6 +51,19 @@ impl RelWriter {
     pub fn commit_dream_no_link(&mut self, cut: DreamNoLinkCut) -> Result<bool, OwnerSessionError> {
         self.ensure_write_ready()?;
         validate_cut(&self.session.common, self.owner_id(), cut)?;
+        if !self
+            .session
+            .common
+            .dream_pairs
+            .contains(cut.source.id, cut.candidate.id)
+            && [cut.source, cut.candidate].into_iter().any(|row| {
+                !self
+                    .session
+                    .memory_revision_source_eligible(row.id, row.revision)
+            })
+        {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
         self.record_dream_pair(cut.source.id, cut.candidate.id)
     }
 }

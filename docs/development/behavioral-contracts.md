@@ -69,6 +69,7 @@ This is a test route, not a replacement for the owning prose or a passing-test r
 | Typed retrieval delivery distinguishes first confirmation from exact replay | [Gateway retrieval tests](../../crates/reliquary-runtime-gateway/src/instance_retrieval/observation_checks/tests.rs) | Observation-only delivery advances the frontier without a Memory-use receipt. Mixed delivery records the selected Memories once |
 | Managed Perception continues across owner reopen | [Mounted worker test](../../crates/reliquary-runtime-gateway/src/instance_perception/tests.rs) | Both profiles, exact derived lineage, older routing during empty discovery, and a verified Freshness upgrade |
 | REL Observation batches preserve verified revisions and progress across recovery | [Owner-session tests](../../crates/reliquary-owner-session/src/session/checkpoint/tests_observations.rs) | Exact provenance and shared lineage, dependent standing through parent review, exact retry, verified checkpoint suffix, historical proofs and verified same-owner copy |
+| Copied-source removal applies to derived reads and review at the Archive cut | [Owner-session tests](../../crates/reliquary-owner-session/src/session/checkpoint/tests_observations.rs) | Content, grounding and Episode proof retire affected Memory bodies and edges. Exact prior citations cannot disclose removed evidence, and independent proof can restore the same Observation wording through a successor. Cold and checkpoint suffix replay preserve the result. |
 
 ## Verification limits
 

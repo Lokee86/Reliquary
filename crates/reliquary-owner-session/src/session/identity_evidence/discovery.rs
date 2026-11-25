@@ -12,7 +12,9 @@ impl RelSession {
         self.common
             .perception
             .entities_after(after)
-            .filter(|entity| entity.kind != PRINCIPAL_ENTITY_KIND)
+            .filter(|entity| {
+                entity.kind != PRINCIPAL_ENTITY_KIND && self.entity_revision_source_eligible(entity)
+            })
             .take(limit)
             .map(|entity| {
                 let mut keys = BTreeSet::new();
@@ -22,7 +24,10 @@ impl RelSession {
                         keys.insert(discovery_key(b"label", &label));
                     }
                 }
-                for mention in self.common.identity_mentions(&entity.into())? {
+                for mention in self
+                    .common
+                    .identity_mentions(&entity.into(), |id| !self.memory_source_removed(id))?
+                {
                     keys.extend(
                         mention_identifiers(&mention)
                             .map(|value| discovery_key(b"identifier", &value.to_ascii_lowercase())),

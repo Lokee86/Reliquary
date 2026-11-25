@@ -23,22 +23,19 @@ impl RelSession {
         let memory_version = self.common.memories.memory_version();
         let mut memories = Vec::new();
         let mut vectors = BTreeMap::new();
+        let eligibility = self.source_eligibility();
         for id in self.common.memories.memory_ids() {
-            if self
-                .common
-                .memories
-                .record_at_cut(id, memory_version)
-                .is_none()
-            {
+            let Some(record) = self.common.memories.record_at_cut(id, memory_version) else {
+                continue;
+            };
+            if record.archived || !eligibility.allows(record) {
                 continue;
             }
             let revision = self.common.memories.current(id)?;
-            if revision.record.archived
-                || matches!(
-                    revision.payload,
-                    reliquary_memory_core::PayloadState::Absent
-                )
-            {
+            if matches!(
+                revision.payload,
+                reliquary_memory_core::PayloadState::Absent
+            ) {
                 continue;
             }
             if let Some(profile_id) = profile {
@@ -65,12 +62,18 @@ impl RelSession {
                 .common
                 .graph
                 .history()
-                .filter(|r| {
-                    r.active && self.common.graph.relation(r.source, r.target, r.kind) == Some(*r)
+                .filter(|relation| {
+                    relation.active
+                        && self.common.graph.relation(
+                            relation.source,
+                            relation.target,
+                            relation.kind,
+                        ) == Some(*relation)
+                        && self.relation_source_eligible(relation)
                 })
                 .copied()
                 .collect(),
-            community: self.common.communities.current().cloned(),
+            community: self.eligible_community_snapshot().cloned(),
             vectors,
         })
     }
@@ -127,6 +130,12 @@ impl RelWriter {
             return Err(OwnerSessionError::Record(
                 "accepted use turn is beyond current REL activity".into(),
             ));
+        }
+        if sources
+            .iter()
+            .any(|id| self.session.memory_source_removed(MemoryId(id.0)))
+        {
+            return Err(OwnerSessionError::ManagementStale);
         }
         let current_graph = self.session.common.graph.graph_version();
         if proof.validate().is_err() || proof.graph_version > current_graph {

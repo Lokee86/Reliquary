@@ -72,6 +72,13 @@ impl RelWriter {
             return Err(OwnerSessionError::StaleDreamCut);
         }
         if self.session.common.dreams.initial_frontier(&pass).is_none() {
+            if std::iter::once(&source).chain(&candidates).any(|row| {
+                !self
+                    .session
+                    .memory_revision_source_eligible(row.id, row.revision)
+            }) {
+                return Err(OwnerSessionError::StaleDreamCut);
+            }
             validate(&self.session.common, source, &candidates)?;
         }
         let admission = super::dream_empty::initial_admission(

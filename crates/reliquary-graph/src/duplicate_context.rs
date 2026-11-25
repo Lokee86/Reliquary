@@ -6,6 +6,15 @@ impl GraphStore {
         seeds: &[[u8; 32]],
         limit: usize,
     ) -> Result<(BTreeSet<[u8; 32]>, Vec<Relation>), GraphError> {
+        self.duplicate_context_where(seeds, limit, |_| true)
+    }
+
+    pub fn duplicate_context_where(
+        &self,
+        seeds: &[[u8; 32]],
+        limit: usize,
+        eligible: impl Fn(&Relation) -> bool,
+    ) -> Result<(BTreeSet<[u8; 32]>, Vec<Relation>), GraphError> {
         if seeds.len() > 17 || limit > 128 || limit < seeds.len() {
             return Err(GraphError::InvalidClosure("duplicate context limit"));
         }
@@ -14,8 +23,12 @@ impl GraphStore {
         let mut edges = BTreeMap::new();
         while let Some(id) = queue.pop_front() {
             if let Some(keys) = self.duplicate_incident.get(&NodeRef::Memory(id)) {
-                for key in keys.iter().take(257) {
-                    let relation = self.states[key];
+                for (key, relation) in keys
+                    .iter()
+                    .map(|key| (key, self.states[key]))
+                    .filter(|(_, relation)| eligible(relation))
+                    .take(257)
+                {
                     edges.insert(*key, relation);
                     if edges.len() > 256 {
                         return Err(GraphError::InvalidClosure("duplicate edge limit"));

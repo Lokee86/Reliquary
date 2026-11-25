@@ -63,6 +63,21 @@ impl From<ObservationInspection<'_>> for InspectedObservation {
     }
 }
 
+fn project_inspection(rel: &RelSession, item: ObservationInspection<'_>) -> InspectedObservation {
+    let eligible =
+        rel.observation_revision_source_eligible(item.revision.id, item.revision.revision);
+    let mut result = InspectedObservation::from(item);
+    if !eligible {
+        result.claim.proposition.clear();
+        if let ObservationProfile::Relational(participants) = &mut result.claim.profile {
+            for participant in participants {
+                participant.role = None;
+            }
+        }
+    }
+    result
+}
+
 /// A continuation bound to the owner, history, and dependency state of a page.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ObservationCursor<K> {
@@ -82,6 +97,8 @@ pub(crate) struct ObservationReadCut {
     generation: [u8; 32],
     memory: u64,
     perception: u64,
+    #[serde(default)]
+    source_removal: u64,
     pub(crate) publication: u64,
 }
 
@@ -93,6 +110,7 @@ impl ObservationReadCut {
             generation: cut.generation,
             memory: cut.memory,
             perception: cut.perception,
+            source_removal: rel.archive_source_removal_version(),
             publication: rel.perception_review_version(),
         }
     }
@@ -126,9 +144,12 @@ impl Instance {
         id: ObservationId,
         revision: Option<u64>,
     ) -> Result<Option<InspectedObservation>, GatewayError> {
-        let result = self.with_reliquary(owner, |rel| match revision {
-            Some(revision) => rel.observation_revision(id, revision).map(Into::into),
-            None => rel.observation(id).map(Into::into),
+        let result = self.with_reliquary(owner, |rel| {
+            let item = match revision {
+                Some(revision) => rel.observation_revision(id, revision),
+                None => rel.observation(id),
+            };
+            item.map(|item| project_inspection(rel, item))
         })?;
         self.ensure_credential_active()?;
         Ok(result)
@@ -149,7 +170,10 @@ impl Instance {
                     .then_some(ObservationCursor { cut, after })
             });
             Ok(ObservationPage {
-                items: rows.into_iter().map(Into::into).collect(),
+                items: rows
+                    .into_iter()
+                    .map(|row| project_inspection(rel, row))
+                    .collect(),
                 next,
             })
         })??;
@@ -186,7 +210,10 @@ impl Instance {
                 )
             });
             Ok(ObservationPage {
-                items: rows.into_iter().map(Into::into).collect(),
+                items: rows
+                    .into_iter()
+                    .map(|row| project_inspection(rel, row))
+                    .collect(),
                 next,
             })
         })??;

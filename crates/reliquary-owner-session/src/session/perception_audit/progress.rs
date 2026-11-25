@@ -241,6 +241,7 @@ impl PerceptionAuditProgress {
         entity: u64,
         observation: u64,
         rel_turn: u64,
+        source_removal: u64,
     ) -> Result<(), OwnerSessionError> {
         let parsed = Self::decode(bytes)?;
         let cuts = std::iter::once(&parsed.after)
@@ -256,6 +257,7 @@ impl PerceptionAuditProgress {
                 || cut.entity > entity
                 || cut.observation > observation
                 || cut.rel_turn > rel_turn
+                || cut.source_removal > source_removal
             {
                 return Err(invalid_progress());
             }
@@ -267,6 +269,25 @@ impl PerceptionAuditProgress {
         &mut self,
         rel: &RelSession,
     ) -> Result<PerceptionAuditAdvance, OwnerSessionError> {
+        let source_removal = rel.archive_source_removal_version();
+        if self.after.source_removal != source_removal {
+            self.after.source_removal = source_removal;
+            if let Some(cut) = self.bootstrap_cut.as_mut() {
+                cut.source_removal = source_removal;
+            }
+            if let Some(run) = self.run.as_mut() {
+                run.cut.source_removal = source_removal;
+            }
+            for page in self.page.iter_mut().chain(&mut self.live_contribution) {
+                page.cut.source_removal = source_removal;
+                page.capture_key = None;
+                page.batch = 0;
+                page.ego_accepted = false;
+                page.perception_accepted = false;
+            }
+            self.due.retain(|id| !rel.memory_source_removed(*id));
+            return Ok(PerceptionAuditAdvance::Updated);
+        }
         if self.live_contribution.is_some() {
             return Ok(PerceptionAuditAdvance::LiveContributionReady);
         }

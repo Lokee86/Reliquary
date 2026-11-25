@@ -41,6 +41,9 @@ pub fn capture_discovery(
     page: &PerceptionAuditPage,
     route_identity: [u8; 32],
 ) -> Result<AuditDiscovery, OwnerSessionError> {
+    if page.cut.source_removal != rel.archive_source_removal_version() {
+        return Err(OwnerSessionError::ManagementStale);
+    }
     let mut cursor = page.discovery;
     let mut work: Vec<WorkItem> = Vec::new();
     let mut participants = Vec::new();
@@ -192,7 +195,12 @@ pub fn capture_discovery(
         ObservationProfile::Ordinary
     };
     let contract = PerceptionContract { profile };
-    let key = capture_key(route_identity, &work, &participants)?;
+    let key = capture_key(
+        route_identity,
+        page.cut.source_removal,
+        &work,
+        &participants,
+    )?;
     let batches = plan_batches(
         audit_owner_cut(&page.cut),
         &work,
@@ -245,12 +253,16 @@ fn next_source(cursor: AuditDiscoveryCursor) -> AuditDiscoveryCursor {
 
 fn capture_key(
     route: [u8; 32],
+    source_removal: u64,
     work: &[WorkItem],
     participants: &[Participant],
 ) -> Result<[u8; 32], OwnerSessionError> {
     let mut hash = Sha256::new();
     hash.update(b"reliquary-perception-audit-capture-v1\0");
     hash.update(route);
+    if source_removal != 0 {
+        hash.update(source_removal.to_le_bytes());
+    }
     for item in work {
         hash.update(
             serde_json::to_vec(&item.passage.citation)
@@ -293,6 +305,9 @@ pub fn audit_lookups(
     feature: Feature,
     query: &str,
 ) -> Result<Vec<Passage>, OwnerSessionError> {
+    if cut.source_removal != rel.archive_source_removal_version() {
+        return Err(OwnerSessionError::ManagementStale);
+    }
     let ids = rel.perception_lexical_candidates(query, MAX_LOOKUP_INPUTS);
     let rows = rel.perception_source_metadata(cut, &ids)?;
     let mut passages = Vec::new();

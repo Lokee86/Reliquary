@@ -1,4 +1,5 @@
 use super::perception_lifecycle::support::{has_direct_source, owner_hex, text_field};
+use super::source_eligibility::SourceEligibility;
 use super::*;
 use reliquary_perception_store::RetainedResolutionRecord;
 use reliquary_perception_store::observation::*;
@@ -93,6 +94,7 @@ pub(super) struct ObservationPrefix<'a> {
     pub retained_ordinal_cut: Option<u64>,
     pub observed_bodies: Option<&'a BTreeSet<MemoryBodyId>>,
     pub unobserved_suffix_bodies: Option<&'a BTreeSet<MemoryBodyId>>,
+    pub source_eligibility: SourceEligibility<'a>,
 }
 
 impl ObservationPrefix<'_> {
@@ -120,6 +122,7 @@ impl ObservationPrefix<'_> {
             .record_at_cut(MemoryId(id), self.memory_cut)
             .filter(|record| {
                 !record.archived
+                    && self.source_eligibility.allows(record)
                     && record.superseded_by.is_none()
                     && has_direct_source(record)
                     && record
@@ -149,6 +152,12 @@ impl ObservationPrefix<'_> {
         cite: &ObservationCitation,
         id: [u8; 32],
     ) -> Result<String, OwnerSessionError> {
+        let record = self
+            .memories
+            .revision_record(MemoryId(id), Some(cite.revision))?;
+        if !self.source_eligibility.allows(record) {
+            return Err(invalid("citation Memory source was removed"));
+        }
         let (record, body) = self
             .memories
             .revision_projection(MemoryId(id), Some(cite.revision))?;
@@ -189,6 +198,9 @@ impl ObservationPrefix<'_> {
                 entity.revision == participant.revision
                     && entity.kind != reliquary_perception_store::PRINCIPAL_ENTITY_KIND
                     && !entity.kind.eq_ignore_ascii_case("generic")
+                    && self
+                        .source_eligibility
+                        .allows_entity(entity, self.memories, self.memory_cut)
             })
             .ok_or_else(|| invalid("participant Entity changed or is ineligible"))?;
         if !super::identity_evidence::quote_names_entity(
@@ -248,6 +260,7 @@ impl ObservationPrefix<'_> {
                 self.perception_cut,
                 store.frontier(),
                 record.rel_turn,
+                self.source_eligibility.cut(),
             )?;
         }
         let mut checker = StandingCheck::new(*self, store);
@@ -514,9 +527,6 @@ impl<'a> StandingCheck<'a> {
         if let Some(reason) = self.store.withdrawal(id) {
             return Some(ObservationStanding::Withdrawn(reason));
         }
-        if let Some((reason, _)) = self.store.pending(id) {
-            return Some(ObservationStanding::Pending(reason));
-        }
         if self
             .store
             .head(id)
@@ -526,7 +536,9 @@ impl<'a> StandingCheck<'a> {
                 ObservationPendingReason::ChangedSupport,
             ));
         }
-        None
+        self.store
+            .pending(id)
+            .map(|(reason, _)| ObservationStanding::Pending(reason))
     }
 
     fn requires_own_review(&mut self, id: ObservationId) -> bool {
@@ -658,6 +670,7 @@ impl RelSession {
             retained_ordinal_cut: self.common.perception.retained_resolution_ordinal(),
             observed_bodies: None,
             unobserved_suffix_bodies: None,
+            source_eligibility: self.source_eligibility(),
         }
     }
 
@@ -867,10 +880,57 @@ impl RelSession {
             ObservationSource::Observation(id) => self
                 .observations
                 .revision(id, cite.revision)
+                .filter(|row| self.observation_source_eligible(row))
                 .ok_or_else(|| invalid("unknown Observation revision"))
                 .and_then(|revision| observation_text(revision, cite))
                 .map(str::to_owned),
         }
+    }
+
+    /// Historical revisions retain their citation coordinates. An exact
+    /// revision is eligible to disclose only while all its pinned source
+    /// Memories (including upstream Observation lineage) remain eligible.
+    pub fn observation_revision_source_eligible(&self, id: ObservationId, revision: u64) -> bool {
+        self.observations
+            .revision(id, revision)
+            .is_some_and(|row| self.observation_source_eligible(row))
+    }
+
+    fn observation_source_eligible(&self, row: &ObservationRevision) -> bool {
+        if self.archive_source_removal_version() == 0 {
+            return true;
+        }
+        if row.lineage.iter().any(|source| {
+            !self.memory_revision_source_eligible(MemoryId(source.memory_id), source.revision)
+        }) {
+            return false;
+        }
+        let mut remaining = vec![row];
+        let mut visited = BTreeSet::new();
+        while let Some(row) = remaining.pop() {
+            if !visited.insert((row.id, row.revision)) {
+                continue;
+            }
+            if visited.len() > MAX_STANDING_CHECK
+                || row.draft.profile.participants().iter().any(|participant| {
+                    self.common
+                        .perception
+                        .entity_revision(participant.entity_id, participant.revision)
+                        .is_none_or(|entity| !self.entity_revision_source_eligible(entity))
+                })
+            {
+                return false;
+            }
+            for cite in &row.draft.citations {
+                if let ObservationSource::Observation(id) = cite.source {
+                    let Some(parent) = self.observations.revision(id, cite.revision) else {
+                        return false;
+                    };
+                    remaining.push(parent);
+                }
+            }
+        }
+        true
     }
 }
 

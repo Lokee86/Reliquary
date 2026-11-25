@@ -13,7 +13,7 @@ use std::collections::BTreeSet;
 
 /// Perception and Memory versions, Relationship and Memory prune counts, and retained Resolution history length.
 /// A mount incarnation belongs to the caller's authorization context.
-pub type IdentityEvidenceCut = (u64, u64, usize, usize, usize);
+pub type IdentityEvidenceCut = (u64, u64, usize, usize, usize, u64);
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct IdentityEntityEvidence {

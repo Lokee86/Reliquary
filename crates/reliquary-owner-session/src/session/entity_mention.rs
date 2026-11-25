@@ -212,6 +212,16 @@ impl RelWriter {
         &mut self,
         request: EntityMentionCommit,
     ) -> Result<MemoryEntityResolution, OwnerSessionError> {
+        if self
+            .session
+            .memory_source_removed(MemoryId(request.key.memory_id))
+            || request
+                .target_revisions
+                .iter()
+                .any(|&(id, _)| !self.session.entity_source_eligible(id))
+        {
+            return Err(OwnerSessionError::ManagementStale);
+        }
         let before = self.container.writer_lease_proof();
         if before.is_none() || before != self.session.writer_lease_proof {
             return Err(OwnerSessionError::Record(

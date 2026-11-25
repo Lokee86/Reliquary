@@ -90,6 +90,14 @@ impl RelSession {
             .ego
             .synthesis()
             .filter(|value| value.source_memory_version == self.memory_version())
+            .filter(|_| {
+                self.archive_source_removal_version() == 0
+                    || self
+                        .common
+                        .memories
+                        .memory_ids()
+                        .all(|id| !self.memory_source_removed(id))
+            })
     }
 }
 

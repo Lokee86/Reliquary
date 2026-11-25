@@ -34,6 +34,7 @@ impl RelSession {
                 .len(),
             self.common.memories.pruned_body_count(),
             self.common.perception.retained_resolution_history().len(),
+            self.archive_source_removal_version(),
         )
     }
 
@@ -42,12 +43,18 @@ impl RelSession {
         &self,
         id: EntityId,
     ) -> Result<Option<IdentityEvidence>, OwnerSessionError> {
-        let Some(endpoint) = self.common.identity_entity(id) else {
+        let Some(endpoint) = self
+            .common
+            .identity_entity(id)
+            .filter(|row| self.entity_revision_source_eligible(row))
+        else {
             return Ok(None);
         };
         let owner = owner_hex(&self.owner_id);
         let endpoint = IdentityEntityEvidence::from(endpoint);
-        let mentions = self.common.identity_mentions(&endpoint)?;
+        let mentions = self
+            .common
+            .identity_mentions(&endpoint, |id| !self.memory_source_removed(id))?;
         let mut evidence = IdentityEvidence {
             owner: self.owner_id,
             endpoint,
@@ -60,7 +67,9 @@ impl RelSession {
             .perception
             .relationships_for_local_participant(id)
         {
-            if relationship.evidence.iter().any(|r| r.owner_id != owner) {
+            if !self.relationship_source_eligible(relationship)
+                || relationship.evidence.iter().any(|r| r.owner_id != owner)
+            {
                 continue;
             }
             let Some(participants) = self.common.identity_participants(relationship, &owner) else {
@@ -155,6 +164,7 @@ impl CommonState {
     fn identity_mentions(
         &self,
         entity: &IdentityEntityEvidence,
+        eligible: impl Fn(MemoryId) -> bool,
     ) -> Result<Vec<IdentityMentionEvidence>, OwnerSessionError> {
         let mut mentions = self
             .perception
@@ -168,7 +178,7 @@ impl CommonState {
             }));
             let Some(source) = self
                 .identity_memory(id)
-                .filter(|record| has_direct_source(record))
+                .filter(|record| eligible(id) && has_direct_source(record))
                 .and_then(|record| record.source_ref.as_ref())
             else {
                 let _ = group.last();

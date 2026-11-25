@@ -204,7 +204,13 @@ impl RelWriter {
             let seeds: Vec<_> = std::iter::once(frontier.source.id.0)
                 .chain(frontier.candidates.iter().map(|c| c.id.0))
                 .collect();
-            let (allowed, _) = self.session.common.graph.duplicate_context(&seeds, 128)?;
+            let (allowed, _) =
+                self.session
+                    .common
+                    .graph
+                    .duplicate_context_where(&seeds, 128, |edge| {
+                        self.session.relation_source_eligible(edge)
+                    })?;
             if cut
                 .observed
                 .iter()
@@ -228,6 +234,13 @@ impl RelWriter {
         let Some(record) = prepare(&self.session.common, self.owner_id(), &cut)? else {
             return Ok(false);
         };
+        if cut.observed.iter().any(|row| {
+            !self
+                .session
+                .memory_revision_source_eligible(row.id, row.revision)
+        }) {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
         let result = (|| {
             self.container
                 .append(&record.encode().map_err(OwnerSessionError::Record)?)?;

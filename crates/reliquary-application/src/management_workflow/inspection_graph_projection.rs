@@ -52,7 +52,8 @@ pub fn memory_matches_filter(
     if filters.community_id.is_some() && communities.is_none() {
         return Err(ManagementError::Unsupported);
     }
-    if read.memory_revision_records(id, cut.memory).is_none() {
+    if !read.memory_is_source_eligible(id) || read.memory_revision_records(id, cut.memory).is_none()
+    {
         return Ok(false);
     }
     let community_id = filters.community_id.and_then(|expected| {
@@ -144,6 +145,9 @@ pub fn visit_semantic_graph_projection(
         }
         after = ids.last().copied();
         for id in ids {
+            if !read.memory_is_source_eligible(id) {
+                continue;
+            }
             let community_id = membership.get(&id.0).copied();
             if let Some(memory) =
                 matching_memory(&read, id, cut.memory, filters, &needle, community_id)?

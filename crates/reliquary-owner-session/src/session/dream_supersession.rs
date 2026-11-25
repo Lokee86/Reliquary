@@ -99,6 +99,13 @@ impl RelWriter {
         else {
             return Ok(false);
         };
+        if [cut.source, cut.candidate].into_iter().any(|row| {
+            !self
+                .session
+                .memory_revision_source_eligible(row.id, row.revision)
+        }) {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
         if let Err(error) = publish(&mut self.container, &mut self.session.common, group) {
             self.session.write_poisoned = true;
             return Err(error);

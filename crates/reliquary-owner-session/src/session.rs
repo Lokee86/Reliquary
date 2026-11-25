@@ -495,6 +495,7 @@ pub struct SemanticGraphCommunityMemberPage {
 /// It exposes no storage handles and remains coherent for its borrow lifetime.
 pub struct SemanticGraphSnapshot<'a> {
     common: &'a CommonState,
+    rel: Option<&'a RelSession>,
     cut: SemanticGraphCut,
 }
 
@@ -513,18 +514,26 @@ impl SemanticGraphSnapshot<'_> {
                 "semantic graph page limit must be between 1 and 128".into(),
             ));
         }
-        let ids = self
-            .common
-            .memories
-            .memory_ids_page(after, (limit + 1).min(128));
-        let has_more = ids.len() > limit
-            || (ids.len() == limit
-                && self
-                    .common
-                    .memories
-                    .memory_ids_page(ids.last().copied(), 1)
-                    .len()
-                    > 0);
+        let mut ids = Vec::with_capacity(limit + 1);
+        let mut cursor = after;
+        while ids.len() <= limit {
+            let pending = self
+                .common
+                .memories
+                .memory_ids_page(cursor, (limit + 1).min(128));
+            cursor = pending.last().copied();
+            let exhausted = pending.len() < (limit + 1).min(128);
+            ids.extend(
+                pending
+                    .into_iter()
+                    .filter(|&id| !self.rel.is_some_and(|rel| rel.memory_source_removed(id)))
+                    .take(limit + 1 - ids.len()),
+            );
+            if exhausted {
+                break;
+            }
+        }
+        let has_more = ids.len() > limit;
         let memories = ids
             .into_iter()
             .take(limit)
@@ -556,6 +565,10 @@ impl SemanticGraphSnapshot<'_> {
             .common
             .graph
             .active_relations()
+            .filter(|relation| {
+                self.rel
+                    .is_none_or(|rel| rel.relation_source_eligible(relation))
+            })
             .skip(offset)
             .take(limit + 1)
             .copied()
@@ -577,7 +590,7 @@ impl SemanticGraphSnapshot<'_> {
                 "semantic graph page limit must be between 1 and 128".into(),
             ));
         }
-        let Some(snapshot) = self.common.communities.current() else {
+        let Some(snapshot) = self.community_snapshot() else {
             return Ok(SemanticGraphCommunityPage {
                 communities: Vec::new(),
                 next: None,
@@ -622,7 +635,7 @@ impl SemanticGraphSnapshot<'_> {
                 "semantic graph page limit must be between 1 and 128".into(),
             ));
         }
-        let Some(community) = self.common.communities.current().and_then(|snapshot| {
+        let Some(community) = self.community_snapshot().and_then(|snapshot| {
             snapshot
                 .communities
                 .iter()
@@ -646,6 +659,13 @@ impl SemanticGraphSnapshot<'_> {
             next,
         })
     }
+
+    fn community_snapshot(&self) -> Option<&CommunitySnapshot> {
+        self.rel.map_or_else(
+            || self.common.communities.current(),
+            RelSession::eligible_community_snapshot,
+        )
+    }
 }
 macro_rules! common_reads {
     ($session:ty, $field:ident) => {
@@ -668,17 +688,26 @@ macro_rules! common_reads {
             pub fn memory_version(&self) -> u64 {
                 self.$field.memories.memory_version()
             }
-            pub fn current_memory(&self,id:MemoryId)->Result<MemoryRevision,OwnerSessionError>{Ok(self.$field.memories.current(id)?)}
+            pub fn current_memory(&self, id: MemoryId) -> Result<MemoryRevision, OwnerSessionError> {
+                if self.owner_rel().is_some_and(|rel| rel.memory_source_removed(id)) {
+                    return Err(MemoryError::TerminalTombstone.into());
+                }
+                Ok(self.$field.memories.current(id)?)
+            }
             pub fn dream_candidate_pool(&self,source:MemoryId,profile:CompatibilityProfileId,row:&[f32])->Result<DreamCandidatePool,OwnerSessionError>{
                 if self.$field.dream_read_index.version!=self.$field.memories.memory_version(){return Err(OwnerSessionError::StaleDreamCut);}
                 let current=self.$field.memories.record_at_cut(source,self.$field.memories.memory_version()).ok_or(OwnerSessionError::StaleDreamCut)?;
-                if !self.$field.dream_read_index.active.contains(&source){return Err(OwnerSessionError::StaleDreamCut);}
-                Ok(self.$field.dream_read_index.query(source,self.$field.memories.first_memory_version(source).ok_or(OwnerSessionError::StaleDreamCut)?,current.source_time_ns,profile,row))
+                let eligible = |id| !self.owner_rel().is_some_and(|rel| rel.memory_source_removed(id));
+                if !eligible(source) || !self.$field.dream_read_index.active.contains(&source){return Err(OwnerSessionError::StaleDreamCut);}
+                Ok(self.$field.dream_read_index.query(source,self.$field.memories.first_memory_version(source).ok_or(OwnerSessionError::StaleDreamCut)?,current.source_time_ns,profile,row,eligible))
             }
             pub fn memory_history(
                 &self,
                 id: MemoryId,
             ) -> Result<Option<MemoryHistory>, OwnerSessionError> {
+                if let Some(rel) = self.owner_rel() {
+                    return rel.eligible_memory_history(id, self.memory_version());
+                }
                 match self.$field.memories.history(id) {
                     Ok(history) => Ok(Some(history)),
                     Err(MemoryError::MissingMemory) => Ok(None),
@@ -698,6 +727,9 @@ macro_rules! common_reads {
                         "Memory history cut exceeds the accepted owner version".into(),
                     ));
                 }
+                if let Some(rel) = self.owner_rel() {
+                    return rel.eligible_memory_history(id, memory_version);
+                }
                 match self.$field.memories.history_at_cut(id, memory_version) {
                     Ok(history) => Ok(Some(history)),
                     Err(MemoryError::MissingMemory) => Ok(None),
@@ -706,9 +738,11 @@ macro_rules! common_reads {
             }
             pub fn entity(&self, id: EntityId) -> Option<&Entity> {
                 self.$field.perception.entity(id)
+                    .filter(|_| self.owner_rel().is_none_or(|rel| rel.entity_source_eligible(id)))
             }
             pub fn entity_revision(&self, id: EntityId, revision: u64) -> Option<&Entity> {
                 self.$field.perception.entity_revision(id, revision)
+                    .filter(|entity| self.owner_rel().is_none_or(|rel| rel.entity_revision_source_eligible(entity)))
             }
             pub fn entity_tombstone(&self, id: EntityId) -> Option<reliquary_perception_store::EntityTombstone> {
                 self.$field.perception.entity_tombstone(id)
@@ -717,10 +751,13 @@ macro_rules! common_reads {
                 self.$field.perception.description_prune(id, revision)
             }
             pub fn entities(&self) -> Vec<Entity> {
-                self.$field.perception.entities().cloned().collect()
+                self.$field.perception.entities()
+                    .filter(|entity| self.owner_rel().is_none_or(|rel| rel.entity_source_eligible(entity.id)))
+                    .cloned().collect()
             }
             pub fn relationship_revision(&self, id: RelationshipId, revision: u64) -> Option<&Relationship> {
                 self.$field.perception.relationship_revision(id, revision)
+                    .filter(|relationship| self.owner_rel().is_none_or(|rel| rel.relationship_source_eligible(relationship)))
             }
             pub fn relationship_tombstone(&self, id: RelationshipId) -> Option<RelationshipTombstone> {
                 self.$field.perception.relationship_tombstone(id)
@@ -730,6 +767,7 @@ macro_rules! common_reads {
             }
             pub fn mention(&self, key: MemoryEntityMentionKey) -> Option<&MemoryEntityResolution> {
                 self.$field.perception.mention(key)
+                    .filter(|_| !self.owner_rel().is_some_and(|rel| rel.memory_source_removed(MemoryId(key.memory_id))))
             }
             pub fn mention_revision(
                 &self,
@@ -737,9 +775,12 @@ macro_rules! common_reads {
                 revision: u32,
             ) -> Option<&MemoryEntityResolution> {
                 self.$field.perception.mention_revision(key, revision)
+                    .filter(|_| !self.owner_rel().is_some_and(|rel| rel.memory_source_removed(MemoryId(key.memory_id))))
             }
             pub fn entity_resolutions(&self) -> Vec<MemoryEntityResolution> {
-                self.$field.perception.mentions().cloned().collect()
+                self.$field.perception.mentions()
+                    .filter(|mention| !self.owner_rel().is_some_and(|rel| rel.memory_source_removed(MemoryId(mention.key.memory_id))))
+                    .cloned().collect()
             }
             /// Expand selected Memories through the owner-local semantic closure
             /// used by fresh-history reconstruction.
@@ -756,7 +797,9 @@ macro_rules! common_reads {
                 .map_err(OwnerSessionError::Record)
             }
             pub fn graph_relations(&self) -> Vec<Relation> {
-                self.$field.graph.active_relations().copied().collect()
+                self.$field.graph.active_relations()
+                    .filter(|relation| self.owner_rel().is_none_or(|rel| rel.relation_source_eligible(relation)))
+                    .copied().collect()
             }
             pub fn graph_relation(
                 &self,
@@ -765,12 +808,16 @@ macro_rules! common_reads {
                 kind: reliquary_graph::RelationKind,
             ) -> Option<&Relation> {
                 self.$field.graph.relation(source, target, kind)
+                    .filter(|relation| self.owner_rel().is_none_or(|rel| rel.relation_source_eligible(relation)))
             }
             pub fn graph_version(&self) -> u64 {
                 self.$field.graph.graph_version()
             }
             pub fn community_snapshot(&self) -> Option<&CommunitySnapshot> {
-                self.$field.communities.current()
+                self.owner_rel().map_or_else(
+                    || self.$field.communities.current(),
+                    RelSession::eligible_community_snapshot,
+                )
             }
             pub fn ego_identity(&self, id: EgoIdentityId) -> Option<&EgoIdentity> {
                 self.$field.ego.identity(id)
@@ -785,7 +832,14 @@ macro_rules! common_reads {
                 self.$field.maintenance.get(digest)
             }
             pub fn dream_duplicate_context(&self,seeds:&[MemoryId])->Result<(Vec<reliquary_memory_core::MemoryRecord>,Vec<Relation>),OwnerSessionError> {
-                let (ids,relations)=self.$field.graph.duplicate_context(&seeds.iter().map(|id|id.0).collect::<Vec<_>>(),128)?;
+                let rel = self.owner_rel();
+                if seeds.iter().any(|id| rel.is_some_and(|rel| rel.memory_source_removed(*id))) {
+                    return Err(OwnerSessionError::StaleDreamCut);
+                }
+                let (ids,relations)=self.$field.graph.duplicate_context_where(
+                    &seeds.iter().map(|id|id.0).collect::<Vec<_>>(), 128,
+                    |edge| rel.is_none_or(|rel| rel.relation_source_eligible(edge)),
+                )?;
                 let mut records=Vec::new();
                 for id in ids {records.push(self.$field.memories.record_at_cut(MemoryId(id),self.$field.memories.memory_version()).ok_or(OwnerSessionError::StaleDreamCut)?.clone());}
                 Ok((records,relations))
@@ -853,25 +907,11 @@ macro_rules! common_reads {
 impl RelSession {
     /// Bind bounded semantic graph pages to the same immutable owner cut.
     pub fn semantic_graph_snapshot(&self) -> SemanticGraphSnapshot<'_> {
-        let (memory, perception, relationship, graph) = self.management_read().versions();
-        let community = self
-            .common
-            .communities
-            .current()
-            .map(|snapshot| snapshot.generation);
-        SemanticGraphSnapshot {
-            common: &self.common,
-            cut: SemanticGraphCut {
-                owner_id: self.owner_id,
-                generation: self.history_generation,
-                archive: Some(self.archive_version()),
-                memory,
-                perception,
-                relationship,
-                graph,
-                community,
-            },
-        }
+        self.management_read().into_semantic_graph_snapshot()
+    }
+
+    fn owner_rel(&self) -> Option<&Self> {
+        Some(self)
     }
 }
 common_reads!(RelSession, common);
@@ -961,26 +1001,16 @@ impl PhySession {
 impl PhySession {
     /// Bind bounded semantic graph pages to the same immutable owner cut.
     pub fn semantic_graph_snapshot(&self) -> SemanticGraphSnapshot<'_> {
-        let read = self.management_read();
-        let (memory, perception, relationship, graph) = read.versions();
-        let community = self
-            .common
-            .communities
-            .current()
-            .map(|snapshot| snapshot.generation);
-        SemanticGraphSnapshot {
-            common: &self.common,
-            cut: SemanticGraphCut {
-                owner_id: self.owner_id,
-                generation: self.history_generation,
-                archive: None,
-                memory,
-                perception,
-                relationship,
-                graph,
-                community,
-            },
-        }
+        self.management_read().into_semantic_graph_snapshot()
+    }
+
+    fn owner_rel(&self) -> Option<&RelSession> {
+        None
+    }
+}
+impl PhyWriter {
+    fn owner_rel(&self) -> Option<&RelSession> {
+        None
     }
 }
 common_reads!(PhySession, common);
@@ -1014,6 +1044,7 @@ pub(crate) mod perception_audit;
 mod perception_lifecycle;
 mod relationship_prune;
 mod semantic_reconciliation;
+mod source_eligibility;
 pub use entity_prune::{EntityPruneReport, prune_terminal_entity_descriptions_copy};
 pub use fresh_history_rewrite::{
     FreshHistoryArchive, FreshHistoryFreshness, FreshHistoryIdentity, FreshHistoryLineage,

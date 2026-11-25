@@ -139,10 +139,10 @@ impl Drop for PerceptionLifecycle {
 #[derive(Default)]
 struct WorkerState {
     review_after: Option<ObservationId>,
-    review_cut: Option<(u64, u64, u64, u64)>,
+    review_cut: Option<(u64, u64, u64, u64, u64)>,
     review_exhausted: bool,
     review_deferred: BTreeMap<ObservationId, Instant>,
-    malformed_reviews: BTreeMap<ObservationId, (u64, u64, u64, u64)>,
+    malformed_reviews: BTreeMap<ObservationId, (u64, u64, u64, u64, u64)>,
     malformed_contribution: Option<[u8; 32]>,
     malformed_creation: Option<([u8; 32], u32)>,
     ego_candidates: Vec<reliquary_application::perception_workflow::EgoCandidate>,

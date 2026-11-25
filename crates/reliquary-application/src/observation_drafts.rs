@@ -119,6 +119,7 @@ pub struct PreparedObservation {
     pub policy: ObservationPolicy,
     owner_id: [u8; 16],
     history_generation: [u8; 32],
+    source_removal: u64,
     must_be_current: Vec<ObservationCitation>,
     embedding_profile: [u8; 32],
     memory_vector_profile: Option<CompatibilityProfileId>,
@@ -132,6 +133,7 @@ impl PreparedObservation {
         if self.policy.general_route != route_identity
             || self.owner_id != capture.cut.owner_id
             || self.history_generation != capture.cut.history_generation
+            || self.source_removal != capture.cut.source_removal
             || self
                 .memory_vector_profile
                 .is_some_and(|id| rel.active_compatibility_profile(id).is_none())
@@ -176,6 +178,7 @@ impl PreparedObservation {
 
 struct SynthesisInput {
     binding: StageBinding,
+    source_removal: u64,
     proposal: ProposedClaim,
     source_slots: Vec<Passage>,
     participants: Vec<Participant>,
@@ -183,6 +186,13 @@ struct SynthesisInput {
 }
 
 impl SynthesisInput {
+    fn check_source_cut(&self, rel: &RelSession) -> Result<()> {
+        if self.source_removal != rel.archive_source_removal_version() {
+            return Err(Error::Stale);
+        }
+        Ok(())
+    }
+
     fn run(
         &self,
         routes: &ObservationDraftRoutes<'_>,
@@ -242,8 +252,10 @@ pub fn evaluate_proposal(
     let mut required = Vec::new();
     let mut previous: Option<(SynthesisDraft, Vec<ObservationReceptor>)> = None;
     for attempt in 0..2 {
-        let mut canonical =
-            read.read(|rel| canonical_claim(&mut Capture::new(rel), &draft.claim))?;
+        let mut canonical = read.read(|rel| {
+            input.check_source_cut(rel)?;
+            canonical_claim(&mut Capture::new(rel), &draft.claim)
+        })?;
         if read.read(|rel| Ok(rel.has_equivalent_manual_relationship(&canonical)))? {
             return Ok(ProposalEvaluation::Abstained);
         }
@@ -268,8 +280,10 @@ pub fn evaluate_proposal(
                 .as_ref()
                 .map(|(draft, rows)| (draft, rows.as_slice(), routes.route_identity)),
         )?;
-        let frozen =
-            read.read(|rel| freeze(&mut Capture::new(rel), canonical, &required, routes))?;
+        let frozen = read.read(|rel| {
+            input.check_source_cut(rel)?;
+            freeze(&mut Capture::new(rel), canonical, &required, routes)
+        })?;
         let decision = verify(routes.verification, &frozen.state).map_err(Error::Native)?;
         match decision.verdict {
             VerificationVerdict::StandsAsWritten => {
@@ -331,6 +345,7 @@ fn proposal_input(
     }
     let mut remaining = MAX_EXISTING_BYTES;
     let mut input = SynthesisInput {
+        source_removal: capture.cut.source_removal,
         binding: StageBinding {
             cut,
             proposal_id: digest(json!([
@@ -644,6 +659,7 @@ fn revision_input(
     decision: &VerificationDecision,
 ) -> Result<RevisionContext> {
     let backcheck = read.read(|rel| {
+        input.check_source_cut(rel)?;
         let mut capture = Capture::new(rel);
         frozen
             .hits
@@ -701,13 +717,20 @@ fn finish_create(
         draft: frozen.draft,
     };
     Ok(ProposalEvaluation::Ready(prepared(
-        routes, cut, operation, draft_id, current, None,
+        routes,
+        cut,
+        input.source_removal,
+        operation,
+        draft_id,
+        current,
+        None,
     )))
 }
 
 fn prepared(
     routes: &ObservationDraftRoutes<'_>,
     cut: OwnerCut,
+    source_removal: u64,
     operation: ObservationOperation,
     draft_id: [u8; 32],
     mut current: Vec<ObservationCitation>,
@@ -724,6 +747,7 @@ fn prepared(
         "reliquary-observation-prepared-v1",
         cut.owner_id,
         cut.history_generation,
+        source_removal,
         routes.embedding_profile,
         routes.memory_vector_profile,
         policy,
@@ -737,6 +761,7 @@ fn prepared(
         policy,
         owner_id: cut.owner_id,
         history_generation: cut.history_generation,
+        source_removal,
         must_be_current: current,
         embedding_profile: routes.embedding_profile,
         memory_vector_profile: routes.memory_vector_profile,

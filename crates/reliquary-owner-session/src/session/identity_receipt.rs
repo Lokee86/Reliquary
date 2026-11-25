@@ -185,9 +185,10 @@ impl RelSession {
                 .is_some_and(|mention| mention_resolves_to(mention, endpoint)),
         };
         if !valid_mention_reference(reference)
-            || perception
+            || self
                 .entity_revision(endpoint, endpoint_revision)
                 .is_none_or(|entity| entity.kind == PRINCIPAL_ENTITY_KIND)
+            || !self.memory_revision_source_eligible(MemoryId(memory.id), memory.revision)
             || !resolved
         {
             return Ok(None);

@@ -26,8 +26,13 @@ impl CommonState {
     fn entity_mention_inputs(
         &self,
         key: MemoryEntityMentionKey,
+        rel: Option<&RelSession>,
     ) -> Result<EntityMentionInputs, OwnerSessionError> {
         let source = MemoryId(key.memory_id);
+        let eligible = |id| !rel.is_some_and(|rel| rel.memory_source_removed(id));
+        if !eligible(source) {
+            return Err(MemoryError::TerminalTombstone.into());
+        }
         let revision = self.memories.current(source)?;
         let node = NodeRef::Memory(source.0);
         let mut neighbors = self
@@ -42,7 +47,9 @@ impl CommonState {
                 } else {
                     edge.source
                 } {
-                    NodeRef::Memory(id) if id != source.0 => Some(MemoryId(id)),
+                    NodeRef::Memory(id) if id != source.0 && eligible(MemoryId(id)) => {
+                        Some(MemoryId(id))
+                    }
                     _ => None,
                 }
             })
@@ -58,7 +65,11 @@ impl CommonState {
                 .collect();
             lanes.sort_by_key(|(term, ids)| (ids.len(), *term));
             for (_, ids) in lanes.into_iter().take(32) {
-                for id in ids.iter().filter(|id| **id != source).take(32) {
+                for id in ids
+                    .iter()
+                    .filter(|id| **id != source && eligible(**id))
+                    .take(32)
+                {
                     *postings.entry(*id).or_default() += 1;
                 }
             }
@@ -107,9 +118,11 @@ impl CommonState {
                     }),
             );
             entities.retain(|id| {
-                self.perception
-                    .entity(*id)
-                    .is_some_and(|entity| entity.kind != PRINCIPAL_ENTITY_KIND)
+                rel.is_none_or(|rel| rel.entity_source_eligible(*id))
+                    && self
+                        .perception
+                        .entity(*id)
+                        .is_some_and(|entity| entity.kind != PRINCIPAL_ENTITY_KIND)
             });
             entities.sort_unstable();
             entities.dedup();
@@ -148,7 +161,12 @@ impl CommonState {
         }
         Ok(EntityMentionInputs {
             revision,
-            entities: self.perception.entities().cloned().collect(),
+            entities: self
+                .perception
+                .entities()
+                .filter(|entity| rel.is_none_or(|rel| rel.entity_revision_source_eligible(entity)))
+                .cloned()
+                .collect(),
             existing: self.perception.mention(key).cloned(),
             source_entities,
             supporting_memories,
@@ -159,7 +177,7 @@ impl CommonState {
 macro_rules! mention_inputs {
     ($($owner:ty),+) => {$(impl $owner {
         pub fn entity_mention_inputs(&self, key: MemoryEntityMentionKey) -> Result<EntityMentionInputs, OwnerSessionError> {
-            self.common.entity_mention_inputs(key)
+            self.common.entity_mention_inputs(key, self.owner_rel())
         }
     })+};
 }

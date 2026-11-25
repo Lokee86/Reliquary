@@ -99,6 +99,7 @@ pub fn evaluate_review(
             canonical.receptors = receptors(routes, &draft, reuse)?;
         }
         let frozen = read.read(|rel| {
+            work.synthesis.check_source_cut(rel)?;
             let mut capture = Capture::new(rel);
             work.fence.revalidate(&mut capture)?;
             freeze(&mut capture, canonical, &work.required, routes)
@@ -248,6 +249,7 @@ fn capture_review(
     }
     prior.citations = current.iter().copied().map(audit_citation).collect();
     let mut synthesis = SynthesisInput {
+        source_removal: capture.cut.source_removal,
         binding: StageBinding {
             cut,
             proposal_id: prior_id,
@@ -489,6 +491,7 @@ fn finish(
     Ok(prepared(
         routes,
         work.synthesis.binding.cut,
+        work.synthesis.source_removal,
         operation,
         draft_id,
         current,
@@ -523,6 +526,7 @@ fn withdraw(
     Ok(prepared(
         routes,
         work.synthesis.binding.cut,
+        work.synthesis.source_removal,
         operation,
         work.prior.id,
         current,

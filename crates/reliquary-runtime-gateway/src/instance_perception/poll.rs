@@ -51,10 +51,20 @@ pub(super) fn tick(owner: &OwnerWork<'_>, state: &mut WorkerState) -> Result<boo
 }
 
 fn tick_perception(owner: &OwnerWork<'_>, state: &mut WorkerState) -> Result<bool, GatewayError> {
-    let input = owner.read(|rel| prepare(rel, state))??;
+    let (source_removal, input) = owner.read(|rel| {
+        Ok::<_, OwnerSessionError>((rel.archive_source_removal_version(), prepare(rel, state)?))
+    })??;
     match input {
         TickInput::Initialize(progress) => {
-            publish(owner, None, Some(progress), [], Vec::new(), |_| Ok(()))?;
+            publish(
+                owner,
+                source_removal,
+                None,
+                Some(progress),
+                [],
+                Vec::new(),
+                |_| Ok(()),
+            )?;
             Ok(true)
         }
         TickInput::Audit {
@@ -66,6 +76,7 @@ fn tick_perception(owner: &OwnerWork<'_>, state: &mut WorkerState) -> Result<boo
             PerceptionAuditAdvance::Updated => {
                 publish(
                     owner,
+                    source_removal,
                     Some(previous),
                     Some(progress),
                     [],
@@ -74,9 +85,11 @@ fn tick_perception(owner: &OwnerWork<'_>, state: &mut WorkerState) -> Result<boo
                 )?;
                 Ok(true)
             }
-            PerceptionAuditAdvance::Ready => audit_page(owner, state, previous, progress),
+            PerceptionAuditAdvance::Ready => {
+                audit_page(owner, state, source_removal, previous, progress)
+            }
             PerceptionAuditAdvance::LiveContributionReady => {
-                live_contribution(owner, state, previous, progress)
+                live_contribution(owner, state, source_removal, previous, progress)
             }
         },
         TickInput::Review(id) => {
@@ -95,7 +108,15 @@ fn tick_perception(owner: &OwnerWork<'_>, state: &mut WorkerState) -> Result<boo
                 if let Some(review) = review {
                     let previous =
                         owner.read(|rel| rel.observation_progress().map(|row| row.fingerprint))?;
-                    publish(owner, previous, None, [review], Vec::new(), |_| Ok(()))?;
+                    publish(
+                        owner,
+                        source_removal,
+                        previous,
+                        None,
+                        [review],
+                        Vec::new(),
+                        |_| Ok(()),
+                    )?;
                 }
                 Ok::<(), GatewayError>(())
             })();
@@ -127,6 +148,7 @@ fn prepare(rel: &RelSession, state: &mut WorkerState) -> Result<TickInput, Owner
         cut.memory,
         cut.graph,
         cut.entity,
+        cut.source_removal,
         rel.perception_review_version(),
     );
     state
@@ -188,6 +210,7 @@ fn prepare(rel: &RelSession, state: &mut WorkerState) -> Result<TickInput, Owner
 fn audit_page(
     owner: &OwnerWork<'_>,
     state: &mut WorkerState,
+    source_removal: u64,
     previous: [u8; 32],
     mut progress: PerceptionAuditProgress,
 ) -> Result<bool, GatewayError> {
@@ -209,6 +232,7 @@ fn audit_page(
         page.contribution_target_after = work.next_target;
         publish(
             owner,
+            source_removal,
             Some(previous),
             Some(progress),
             [],
@@ -221,6 +245,7 @@ fn audit_page(
         progress.finish_page();
         publish(
             owner,
+            source_removal,
             Some(previous),
             Some(progress),
             [],
@@ -237,6 +262,7 @@ fn audit_page(
         page.finish_capture(capture.next)?;
         publish(
             owner,
+            source_removal,
             Some(previous),
             Some(progress),
             [],
@@ -322,6 +348,7 @@ fn audit_page(
     }
     publish(
         owner,
+        source_removal,
         Some(previous),
         Some(progress),
         drafts,
@@ -346,6 +373,7 @@ fn audit_page(
 fn live_contribution(
     owner: &OwnerWork<'_>,
     state: &mut WorkerState,
+    source_removal: u64,
     previous: [u8; 32],
     mut progress: PerceptionAuditProgress,
 ) -> Result<bool, GatewayError> {
@@ -368,6 +396,7 @@ fn live_contribution(
     };
     publish(
         owner,
+        source_removal,
         Some(previous),
         Some(progress),
         [],
@@ -502,6 +531,7 @@ fn resolve_memory_profile(
 
 fn publish(
     owner: &OwnerWork<'_>,
+    source_removal: u64,
     expected_progress: Option<[u8; 32]>,
     progress: Option<PerceptionAuditProgress>,
     prepared: impl IntoIterator<Item = PreparedObservation>,
@@ -520,7 +550,9 @@ fn publish(
         .transpose()?;
     owner.with_writer(|writer| {
         let rel = writer.read_session();
-        if rel.observation_progress().map(|row| row.fingerprint) != expected_progress {
+        if rel.archive_source_removal_version() != source_removal
+            || rel.observation_progress().map(|row| row.fingerprint) != expected_progress
+        {
             return Err(OwnerSessionError::ManagementStale.into());
         }
         fence(rel)?;
@@ -528,6 +560,7 @@ fn publish(
         let mut hash = Sha256::new();
         hash.update(b"reliquary-perception-work-publication-v1\0");
         hash.update(owner.routes.identity);
+        hash.update(source_removal.to_le_bytes());
         hash.update(expected_progress.unwrap_or([0; 32]));
         for prepared in prepared {
             prepared

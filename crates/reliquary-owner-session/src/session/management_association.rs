@@ -111,6 +111,9 @@ impl RelSession {
     ) -> Option<(&reliquary_memory_core::MemoryRecord, bool)> {
         let memories = &self.common.memories;
         let record = memories.record_at_cut(id, memories.memory_version())?;
-        Some((record, memories.current_body_available(id)))
+        Some((
+            record,
+            self.source_eligibility().allows(record) && memories.current_body_available(id),
+        ))
     }
 }

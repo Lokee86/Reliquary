@@ -9,6 +9,7 @@ pub struct CommunityRecomputeCut {
     file: (u64, u64),
     memory: u64,
     graph: u64,
+    source_removal: u64,
     community: Option<u64>,
 }
 
@@ -23,10 +24,15 @@ impl RelSession {
         let graph = &self.common.graph;
         let eligible = self
             .common
-            .eligible_community_members(&graph.active_memory_nodes());
+            .eligible_community_members(&graph.active_memory_nodes(), self.source_eligibility());
         CommunityRecomputeInput {
             cut: self.community_recompute_cut(),
-            graph: CommunityGraph::from_relations(eligible, graph.active_relations()),
+            graph: CommunityGraph::from_relations(
+                eligible,
+                graph
+                    .active_relations()
+                    .filter(|edge| self.relation_source_eligible(edge)),
+            ),
         }
     }
 
@@ -37,6 +43,7 @@ impl RelSession {
             file: self.container_file_identity,
             memory: self.common.memories.memory_version(),
             graph: self.common.graph.graph_version(),
+            source_removal: self.archive_source_removal_version(),
             community: self
                 .common
                 .communities
@@ -47,7 +54,11 @@ impl RelSession {
 }
 
 impl CommonState {
-    fn eligible_community_members(&self, graph_members: &BTreeSet<[u8; 32]>) -> BTreeSet<[u8; 32]> {
+    fn eligible_community_members(
+        &self,
+        graph_members: &BTreeSet<[u8; 32]>,
+        eligibility: super::source_eligibility::SourceEligibility<'_>,
+    ) -> BTreeSet<[u8; 32]> {
         let cut = self.memories.memory_version();
         graph_members
             .iter()
@@ -56,6 +67,7 @@ impl CommonState {
                 let id = MemoryId(id);
                 self.memories.record_at_cut(id, cut).is_some_and(|record| {
                     !record.archived
+                        && eligibility.allows(record)
                         && record.superseded_by.is_none()
                         && self.memories.current_body_available(id)
                 })
@@ -76,9 +88,10 @@ impl RelWriter {
             return Err(OwnerSessionError::ManagementStale);
         }
 
-        let state = &mut self.session.common;
+        let eligibility = self.session.source_eligibility();
+        let state = &self.session.common;
         let graph_members = state.graph.active_memory_nodes();
-        let mut remaining = state.eligible_community_members(&graph_members);
+        let mut remaining = state.eligible_community_members(&graph_members, eligibility);
         let partial = remaining.len() < graph_members.len();
         let mut communities = Vec::with_capacity(groups.len());
         for mut members in groups {
@@ -114,6 +127,7 @@ impl RelWriter {
             graph_version: expected.graph,
             communities,
         };
+        let state = &mut self.session.common;
         let result = if partial {
             state
                 .communities

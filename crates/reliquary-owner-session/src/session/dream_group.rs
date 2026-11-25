@@ -82,6 +82,13 @@ impl RelWriter {
         if !preflight(&self.session.common, self.owner_id(), record)? {
             return Ok(false);
         }
+        if [cut.source, cut.candidate].into_iter().any(|row| {
+            !self
+                .session
+                .memory_revision_source_eligible(row.id, row.revision)
+        }) {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
         if let Err(error) = publish(&mut self.container, &mut self.session.common, record) {
             self.session.write_poisoned = true;
             return Err(error);

@@ -31,7 +31,7 @@ pub(super) fn open_common_for_owner(
         replay_grouped_insomnia,
         reliquary_memory_core::MemoryReplayStart::Detached,
         None,
-        &BTreeMap::new(),
+        None,
     )
     .map(|(common, _, _, _)| common)
 }
@@ -135,7 +135,7 @@ pub(super) fn open_common_replaying(
     replay_grouped_insomnia: bool,
     memory_start: reliquary_memory_core::MemoryReplayStart,
     identity_generation: Option<[u8; 32]>,
-    observation_archive_cuts: &BTreeMap<u64, (u64, u64)>,
+    observation_archive: Option<(&Archive, &BTreeMap<u64, (u64, u64)>)>,
 ) -> Result<
     (
         CommonState,
@@ -276,7 +276,7 @@ pub(super) fn open_common_replaying(
             &memories,
             identity_generation.map(|generation| (&perception, generation)),
             &pruned_bodies,
-            observation_archive_cuts,
+            observation_archive,
             &profiles,
         )?;
     memories.retain_pruned_body_fence(pruned_bodies);

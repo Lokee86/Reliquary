@@ -30,10 +30,16 @@ pub struct PerceptionSourceCut {
     pub graph: u64,
     pub entity: u64,
     pub observation: u64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub source_removal: u64,
     pub freshness: u64,
     pub settlements: u64,
     pub rel_turn: u64,
     pub freshness_event: Option<String>,
+}
+
+fn is_zero(value: &u64) -> bool {
+    *value == 0
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -92,6 +98,7 @@ impl RelSession {
             graph: self.graph_version(),
             entity: self.common.perception.version(),
             observation: self.perception_review_version(),
+            source_removal: self.archive_source_removal_version(),
             freshness: self.freshness.memory_change_position(),
             settlements: self.common.dreams.settlement_count(),
             rel_turn,
@@ -357,7 +364,9 @@ impl RelSession {
     pub fn perception_lexical_candidates(&self, query: &str, limit: usize) -> Vec<MemoryId> {
         self.common
             .dream_read_index
-            .lexical_candidates(query, limit.min(MAX_CAPTURE_PAGE))
+            .lexical_candidates(query, limit.min(MAX_CAPTURE_PAGE), |id| {
+                !self.memory_source_removed(id)
+            })
     }
 
     pub fn perception_graph_neighbors(&self, source: MemoryId) -> Vec<MemoryId> {
@@ -365,6 +374,7 @@ impl RelSession {
         self.common
             .graph
             .incident_relations(anchor)
+            .filter(|relation| self.relation_source_eligible(relation))
             .filter_map(|relation| match relation.source {
                 NodeRef::Memory(id) if id != source.0 => Some(MemoryId(id)),
                 _ => match relation.target {
@@ -382,6 +392,7 @@ impl RelSession {
         self.common
             .perception
             .relationships_for_local_participant(entity)
+            .filter(|relationship| self.relationship_source_eligible(relationship))
             .take(MAX_NEIGHBORS)
             .flat_map(|relationship| &relationship.evidence)
             .filter(|reference| reference.owner_id == local && seen.insert(reference.memory_id))
@@ -400,6 +411,7 @@ impl RelSession {
         self.common
             .perception
             .relationships_for_local_participant(first.entity_id)
+            .filter(|relationship| self.relationship_source_eligible(relationship))
             .any(|row| {
                 row.participants.len() == participants.len()
                     && normalized_summary(&row.summary) == proposition
@@ -431,7 +443,10 @@ impl RelSession {
             .memories
             .revision_record(MemoryId(source_id), None)
             .ok()?;
-        if current.revision != cite.revision || current.body_id.0 != cite.body_id {
+        if current.revision != cite.revision
+            || current.body_id.0 != cite.body_id
+            || !self.source_eligibility().allows(current)
+        {
             return None;
         }
         let source = current.source_ref.as_ref()?;
@@ -481,7 +496,10 @@ impl RelSession {
                     .common
                     .perception
                     .entity_at_cut(entity_id, cut.entity)?;
-                if entity.kind == PRINCIPAL_ENTITY_KIND || seen.contains(&entity_id) {
+                if entity.kind == PRINCIPAL_ENTITY_KIND
+                    || seen.contains(&entity_id)
+                    || !self.entity_revision_source_eligible(entity)
+                {
                     return None;
                 }
                 let text = text_field(&body, mention.key.field);
@@ -518,6 +536,7 @@ impl RelSession {
             || cut.graph > self.graph_version()
             || cut.entity > self.common.perception.version()
             || cut.observation > self.observation_publication_version()
+            || cut.source_removal > self.archive_source_removal_version()
             || cut.freshness > self.freshness.memory_change_position()
             || cut.settlements > self.common.dreams.settlement_count()
             || cut.rel_turn > self.rel_turn_count()
@@ -535,6 +554,7 @@ impl RelSession {
         let record = self.common.memories.record_at_cut(id, cut.memory)?;
         let current = self.common.memories.revision_record(id, None).ok()?;
         let valid = !record.archived
+            && self.source_eligibility().allows(record)
             && record.superseded_by.is_none()
             && matches!(record.lifecycle_state.as_str(), "knowledge" | "canonical")
             && current.revision == record.revision

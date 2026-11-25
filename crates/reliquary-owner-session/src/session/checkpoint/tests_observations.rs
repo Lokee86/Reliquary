@@ -2,9 +2,9 @@ use super::*;
 use crate::VerifiedOwnerCopyPlan;
 use crate::observation::*;
 use crate::session::{RelWriter, observations};
-use reliquary_archive::TurnInput;
-use reliquary_graph::GraphAdmission;
-use reliquary_memory_core::{MemoryDraft, MemorySourceRef};
+use reliquary_archive::{EpisodeBoundary, EpisodeId, EpisodeOrigin, TurnInput};
+use reliquary_graph::{GraphAdmission, NodeRef, RelationChange, RelationKind, RelationOrigin};
+use reliquary_memory_core::{MemoryDraft, MemoryId, MemorySourceRef, PayloadState};
 use reliquary_perception_store::MemoryTextField;
 
 const OWNER: [u8; 16] = [87; 16];
@@ -24,6 +24,17 @@ fn open_writer(owner: &Path) -> RelWriter {
 }
 
 fn source(writer: &mut RelWriter, key: &str, content: &str) -> ObservationCitation {
+    source_with(writer, key, content, "accepted", None, None)
+}
+
+fn source_with(
+    writer: &mut RelWriter,
+    key: &str,
+    content: &str,
+    conversation: &str,
+    grounding: Option<(&str, &str)>,
+    episode: Option<EpisodeId>,
+) -> ObservationCitation {
     writer
         .session
         .archive
@@ -31,7 +42,7 @@ fn source(writer: &mut RelWriter, key: &str, content: &str) -> ObservationCitati
             &mut writer.container,
             TurnInput {
                 id: key.into(),
-                conversation_id: "accepted".into(),
+                conversation_id: conversation.into(),
                 parent_id: None,
                 role: "user".into(),
                 principal_id: Some("owner".into()),
@@ -69,12 +80,13 @@ fn source(writer: &mut RelWriter, key: &str, content: &str) -> ObservationCitati
                 source_ref: Some(MemorySourceRef {
                     owner_id: "57".repeat(16),
                     principal_id: Some("owner".into()),
-                    source_episode_id: [2; 32],
+                    source_episode_id: episode.map_or([2; 32], |episode| episode.0),
                     source_node_id: key.into(),
-                    content_source_conversation_id: Some("accepted".into()),
+                    content_source_conversation_id: Some(conversation.into()),
                     content_source_node_id: Some(key.into()),
-                    grounding_source_conversation_id: None,
-                    grounding_source_node_id: None,
+                    grounding_source_conversation_id: grounding
+                        .map(|(conversation, _)| conversation.into()),
+                    grounding_source_node_id: grounding.map(|(_, id)| id.into()),
                 }),
                 source_time_ns: Some(1),
                 temporal_inference: None,
@@ -97,6 +109,224 @@ fn source(writer: &mut RelWriter, key: &str, content: &str) -> ObservationCitati
         start_byte: 0,
         end_byte: content.len() as u32,
     }
+}
+
+fn memory_id(citation: ObservationCitation) -> MemoryId {
+    let ObservationSource::Memory(id) = citation.source else {
+        unreachable!()
+    };
+    MemoryId(id)
+}
+
+#[test]
+fn deleted_copy_retires_exact_memory_provenance_and_observation_lineage_across_reopen() {
+    let directory = tempfile::tempdir().unwrap();
+    let owner = directory.path().join("removed-source.rel");
+    let cache = directory.path().join("private");
+    private_cache::test_directory(&cache).unwrap();
+    let slot = cache.join("removed-source.checkpoint");
+    let mut writer = RelWriter::create_current_path(&owner, OWNER).unwrap();
+    let removed = source(
+        &mut writer,
+        "removed",
+        "A copied record contained an unmasked value.",
+    );
+    let episode = writer
+        .session
+        .archive
+        .put_episode(
+            &mut writer.container,
+            "accepted",
+            "removed",
+            "removed",
+            EpisodeOrigin::Import,
+            EpisodeBoundary::ImportEnd,
+            1,
+        )
+        .unwrap();
+    let grounded = source_with(
+        &mut writer,
+        "grounded",
+        "Its separate grounding came from the copy.",
+        "independent",
+        Some(("accepted", "removed")),
+        None,
+    );
+    let contextual = source_with(
+        &mut writer,
+        "contextual",
+        "The copy provided extraction context.",
+        "independent",
+        None,
+        Some(episode),
+    );
+    let surviving = source_with(
+        &mut writer,
+        "living",
+        "The approved value is recorded independently.",
+        "independent",
+        None,
+        None,
+    );
+    let removed_ids = [removed, grounded, contextual].map(memory_id);
+    let live_id = memory_id(surviving);
+    writer
+        .session
+        .common
+        .graph
+        .put(
+            &mut writer.container,
+            &GraphAdmission::for_changes(OWNER, [live_id.0, removed_ids[0].0], []),
+            &[RelationChange {
+                source: NodeRef::Memory(removed_ids[0].0),
+                target: NodeRef::Memory(live_id.0),
+                kind: RelationKind::Topical,
+                active: true,
+                origin: RelationOrigin::User,
+            }],
+        )
+        .unwrap();
+    writer.session.writer_lease_proof = writer.container.writer_lease_proof();
+    let claim = create(
+        &mut writer,
+        1,
+        draft("An approved value is on record.", vec![removed]),
+    );
+    let cite = writer
+        .session
+        .observation(claim)
+        .unwrap()
+        .revision
+        .full_citation();
+    let derived = create(
+        &mut writer,
+        2,
+        draft("Documentation confirms an approval.", vec![cite]),
+    );
+    let derived_cite = writer
+        .session
+        .observation(derived)
+        .unwrap()
+        .revision
+        .full_citation();
+    let independent = create(
+        &mut writer,
+        3,
+        draft("An independent approval is documented.", vec![surviving]),
+    );
+    assert_eq!(
+        writer.session.perception_graph_neighbors(live_id),
+        vec![removed_ids[0]]
+    );
+    assert_eq!(
+        writer
+            .session
+            .retrieval_snapshot(None)
+            .unwrap()
+            .memories
+            .len(),
+        4
+    );
+    let memory_cut = writer.session.memory_version();
+    drop(writer);
+
+    let (lease, exact, checkpoint) = reopen_at_checkpoint(&owner, &slot);
+    let covered = lease.extent().unwrap();
+    assert_eq!(checkpoint.unwrap().attempted_extent, Some(covered));
+    drop((lease, exact));
+
+    let mut writer = open_writer(&owner);
+    assert!(writer.tombstone_conversation("accepted").unwrap());
+    let assert_cut = |rel: &RelSession| {
+        assert_eq!(rel.memory_version(), memory_cut);
+        for id in removed_ids {
+            assert!(!rel.memory_revision_source_eligible(id, 1));
+            let history = rel.memory_history_at_cut(id, memory_cut).unwrap().unwrap();
+            assert!(history.tombstone.is_some());
+            assert_eq!(history.revisions[0].payload, PayloadState::Absent);
+            assert!(
+                rel.management_read()
+                    .memory_projection(id, Some(1))
+                    .unwrap()
+                    .1
+                    .is_none()
+            );
+        }
+        let snapshot = rel.retrieval_snapshot(None).unwrap();
+        assert_eq!(snapshot.memories.len(), 1);
+        assert_eq!(snapshot.memories[0].revision.record.id, live_id);
+        assert!(snapshot.active_relations.is_empty());
+        assert!(rel.perception_graph_neighbors(live_id).is_empty());
+        assert!(rel.perception_lexical_candidates("unmasked", 5).is_empty());
+        assert!(rel.historical_observation_citation_text(&removed).is_err());
+        assert!(rel.historical_observation_citation_text(&cite).is_err());
+        assert!(
+            rel.historical_observation_citation_text(&derived_cite)
+                .is_err()
+        );
+        assert_eq!(
+            rel.observation(independent).unwrap().standing,
+            ObservationStanding::Current
+        );
+        assert_eq!(
+            rel.semantic_graph_snapshot()
+                .memory_page(None, 8)
+                .unwrap()
+                .memories
+                .len(),
+            1
+        );
+    };
+    assert_cut(&writer.session);
+    assert_eq!(
+        writer.session.observation(claim).unwrap().standing,
+        ObservationStanding::Pending(ObservationPendingReason::ChangedSupport)
+    );
+    assert_eq!(
+        writer.session.observation(derived).unwrap().standing,
+        ObservationStanding::Pending(ObservationPendingReason::UpstreamReview)
+    );
+
+    let mut replacement = draft("An approved value is on record.", vec![surviving]);
+    replacement.reviewed.push(removed);
+    let successor = batch(
+        &writer,
+        4,
+        vec![ObservationOperation::Successor {
+            id: claim,
+            expected_revision: 1,
+            draft: replacement,
+            change: ObservationChange::Equivalent,
+            credited_activity: None,
+        }],
+    );
+    let receipt = writer.publish_observation_batch(successor.clone()).unwrap();
+    assert_eq!(receipt.revisions, vec![(claim, 2)]);
+    drop(writer);
+
+    let (lease, warm, checkpoint) = reopen_at_checkpoint(&owner, &slot);
+    assert_eq!(checkpoint.unwrap().attempted_extent, Some(covered));
+    assert_cut(&warm);
+    assert_eq!(
+        warm.observation(claim).unwrap().standing,
+        ObservationStanding::Current
+    );
+    assert_eq!(
+        warm.observation(claim).unwrap().revision.draft.citations,
+        vec![surviving]
+    );
+    drop((lease, warm));
+    let cold = RelSession::open_path_current(&owner).unwrap();
+    assert_cut(&cold);
+    assert!(cold.observation_revision_source_eligible(claim, 2));
+    assert!(!cold.observation_revision_source_eligible(claim, 1));
+    drop(cold);
+    assert_eq!(
+        open_writer(&owner)
+            .publish_observation_batch(successor)
+            .unwrap(),
+        receipt
+    );
 }
 
 fn draft(claim: &str, citations: Vec<ObservationCitation>) -> ObservationDraft {
