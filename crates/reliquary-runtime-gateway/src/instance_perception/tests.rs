@@ -15,8 +15,9 @@ use reliquary_owner_session::{
     DreamMemoryCut, EntityMentionCommit, PerceptionAuditAdvance, PerceptionAuditProgress,
 };
 use reliquary_switchboard::{
-    DecisionEndpoint, DecisionEndpointError, EmbeddingEndpoint, EmbeddingEndpointError,
-    EmbeddingMode, EmbeddingNormalization, GeneralEndpoint, GeneralEndpointError,
+    ConfiguredRoutes, DecisionConsumer, DecisionEndpoint, DecisionEndpointError, EmbeddingEndpoint,
+    EmbeddingEndpointError, EmbeddingMode, EmbeddingNormalization, GeneralEndpoint,
+    GeneralEndpointError, HostedEmbeddingInputSemantics, HostedInferenceIdentity,
 };
 use serde_json::{Map, Value, json};
 use std::{fs, path::PathBuf};
@@ -243,6 +244,10 @@ fn choice(value: &str) -> Value {
 }
 
 impl EmbeddingEndpoint for Script {
+    fn model(&self) -> Option<&str> {
+        Some("perception-acceptance-embedding")
+    }
+
     fn dimensions(&self) -> u32 {
         2
     }
@@ -469,15 +474,34 @@ fn run(
         phase,
         calls: calls.clone(),
     });
+    let hosted = HostedInferenceIdentity::new(
+        "fixture",
+        GeneralEndpoint::model(script.as_ref()),
+        "fixture",
+        EmbeddingEndpoint::model(script.as_ref()).unwrap(),
+        script.dimensions(),
+        HostedEmbeddingInputSemantics::Shared,
+        script.normalization(),
+    )
+    .unwrap();
+    let routes = ConfiguredRoutes::hosted(script.clone(), script.clone(), hosted)
+        .unwrap()
+        .with_native_perception_decision(script, "fixture/native-jev")
+        .unwrap();
+    let identity = routes.processing_route_identity();
     let lifecycle = gateway.perception_lifecycle();
     lifecycle
         .set_routes(Some(PerceptionRoutes {
-            general: script.clone(),
-            contribution: script.clone(),
-            verification: script.clone(),
-            embedding: script,
-            identity: [5; 32],
-            embedding_identity: [6; 32],
+            general: routes.general_endpoint().unwrap(),
+            contribution: routes
+                .decision_endpoint(DecisionConsumer::ObservationContribution)
+                .unwrap(),
+            verification: routes
+                .decision_endpoint(DecisionConsumer::ObservationVerification)
+                .unwrap(),
+            embedding: routes.embedding_endpoint().unwrap(),
+            identity: identity.perception,
+            embedding_identity: identity.perception_embedding,
         }))
         .unwrap();
     lifecycle.admit(&instance, vec![owner]).unwrap();

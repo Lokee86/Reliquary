@@ -20,6 +20,7 @@ pub enum ProductErrorKind {
     Io,
     Verification,
     InvalidInput,
+    TemporalQueryRequired,
 }
 
 #[derive(Debug)]

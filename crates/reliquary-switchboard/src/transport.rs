@@ -527,7 +527,29 @@ impl ConfiguredDecisionEndpoint {
             .ok_or(DecisionEndpointError::InvalidConfiguration(
                 "decision route requires an API-key credential",
             ))?;
-        let api_key = secret.clone();
+        Self::with_transport(url, route.model.clone(), secret.clone())
+    }
+
+    /// Build the bounded native decision client with an in-memory host credential.
+    pub fn native(url: &str, model: &str, api_key: &str) -> Result<Self, DecisionEndpointError> {
+        if model != OBSERVATION_DECISION_MODEL {
+            return Err(DecisionEndpointError::InvalidConfiguration(
+                "Observation requires typesafe/jev-1.13",
+            ));
+        }
+        let url = validated_http_url(url).map_err(DecisionEndpointError::InvalidConfiguration)?;
+        let invalid_key = |_| DecisionEndpointError::InvalidConfiguration("invalid API key");
+        reqwest::header::HeaderValue::from_str(api_key).map_err(invalid_key)?;
+        let api_key = SecretString::new(api_key)
+            .map_err(|_| DecisionEndpointError::InvalidConfiguration("invalid API key"))?;
+        Self::with_transport(url, model.to_owned(), api_key)
+    }
+
+    fn with_transport(
+        url: reqwest::Url,
+        model: String,
+        api_key: SecretString,
+    ) -> Result<Self, DecisionEndpointError> {
         let client = reqwest::blocking::Client::builder()
             .timeout(REQUEST_TIMEOUT)
             .no_proxy()
@@ -537,7 +559,7 @@ impl ConfiguredDecisionEndpoint {
         Ok(Self {
             client,
             url,
-            model: route.model.clone(),
+            model,
             api_key,
         })
     }

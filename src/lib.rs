@@ -15,9 +15,13 @@ mod processing;
 mod retrieval;
 
 pub use configuration::*;
+pub use reliquary_switchboard::{
+    HostedEmbeddingSettings, HostedModelRoute, HostedSwitchboardConfig,
+};
 
 pub use configured_runtime::{
-    CompatibilityProbeReference, CompatibilityProfile, ConfiguredRuntime, EmbeddingEndpoint,
+    CompatibilityProbeReference, CompatibilityProfile, ConfiguredDecisionEndpoint,
+    ConfiguredRuntime, DecisionEndpoint, DecisionEndpointError, EmbeddingEndpoint,
     EmbeddingEndpointError, EmbeddingMode, GeneralEndpoint, GeneralEndpointError,
     HostedEmbeddingInputSemantics, HostedInferenceIdentity, RuntimeEndpointFailure,
     SwitchboardEmbeddingMode, VectorNormalization,

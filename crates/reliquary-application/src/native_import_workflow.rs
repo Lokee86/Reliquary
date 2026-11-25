@@ -58,12 +58,13 @@ pub fn stage_native_import(
     writer: &mut RelWriter,
     batch: NativeImportBatch,
 ) -> Result<StagedNativeImport, OwnerSessionError> {
-    stage_native_import_with_admission(writer, batch, || Ok(()))
+    stage_native_import_with_admission(writer, batch, Vec::new(), || Ok(()))
 }
 
 pub(super) fn stage_native_import_with_admission(
     writer: &mut RelWriter,
     batch: NativeImportBatch,
+    echo: Vec<reliquary_owner_session::model::EchoEvent>,
     check_admission: impl Fn() -> Result<(), OwnerSessionError>,
 ) -> Result<StagedNativeImport, OwnerSessionError> {
     let owner = writer.owner_id();
@@ -87,7 +88,7 @@ pub(super) fn stage_native_import_with_admission(
         batch.started_at_ns,
     )?;
     if matches!(status, ImportEpochStatus::Completed { .. }) {
-        return confirm_staged_retry(writer, &batch, id, true);
+        return confirm_staged_retry(writer, &batch, &echo, id, true);
     }
     if writer
         .read_session()
@@ -95,11 +96,15 @@ pub(super) fn stage_native_import_with_admission(
         .is_some()
     {
         // The receipt closes staging, including a crash after settlement.
-        return confirm_staged_retry(writer, &batch, id, false);
+        return confirm_staged_retry(writer, &batch, &echo, id, false);
     }
     for (turn, branch) in batch.turns {
         check_admission()?;
         writer.accept_native_import_turn(&id, turn, branch)?;
+    }
+    for event in echo {
+        check_admission()?;
+        writer.accept_native_import_echo(&id, event)?;
     }
     let mut episodes = Vec::with_capacity(batch.episodes.len());
     for episode in batch.episodes {
@@ -125,6 +130,7 @@ pub(super) fn stage_native_import_with_admission(
 fn confirm_staged_retry(
     writer: &RelWriter,
     batch: &NativeImportBatch,
+    echo: &[reliquary_owner_session::model::EchoEvent],
     import_id: String,
     already_completed: bool,
 ) -> Result<StagedNativeImport, OwnerSessionError> {
@@ -164,6 +170,20 @@ fn confirm_staged_retry(
         {
             return Err(OwnerSessionError::Record(
                 "import retry turn evidence differs from the accepted Archive".into(),
+            ));
+        }
+    }
+    for group in echo.chunk_by(|left, right| {
+        left.conversation_id == right.conversation_id && left.message_id == right.message_id
+    }) {
+        let first = &group[0];
+        if session
+            .echo_for_turn(&first.conversation_id, &first.message_id)
+            .as_slice()
+            != group
+        {
+            return Err(OwnerSessionError::Record(
+                "import retry Echo evidence differs from the accepted source".into(),
             ));
         }
     }

@@ -171,6 +171,14 @@ impl RelSession {
         };
         let mut paths = Vec::with_capacity(view.fragments().len());
         for fragment in view.fragments() {
+            if self
+                .archive
+                .conversation_tombstone(&fragment.conversation_id)
+                .is_some()
+            {
+                paths.push(None);
+                continue;
+            }
             match self.archive.bounded_fragment_turns(fragment) {
                 Ok(turns) => paths.push(Some(turns)),
                 Err(ArchiveError::MissingContent | ArchiveError::EvidenceLimitExceeded) => {
