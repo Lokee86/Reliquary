@@ -8,7 +8,7 @@ This policy composes the synchronized engineering-standards architecture policy 
 
 ## Overview
 
-The policy separates responsibilities in `policy.json` from semantic dependency rules in `semantic.json`. The areas follow the current implementation owners: Container and durable stores, owner-session, semantic services, Application, Gateway, the public root API, and the separate CLI. The named rule set:
+The policy defines ownership areas in `policy.json` and dependency rules in `semantic.json`. The ownership map includes the Memory Audit, Ego, and Perception semantic crates alongside the other runtime owners.
 
 - assigns file nodes under `src/`, `crates/`, and `cli/src/` to exactly one architectural package or public-surface area, including tests under those package trees;
 - rejects Rust dependencies of any category from foundation/service areas into Application or Gateway; and

@@ -66,6 +66,8 @@ python scripts/check_policy_tools.py
 cargo test --manifest-path tests/external-consumer/Cargo.toml --locked --offline -j 1 -- --test-threads=1
 ```
 
+A new semantic crate needs a crate-root ownership area that covers its source and tests. Include that area in the existing dependency rules for semantic services and the CLI. [Ownership map](../../tools/pitlord/policy.json) · [Dependency rules](../../tools/pitlord/semantic.json)
+
 The required fresh-process acceptance step uses the same repository-local Cargo target directory as the other CI builds. From PowerShell at the repository root, run:
 
 ```powershell

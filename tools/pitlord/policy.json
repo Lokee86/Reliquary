@@ -126,6 +126,27 @@
       ]
     },
     {
+      "id": "memory-audit",
+      "description": "Shared bounded discovery over caller-supplied evidence and authorized lookup",
+      "paths": [
+        "crates/reliquary-memory-audit"
+      ]
+    },
+    {
+      "id": "ego",
+      "description": "Fresh-only Ego extraction and evidence selection",
+      "paths": [
+        "crates/reliquary-ego"
+      ]
+    },
+    {
+      "id": "perception",
+      "description": "Observation proposals, synthesis, receptors, and decision contracts",
+      "paths": [
+        "crates/reliquary-perception"
+      ]
+    },
+    {
       "id": "freshness",
       "description": "Freshness scoring and decisions",
       "paths": [
