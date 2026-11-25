@@ -1,5 +1,5 @@
 //! Durable identity of the bounded candidates that must finish before settlement.
-use crate::records::dream::dream_begin_codec::{self, BeginPopulation};
+use crate::records::dream::dream_begin_codec::{self, BeginPopulation, BeginRecord};
 use crate::records::dream_batch::Observation;
 use crate::{DreamMemoryCut, MemoryId};
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ pub(crate) struct FrontierRecord {
 }
 impl FrontierRecord {
     pub fn encode(&self) -> Result<Vec<u8>, String> {
-        self.validate()?;
+        self.validate_begin()?;
         let mut out = b"RELDRC01".to_vec();
         out.extend(serde_json::to_vec(self).map_err(|e| e.to_string())?);
         if out.len() > 256 * 1024 {
@@ -31,6 +31,10 @@ impl FrontierRecord {
         Ok(out)
     }
     pub fn decode(bytes: &[u8]) -> Result<Option<Self>, String> {
+        Ok(Self::decode_with_begin(bytes)?.map(|(frontier, _)| frontier))
+    }
+
+    pub fn decode_with_begin(bytes: &[u8]) -> Result<Option<(Self, Option<BeginRecord>)>, String> {
         if !bytes.starts_with(b"RELDRC") {
             return Ok(None);
         }
@@ -38,10 +42,11 @@ impl FrontierRecord {
             return Err("invalid Dream frontier".into());
         }
         let result: Self = serde_json::from_slice(&bytes[8..]).map_err(|e| e.to_string())?;
-        result.validate()?;
-        Ok(Some(result))
+        let begin = result.validate_begin()?;
+        Ok(Some((result, begin)))
     }
-    fn validate(&self) -> Result<(), String> {
+
+    fn validate_begin(&self) -> Result<Option<BeginRecord>, String> {
         let ids: std::collections::BTreeSet<_> = self.candidates.iter().map(|o| o.id).collect();
         if self.pass_id.is_empty()
             || self.pass_id.len() > 256
@@ -64,7 +69,8 @@ impl FrontierRecord {
             {
                 return Err("frontier Begin mismatch".into());
             }
+            return Ok(Some(begin));
         }
-        Ok(())
+        Ok(None)
     }
 }

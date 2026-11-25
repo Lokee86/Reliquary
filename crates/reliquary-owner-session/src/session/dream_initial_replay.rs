@@ -54,12 +54,11 @@ pub(super) fn validate(
         }
         let envelope = reliquary_container::decode_publication(frame.payload)?;
         let payload = envelope.as_ref().map_or(frame.payload, |e| e.body);
-        if let Some(frontier) = crate::records::dream_frontier::FrontierRecord::decode(payload)
-            .map_err(OwnerSessionError::Record)?
+        if let Some((frontier, begin)) =
+            crate::records::dream_frontier::FrontierRecord::decode_with_begin(payload)
+                .map_err(OwnerSessionError::Record)?
         {
-            if let Some(payload) = &frontier.begin {
-                let begin = crate::records::dream::dream_begin_codec::decode(payload)
-                    .map_err(OwnerSessionError::Record)?;
+            if let Some(begin) = begin {
                 if matches!(begin.population, BeginPopulation::NativeBirth { .. }) {
                     let epoch = imports
                         .as_ref()
@@ -94,7 +93,7 @@ pub(super) fn validate(
             if check_native_policy {
                 pending_frontiers.insert(frontier.pass_id.clone());
             }
-            frontiers.insert(frontier.pass_id.clone(), frontier);
+            frontiers.insert(frontier.pass_id, frontier.candidates);
             continue;
         }
         if payload.starts_with(b"RELDRM01") {
@@ -253,13 +252,11 @@ pub(super) fn validate(
                     .then_some(*candidate)
                 })
                 .collect();
-            if frontiers.get(&record.pass_id).is_some_and(
-                |f: &crate::records::dream_frontier::FrontierRecord| {
-                    f.candidates
-                        .iter()
-                        .any(|c| !evaluated.contains(&ordered(record.source, MemoryId(c.id))))
-                },
-            ) {
+            if frontiers.get(&record.pass_id).is_some_and(|candidates| {
+                candidates
+                    .iter()
+                    .any(|c| !evaluated.contains(&ordered(record.source, MemoryId(c.id))))
+            }) {
                 return Err(OwnerSessionError::StaleDreamCut);
             }
             if !memories

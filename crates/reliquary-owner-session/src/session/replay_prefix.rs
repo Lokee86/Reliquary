@@ -124,8 +124,8 @@ pub(super) fn validate_graph_prefix(
                 perception_cut = version;
             }
         }
-        if let Some(frontier) =
-            crate::records::dream_frontier::FrontierRecord::decode(frame.payload)
+        if let Some((frontier, begin)) =
+            crate::records::dream_frontier::FrontierRecord::decode_with_begin(frame.payload)
                 .map_err(OwnerSessionError::Record)?
         {
             validate_frontier_cut(
@@ -135,9 +135,7 @@ pub(super) fn validate_graph_prefix(
                 graph_version,
                 &frontier,
             )?;
-            if let Some(payload) = &frontier.begin {
-                let begin =
-                    dream_begin_codec::decode(payload).map_err(OwnerSessionError::Record)?;
+            if let Some(begin) = begin {
                 let birth_version = *dreams
                     .birth_versions
                     .get(&begin.source_id)

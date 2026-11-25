@@ -280,16 +280,17 @@ impl DreamEvidenceStore {
             .scan_matching_frames(super::frame_selection::without_archive_or_packed)
             .map_err(|error| error.to_string())?;
         while let Some(frame) = frames.next_frame().map_err(|error| error.to_string())? {
-            let frontier = super::dream_frontier::FrontierRecord::decode(frame.payload)?;
-            let payload = frontier
-                .as_ref()
-                .and_then(|r| r.begin.as_deref())
-                .unwrap_or(frame.payload);
-            if payload.starts_with(BEGIN_MAGIC) {
+            let payload = frame.payload;
+            if let Some((frontier, begin)) =
+                super::dream_frontier::FrontierRecord::decode_with_begin(payload)?
+            {
+                if let Some(begin) = begin {
+                    store.ingest_physical_begin(begin)?;
+                }
+                store.apply_frontier(frontier)?;
+            } else if payload.starts_with(BEGIN_MAGIC) {
                 let begin = dream_begin_codec::decode(payload)?;
-                if frontier.is_none()
-                    && matches!(begin.population, BeginPopulation::NativeBirth { .. })
-                {
+                if matches!(begin.population, BeginPopulation::NativeBirth { .. }) {
                     return Err("Dream native birth requires a bound frontier".into());
                 }
                 store.ingest_physical_begin(begin)?;
@@ -302,9 +303,6 @@ impl DreamEvidenceStore {
                     return Err("PHY Dream cannot carry REL Freshness effects".into());
                 }
                 store.apply_initial_settlement(settlement)?;
-            }
-            if let Some(record) = frontier {
-                store.apply_frontier(record)?;
             }
         }
         Ok(store)

@@ -175,12 +175,152 @@ pub(crate) fn decode_kind(kind: u8) -> Result<Option<RelationKind>, String> {
     })
 }
 pub(crate) fn fingerprint(cut: &DreamBatchCut) -> Result<[u8; 32], String> {
+    // Preserve the lexicographic key order of the original JSON object.
+    #[derive(Serialize)]
+    struct Fingerprint<'a, Changes, Lifecycle, Observed, Pairs> {
+        changes: Changes,
+        graph: u64,
+        lifecycle: Lifecycle,
+        observed: Observed,
+        owner: &'a [u8; 16],
+        pairs: Pairs,
+        publication: &'a [u8; 32],
+        updated: i64,
+    }
+
+    let pairs = cut
+        .pairs
+        .iter()
+        .map(|p| Ok((&p.source.0, &p.candidate.0, kind(p.kind)?, p.rejected)))
+        .collect::<Result<Vec<_>, String>>()?;
+    let value = Fingerprint {
+        changes: cut
+            .changes
+            .iter()
+            .map(|c| {
+                (
+                    DebugText(&c.source),
+                    DebugText(&c.target),
+                    DebugText(&c.kind),
+                    c.active,
+                    DebugText(&c.origin),
+                )
+            })
+            .collect::<Vec<_>>(),
+        graph: cut.graph_version,
+        lifecycle: cut
+            .lifecycles
+            .iter()
+            .map(|l| {
+                (
+                    &l.memory_id.0,
+                    l.lifecycle_state.as_str(),
+                    l.archived,
+                    l.superseded_by.as_ref().map(|id| &id.0),
+                )
+            })
+            .collect::<Vec<_>>(),
+        observed: cut
+            .observed
+            .iter()
+            .map(|c| (&c.id.0, c.revision, &c.body_id.0))
+            .collect::<Vec<_>>(),
+        owner: &cut.owner,
+        pairs,
+        publication: &cut.publication_id,
+        updated: cut.updated_at_ns,
+    };
+    let mut writer = std::io::BufWriter::new(Sha256::new());
+    serde_json::to_writer(&mut writer, &value).map_err(|e| e.to_string())?;
+    let hasher = writer.into_inner().map_err(|e| e.to_string())?;
+    Ok(hasher.finalize().into())
+}
+
+struct DebugText<'a, T>(&'a T);
+
+impl<T: std::fmt::Debug> Serialize for DebugText<'_, T> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(&format_args!("{:?}", self.0))
+    }
+}
+
+#[test]
+fn fingerprint_preserves_canonical_json() {
+    use reliquary_graph::{NodeRef, RelationOrigin};
     use serde_json::json;
-    let value = json!({"owner":cut.owner,"publication":cut.publication_id,"graph":cut.graph_version,"observed":cut.observed.iter().map(|c|json!([c.id.0,c.revision,c.body_id.0])).collect::<Vec<_>>(),
-        "pairs":cut.pairs.iter().map(|p|Ok(json!([p.source.0,p.candidate.0,kind(p.kind)?,p.rejected]))).collect::<Result<Vec<_>,String>>()?,
-        "changes":cut.changes.iter().map(|c|json!([format!("{:?}",c.source),format!("{:?}",c.target),format!("{:?}",c.kind),c.active,format!("{:?}",c.origin)])).collect::<Vec<_>>(),
-        "lifecycle":cut.lifecycles.iter().map(|l|json!([l.memory_id.0,l.lifecycle_state,l.archived,l.superseded_by.map(|id|id.0)])).collect::<Vec<_>>(),"updated":cut.updated_at_ns});
-    Ok(Sha256::digest(serde_json::to_vec(&value).map_err(|e| e.to_string())?).into())
+
+    let source = MemoryId([8; 32]);
+    let first = MemoryId([9; 32]);
+    let second = MemoryId([10; 32]);
+    let cut = DreamBatchCut {
+        owner: [6; 16],
+        publication_id: [7; 32],
+        graph_version: u64::MAX - 2,
+        observed: [source, first, second]
+            .into_iter()
+            .map(|id| DreamMemoryCut {
+                id,
+                revision: u64::from(id.0[0]),
+                body_id: MemoryBodyId([id.0[0] + 3; 32]),
+            })
+            .collect(),
+        pairs: vec![
+            DreamPairPublication {
+                source,
+                candidate: first,
+                kind: Some(RelationKind::Supersedes),
+                rejected: false,
+            },
+            DreamPairPublication {
+                source,
+                candidate: second,
+                kind: None,
+                rejected: true,
+            },
+        ],
+        changes: vec![RelationChange {
+            source: NodeRef::Memory(source.0),
+            target: NodeRef::Memory(first.0),
+            kind: RelationKind::Supersedes,
+            active: true,
+            origin: RelationOrigin::Dream,
+        }],
+        lifecycles: vec![
+            DreamLifecyclePublication {
+                memory_id: source,
+                lifecycle_state: "canonical \"夜\"\n".into(),
+                archived: false,
+                superseded_by: None,
+            },
+            DreamLifecyclePublication {
+                memory_id: first,
+                lifecycle_state: "archived".into(),
+                archived: true,
+                superseded_by: Some(source),
+            },
+        ],
+        updated_at_ns: -37,
+    };
+    let previous = json!({
+        "owner": cut.owner,
+        "publication": cut.publication_id,
+        "graph": cut.graph_version,
+        "observed": cut.observed.iter().map(|c| json!([c.id.0, c.revision, c.body_id.0])).collect::<Vec<_>>(),
+        "pairs": cut.pairs.iter().map(|p| json!([p.source.0, p.candidate.0, kind(p.kind).unwrap(), p.rejected])).collect::<Vec<_>>(),
+        "changes": cut.changes.iter().map(|c| json!([
+            format!("{:?}", c.source),
+            format!("{:?}", c.target),
+            format!("{:?}", c.kind),
+            c.active,
+            format!("{:?}", c.origin),
+        ])).collect::<Vec<_>>(),
+        "lifecycle": cut.lifecycles.iter().map(|l| json!([
+            l.memory_id.0, l.lifecycle_state, l.archived, l.superseded_by.map(|id| id.0),
+        ])).collect::<Vec<_>>(),
+        "updated": cut.updated_at_ns,
+    });
+    let expected: [u8; 32] = Sha256::digest(serde_json::to_vec(&previous).unwrap()).into();
+    assert_eq!(fingerprint(&cut).unwrap(), expected);
 }
 #[path = "dream_batch_validation.rs"]
 mod validation;
