@@ -5,6 +5,15 @@ impl DreamEvidenceStore {
         &mut self,
         settlement: InitialDreamSettlement,
     ) -> Result<(), String> {
+        let journal = self.prepare_initial_settlement(&settlement)?;
+        self.install_initial_settlement(settlement, journal);
+        Ok(())
+    }
+
+    fn prepare_initial_settlement(
+        &self,
+        settlement: &InitialDreamSettlement,
+    ) -> Result<DreamFreshnessJournal, String> {
         settlement.validate()?;
         if settlement.owner != self.owner_uuid
             || self.initial_settlements.contains_key(&settlement.pass_id)
@@ -55,13 +64,20 @@ impl DreamEvidenceStore {
         staged.ingest(&acceptance)?;
         let settled = staged.settled_payload(&settlement.pass_id)?;
         staged.ingest(&settled)?;
-        self.journal = staged;
+        Ok(staged)
+    }
+
+    fn install_initial_settlement(
+        &mut self,
+        settlement: InitialDreamSettlement,
+        journal: DreamFreshnessJournal,
+    ) {
+        self.journal = journal;
         self.settled_sources.push(settlement.source);
         self.settlement_positions
             .insert(settlement.source, self.settled_sources.len() as u64);
         self.initial_settlements
             .insert(settlement.pass_id.clone(), settlement);
-        Ok(())
     }
 
     /// One physical frame records accepted first-cycle Graph cut and final
@@ -79,31 +95,14 @@ impl DreamEvidenceStore {
                 Err("conflicting settled Dream pass retry".into())
             };
         }
-        let mut staged = self.clone_for_initial_commit();
-        staged.apply_initial_settlement(settlement.clone())?;
+        let journal = self.prepare_initial_settlement(&settlement)?;
         let encoded = settlement.encode()?;
         container
             .append(&encoded)
             .map_err(|error| error.to_string())?;
         container.sync().map_err(|error| error.to_string())?;
-        self.journal = staged.journal;
-        self.initial_settlements = staged.initial_settlements;
-        self.settled_sources = staged.settled_sources;
-        self.settlement_positions = staged.settlement_positions;
+        self.install_initial_settlement(settlement, journal);
         Ok(true)
-    }
-
-    fn clone_for_initial_commit(&self) -> Self {
-        Self {
-            owner_uuid: self.owner_uuid,
-            admissions: self.admissions.clone(),
-            begins: self.begins.clone(),
-            journal: self.journal.clone(),
-            initial_settlements: self.initial_settlements.clone(),
-            settled_sources: self.settled_sources.clone(),
-            settlement_positions: self.settlement_positions.clone(),
-            frontiers: self.frontiers.clone(),
-        }
     }
 
     pub fn initial_settlement(&self, pass_id: &str) -> Option<(u64, u64)> {

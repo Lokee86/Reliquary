@@ -83,6 +83,15 @@ impl RelWriter {
         import_id: &str,
         id: MemoryId,
     ) -> Result<(), OwnerSessionError> {
+        self.native_import_memory_birth_version(import_id, id)
+            .map(|_| ())
+    }
+
+    pub(in crate::session) fn native_import_memory_birth_version(
+        &self,
+        import_id: &str,
+        id: MemoryId,
+    ) -> Result<Option<u64>, OwnerSessionError> {
         self.ensure_import_scope(import_id)?;
         let record = self.session.common.memories.revision(id, 1)?.record;
         let episode = record
@@ -98,23 +107,26 @@ impl RelWriter {
                 reliquary_archive::EpisodeId(episode),
             )?;
         }
-        if !self
+        let (_, completion) = self
             .session
             .grouped_completions
             .range((WorkEpisodeId(episode), 0)..=(WorkEpisodeId(episode), u32::MAX))
-            .any(|(key, completion)| {
+            .find(|(key, completion)| {
                 self.session
                     .native_import_grouped_epochs
                     .get(key)
                     .is_some_and(|epoch| epoch == import_id)
                     && completion.memory_ids.contains(&id.0)
             })
-        {
-            return Err(OwnerSessionError::Record(
-                "Memory is outside the accepted import extraction".into(),
-            ));
-        }
-        Ok(())
+            .ok_or_else(|| {
+                OwnerSessionError::Record("Memory is outside the accepted import extraction".into())
+            })?;
+        // A grouped receipt can reference an existing Memory. Use its
+        // creation span only when it contains this Memory's first revision.
+        Ok(completion
+            .memory_versions
+            .filter(|(first, last)| (*first..=*last).contains(&record.memory_version))
+            .map(|(first, _)| first))
     }
 
     /// Report current active import Memories whose body lacks an accepted

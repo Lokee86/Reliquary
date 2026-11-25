@@ -270,6 +270,7 @@ pub(super) fn open_common_replaying(
         &maintenance,
         &grouped_body_ids,
     )?;
+    let mut dream_birth_versions = BTreeMap::new();
     let (identity_history, identity_separation_history, observations) =
         super::replay_prefix::validate_graph_prefix(
             container,
@@ -277,6 +278,7 @@ pub(super) fn open_common_replaying(
             identity_generation.map(|generation| (&perception, generation)),
             &pruned_bodies,
             observation_archive_cuts,
+            &mut dream_birth_versions,
         )?;
     memories.retain_pruned_body_fence(pruned_bodies);
     let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
@@ -373,7 +375,13 @@ pub(super) fn open_common_replaying(
     }
     let dreams =
         DreamEvidenceStore::open(container, dream_admissions).map_err(OwnerSessionError::Record)?;
-    super::dream_initial_replay::validate(container, &dreams, &memories, &graph)?;
+    super::dream_initial_replay::validate(
+        container,
+        &dreams,
+        &memories,
+        &graph,
+        &dream_birth_versions,
+    )?;
     let dream_pairs = super::dream_pairs::DreamPairs::open(container)?;
     let dream_read_index = super::dream_read_index::DreamReadIndex::build(
         &memories,

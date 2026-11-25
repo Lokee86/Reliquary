@@ -11,6 +11,7 @@ pub(super) fn validate_graph_prefix(
     identity_context: Option<(&PerceptionStore, [u8; 32])>,
     pruned_bodies: &BTreeSet<MemoryBodyId>,
     observation_archive_cuts: &BTreeMap<u64, (u64, u64)>,
+    birth_versions: &mut BTreeMap<MemoryId, u64>,
 ) -> Result<(IdentityHistory, SeparationHistory, ObservationStore), OwnerSessionError> {
     let mut observations = ObservationStore::default();
     let mut receipts = IdentityHistory::default();
@@ -20,7 +21,6 @@ pub(super) fn validate_graph_prefix(
     let mut observed_bodies = BTreeSet::new();
     let mut memories = std::collections::BTreeSet::new();
     let mut memory_bodies = std::collections::BTreeSet::new();
-    let mut birth_bodies = std::collections::BTreeMap::new();
     let mut profiles = std::collections::BTreeSet::new();
     let mut packed_vectors = std::collections::BTreeSet::new();
     let mut entities = std::collections::BTreeSet::new();
@@ -108,11 +108,11 @@ pub(super) fn validate_graph_prefix(
             if let Some(payload) = &frontier.begin {
                 let begin = crate::records::dream::dream_begin_codec::decode(payload)
                     .map_err(OwnerSessionError::Record)?;
-                let population = super::dream_population::birth_population(
-                    container,
-                    memory_store,
-                    begin.source_id,
-                )?;
+                let birth_version = *birth_versions
+                    .get(&begin.source_id)
+                    .ok_or(OwnerSessionError::StaleDreamCut)?;
+                let population =
+                    super::dream_population::birth_population_at(memory_store, birth_version)?;
                 if begin.population
                     != crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(
                         population,
@@ -205,7 +205,7 @@ pub(super) fn validate_graph_prefix(
                 memories.insert(record.id.0);
                 memory_bodies.insert(record.body_id.0);
                 if record.revision == 1 {
-                    birth_bodies.insert(record.id.0, record.body_id.0);
+                    birth_versions.insert(record.id, record.memory_version);
                 }
             } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
                 let completion = GroupedInsomniaCompletion::decode(payload)
@@ -213,14 +213,16 @@ pub(super) fn validate_graph_prefix(
                 if identity_context.is_some() {
                     observed_bodies.extend(completion.bodies.iter().map(|body| body.id));
                 }
+                // Memory replay validated the creations in contiguous version
+                // order. Every sibling shares the first version of this frame.
+                let mut cohort_birth = None;
                 for record in completion.memory_records {
                     let record = reliquary_memory_core::decode_grouped_creation(&record)?;
                     memory_head = record.memory_version;
                     memories.insert(record.id.0);
                     memory_bodies.insert(record.body_id.0);
-                    if record.revision == 1 {
-                        birth_bodies.insert(record.id.0, record.body_id.0);
-                    }
+                    let first = *cohort_birth.get_or_insert(record.memory_version);
+                    birth_versions.insert(record.id, first);
                 }
             }
             if let Some((_, version)) = reliquary_memory_core::history_change_in_frame(payload)? {

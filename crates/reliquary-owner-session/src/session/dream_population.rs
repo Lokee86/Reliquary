@@ -2,7 +2,7 @@
 use super::*;
 use std::collections::BTreeSet;
 // A cohort is one physical creation frame; siblings never count as older roots.
-// The canonical Memory histories supply lifecycle state at the cohort's birth,
+// The canonical Memory records supply lifecycle state at the cohort's birth,
 // even when earlier Memories were subsequently promoted, archived or tombstoned.
 pub(super) fn birth_population(
     container: &Container,
@@ -42,25 +42,25 @@ pub(super) fn birth_population(
                 .map(|r| r.memory_version)
                 .min()
                 .ok_or(OwnerSessionError::StaleDreamCut)?;
-            let mut population = BTreeSet::new();
-            for id in memories.memory_ids() {
-                let history = memories.history(id)?;
-                if history.tombstone.is_some_and(|t| t.memory_version < cut) {
-                    continue;
-                }
-                if let Some(revision) = history
-                    .revisions
-                    .iter()
-                    .rev()
-                    .find(|r| r.record.memory_version < cut)
-                {
-                    if !revision.record.archived {
-                        population.insert(id);
-                    }
-                }
-            }
-            return Ok(population);
+            return birth_population_at(memories, cut);
         }
     }
     Err(OwnerSessionError::StaleDreamCut)
+}
+
+pub(super) fn birth_population_at(
+    memories: &MemoryStore,
+    first_birth_version: u64,
+) -> Result<BTreeSet<MemoryId>, OwnerSessionError> {
+    let cut = first_birth_version
+        .checked_sub(1)
+        .ok_or(OwnerSessionError::StaleDreamCut)?;
+    Ok(memories
+        .memory_ids()
+        .filter(|&id| {
+            memories
+                .record_at_cut(id, cut)
+                .is_some_and(|record| !record.archived)
+        })
+        .collect())
 }

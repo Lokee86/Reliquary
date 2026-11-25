@@ -9,6 +9,7 @@ pub(super) fn initial_admission(
     source: DreamMemoryCut,
     pass_id: String,
     turn: u64,
+    birth_version: Option<u64>,
 ) -> Result<DreamBeginAdmission, OwnerSessionError> {
     if pass_id.is_empty() || pass_id.trim() != pass_id || pass_id.len() > 256 || turn == 0 {
         return Err(OwnerSessionError::StaleDreamCut);
@@ -37,8 +38,10 @@ pub(super) fn initial_admission(
     if source.revision == 0 || turn == 0 {
         return Err(OwnerSessionError::StaleDreamCut);
     }
-    let population =
-        super::dream_initial::birth_population(container, &common.memories, source.id)?;
+    let population = match birth_version {
+        Some(version) => super::dream_population::birth_population_at(&common.memories, version)?,
+        None => super::dream_population::birth_population(container, &common.memories, source.id)?,
+    };
     if population.len() > 4096 {
         return Err(OwnerSessionError::StaleDreamCut);
     }

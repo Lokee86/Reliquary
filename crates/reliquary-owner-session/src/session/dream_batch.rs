@@ -2,6 +2,7 @@
 use super::dream_batch_model::*;
 use super::*;
 use crate::records::dream_batch::{self, DreamBatchRecord, Lifecycle, Observation, Pair};
+use std::borrow::Cow;
 fn prepare(
     common: &CommonState,
     owner: [u8; 16],
@@ -48,7 +49,7 @@ fn prepare(
             return Err(OwnerSessionError::StaleDreamCut);
         }
         for id in [pair.source, pair.candidate] {
-            if common.memories.current(id)?.record.archived
+            if common.memories.revision_record(id, None)?.archived
                 && !(id == pair.candidate && pair.rejected && pair.kind.is_none())
             {
                 return Err(OwnerSessionError::StaleDreamCut);
@@ -59,7 +60,7 @@ fn prepare(
     let (graph_records, graph) = common
         .graph
         .prepare_dream_changes(&admission, &cut.changes)?;
-    let mut memories = common.memories.clone();
+    let mut memories = Cow::Borrowed(&common.memories);
     let mut lifecycles = Vec::new();
     for intent in &cut.lifecycles {
         let observed = cut
@@ -82,7 +83,7 @@ fn prepare(
             delta: vec![],
         };
         event.delta = memories.prepare_dream_lifecycle(&event)?;
-        memories.apply_dream_lifecycle(&event)?;
+        memories.to_mut().apply_dream_lifecycle(&event)?;
         lifecycles.push(Lifecycle {
             id: event.id.0,
             revision: event.previous_revision,

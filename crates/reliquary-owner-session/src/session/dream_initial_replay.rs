@@ -12,6 +12,7 @@ pub(super) fn validate(
     dreams: &DreamEvidenceStore,
     memories: &MemoryStore,
     graph_store: &GraphStore,
+    birth_versions: &BTreeMap<MemoryId, u64>,
 ) -> Result<(), OwnerSessionError> {
     let mut bodies = BTreeMap::new();
     let mut active = BTreeSet::new();
@@ -183,8 +184,11 @@ pub(super) fn validate(
             let admission = dreams
                 .admission(&record.pass_id)
                 .ok_or(OwnerSessionError::StaleDreamCut)?;
+            let birth_version = *birth_versions
+                .get(&record.source)
+                .ok_or(OwnerSessionError::StaleDreamCut)?;
             let physical_population =
-                super::dream_initial::birth_population(container, memories, record.source)?;
+                super::dream_population::birth_population_at(memories, birth_version)?;
             // A destination replay can preserve a verified source Dream's
             // explicit population even after introducing independent left-side
             // births. Compact populations remain exact physical-prefix proofs.

@@ -27,7 +27,7 @@ impl RelWriter {
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         self.ensure_write_ready()?;
-        self.begin_initial_dream_frontier_after_fence(pass, source, candidates, turn)
+        self.begin_initial_dream_frontier_after_fence(pass, source, candidates, turn, None)
     }
 
     pub fn begin_native_import_dream_frontier(
@@ -38,7 +38,7 @@ impl RelWriter {
         candidates: Vec<DreamMemoryCut>,
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
-        self.validate_native_import_memory(import_id, source.id)?;
+        let birth_version = self.native_import_memory_birth_version(import_id, source.id)?;
         self.verify_native_import_dream_cohort(import_id)?;
         if turn != self.session.archive.rel_turn_count()
             || pass != Self::native_import_dream_identity(import_id, source.id).0
@@ -56,7 +56,7 @@ impl RelWriter {
         {
             return Err(OwnerSessionError::StaleDreamCut);
         }
-        self.begin_initial_dream_frontier_after_fence(pass, source, candidates, turn)
+        self.begin_initial_dream_frontier_after_fence(pass, source, candidates, turn, birth_version)
     }
 
     fn begin_initial_dream_frontier_after_fence(
@@ -65,6 +65,7 @@ impl RelWriter {
         source: DreamMemoryCut,
         candidates: Vec<DreamMemoryCut>,
         turn: u64,
+        birth_version: Option<u64>,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         if self.container.writer_lease_proof().is_none()
             || self.container.writer_lease_proof() != self.session.writer_lease_proof
@@ -80,6 +81,7 @@ impl RelWriter {
             source,
             pass,
             turn,
+            birth_version,
         )?;
         let result = self.session.common.dreams.append_frontier(
             &mut self.container,
@@ -124,6 +126,7 @@ impl PhyWriter {
             source,
             pass,
             turn,
+            None,
         )?;
         let result = self.common.dreams.append_frontier(
             &mut self.container,
