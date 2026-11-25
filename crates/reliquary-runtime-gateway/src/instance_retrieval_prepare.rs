@@ -154,8 +154,8 @@ impl Instance {
         };
         validate_turn_binding(self, turn, owner, turn_id)?;
         let include_vectors = query_vector.is_some();
-        let (snapshot, observation_cut, mut observation_candidates) =
-            self.with_reliquary(owner, |rel| -> Result<_, GatewayError> {
+        let (snapshot, removal_cut, observation_cut, mut observation_candidates) = self
+            .with_reliquary(owner, |rel| -> Result<_, GatewayError> {
                 let candidates = if matches!(action, RetrievalAction::Traverse(_)) {
                     Default::default()
                 } else {
@@ -167,6 +167,7 @@ impl Instance {
                 };
                 Ok((
                     capture_memory_snapshot(rel, profile, include_vectors)?,
+                    rel.archive_source_removal_version(),
                     ObservationReadCut::capture(rel),
                     candidates,
                 ))
@@ -211,6 +212,7 @@ impl Instance {
             )?;
             let current_cut = ObservationReadCut::capture(rel);
             if snapshot != current
+                || rel.archive_source_removal_version() != removal_cut
                 || (current_cut.publication.max(observation_cut.publication) > 0
                     && observation_cut != current_cut)
             {
@@ -341,6 +343,7 @@ impl Instance {
                 },
                 accepted_turn: snapshot.rel_turn,
                 body_bindings,
+                removal_cut,
             }),
         })
     }

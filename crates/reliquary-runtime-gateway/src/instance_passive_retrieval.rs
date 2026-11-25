@@ -186,10 +186,11 @@ impl Instance {
         }
         let profile = embedding.as_ref().map(|(id, _)| *id);
         let vector = embedding.as_ref().map(|(_, row)| row.as_slice());
-        let (mut snapshot, observation_cut, mut observation_candidates) =
-            self.with_reliquary(owner, |rel| -> Result<_, GatewayError> {
+        let (mut snapshot, removal_cut, observation_cut, mut observation_candidates) = self
+            .with_reliquary(owner, |rel| -> Result<_, GatewayError> {
                 Ok((
                     capture_memory_snapshot(rel, profile, true)?,
+                    rel.archive_source_removal_version(),
                     ObservationReadCut::capture(rel),
                     observation_retrieval_candidates(rel, profile, &BTreeSet::new())?,
                 ))
@@ -301,12 +302,13 @@ impl Instance {
             }
             ranked.selected.len() > limit
         };
-        if !observations.is_empty()
-            && !self.with_reliquary(owner, |rel| {
-                ObservationReadCut::capture(rel) == observation_cut
-                    && observations_are_current(rel, &observations)
-            })?
-        {
+        let current = self.with_reliquary(owner, |rel| {
+            rel.archive_source_removal_version() == removal_cut
+                && (observations.is_empty()
+                    || (ObservationReadCut::capture(rel) == observation_cut
+                        && observations_are_current(rel, &observations)))
+        })?;
+        if !current {
             return Err(GatewayError::StaleRetrieval);
         }
         self.ensure_credential_active()?;

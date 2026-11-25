@@ -160,7 +160,9 @@ impl Instance {
     ) -> Result<(), GatewayError> {
         validate_prepared(self, turn, prepared)?;
         let snapshot = self.with_reliquary(prepared.owner, |rel| {
-            if !observations_are_current(rel, &prepared.preview.observations) {
+            if rel.archive_source_removal_version() != prepared.removal_cut
+                || !observations_are_current(rel, &prepared.preview.observations)
+            {
                 return Err(GatewayError::StaleRetrieval);
             }
             capture_memory_snapshot(rel, prepared.profile, false).map_err(|error| match error {

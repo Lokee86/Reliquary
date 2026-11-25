@@ -153,6 +153,9 @@ impl Instance {
                 let ObservationSource::Observation(id) = claim.citation.source else {
                     return Err(GatewayError::InvalidHandoffReceipt);
                 };
+                if !rel.observation_revision_source_eligible(id, claim.citation.revision) {
+                    return Err(GatewayError::StaleRetrieval);
+                }
                 let exact = rel.observation_revision(id, claim.citation.revision)
                     .is_some_and(|row| ObservationClaim::from(row.revision) == *claim);
                 if !exact {
@@ -160,6 +163,9 @@ impl Instance {
                 }
             }
             for (memory, id) in manifest.memories.iter().zip(&ids) {
+                if !rel.memory_revision_source_eligible(*id, memory.revision) {
+                    return Err(GatewayError::StaleRetrieval);
+                }
                 let exact = rel.memory_history(*id)?.is_some_and(|history| {
                     history.revisions.iter().any(|revision| {
                         revision.record.revision == memory.revision

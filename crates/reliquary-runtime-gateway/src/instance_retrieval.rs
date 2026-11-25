@@ -43,6 +43,7 @@ pub struct PreparedMemoryDelivery {
     pub(super) accepted_turn: u64,
     pub(super) profile: Option<CompatibilityProfileId>,
     pub(super) preview: RetrievalPreview,
+    pub(super) removal_cut: u64,
     pub(super) body_bindings: Vec<(
         reliquary_owner_session::model::MemoryId,
         u64,
