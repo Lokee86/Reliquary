@@ -18,23 +18,25 @@ The [standards remediation specification](../engineering-standards-remediation-s
 
 Manual community recomputation follows the [Leiden specification](leiden-community-recomputation-spec-2026-11-18.md) and [execution plan](leiden-community-recomputation-plan-2026-11-18.md). The operator runs preview and apply through the existing REL management boundary.
 
-Core discovers Entity pairs across authorized RELs from matching names, aliases and structured identifiers in Memories that mention the endpoints. It records and revisits their judgments, and callers can list pairs by peer or request a specific comparison. The 28-day and Ellis copies produced zero candidates with these signals. Retrieval of pairs that share only a description, retained-corpus calibration and Perception Observations, including Relationship Observations, remain future work. The cost of rebuilding discovery indexes under sustained writes on a year-scale REL has yet to be measured. [Acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md) · [Comparison specification](cross-rel-entity-identity-spec-2026-11-23.md)
+Core discovers Entity pairs across authorized RELs from matching names, aliases and structured identifiers in Memories that mention the endpoints. It records and revisits their judgments, and callers can list pairs by peer or request a specific comparison. The 28-day and Ellis copies produced zero candidates with these signals. Retrieval of pairs that share only a description and retained-corpus calibration remain future work. The cost of rebuilding discovery indexes under sustained writes on a year-scale REL has yet to be measured. [Acceptance results](../acceptance/cross-rel-entity-identity-2026-11-23.md) · [Comparison specification](cross-rel-entity-identity-spec-2026-11-23.md)
 
 Core supports explicit, reversible operator confirmation for a selected cross-REL pair. Enabling the action in Hermes requires a trusted operator interaction and its own host verification. [Public API](../public-product-api.md#confirm-or-undo-separation)
 
 ## Shared Memory Web audit
 
-Ego and Perception will use the same audit code for bounded batches, coverage of selected Memories, optional authorized REL search and source references. One structured discovery call returns two lists under separate extraction contracts. Ego extracts candidate subjects from Fresh evidence. Perception extracts candidate propositions, including Relationships between Entities.
+Ego and Perception use the same audit code for bounded batches, coverage of selected Memories, optional authorized REL search and source references. One structured discovery call returns two lists under separate extraction contracts. Ego extracts candidate subjects from Fresh evidence. Perception extracts candidate propositions, including Relationships between Entities.
 
 The first audit publishes from a bounded working set. A recurring audit runs after each 25 newly settled Memories and examines the changed sources and affected graph endpoints, with local context as needed. Each discovery request holds up to 125 distinct Memories. Each run adds up to 15 Stale and five Dormant inputs for Perception, with independent rotation. The samples also route to existing Observation receptors. Ego keeps its Fresh-only evidence boundary. [Historical Ego audit plan](https://github.com/Lokee86/Reliquary/blob/2b5bd0eabfbac0a85f899d7d730220b5e8e93efa/docs/ego-service-crate-extraction-spec-2026-10-28.md#L55-L65) · [Shared audit and Observation specification](memory-web-audit-spec-2026-11-24.md) · [Implementation plan](memory-web-audit-plan-2026-11-24.md)
 
 ## Observation creation
 
-Perception will synthesize the proposed claim and its citations, generate draft receptors, back-check the REL, verify the exact draft in one Jev request, and finalize through the owner writer. The live verification contract passed the publication decision on 24 fresh authored drafts. [Creation specification and implementation plan](observation-creation-spec-2026-11-24.md)
+Perception synthesizes the proposed claim and its citations, generates draft receptors, back-checks the REL, verifies the exact draft in one Jev request, and finalizes through the owner writer. The live verification contract passed the publication decision on 24 fresh authored drafts. [Creation specification and implementation plan](observation-creation-spec-2026-11-24.md)
 
 ## Observation reconsideration
 
-The complete same-REL Observation lifecycle ships as one release. After an Observation is published, Perception uses one batched Jev request to decide whether new evidence warrants review. Review and initial creation share the tested Jev Verify contract for exact drafts. The plan defines pending retrieval and how upstream revisions affect claims that cite them. The contract passed a fresh live rerun on both authored sets, spanning 30 Observations and 150 hits. [Reconsideration specification](observation-reconsideration-spec-2026-11-24.md) · [Integrated same-REL implementation plan](perception-implementation-plan-2026-11-24.md)
+Core `v0.1.0` shipped the complete same-REL Observation lifecycle. After an Observation is published, Perception uses one batched Jev request to decide whether new evidence warrants review. Review and initial creation share the tested Jev Verify contract for exact drafts. Pending standing governs recall and how upstream revisions affect claims that cite them. The contribution contract passed a fresh live rerun on both authored sets, spanning 30 Observations and 150 hits. [Reconsideration specification](observation-reconsideration-spec-2026-11-24.md) · [Core acceptance](../acceptance/perception-same-rel-2026-11-24.md)
+
+The next step is hosting the worker and returning typed Observations in Hermes and Mercury recall on a shared compatible Core revision. [Host integration specification](perception-host-integration-spec-2026-11-24.md)
 
 ## Implementation sequence and acceptance
 
