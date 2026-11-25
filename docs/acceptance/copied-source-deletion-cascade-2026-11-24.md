@@ -24,11 +24,13 @@ Both signed native variants passed on Windows. The committed variant used Hermes
 
 The native Windows Gateway WebSocket fixture passed at Mercury `8363be6` with the pinned Core. On a disposable profile it committed a rewind with capture disabled, restarted and applied the retained notice, removed the old Archive hit, and accepted a new independently recalled Memory. Archiving preserved Observation recall. The fixture then deleted the archived chat while capture was paused, restarted, and verified that its supporting Memory and Observation were withheld while an unrelated Memory was returned.
 
-Mercury `6308668` adds recovery of legacy archive-only adapter fences. It verifies an exact live receipt before releasing the fence and records a different durable fence for current delete notices. The final Gateway and focused fixture built successfully. Windows Application Control blocked both attempts to launch the updated Rust test executable, and the standalone Gateway fixture could not start the newly built executable. Runtime verification of this last upgrade case remains pending.
+Mercury `6308668` adds recovery of legacy archive-only adapter fences. It verifies an exact live receipt before releasing the fence and records a different durable fence for current delete notices. The exact final revision passed the single native WebSocket fixture in 72.24 seconds on a GitHub-hosted Windows runner. Local Windows Application Control had blocked launch of the updated executable. [Mercury archive-fence CI job](https://github.com/Lokee86/hermes-rust-rewrite/actions/runs/45554156993/job/139002083458)
 
-## Verification limits
+## Core GitHub CI follow-up
 
-The separate external-consumer workspace failed during dependency compilation because of Windows Application Control and Rust dependency loading errors. The new scripted Application fixture for a same-wording Observation successor compiled, then Windows Application Control blocked launch. Checkpoint, owner provenance, mounted retrieval, and the host runs above executed independently.
+The scripted Application fixture verified a same-wording successor using independent evidence after the original source was removed. The GitHub-hosted Windows job executed exactly one test. [Core Observation re-review CI job](https://github.com/Lokee86/Reliquary/actions/runs/45554127709/job/139001989705)
+
+The external-consumer fixture exposed a reclamation scanner gap on its first hosted run. Core could reopen native-import historical Freshness snapshots, but reclamation refused their `RELHFRS1` frame. The fix retains the replay-validated snapshot unchanged. The focused rerun executed exactly one test and verified copied-source rewind and terminal scope across reclamation, including receipt replay, continued capture and a surviving independent copy. [Core external-consumer CI job](https://github.com/Lokee86/Reliquary/actions/runs/45556874577/job/139010936193)
 
 ## Related docs
 
