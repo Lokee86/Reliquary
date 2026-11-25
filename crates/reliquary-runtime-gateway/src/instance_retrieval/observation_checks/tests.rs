@@ -490,16 +490,16 @@ fn observation_standing_fences_new_delivery_and_preserves_confirmed_history() {
 fn committed_source_removal_fences_prepared_and_retained_returns() {
     let fixture = Fixture::new();
     let support = source(&fixture);
-    let (first, upstream) = create_observation(&fixture, support, 18, "A handoff was approved.");
-    let (second, _) =
-        create_observation(&fixture, upstream, 19, "The approved handoff can proceed.");
+    let (first, upstream) =
+        create_observation(&fixture, support, 18, "Zephyr handoff was approved.");
+    let (second, _) = create_observation(&fixture, upstream, 19, "Zephyr can proceed.");
     let alice = fixture.alice();
-    let prepare = |turn: &MemoryRetrievalTurn| {
+    let prepare = |turn: &MemoryRetrievalTurn, query: &str| {
         alice
             .prepare_agentic_memory_delivery(
                 turn,
                 &route(),
-                RetrievalAction::Query("needle approved handoff".into()),
+                RetrievalAction::Query(query.into()),
                 None,
                 None,
             )
@@ -510,7 +510,7 @@ fn committed_source_removal_fences_prepared_and_retained_returns() {
     let turn = alice
         .begin_memory_retrieval_turn(fixture.owner, "before-source-removal")
         .unwrap();
-    let token = prepare(&turn);
+    let token = prepare(&turn, "needle zephyr");
     let preview = alice
         .preview_agentic_memory_delivery(&turn, &token)
         .unwrap();
@@ -522,7 +522,14 @@ fn committed_source_removal_fences_prepared_and_retained_returns() {
     let confirmed = alice
         .begin_memory_retrieval_turn(fixture.owner, "confirmed-copy")
         .unwrap();
-    let confirmed_token = prepare(&confirmed);
+    let confirmed_token = prepare(&confirmed, "zephyr");
+    assert!(
+        alice
+            .preview_agentic_memory_delivery(&confirmed, &confirmed_token)
+            .unwrap()
+            .memories
+            .is_empty()
+    );
     alice
         .deliver_agentic_memory_confirmed(&confirmed, &confirmed_token, &router)
         .unwrap();
@@ -545,20 +552,18 @@ fn committed_source_removal_fences_prepared_and_retained_returns() {
     let recovery = alice
         .begin_memory_retrieval_turn(fixture.owner, "confirmed-copy")
         .unwrap();
-    // Accounting may replay an existing receipt. It cannot return claim bodies.
-    if alice
-        .recover_agentic_memory_delivery(&recovery, confirmed_token.stable_id(), &router)
-        .is_ok()
-    {
-        assert!(
-            recovery
-                .state
-                .lock()
-                .unwrap()
-                .provided_observations
-                .is_empty()
-        );
-    }
+    assert!(matches!(
+        alice.recover_agentic_memory_delivery(&recovery, confirmed_token.stable_id(), &router),
+        Err(GatewayError::StaleRetrieval)
+    ));
+    assert!(
+        recovery
+            .state
+            .lock()
+            .unwrap()
+            .provided_observations
+            .is_empty()
+    );
     assert_eq!(host.calls.load(Ordering::Relaxed), 1);
     let search = alice
         .search_rel_memories(
