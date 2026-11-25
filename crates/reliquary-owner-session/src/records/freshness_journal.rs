@@ -1,5 +1,7 @@
 use crate::MemoryId;
 
+use super::DreamBeginAdmission;
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -54,7 +56,106 @@ pub struct DreamFreshnessJournal {
     accepted_graph_cuts: BTreeMap<String, (u64, AcceptedGraphCutProof)>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(super) struct JournalCheckpoint<'a> {
+    owner_uuid: Option<[u8; 16]>,
+    pending: BTreeMap<String, PendingCheckpoint<'a>>,
+    settled: Cow<'a, BTreeSet<String>>,
+    pending_initializations: Cow<'a, BTreeMap<MemoryId, (String, u64, bool)>>,
+    publication_births: Cow<'a, BTreeSet<MemoryId>>,
+    accepted_graph_cuts: Cow<'a, BTreeMap<String, (u64, AcceptedGraphCutProof)>>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct PendingCheckpoint<'a> {
+    source_id: MemoryId,
+    first_revision: u64,
+    turn: u64,
+    accepted_settlement_turn: Option<u64>,
+    preexisting_ids: Option<Cow<'a, BTreeSet<MemoryId>>>,
+    graph_version_before: u64,
+    roots: Cow<'a, BTreeSet<MemoryId>>,
+}
+
+impl JournalCheckpoint<'_> {
+    pub(super) fn restore(
+        self,
+        admissions: &BTreeMap<String, DreamBeginAdmission>,
+    ) -> Result<DreamFreshnessJournal, String> {
+        let pending = self
+            .pending
+            .into_iter()
+            .map(|(pass_id, pass)| {
+                let preexisting_ids = match pass.preexisting_ids {
+                    Some(ids) => ids.into_owned(),
+                    None => admissions
+                        .get(&pass_id)
+                        .ok_or("Dream checkpoint pending pass lacks population admission")?
+                        .preexisting_ids
+                        .clone(),
+                };
+                Ok((
+                    pass_id.clone(),
+                    InitialDreamPass {
+                        pass_id,
+                        source_id: pass.source_id,
+                        first_revision: pass.first_revision,
+                        turn: pass.turn,
+                        accepted_settlement_turn: pass.accepted_settlement_turn,
+                        preexisting_ids,
+                        graph_version_before: pass.graph_version_before,
+                        roots: pass.roots.into_owned(),
+                    },
+                ))
+            })
+            .collect::<Result<_, String>>()?;
+        Ok(DreamFreshnessJournal {
+            owner_uuid: self.owner_uuid,
+            pending,
+            settled: self.settled.into_owned(),
+            pending_initializations: self.pending_initializations.into_owned(),
+            publication_births: self.publication_births.into_owned(),
+            accepted_graph_cuts: self.accepted_graph_cuts.into_owned(),
+        })
+    }
+}
+
 impl DreamFreshnessJournal {
+    pub(super) fn checkpoint<'a>(
+        &'a self,
+        admissions: &BTreeMap<String, DreamBeginAdmission>,
+    ) -> JournalCheckpoint<'a> {
+        JournalCheckpoint {
+            owner_uuid: self.owner_uuid,
+            pending: self
+                .pending
+                .iter()
+                .map(|(pass_id, pass)| {
+                    let matches_admitted_population = admissions
+                        .get(pass_id)
+                        .is_some_and(|admission| admission.preexisting_ids == pass.preexisting_ids);
+                    (
+                        pass_id.clone(),
+                        PendingCheckpoint {
+                            source_id: pass.source_id,
+                            first_revision: pass.first_revision,
+                            turn: pass.turn,
+                            accepted_settlement_turn: pass.accepted_settlement_turn,
+                            preexisting_ids: (!matches_admitted_population)
+                                .then_some(Cow::Borrowed(&pass.preexisting_ids)),
+                            graph_version_before: pass.graph_version_before,
+                            roots: Cow::Borrowed(&pass.roots),
+                        },
+                    )
+                })
+                .collect(),
+            settled: Cow::Borrowed(&self.settled),
+            pending_initializations: Cow::Borrowed(&self.pending_initializations),
+            publication_births: Cow::Borrowed(&self.publication_births),
+            accepted_graph_cuts: Cow::Borrowed(&self.accepted_graph_cuts),
+        }
+    }
+
     /// Clock-neutral accepted resume state for the test-only equivalence oracle.
     #[cfg(feature = "oracle-support")]
     pub fn historical_oracle_value(&self) -> serde_json::Value {

@@ -86,8 +86,8 @@ impl RelSession {
         leased: bool,
     ) -> Result<Self, OwnerSessionError> {
         require_kind(container, FileKind::Reliquary)?;
-        let (archive, observation_archive_cuts) =
-            super::observations::open_archive(container, leased)?;
+        let (archive, archive_cuts) = super::observations::open_archive(container, leased)?;
+        let observation_archive_cuts = archive_cuts.observations;
         let echo = if leased {
             reliquary_archive::EchoStore::open_leased(container)
         } else {
@@ -123,7 +123,12 @@ impl RelSession {
                 start_node_id: episode.start_node_id,
             })
             .collect::<Vec<_>>();
-        let replay = validate_rel_replay_admission(container, &archive, leased)?;
+        let replay = validate_rel_replay_admission(
+            container,
+            &archive,
+            archive_cuts.grouped_completions,
+            leased,
+        )?;
         let grouped_completions = replay.completions;
         let local_owner_id: String = container
             .owner_id()

@@ -20,13 +20,6 @@ pub(crate) struct FrontierRecord {
     pub memory_version: u64,
 }
 impl FrontierRecord {
-    pub fn view(&self) -> InitialDreamFrontier {
-        InitialDreamFrontier {
-            source: self.source.cut(),
-            candidates: self.candidates.iter().map(Observation::cut).collect(),
-            graph_version: self.graph_version,
-        }
-    }
     pub fn encode(&self) -> Result<Vec<u8>, String> {
         self.validate()?;
         let mut out = b"RELDRC01".to_vec();

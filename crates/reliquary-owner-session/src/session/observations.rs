@@ -17,25 +17,47 @@ fn is_observation(prefix: &[u8]) -> bool {
     }
 }
 
+#[derive(Default)]
+pub(super) struct ArchiveReplayCuts {
+    pub observations: BTreeMap<u64, (u64, u64)>,
+    pub grouped_completions: BTreeMap<u64, (u64, u64)>,
+}
+
 pub(super) fn open_archive(
     container: &Container,
     leased: bool,
-) -> Result<(Archive, BTreeMap<u64, (u64, u64)>), OwnerSessionError> {
-    let mut cuts = BTreeMap::new();
+) -> Result<(Archive, ArchiveReplayCuts), OwnerSessionError> {
+    let mut cuts = ArchiveReplayCuts::default();
+    // Find the grouped carrier positions without reading their bodies. The
+    // Archive replay can supply each preceding cut as it advances over them.
+    let mut grouped =
+        container.matching_physical_cursor(|prefix| prefix.starts_with(b"RELINSC"))?;
+    while let Some(frame) = grouped.next_frame()? {
+        cuts.grouped_completions
+            .insert(frame.object().offset, (0, 0));
+    }
+    drop(grouped);
+    let mut grouped = cuts.grouped_completions.iter_mut().peekable();
     let archive = Archive::open_observing_prefixes(
         container,
         leased,
         |prefix| is_observation(prefix) || reliquary_archive::archive_replay_frame(prefix),
-        |payload, archive, turn| {
+        |object, payload, archive, turn| {
+            while let Some((_, cut)) = grouped.next_if(|(offset, _)| **offset < object.offset) {
+                *cut = (archive, turn);
+            }
             if let Ok(Some(frame)) = reliquary_container::decode_publication(payload)
                 && frame.body.starts_with(PREFIX)
             {
-                cuts.insert(frame.version, (archive, turn));
+                cuts.observations.insert(frame.version, (archive, turn));
             }
         },
     )?;
+    for (_, cut) in grouped {
+        *cut = (archive.archive_version(), archive.rel_turn_count());
+    }
     // A naked Observation marker has no clock and must never be ignored.
-    if cuts.is_empty() {
+    if cuts.observations.is_empty() {
         let mut frames = container.matching_physical_cursor(|prefix| prefix.starts_with(PREFIX))?;
         if frames.next_frame()?.is_some() {
             return Err(invalid("unclocked Observation carrier"));

@@ -18,6 +18,9 @@ pub mod freshness_journal;
 const JOURNAL_MAGIC: &[u8; 8] = b"CVDREAM1";
 const BEGIN_MAGIC: &[u8; 8] = b"CVDREAM2";
 
+#[path = "dream_checkpoint.rs"]
+mod checkpoint;
+
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DreamBeginAdmission {
     pub owner_uuid: [u8; 16],
@@ -32,7 +35,7 @@ pub struct DreamBeginAdmission {
     pub memory_cut: u64,
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone)]
 pub struct DreamEvidenceStore {
     owner_uuid: [u8; 16],
     admissions: BTreeMap<String, DreamBeginAdmission>,
@@ -41,7 +44,7 @@ pub struct DreamEvidenceStore {
     initial_settlements: BTreeMap<String, InitialDreamSettlement>,
     settled_sources: Vec<MemoryId>,
     settlement_positions: BTreeMap<MemoryId, u64>,
-    frontiers: BTreeMap<String, super::dream_frontier::FrontierRecord>,
+    frontiers: BTreeMap<String, frontier::StoredFrontier>,
 }
 
 impl DreamEvidenceStore {

@@ -68,5 +68,8 @@ uuid = { version = "1", features = ["v4"] }
 [dev-dependencies]
 reliquary-container = { path = "crates/reliquary-container" }
 
+[profile.dev.package.sha2]
+opt-level = 3
+
 [patch.crates-io]
 quinn-proto = { path = "vendor/quinn-proto" }

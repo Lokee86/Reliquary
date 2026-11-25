@@ -138,7 +138,7 @@ impl Archive {
     }
 
     fn open_with_payloads(container: &Container, leased: bool) -> Result<Self, ArchiveError> {
-        Self::open_observing_prefixes(container, leased, archive_replay_frame, |_, _, _| {})
+        Self::open_observing_prefixes(container, leased, archive_replay_frame, |_, _, _, _| {})
     }
 
     /// Observe Archive version and activity at selected physical frames.
@@ -147,7 +147,7 @@ impl Archive {
         container: &Container,
         leased: bool,
         select: fn(&[u8]) -> bool,
-        mut observe: impl FnMut(&[u8], u64, u64),
+        mut observe: impl FnMut(ObjectRef, &[u8], u64, u64),
     ) -> Result<Self, ArchiveError> {
         let mut archive = Self::empty();
         if leased {
@@ -165,6 +165,7 @@ impl Archive {
             let mut frames = container.scan_clocked_matching_frames(select)?;
             while let Some(frame) = frames.next_frame()? {
                 observe(
+                    frame.object,
                     frame.payload,
                     archive.archive_version,
                     archive.rel_turn_count,
@@ -180,6 +181,7 @@ impl Archive {
             let mut frames = container.scan_matching_frames(select)?;
             while let Some(frame) = frames.next_frame()? {
                 observe(
+                    frame.object,
                     frame.payload,
                     archive.archive_version,
                     archive.rel_turn_count,

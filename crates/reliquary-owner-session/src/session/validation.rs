@@ -63,31 +63,14 @@ pub(super) struct RelReplayAdmission {
 pub(super) fn validate_rel_replay_admission(
     container: &Container,
     archive: &Archive,
+    grouped_archive_cuts: BTreeMap<u64, (u64, u64)>,
     leased: bool,
 ) -> Result<RelReplayAdmission, OwnerSessionError> {
     let mut admission = RelReplayAdmission::default();
     let mut imports = ImportEpochStore::prefix(container.owner_id());
-    let mut visible_episodes = std::collections::BTreeSet::new();
-    let mut visible_turns = std::collections::BTreeSet::new();
     let mut visible_memories = std::collections::BTreeSet::new();
-    let mut activity = 0u64;
-    let mut grouped = container.matching_physical_cursor(|prefix| {
-        let body = match reliquary_container::decode_publication(prefix) {
-            Ok(Some(publication)) => publication.body,
-            Ok(None) => prefix,
-            Err(_) => return true,
-        };
-        body.starts_with(b"RELINSC")
-    })?;
-    let needs_archive_activity = grouped.next_frame()?.is_some();
-    let select: fn(&[u8]) -> bool = if needs_archive_activity {
-        crate::records::frame_selection::without_packed_vectors
-    } else {
-        // Archive replay already validates source identity and content. With
-        // no grouped completion there is no owner activity cut to compare.
-        crate::records::frame_selection::without_archive_or_packed
-    };
-    let mut frames = container.scan_matching_frames(select)?;
+    let mut frames = container
+        .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
     while let Some(frame) = frames.next_frame()? {
         if crate::records::import::is_import_epoch_marker(frame.payload) {
             imports
@@ -140,23 +123,6 @@ pub(super) fn validate_rel_replay_admission(
         let payload = envelope
             .filter(|envelope| envelope.body.starts_with(b"RELMCRT1"))
             .map_or(frame.payload, |envelope| envelope.body);
-        match reliquary_archive::source_publication(frame.payload)? {
-            Some(reliquary_archive::SourcePublication::Episode(id)) => {
-                visible_episodes.insert(id);
-            }
-            Some(reliquary_archive::SourcePublication::Turn {
-                conversation_id,
-                node_id,
-                counts_activity,
-            }) => {
-                if visible_turns.insert((conversation_id, node_id)) && counts_activity {
-                    activity = activity.checked_add(1).ok_or_else(|| {
-                        OwnerSessionError::Record("Archive activity exhausted".into())
-                    })?;
-                }
-            }
-            None => {}
-        }
         if payload.starts_with(b"RELMCRT1") {
             let creation = reliquary_memory_core::decode_grouped_creation(payload)?;
             visible_memories.insert(creation.id.0);
@@ -168,7 +134,15 @@ pub(super) fn validate_rel_replay_admission(
         let completion =
             GroupedInsomniaCompletion::decode(payload).map_err(OwnerSessionError::Record)?;
         let episode_id = reliquary_archive::EpisodeId(completion.episode_id);
-        if archive.episode(episode_id).is_none() || !visible_episodes.contains(&episode_id) {
+        let &(archive_version, activity) = grouped_archive_cuts
+            .get(&frame.object.offset)
+            .ok_or_else(|| {
+                OwnerSessionError::Record("missing grouped completion Archive cut".into())
+            })?;
+        if archive
+            .episode_archive_version(episode_id)
+            .is_none_or(|version| version > archive_version)
+        {
             return Err(OwnerSessionError::Record(
                 "grouped completion Episode is not admitted by this Archive".into(),
             ));

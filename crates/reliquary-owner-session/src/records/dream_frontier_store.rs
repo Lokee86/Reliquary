@@ -1,5 +1,27 @@
 use super::*;
 use crate::records::dream_frontier::{FrontierRecord, InitialDreamFrontier};
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub(super) struct StoredFrontier {
+    source: crate::records::dream_batch::Observation,
+    candidates: Vec<crate::records::dream_batch::Observation>,
+    graph_version: u64,
+    memory_version: u64,
+    has_begin: bool,
+}
+
+impl From<FrontierRecord> for StoredFrontier {
+    fn from(record: FrontierRecord) -> Self {
+        Self {
+            source: record.source,
+            candidates: record.candidates,
+            graph_version: record.graph_version,
+            memory_version: record.memory_version,
+            has_begin: record.begin.is_some(),
+        }
+    }
+}
+
 impl DreamEvidenceStore {
     pub(super) fn apply_frontier(&mut self, record: FrontierRecord) -> Result<(), String> {
         let begin = self
@@ -7,7 +29,7 @@ impl DreamEvidenceStore {
             .get(&record.pass_id)
             .ok_or("frontier lacks Begin")?;
         self.validate_frontier(&record, begin, &self.journal)?;
-        self.frontiers.insert(record.pass_id.clone(), record);
+        self.frontiers.insert(record.pass_id.clone(), record.into());
         Ok(())
     }
 
@@ -28,11 +50,17 @@ impl DreamEvidenceStore {
     }
 
     pub fn initial_frontier(&self, pass: &str) -> Option<InitialDreamFrontier> {
-        self.frontiers.get(pass).map(FrontierRecord::view)
+        self.frontiers
+            .get(pass)
+            .map(|frontier| InitialDreamFrontier {
+                source: frontier.source.cut(),
+                candidates: frontier.candidates.iter().map(|o| o.cut()).collect(),
+                graph_version: frontier.graph_version,
+            })
     }
     pub(crate) fn frontier_has_bound_begin(&self, pass: &str) -> bool {
         self.frontiers.get(pass).is_some_and(|frontier| {
-            frontier.begin.is_some()
+            frontier.has_begin
                 && self.admissions.get(pass).is_some_and(|admission| {
                     frontier.memory_version == admission.memory_cut
                         && frontier.graph_version == admission.graph_version_before
@@ -113,7 +141,7 @@ impl DreamEvidenceStore {
                 .insert(admission.pass_id.clone(), admission.clone());
             self.begins.insert(admission.pass_id.clone(), begin);
         }
-        self.frontiers.insert(record.pass_id.clone(), record);
+        self.frontiers.insert(record.pass_id.clone(), record.into());
         Ok(admission)
     }
 }
