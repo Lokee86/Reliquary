@@ -78,6 +78,7 @@ impl RelWriter {
             container,
             session,
             checkpoint: None,
+            verified_dream_import: None,
         })
     }
 
@@ -100,6 +101,7 @@ impl RelWriter {
             container,
             session,
             checkpoint: None,
+            verified_dream_import: None,
         })
     }
 
@@ -118,6 +120,7 @@ impl RelWriter {
             container,
             session,
             checkpoint,
+            verified_dream_import: None,
         })
     }
 

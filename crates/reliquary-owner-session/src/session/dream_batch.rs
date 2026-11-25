@@ -6,7 +6,7 @@ fn prepare(
     common: &CommonState,
     owner: [u8; 16],
     cut: &DreamBatchCut,
-) -> Result<Option<DreamBatchRecord>, OwnerSessionError> {
+) -> Result<Option<(DreamBatchRecord, Vec<u8>)>, OwnerSessionError> {
     if cut.owner != owner {
         return Err(OwnerSessionError::StaleDreamCut);
     }
@@ -56,16 +56,9 @@ fn prepare(
         }
     }
     let admission = GraphAdmission::for_changes(owner, cut.observed.iter().map(|o| o.id.0), []);
-    let graph_records = common
+    let (graph_records, graph) = common
         .graph
         .prepare_dream_changes(&admission, &cut.changes)?;
-    let mut graph = common.graph.clone();
-    for bytes in &graph_records {
-        graph.apply_dream_relation(
-            &admission,
-            reliquary_graph::dream_relation_in_frame(bytes, owner)?,
-        )?;
-    }
     let mut memories = common.memories.clone();
     let mut lifecycles = Vec::new();
     for intent in &cut.lifecycles {
@@ -131,8 +124,8 @@ fn prepare(
         lifecycles,
         updated_at_ns: cut.updated_at_ns,
     };
-    record.encode().map_err(OwnerSessionError::Record)?;
-    Ok(Some(record))
+    let bytes = record.encode().map_err(OwnerSessionError::Record)?;
+    Ok(Some((record, bytes)))
 }
 fn apply(common: &mut CommonState, record: DreamBatchRecord) -> Result<(), OwnerSessionError> {
     for l in &record.lifecycles {
@@ -225,12 +218,11 @@ impl RelWriter {
         {
             return Err(OwnerSessionError::StaleDreamCut);
         }
-        let Some(record) = prepare(&self.session.common, self.owner_id(), &cut)? else {
+        let Some((record, bytes)) = prepare(&self.session.common, self.owner_id(), &cut)? else {
             return Ok(false);
         };
         let result = (|| {
-            self.container
-                .append(&record.encode().map_err(OwnerSessionError::Record)?)?;
+            self.container.append(&bytes)?;
             self.container.sync()?;
             apply(&mut self.session.common, record)
         })();
@@ -250,12 +242,11 @@ impl PhyWriter {
         {
             return Err(OwnerSessionError::StaleDreamCut);
         }
-        let Some(record) = prepare(&self.common, self.owner_id, &cut)? else {
+        let Some((record, bytes)) = prepare(&self.common, self.owner_id, &cut)? else {
             return Ok(false);
         };
         let result = (|| {
-            self.container
-                .append(&record.encode().map_err(OwnerSessionError::Record)?)?;
+            self.container.append(&bytes)?;
             self.container.sync()?;
             apply(&mut self.common, record)
         })();

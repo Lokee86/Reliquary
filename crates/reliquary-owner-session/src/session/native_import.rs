@@ -14,7 +14,7 @@ mod freshness;
 mod plan;
 #[path = "native_import_postprocessing.rs"]
 mod postprocessing;
-pub(super) use postprocessing::native_import_dream_prefix;
+pub(super) use postprocessing::{VerifiedDreamImport, native_import_dream_prefix};
 #[path = "native_import_work.rs"]
 mod work;
 pub use work::InsomniaEpisodeStatus;

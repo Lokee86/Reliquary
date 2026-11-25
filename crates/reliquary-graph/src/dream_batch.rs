@@ -1,5 +1,6 @@
 //! Validated standard Graph records embedded by the owning session.
 use super::*;
+use std::borrow::Cow;
 impl GraphStore {
     pub fn snapshot_at(&self, version: u64) -> Result<Self, GraphError> {
         if version > self.graph_version {
@@ -22,12 +23,15 @@ impl GraphStore {
         &self,
         admission: &GraphAdmission,
         changes: &[RelationChange],
-    ) -> Result<Vec<Vec<u8>>, GraphError> {
+    ) -> Result<(Vec<Vec<u8>>, Cow<'_, Self>), GraphError> {
         if changes.len() > 256 {
             return Err(GraphError::InvalidRelation("Dream batch limit"));
         }
+        if changes.is_empty() {
+            return Ok((Vec::new(), Cow::Borrowed(self)));
+        }
         let mut staged = self.clone();
-        let mut records = Vec::new();
+        let mut records = Vec::with_capacity(changes.len());
         for change in changes {
             let relation = Relation {
                 source: change.source,
@@ -43,7 +47,7 @@ impl GraphStore {
             staged.apply_dream_relation(admission, relation)?;
             records.push(encode_graph(self.owner, relation));
         }
-        Ok(records)
+        Ok((records, Cow::Owned(staged)))
     }
     pub fn apply_dream_relation(
         &mut self,

@@ -295,6 +295,7 @@ pub struct RelWriter {
     container: Container,
     session: RelSession,
     checkpoint: Option<checkpoint::WriterCheckpoint>,
+    verified_dream_import: Option<native_import::VerifiedDreamImport>,
 }
 
 /// Immutable read cut for retrieval. Reading this value never reinforces

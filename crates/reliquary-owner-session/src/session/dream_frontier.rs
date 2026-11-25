@@ -39,7 +39,7 @@ impl RelWriter {
         turn: u64,
     ) -> Result<DreamBeginAdmission, OwnerSessionError> {
         self.validate_native_import_memory(import_id, source.id)?;
-        self.validate_native_import_postprocessing(import_id)?;
+        self.verify_native_import_dream_cohort(import_id)?;
         if turn != self.session.archive.rel_turn_count()
             || pass != Self::native_import_dream_identity(import_id, source.id).0
             || self.session.common.dreams.has_other_pending_frontier(

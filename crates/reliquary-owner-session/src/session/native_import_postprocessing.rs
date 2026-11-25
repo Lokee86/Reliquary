@@ -4,6 +4,23 @@ use crate::session::grouped_completion::StoredGroupedCompletion;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
+pub(in crate::session) struct VerifiedDreamImport {
+    import_id: String,
+    archive_version: u64,
+    completion_count: usize,
+    epoch_binding_count: usize,
+    episodes: BTreeSet<WorkEpisodeId>,
+}
+
+impl VerifiedDreamImport {
+    fn matches(&self, session: &RelSession, import_id: &str) -> bool {
+        self.import_id == import_id
+            && self.archive_version == session.archive.archive_version()
+            && self.completion_count == session.grouped_completions.len()
+            && self.epoch_binding_count == session.native_import_grouped_epochs.len()
+    }
+}
+
 impl RelWriter {
     pub fn native_import_dream_identity(import_id: &str, source: MemoryId) -> (String, [u8; 32]) {
         let mut digest = Sha256::new();
@@ -27,6 +44,38 @@ impl RelWriter {
         Ok(())
     }
 
+    pub(in crate::session) fn verify_native_import_dream_cohort(
+        &mut self,
+        import_id: &str,
+    ) -> Result<(), OwnerSessionError> {
+        self.ensure_import_scope(import_id)?;
+        if self
+            .verified_dream_import
+            .as_ref()
+            .is_some_and(|verified| verified.matches(&self.session, import_id))
+        {
+            return Ok(());
+        }
+
+        // The verified Episodes have terminal Insomnia work and immutable
+        // grouped receipts. An Archive or receipt-cohort change requires
+        // rechecking the source paths under this writer lease.
+        let episodes = self
+            .session
+            .native_import_completed_outputs(import_id)?
+            .into_iter()
+            .map(|completion| WorkEpisodeId(completion.episode_id))
+            .collect();
+        self.verified_dream_import = Some(VerifiedDreamImport {
+            import_id: import_id.into(),
+            archive_version: self.session.archive.archive_version(),
+            completion_count: self.session.grouped_completions.len(),
+            epoch_binding_count: self.session.native_import_grouped_epochs.len(),
+            episodes,
+        });
+        Ok(())
+    }
+
     /// Verify membership in this epoch's accepted local extraction. Source
     /// provenance alone is insufficient to authorize an import mutation.
     pub fn validate_native_import_memory(
@@ -39,7 +88,16 @@ impl RelWriter {
         let episode = record
             .source_episode_id
             .ok_or_else(|| OwnerSessionError::Record("Memory lacks an imported Episode".into()))?;
-        self.validate_import_episode_identity(import_id, reliquary_archive::EpisodeId(episode))?;
+        let verified_episode = self.verified_dream_import.as_ref().is_some_and(|verified| {
+            verified.matches(&self.session, import_id)
+                && verified.episodes.contains(&WorkEpisodeId(episode))
+        });
+        if !verified_episode {
+            self.validate_import_episode_identity(
+                import_id,
+                reliquary_archive::EpisodeId(episode),
+            )?;
+        }
         if !self
             .session
             .grouped_completions

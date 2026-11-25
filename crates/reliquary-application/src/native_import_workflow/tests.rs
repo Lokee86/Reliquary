@@ -339,6 +339,15 @@ fn import_rejects_episode_evidence_outside_its_source_receipt() {
 
 #[test]
 fn historical_dream_credit_is_published_once_and_survives_reopen() {
+    historical_dream_fixture(false);
+}
+
+#[test]
+fn native_dream_rechecks_the_import_cohort_after_an_archive_change() {
+    historical_dream_fixture(true);
+}
+
+fn historical_dream_fixture(change_archive_after_begin: bool) {
     let path = Temp::new();
     let owner = [0x64; 16];
     let input = batch(owner);
@@ -542,6 +551,43 @@ fn historical_dream_credit_is_published_once_and_survives_reopen() {
             policy,
         )
         .unwrap();
+        if change_archive_after_begin {
+            let (mut turn, mut branch) = batch(owner).turns.pop().unwrap();
+            turn.id = "unmapped-imported-turn".into();
+            turn.parent_id = Some("imported-turn".into());
+            turn.timestamp_ns = 2;
+            branch.leaf_node_id = turn.id.clone();
+            writer.accept_native_import_turn(id, turn, branch).unwrap();
+            writer
+                .finalize_native_import_episode(
+                    id,
+                    "conversation",
+                    "imported-turn",
+                    "unmapped-imported-turn",
+                    702,
+                )
+                .unwrap();
+            let (pass, _) = RelWriter::native_import_dream_identity(id, source_memory_id);
+            let frontier = writer.initial_dream_frontier(&pass).unwrap();
+            let turn = writer.read_session().rel_turn_count();
+            let before = fs::metadata(&path.0).unwrap().len();
+            let error = writer
+                .begin_native_import_dream_frontier(
+                    id,
+                    pass,
+                    frontier.source,
+                    frontier.candidates,
+                    turn,
+                )
+                .unwrap_err();
+            assert!(
+                error
+                    .to_string()
+                    .contains("path escapes its receipt source set")
+            );
+            assert_eq!(fs::metadata(&path.0).unwrap().len(), before);
+            return;
+        }
         let before = fs::metadata(&path.0).unwrap().len();
         assert_eq!(
             commit_native_import_dream(&mut writer, &held, 702),
