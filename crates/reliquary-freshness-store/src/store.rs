@@ -42,6 +42,7 @@ fn freshness_replay_frame(prefix: &[u8]) -> bool {
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "FreshnessCheckpoint")]
 pub struct FreshnessStore {
     owner_uuid: Option<[u8; 16]>,
     identity: Option<ContainerIdentity>,
@@ -49,12 +50,54 @@ pub struct FreshnessStore {
     policy_persisted: bool,
     births: BTreeMap<FreshnessMemoryId, (u64, bool)>,
     admissions: BTreeMap<FreshnessMemoryId, u64>,
+    #[serde(skip)]
     events: BTreeMap<String, FreshnessEvent>,
+    #[serde(skip)]
     uses: BTreeMap<String, (FreshnessUseReceipt, FreshnessEventProof)>,
     journal: FreshnessJournal,
+    #[serde(skip)]
     last_event_by_turn: BTreeMap<u64, String>,
     historical_snapshots: Vec<HistoricalFreshnessSnapshot>,
     retained_authority: Option<crate::RetainedFreshnessAuthority>,
+}
+
+#[derive(serde::Deserialize)]
+struct FreshnessCheckpoint {
+    owner_uuid: Option<[u8; 16]>,
+    identity: Option<ContainerIdentity>,
+    policy: FreshnessPolicy,
+    policy_persisted: bool,
+    births: BTreeMap<FreshnessMemoryId, (u64, bool)>,
+    admissions: BTreeMap<FreshnessMemoryId, u64>,
+    journal: Vec<JournalEntry>,
+    historical_snapshots: Vec<HistoricalFreshnessSnapshot>,
+    retained_authority: Option<crate::RetainedFreshnessAuthority>,
+}
+
+impl TryFrom<FreshnessCheckpoint> for FreshnessStore {
+    type Error = String;
+
+    fn try_from(checkpoint: FreshnessCheckpoint) -> Result<Self, Self::Error> {
+        let mut store = Self {
+            owner_uuid: checkpoint.owner_uuid,
+            identity: checkpoint.identity,
+            policy: checkpoint.policy,
+            policy_persisted: checkpoint.policy_persisted,
+            births: checkpoint.births,
+            admissions: checkpoint.admissions,
+            historical_snapshots: checkpoint.historical_snapshots,
+            retained_authority: checkpoint.retained_authority,
+            ..Self::default()
+        };
+        // Retained snapshots may replace enrollments. Keep the accepted
+        // enrollment state and reconstruct only journal-derived indexes.
+        for (position, entry) in checkpoint.journal.iter().enumerate() {
+            store.index_activity_entry(entry)?;
+            store.journal.index_entry(position, entry);
+        }
+        store.journal.entries = checkpoint.journal;
+        Ok(store)
+    }
 }
 
 /// The checkpoint stores the ordered entries and reconstructs their lookup indexes.
@@ -66,18 +109,6 @@ struct FreshnessJournal {
     by_memory: BTreeMap<FreshnessMemoryId, Vec<usize>>,
     #[serde(skip)]
     changed_memories: Vec<FreshnessMemoryId>,
-}
-
-impl<'de> serde::Deserialize<'de> for FreshnessJournal {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let entries = <Vec<JournalEntry> as serde::Deserialize>::deserialize(deserializer)?;
-        let mut journal = Self::default();
-        for (position, entry) in entries.iter().enumerate() {
-            journal.index_entry(position, entry);
-        }
-        journal.entries = entries;
-        Ok(journal)
-    }
 }
 
 impl FreshnessJournal {
@@ -696,8 +727,7 @@ impl FreshnessStore {
                 FreshnessReplayEntry::Event(event) => event_in_cut(event, Some(cut)),
                 FreshnessReplayEntry::AcceptedUse(receipt, proof) => {
                     accepted_use_events(owner, receipt, *proof, &self.policy)
-                        .iter()
-                        .all(|event| event_in_cut(event, Some(cut)))
+                        .all(|event| event_in_cut(&event, Some(cut)))
                 }
             })
             .collect()
@@ -926,8 +956,6 @@ impl FreshnessStore {
                         Err("conflicting Freshness event".into())
                     };
                 }
-                self.events.insert(event.event_id.clone(), event.clone());
-                note_turn_event(&mut self.last_event_by_turn, event);
             }
             JournalEntry::AcceptedUse(receipt, proof) => {
                 if let Some((old, old_proof)) = self.uses.get(&receipt.use_id) {
@@ -937,33 +965,32 @@ impl FreshnessStore {
                         Err("conflicting accepted-use receipt".into())
                     };
                 }
-                self.uses
-                    .insert(receipt.use_id.clone(), (receipt.clone(), *proof));
+            }
+        }
+        self.index_activity_entry(&entry)?;
+        self.journal.push(entry);
+        Ok(())
+    }
+
+    fn index_activity_entry(&mut self, entry: &JournalEntry) -> Result<(), String> {
+        match entry {
+            JournalEntry::Event(event) => {
+                note_turn_event(&mut self.last_event_by_turn, event);
+                self.events.insert(event.event_id.clone(), event.clone());
+            }
+            JournalEntry::AcceptedUse(receipt, proof) => {
                 let owner = self
                     .owner_uuid
                     .ok_or("Freshness owner identity is required")?;
-                for source in &receipt.sources {
-                    let event = FreshnessEvent {
-                        event_id: accepted_event_id(owner, &receipt.use_id, *source),
-                        accepted_turn: receipt.accepted_turn,
-                        provenance: FreshnessEventProvenance {
-                            producer_kind: 2,
-                            source_id: receipt.use_id.clone(),
-                            origin_owner: owner,
-                            accepted_turn: receipt.accepted_turn,
-                            policy_version: receipt.policy_version,
-                        },
-                        proof: *proof,
-                        effects: [(*source, self.policy.access_principal)]
-                            .into_iter()
-                            .collect(),
-                    };
+                self.uses
+                    .insert(receipt.use_id.clone(), (receipt.clone(), *proof));
+                for event in accepted_use_events(owner, receipt, *proof, &self.policy) {
                     note_turn_event(&mut self.last_event_by_turn, &event);
                     self.events.insert(event.event_id.clone(), event);
                 }
             }
+            JournalEntry::Birth { .. } | JournalEntry::Admission { .. } => {}
         }
-        self.journal.push(entry);
         Ok(())
     }
 
@@ -1189,24 +1216,20 @@ fn accepted_use_events(
     receipt: &FreshnessUseReceipt,
     proof: FreshnessEventProof,
     policy: &FreshnessPolicy,
-) -> Vec<FreshnessEvent> {
-    receipt
-        .sources
-        .iter()
-        .map(|source| FreshnessEvent {
-            event_id: accepted_event_id(owner, &receipt.use_id, *source),
+) -> impl Iterator<Item = FreshnessEvent> {
+    receipt.sources.iter().map(move |source| FreshnessEvent {
+        event_id: accepted_event_id(owner, &receipt.use_id, *source),
+        accepted_turn: receipt.accepted_turn,
+        provenance: FreshnessEventProvenance {
+            producer_kind: 2,
+            source_id: receipt.use_id.clone(),
+            origin_owner: owner,
             accepted_turn: receipt.accepted_turn,
-            provenance: FreshnessEventProvenance {
-                producer_kind: 2,
-                source_id: receipt.use_id.clone(),
-                origin_owner: owner,
-                accepted_turn: receipt.accepted_turn,
-                policy_version: receipt.policy_version,
-            },
-            proof,
-            effects: [(*source, policy.access_principal)].into_iter().collect(),
-        })
-        .collect()
+            policy_version: receipt.policy_version,
+        },
+        proof,
+        effects: [(*source, policy.access_principal)].into_iter().collect(),
+    })
 }
 
 fn event_in_cut(event: &FreshnessEvent, cut: Option<&FreshnessEventCut>) -> bool {

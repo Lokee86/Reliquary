@@ -86,7 +86,7 @@ pub fn decode_with_id<I: Copy + Ord>(
             if bytes.len().saturating_sub(reader.at) != expected_bytes {
                 return Err("invalid Dream explicit population length".into());
             }
-            let mut ids = BTreeSet::new();
+            let mut ordered = Vec::with_capacity(count);
             let mut previous = None;
             for _ in 0..count {
                 let raw = reader.array()?;
@@ -97,9 +97,11 @@ pub fn decode_with_id<I: Copy + Ord>(
                     return Err("Dream explicit population is not strictly sorted".into());
                 }
                 previous = Some(raw);
-                if !ids.insert(from_bytes(raw)) {
-                    return Err("Dream explicit population has duplicate identities".into());
-                }
+                ordered.push(from_bytes(raw));
+            }
+            let ids: BTreeSet<_> = ordered.into_iter().collect();
+            if ids.len() != count {
+                return Err("Dream explicit population has duplicate identities".into());
             }
             BeginPopulation::ExplicitSet(ids)
         }

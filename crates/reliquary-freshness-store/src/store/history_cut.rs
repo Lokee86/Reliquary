@@ -32,7 +32,6 @@ impl FreshnessStore {
                 *proof,
                 &self.policy,
             )
-            .into_iter()
             .map(|event| event.event_id)
             .collect::<Vec<_>>();
             ids.sort();

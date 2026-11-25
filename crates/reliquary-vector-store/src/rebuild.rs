@@ -1,7 +1,7 @@
+use crate::PackedVectorError;
 use crate::codec::{decode_format, decode_object, decode_pruned_marker};
-use crate::store::{PackedVectorStore, packed_vector_id};
-use crate::{PackedVectorError, PackedVectorInfo};
-use reliquary_container::ObjectRef;
+use crate::store::PackedVectorStore;
+use reliquary_container::{Container, ObjectRef};
 
 pub struct PackedVectorOpenState {
     store: PackedVectorStore,
@@ -14,6 +14,12 @@ impl PackedVectorOpenState {
             store: PackedVectorStore::default(),
             format_seen: false,
         }
+    }
+
+    pub(crate) fn new_leased(container: &Container) -> Result<Self, PackedVectorError> {
+        let mut state = Self::new();
+        state.store.bind_read_lease(container)?;
+        Ok(state)
     }
 
     pub fn ingest(&mut self, chunk: ObjectRef, payload: &[u8]) -> Result<(), PackedVectorError> {
@@ -32,22 +38,7 @@ impl PackedVectorOpenState {
         let Some(decoded) = decode_object(payload)? else {
             return Ok(());
         };
-        if packed_vector_id(decoded.schema, decoded.bytes) != decoded.id {
-            return Err(PackedVectorError::HashCollision);
-        }
-        self.store.insert_rebuilt(
-            PackedVectorInfo {
-                id: decoded.id,
-                schema: decoded.schema,
-                count: decoded.count,
-                byte_len: u64::try_from(decoded.bytes.len())
-                    .map_err(|_| PackedVectorError::SizeOverflow)?,
-            },
-            chunk,
-            decoded.bytes.to_vec(),
-        )?;
-        self.store.retain_locator(decoded.id, payload);
-        Ok(())
+        self.store.ingest_object(decoded, chunk, payload)
     }
 
     pub fn finish(self) -> Result<PackedVectorStore, PackedVectorError> {

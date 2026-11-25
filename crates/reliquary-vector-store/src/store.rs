@@ -1,4 +1,4 @@
-use crate::codec::{encode_format, encode_object};
+use crate::codec::{DecodedPackedVector, encode_format, encode_object};
 use crate::{
     ArchiveFragmentId, ArchiveVectorId, CompatibilityProfileId, MemoryBodyId, MemoryVectorId,
     PackedVectorError, PackedVectorId, PackedVectorInfo, PackedVectorStats,
@@ -256,7 +256,21 @@ impl PackedVectorStore {
     }
 
     pub fn open(container: &Container) -> Result<Self, PackedVectorError> {
-        let mut state = crate::PackedVectorOpenState::new();
+        Self::open_replaying(container, crate::PackedVectorOpenState::new())
+    }
+
+    /// Validate retained matrices while keeping only their leased frame locations.
+    pub fn open_leased(container: &Container) -> Result<Self, PackedVectorError> {
+        Self::open_replaying(
+            container,
+            crate::PackedVectorOpenState::new_leased(container)?,
+        )
+    }
+
+    fn open_replaying(
+        container: &Container,
+        mut state: crate::PackedVectorOpenState,
+    ) -> Result<Self, PackedVectorError> {
         let mut frames = container.scan_matching_frames(|prefix| {
             prefix.starts_with(crate::codec::FORMAT_MAGIC)
                 || prefix.starts_with(crate::codec::OBJECT_MAGIC)
@@ -362,14 +376,51 @@ impl PackedVectorStore {
         Ok(())
     }
 
-    pub(crate) fn retain_locator(&mut self, id: PackedVectorId, payload: &[u8]) {
-        let entry = self
-            .objects
-            .get_mut(&id)
-            .expect("admitted packed-vector backing");
-        if entry.backing.is_none() {
-            entry.backing = Some(PackedVectorBacking::from_object(payload));
+    pub(crate) fn ingest_object(
+        &mut self,
+        decoded: DecodedPackedVector<'_>,
+        chunk: ObjectRef,
+        payload: &[u8],
+    ) -> Result<(), PackedVectorError> {
+        let id = decoded.id;
+        if packed_vector_id(decoded.schema, decoded.bytes) != id {
+            return Err(PackedVectorError::HashCollision);
         }
+        let info = PackedVectorInfo {
+            id,
+            schema: decoded.schema,
+            count: decoded.count,
+            byte_len: u64::try_from(decoded.bytes.len())
+                .map_err(|_| PackedVectorError::SizeOverflow)?,
+        };
+        if let Some(existing) = self.objects.get(&id) {
+            if existing.info != info
+                || existing.chunk.is_none()
+                || self.matrix(id)?.bytes() != decoded.bytes
+            {
+                return Err(PackedVectorError::HashCollision);
+            }
+            return Ok(());
+        }
+        let packed = if self.reader.is_none() {
+            let packed = PackedVectors::from_bytes(decoded.schema, decoded.bytes.to_vec())
+                .map_err(|_| PackedVectorError::CorruptRecord("packed-vector matrix"))?;
+            Some(Arc::new(packed))
+        } else {
+            None
+        };
+        self.objects.insert(
+            id,
+            PackedVectorEntry {
+                info,
+                chunk: Some(chunk),
+                packed,
+                backing: Some(PackedVectorBacking::from_object(payload)),
+                marker_chunk: None,
+                manifest_digest: None,
+            },
+        );
+        Ok(())
     }
 
     pub fn insert_pruned(
@@ -448,6 +499,13 @@ impl PackedVectorStore {
 
     pub fn info(&self, id: PackedVectorId) -> Option<PackedVectorInfo> {
         self.objects.get(&id).map(|entry| entry.info)
+    }
+
+    /// First admitted physical positions of live matrix objects.
+    pub fn object_positions(&self) -> impl Iterator<Item = (ObjectRef, PackedVectorId)> + '_ {
+        self.objects
+            .iter()
+            .filter_map(|(&id, entry)| entry.chunk.map(|chunk| (chunk, id)))
     }
 
     pub fn infos(&self) -> Vec<PackedVectorInfo> {

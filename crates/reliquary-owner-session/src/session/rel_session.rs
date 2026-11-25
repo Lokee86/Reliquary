@@ -147,7 +147,7 @@ impl RelSession {
         }
         let history_generation = owner_history_generation_from_container(container)
             .map_err(OwnerSessionError::Record)?;
-        let (mut common, identity_history, identity_separation_history, observations) =
+        let (common, identity_history, identity_separation_history, observations) =
             super::replay::open_common_replaying(
                 container,
                 graph_admission.owner_id().ok_or(GraphError::WrongOwner)?,
@@ -316,9 +316,6 @@ impl RelSession {
         let container_path = canonical_container_path(container)?;
         let container_file_identity = container.physical_file_identity()?;
         let writer_lease_proof = container.writer_lease_proof();
-        if leased {
-            common.packed_vectors.bind_read_lease(container)?;
-        }
         Ok(Self {
             owner_id: container.owner_id(),
             rel_dependencies: replay.dependencies,

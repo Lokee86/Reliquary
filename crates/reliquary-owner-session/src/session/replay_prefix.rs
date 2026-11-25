@@ -31,6 +31,7 @@ pub(super) struct DreamArchivePrefix<'a> {
 pub(super) fn validate_graph_prefix(
     container: &Container,
     memory_store: &MemoryStore,
+    packed_store: &PackedVectorStore,
     identity_context: Option<(&PerceptionStore, [u8; 32])>,
     pruned_bodies: &BTreeSet<MemoryBodyId>,
     observation_archive_cuts: &BTreeMap<u64, (u64, u64)>,
@@ -55,9 +56,19 @@ pub(super) fn validate_graph_prefix(
     let mut native_births = BTreeMap::new();
     let mut native_receipt = None;
     let mut native_episodes = BTreeSet::new();
+    // The packed store checked the full matrices. Advance their admitted
+    // positions alongside the other frames to preserve the mapping cut.
+    let mut packed_positions: Vec<_> = packed_store.object_positions().collect();
+    packed_positions.sort_unstable_by_key(|(object, _)| object.offset);
+    let mut packed_positions = packed_positions.into_iter().peekable();
     let mut frames = container
-        .scan_matching_frames(crate::records::frame_selection::without_archive_publications)?;
+        .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
     while let Some(frame) = frames.next_frame()? {
+        while let Some((_, id)) =
+            packed_positions.next_if(|(object, _)| object.offset < frame.object.offset)
+        {
+            packed_vectors.insert(id.0);
+        }
         if crate::records::import::is_import_epoch_marker(frame.payload) {
             imports
                 .ingest_prefix(frame.payload)

@@ -152,6 +152,10 @@ pub(super) fn open_common_replaying(
     }
     let mut grouped_body_ids = BTreeSet::new();
     let mut user_memory_requests = BTreeMap::new();
+    let leased = matches!(
+        memory_start,
+        reliquary_memory_core::MemoryReplayStart::Leased
+    );
     let mut memories = replay_memories(
         container,
         memory_start,
@@ -240,7 +244,11 @@ pub(super) fn open_common_replaying(
     }
     let communities = CommunityStore::open(container, &graph)?;
     let ego = EgoStore::open(container)?;
-    let packed_vectors = PackedVectorStore::open(container)?;
+    let packed_vectors = if leased {
+        PackedVectorStore::open_leased(container)?
+    } else {
+        PackedVectorStore::open(container)?
+    };
     let profiles = CompatibilityProfileStore::open(container)?;
     let memory_vectors = MemoryVectorStore::open(container, &packed_vectors, &profiles)?;
     if memory_vectors
@@ -266,6 +274,7 @@ pub(super) fn open_common_replaying(
         super::replay_prefix::validate_graph_prefix(
             container,
             &memories,
+            &packed_vectors,
             identity_generation.map(|generation| (&perception, generation)),
             &pruned_bodies,
             observation_archive_cuts,
@@ -337,7 +346,7 @@ pub(super) fn open_common_replaying(
         native_admissions.push(stored);
     }
     let mut dream_admissions: Vec<_> = admissions_by_pass.into_values().collect();
-    let compact = super::dream_prefix::observe_compact_dream_prefix(container, &dream_admissions)?;
+    let compact = super::dream_prefix::observe_after_graph_replay(container, &dream_admissions)?;
     dream_admissions.extend(compact);
     for admission in &dream_admissions {
         if admission.owner_uuid != container.owner_id()

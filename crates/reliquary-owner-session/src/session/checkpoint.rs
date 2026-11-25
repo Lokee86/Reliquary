@@ -23,7 +23,7 @@ use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
-const MAGIC: &[u8; 8] = b"RELCP013";
+const MAGIC: &[u8; 8] = b"RELCP014";
 const STATE_START: u64 = 16;
 const MAX_MANIFEST_BYTES: usize = 16 * 1024 * 1024;
 const REFRESH_BYTES: u64 = 16 * 1024 * 1024;
@@ -201,21 +201,21 @@ impl WriterCheckpoint {
         }
         self.attempted_extent = Some(extent);
         self.attempted_epoch = epoch;
-        match self.publish(container, session) {
-            Ok(prefix) => self.prefix = Some(prefix),
-            Err(_error) => {
-                #[cfg(feature = "d02-observation")]
-                {
-                    self.refresh_error = Some(_error.to_string());
-                }
+        if let Err(_error) = self.publish(container, session) {
+            #[cfg(feature = "d02-observation")]
+            {
+                self.refresh_error = Some(_error.to_string());
             }
         }
     }
 
-    fn publish(&self, container: &Container, session: &RelSession) -> io::Result<VerifiedPrefix> {
+    fn publish(&mut self, container: &Container, session: &RelSession) -> io::Result<()> {
         let (physical, prefix) = container
             .capture_checkpoint(self.prefix.as_ref())
             .map_err(io::Error::other)?;
+        // The same lease can reuse this verified hash even when the
+        // disposable checkpoint cannot be installed.
+        self.prefix = Some(prefix);
         let parent = self.slot.parent().ok_or_else(invalid_cache)?;
         let mut staged = private_cache::stage(parent)?;
         staged.write_all(MAGIC)?;
@@ -261,7 +261,7 @@ impl WriterCheckpoint {
             .map_err(|failure| failure.error)?;
         #[cfg(unix)]
         File::open(parent)?.sync_all()?;
-        Ok(prefix)
+        Ok(())
     }
 }
 

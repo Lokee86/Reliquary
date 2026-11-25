@@ -554,6 +554,9 @@ fn packed_payload_and_profile_persist_and_reopen() {
         let mut store = PackedVectorStore::default();
         store.initialize(&mut container).unwrap();
         id = store.put(&mut container, vectors).unwrap();
+        container
+            .append(&crate::codec::encode_object(id, &expected).unwrap())
+            .unwrap();
         container.sync().unwrap();
     }
     let mut container = Container::open_read_only(&packed_path).unwrap();
@@ -561,6 +564,20 @@ fn packed_payload_and_profile_persist_and_reopen() {
     assert_eq!(store.get(&mut container, id).unwrap(), expected);
     assert_eq!(store.read_f32_row(id, 0).unwrap(), vec![1.0, -2.5]);
     assert!(store.read_f32_row(id, 1).is_err());
+    let leased = PackedVectorStore::open_leased(&container).unwrap();
+    assert_eq!(leased.get(&mut container, id).unwrap(), expected);
+    assert_eq!(leased.read_f32_row(id, 0).unwrap(), vec![1.0, -2.5]);
+    assert_eq!(
+        leased.object_positions().collect::<Vec<_>>(),
+        store.object_positions().collect::<Vec<_>>()
+    );
+    drop(container);
+    assert!(matches!(
+        leased.view(id),
+        Err(PackedVectorError::Container(
+            reliquary_container::ContainerError::UnstableSnapshot
+        ))
+    ));
 
     let profile_path = temp.0.join("profiles.rel");
     let expected_profile = profile();
