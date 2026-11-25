@@ -33,10 +33,13 @@ impl DreamEvidenceStore {
         }
         let pass = self
             .journal
-            .pending(&settlement.pass_id)
+            .pending_ref(&settlement.pass_id)
             .ok_or("initial Dream settlement is not pending")?;
         if !pass.roots.is_empty()
-            || !settlement.roots.is_subset(&pass.preexisting_ids)
+            || !settlement
+                .roots
+                .iter()
+                .all(|id| pass.preexisting_ids.contains(id))
             || pass.source_id != settlement.source
             || pass.first_revision != 1
         {
@@ -118,19 +121,16 @@ impl DreamEvidenceStore {
     }
 
     pub(crate) fn first_pass(&self, source: MemoryId) -> Option<(&str, bool)> {
-        let (pass, _) = self
-            .begins
-            .iter()
-            .find(|(_, begin)| begin.source_id == source)?;
+        let pass = self.begun_sources.get(&source)?;
         Some((pass, self.initial_settlements.contains_key(pass)))
     }
 
     pub(crate) fn has_other_initial_pass(&self, source: MemoryId, pass: &str) -> bool {
-        self.begins
-            .values()
-            .any(|begin| begin.source_id == source && begin.pass_id != pass)
+        self.begun_sources
+            .get(&source)
+            .is_some_and(|known| known != pass)
     }
-    pub(crate) fn admission(&self, pass_id: &str) -> Option<&DreamBeginAdmission> {
+    pub(crate) fn admission(&self, pass_id: &str) -> Option<&StoredAdmission> {
         self.admissions.get(pass_id)
     }
     pub(crate) fn settlement_record(&self, pass_id: &str) -> Option<&InitialDreamSettlement> {
@@ -175,17 +175,16 @@ impl DreamEvidenceStore {
         {
             return Err("invalid first-cycle Begin identity".into());
         }
-        if self.begins.values().any(|begin| {
-            begin.source_id == admission.source_id && begin.pass_id != admission.pass_id
-        }) {
+        if self.has_other_initial_pass(admission.source_id, &admission.pass_id) {
             return Err("Memory already has a first-cycle Dream Begin".into());
         }
+        let stored = StoredAdmission::from(admission.clone());
         if let Some(existing) = self.admissions.get(&admission.pass_id) {
-            if existing != &admission {
+            if existing != &stored {
                 return Err("conflicting first-cycle Begin admission".into());
             }
             if self.begins.contains_key(&admission.pass_id) {
-                return Ok(existing.clone());
+                return Ok(admission);
             }
         }
         let begin = BeginRecord {
@@ -196,8 +195,7 @@ impl DreamEvidenceStore {
             graph_version_before: admission.graph_version_before,
             population: BeginPopulation::ExplicitSet(admission.preexisting_ids.clone()),
         };
-        self.admissions
-            .insert(admission.pass_id.clone(), admission.clone());
+        self.admissions.insert(admission.pass_id.clone(), stored);
         self.append_begin(container, begin)?;
         Ok(admission)
     }

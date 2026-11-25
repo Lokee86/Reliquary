@@ -28,7 +28,7 @@ impl DreamEvidenceStore {
             .begins
             .get(&record.pass_id)
             .ok_or("frontier lacks Begin")?;
-        self.validate_frontier(&record, begin, &self.journal)?;
+        self.validate_frontier(&record, begin.source_id, &self.journal)?;
         self.frontiers.insert(record.pass_id.clone(), record.into());
         Ok(())
     }
@@ -36,13 +36,13 @@ impl DreamEvidenceStore {
     fn validate_frontier(
         &self,
         record: &FrontierRecord,
-        begin: &BeginRecord,
+        source_id: MemoryId,
         journal: &DreamFreshnessJournal,
     ) -> Result<(), String> {
         if record.owner != self.owner_uuid
-            || begin.source_id != record.source.cut().id
+            || source_id != record.source.cut().id
             || self.frontiers.contains_key(&record.pass_id)
-            || journal.pending(&record.pass_id).is_none()
+            || journal.pending_ref(&record.pass_id).is_none()
         {
             return Err("invalid or duplicate Dream frontier".into());
         }
@@ -69,9 +69,9 @@ impl DreamEvidenceStore {
     }
 
     pub(crate) fn has_other_pending_frontier(&self, prefix: &str, pass: &str) -> bool {
-        self.frontiers
-            .keys()
-            .any(|id| id != pass && id.starts_with(prefix) && self.journal.pending(id).is_some())
+        self.journal
+            .pending_pass_ids()
+            .any(|id| id != pass && id.starts_with(prefix) && self.frontiers.contains_key(id))
     }
 
     pub(crate) fn append_frontier(
@@ -88,7 +88,7 @@ impl DreamEvidenceStore {
             return if old.source.cut() == source
                 && old.candidates.iter().map(|o| o.cut()).collect::<Vec<_>>() == candidates
             {
-                Ok(self.admissions[&admission.pass_id].clone())
+                Ok(self.admissions[&admission.pass_id].to_admission())
             } else {
                 Err("frontier identity changed".into())
             };
@@ -107,11 +107,13 @@ impl DreamEvidenceStore {
                 graph_version_before: admission.graph_version_before,
                 population: BeginPopulation::ExplicitSet(admission.preexisting_ids.clone()),
             };
-            self.validate_begin(&begin, &admission)?;
+            let stored = StoredAdmission::from(admission.clone());
+            self.validate_begin(&begin, &stored)?;
             let payload = dream_begin_codec::encode(&begin)?;
             let mut journal = self.journal.clone();
-            journal.ingest_materialized_begin(self.owner_uuid, materialize(&begin, &admission))?;
-            (Some((begin, journal)), Some(payload))
+            journal.ingest_admitted_begin(self.owner_uuid, pending_pass(&stored))?;
+            let begin = StoredBegin::new(&stored, (&begin).into());
+            (Some((begin, stored, journal)), Some(payload))
         };
         let record = FrontierRecord {
             owner: self.owner_uuid,
@@ -123,7 +125,7 @@ impl DreamEvidenceStore {
             memory_version,
         };
         let (begin, journal) = match &new_begin {
-            Some((begin, journal)) => (begin, journal),
+            Some((begin, _, journal)) => (begin, journal),
             None => (
                 self.begins
                     .get(&record.pass_id)
@@ -131,15 +133,14 @@ impl DreamEvidenceStore {
                 &self.journal,
             ),
         };
-        self.validate_frontier(&record, begin, journal)?;
+        self.validate_frontier(&record, begin.source_id, journal)?;
         let bytes = record.encode()?;
         container.append(&bytes).map_err(|e| e.to_string())?;
         container.sync().map_err(|e| e.to_string())?;
-        if let Some((begin, journal)) = new_begin {
+        if let Some((begin, stored, journal)) = new_begin {
             self.journal = journal;
-            self.admissions
-                .insert(admission.pass_id.clone(), admission.clone());
-            self.begins.insert(admission.pass_id.clone(), begin);
+            self.admissions.insert(admission.pass_id.clone(), stored);
+            self.install_begin(admission.pass_id.clone(), begin);
         }
         self.frontiers.insert(record.pass_id.clone(), record.into());
         Ok(admission)

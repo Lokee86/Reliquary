@@ -188,9 +188,9 @@ fn replay_settlement(
             .memories
             .record_at_cut(record.source, admission.memory_cut)
             .is_some_and(|memory| !memory.archived)
-        || admission.preexisting_ids.len() > 4096
+        || admission.preexisting_ids().len() > 4096
         || !dream_population::BirthPopulationReplay::new(&common.memories)
-            .contains(birth, &admission.preexisting_ids)?
+            .contains(birth, admission.preexisting_ids())?
         || record.roots != dream_initial::roots(common, &pass)?
     {
         return Err(OwnerSessionError::StaleDreamCut);

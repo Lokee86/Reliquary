@@ -1,4 +1,5 @@
 //! Disposable startup projection of owner-verified Dream evidence.
+use super::population_history::PopulationHistory;
 use super::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::borrow::Cow;
@@ -26,38 +27,26 @@ struct Admission {
     begin: Option<BeginKind>,
 }
 
-#[derive(Serialize, Deserialize)]
-enum BeginKind {
-    Explicit,
-    Compact { digest: [u8; 32] },
-}
-
 impl Serialize for DreamEvidenceStore {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut ordered: Vec<_> = self.admissions.values().collect();
         ordered.sort_unstable_by_key(|a| (a.memory_cut, a.pass_id.as_str()));
-        let empty = BTreeSet::new();
+        let empty = Population::from_set(BTreeSet::new());
         let mut previous = &empty;
         let admissions = ordered
             .into_iter()
             .map(|admission| {
                 let current = &admission.preexisting_ids;
+                let (added, removed) = current.changes_since(previous);
                 let entry = Admission {
                     pass_id: admission.pass_id.clone(),
                     source_id: admission.source_id,
                     turn: admission.turn,
                     graph_version_before: admission.graph_version_before,
                     memory_cut: admission.memory_cut,
-                    added: current.difference(previous).copied().collect(),
-                    removed: previous.difference(current).copied().collect(),
-                    begin: self.begins.get(&admission.pass_id).map(|begin| {
-                        match &begin.population {
-                            BeginPopulation::ExplicitSet(_) => BeginKind::Explicit,
-                            BeginPopulation::CompactCut { digest, .. } => {
-                                BeginKind::Compact { digest: *digest }
-                            }
-                        }
-                    }),
+                    added,
+                    removed,
+                    begin: self.begins.get(&admission.pass_id).map(|begin| begin.kind),
                 };
                 previous = current;
                 entry
@@ -78,49 +67,43 @@ impl Serialize for DreamEvidenceStore {
 
 impl<'de> Deserialize<'de> for DreamEvidenceStore {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let checkpoint = Checkpoint::deserialize(deserializer)?;
+        let mut checkpoint = Checkpoint::deserialize(deserializer)?;
+        let population_history =
+            PopulationHistory::from_deltas(checkpoint.admissions.iter_mut().map(|entry| {
+                (
+                    std::mem::take(&mut entry.added),
+                    std::mem::take(&mut entry.removed),
+                )
+            }))
+            .map_err(de::Error::custom)?;
         let mut admissions = BTreeMap::new();
         let mut begins = BTreeMap::new();
-        let mut cohort = BTreeSet::new();
-        for entry in checkpoint.admissions {
-            // Each delta follows the preceding admitted physical cut, including
-            // removals when an identity left the active population.
-            if entry.removed.iter().any(|id| !cohort.remove(id))
-                || entry.added.iter().any(|id| !cohort.insert(*id))
-                || (entry.begin.is_some() && cohort.contains(&entry.source_id))
-            {
+        let mut begun_sources = BTreeMap::new();
+        for (index, entry) in checkpoint.admissions.into_iter().enumerate() {
+            let cohort = population_history.snapshot(index + 1);
+            if entry.begin.is_some() && cohort.contains(&entry.source_id) {
                 return Err(de::Error::custom(
                     "invalid Dream checkpoint population delta",
                 ));
             }
-            if let Some(kind) = entry.begin {
-                begins.insert(
-                    entry.pass_id.clone(),
-                    BeginRecord {
-                        owner_uuid: checkpoint.owner_uuid,
-                        pass_id: entry.pass_id.clone(),
-                        source_id: entry.source_id,
-                        turn: entry.turn,
-                        graph_version_before: entry.graph_version_before,
-                        population: match kind {
-                            BeginKind::Explicit => BeginPopulation::ExplicitSet(cohort.clone()),
-                            BeginKind::Compact { digest } => BeginPopulation::CompactCut {
-                                memory_cut: entry.memory_cut,
-                                digest,
-                            },
-                        },
-                    },
-                );
-            }
-            let admission = DreamBeginAdmission {
+            let admission = StoredAdmission {
                 owner_uuid: checkpoint.owner_uuid,
                 pass_id: entry.pass_id.clone(),
                 source_id: entry.source_id,
                 turn: entry.turn,
                 graph_version_before: entry.graph_version_before,
-                preexisting_ids: cohort.clone(),
+                preexisting_ids: cohort,
                 memory_cut: entry.memory_cut,
             };
+            if let Some(kind) = entry.begin {
+                if begun_sources
+                    .insert(entry.source_id, entry.pass_id.clone())
+                    .is_some()
+                {
+                    return Err(de::Error::custom("duplicate Dream checkpoint Begin source"));
+                }
+                begins.insert(entry.pass_id.clone(), StoredBegin::new(&admission, kind));
+            }
             if admissions.insert(entry.pass_id, admission).is_some() {
                 return Err(de::Error::custom("duplicate Dream checkpoint admission"));
             }
@@ -133,6 +116,7 @@ impl<'de> Deserialize<'de> for DreamEvidenceStore {
             owner_uuid: checkpoint.owner_uuid,
             admissions,
             begins,
+            begun_sources,
             journal,
             initial_settlements: checkpoint.initial_settlements.into_owned(),
             settled_sources: checkpoint.settled_sources.into_owned(),
@@ -144,6 +128,7 @@ impl<'de> Deserialize<'de> for DreamEvidenceStore {
 
 #[cfg(test)]
 mod tests {
+    use super::freshness_journal::InitialDreamPass;
     use super::*;
     use crate::DreamMemoryCut;
     use crate::records::dream_frontier::FrontierRecord;
@@ -161,6 +146,7 @@ mod tests {
             owner_uuid: owner,
             admissions: BTreeMap::new(),
             begins: BTreeMap::new(),
+            begun_sources: BTreeMap::new(),
             journal: DreamFreshnessJournal::new(Some(owner)),
             initial_settlements: BTreeMap::new(),
             settled_sources: Vec::new(),
@@ -265,8 +251,22 @@ mod tests {
             bytes.len()
         );
         let mut restored: DreamEvidenceStore = rmp_serde::from_slice(&bytes).unwrap();
-        assert_eq!(restored.admissions, store.admissions);
-        assert_eq!(restored.begins, store.begins);
+        assert_eq!(rmp_serde::to_vec_named(&restored).unwrap(), bytes);
+        assert!(
+            restored
+                .admissions
+                .values()
+                .all(|entry| !entry.preexisting_ids.is_materialized())
+        );
+        assert!(
+            restored
+                .begins
+                .values()
+                .all(|begin| begin.view.get().is_none())
+        );
+        for pass_id in ["pass-0960", "pass-0959", "pass-0001"] {
+            assert_eq!(restored.begin(pass_id), store.begin(pass_id));
+        }
         assert_eq!(restored.journal.pending("legacy"), Some(legacy));
         assert_eq!(
             restored.journal.pending("pass-0001"),
@@ -285,5 +285,11 @@ mod tests {
             .apply_initial_settlement(last_settlement.unwrap())
             .unwrap();
         assert_eq!(restored.settlement_count(), PASSES);
+        assert!(
+            restored
+                .admissions
+                .values()
+                .all(|entry| !entry.preexisting_ids.is_materialized())
+        );
     }
 }

@@ -783,7 +783,7 @@ fn replay_initial_dreams(
         let source_begin = source
             .common
             .dreams
-            .begin(&settlement.pass_id)
+            .begun(&settlement.pass_id)
             .ok_or_else(|| conflict("source initial Dream has no authenticated Begin"))?;
         if source_begin.source_id != settlement.source
             || !settlement.roots.is_empty()
@@ -811,7 +811,7 @@ fn replay_initial_dreams(
                 settlement.pass_id.clone(),
                 cut,
                 turn,
-                &source_admission.preexisting_ids,
+                source_admission.preexisting_ids(),
             )
             .map_err(verification)?;
         let graph_version = writer.read_session().common.graph.graph_version();

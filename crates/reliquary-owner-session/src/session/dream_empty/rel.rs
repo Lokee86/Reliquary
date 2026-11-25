@@ -255,7 +255,7 @@ impl RelWriter {
                         .session
                         .common
                         .dreams
-                        .begin(pass_id)
+                        .begun(pass_id)
                         .ok_or(OwnerSessionError::StaleDreamCut)?;
                     self.session
                         .freshness

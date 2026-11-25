@@ -268,9 +268,10 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
     let lease =
         Container::prepare_checkpoint_open(&owner, true, FileKind::Reliquary, Some(OWNER)).unwrap();
     let extent = lease.extent();
-    let (container, warm, checkpoint) =
+    let (container, warm, mut checkpoint) =
         open_leased(lease, Some(slot.clone()), extent, true).unwrap();
-    assert_eq!(checkpoint.unwrap().attempted_extent, Some(before_dream));
+    let checkpoint = checkpoint.as_mut().unwrap();
+    assert_eq!(checkpoint.attempted_extent, Some(before_dream));
     assert!(extent > before_dream);
     assert_eq!(warm.open_native_import_id(), Some(import_id.as_str()));
     assert_eq!(warm.common.graph.active_relations().count(), 1);
@@ -286,7 +287,20 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
     let warm_freshness = warm.freshness.records_at(&memory_cut).unwrap();
     let current_cut = warm.current_historical_cut();
     let warm_proof = warm.historical_proof(OWNER, &current_cut).unwrap();
+    checkpoint.refresh(&container, &warm, true);
     drop((warm, container));
+
+    let lease =
+        Container::prepare_checkpoint_open(&owner, true, FileKind::Reliquary, Some(OWNER)).unwrap();
+    let (container, exact, checkpoint) =
+        open_leased(lease, Some(slot.clone()), extent, true).unwrap();
+    assert_eq!(checkpoint.unwrap().attempted_extent, Some(extent));
+    assert_eq!(
+        exact.historical_proof(OWNER, &current_cut).unwrap(),
+        warm_proof
+    );
+    assert!(exact.dream_begin(&pass).is_some());
+    drop((exact, container));
 
     let full = RelSession::open_path_current(&owner).unwrap();
     assert_eq!(full.open_native_import_id(), Some(import_id.as_str()));

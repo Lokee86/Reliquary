@@ -27,7 +27,7 @@ pub(super) fn roots(
     }
     let begin = common
         .dreams
-        .begin(pass)
+        .begun(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
     let admitted = common
         .dreams
@@ -38,7 +38,7 @@ pub(super) fn roots(
         .dream_pairs
         .initial_links(begin.source_id, begin.graph_version_before)
     {
-        if admitted.preexisting_ids.contains(&candidate) {
+        if admitted.preexisting_contains(&candidate) {
             roots.insert(candidate);
         }
     }
@@ -120,11 +120,11 @@ fn snapshot(
             })
             .collect()
     });
-    let source_id = common
+    let begin = common
         .dreams
-        .begin(pass)
-        .ok_or(OwnerSessionError::StaleDreamCut)?
-        .source_id;
+        .begun(pass)
+        .ok_or(OwnerSessionError::StaleDreamCut)?;
+    let source_id = begin.source_id;
     let source = match common.dreams.settlement_record(pass) {
         Some(record) => common.memories.revision(source_id, record.revision)?.record,
         None => common.memories.current(source_id)?.record,
@@ -133,12 +133,7 @@ fn snapshot(
         .dreams
         .admission(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?
-        .preexisting_ids
-        .clone();
-    let begin = common
-        .dreams
-        .begin(pass)
-        .ok_or(OwnerSessionError::StaleDreamCut)?;
+        .copy_preexisting_ids();
     let seeds: Vec<_> = std::iter::once(source_id.0)
         .chain(roots.iter().map(|id| id.0))
         .collect();
@@ -197,13 +192,15 @@ fn validate_credit(
 ) -> Result<(), OwnerSessionError> {
     let begin = common
         .dreams
-        .begin(pass)
+        .begun(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
     let admitted = common
         .dreams
         .admission(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
-    if credits.contains(&begin.source_id) || !credits.is_subset(&admitted.preexisting_ids) {
+    if credits.contains(&begin.source_id)
+        || credits.iter().any(|id| !admitted.preexisting_contains(id))
+    {
         return Err(OwnerSessionError::StaleDreamCut);
     }
     let (reachable, _) = common

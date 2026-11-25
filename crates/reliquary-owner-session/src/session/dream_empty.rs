@@ -17,7 +17,7 @@ pub(super) fn initial_admission(
     if common.dreams.has_other_initial_pass(source.id, &pass_id) {
         return Err(OwnerSessionError::StaleDreamCut);
     }
-    if let Some(begin) = common.dreams.begin(&pass_id) {
+    if let Some(begin) = common.dreams.begun(&pass_id) {
         if begin.source_id == source.id && begin.turn == turn {
             let admission = common
                 .dreams
@@ -30,7 +30,7 @@ pub(super) fn initial_admission(
             {
                 return Err(OwnerSessionError::StaleDreamCut);
             }
-            return Ok(common.dreams.admission(&pass_id).unwrap().clone());
+            return Ok(admission.to_admission());
         }
         return Err(OwnerSessionError::StaleDreamCut);
     }
@@ -66,7 +66,7 @@ pub(super) fn validate(
     }
     let begun = common
         .dreams
-        .begin(&record.pass_id)
+        .begun(&record.pass_id)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
     if record.accepted_turn < begun.turn
         || record.validate().is_err()
@@ -178,7 +178,7 @@ pub(super) fn preflight_source(
     }
     let begin = common
         .dreams
-        .begin(pass)
+        .begun(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
     if begin.source_id != source.id
         || source.revision == 0
@@ -217,7 +217,7 @@ fn validate_source(
         .map_err(|_| OwnerSessionError::StaleDreamCut)?;
     let begin = common
         .dreams
-        .begin(pass)
+        .begun(pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
     if current.record.revision != source.revision
         || current.record.body_id != source.body_id
@@ -246,7 +246,7 @@ pub(super) fn validate_rel_freshness(
     }
     let begin = common
         .dreams
-        .begin(&record.pass_id)
+        .begun(&record.pass_id)
         .ok_or("Dream Freshness lacks Begin")?;
     let effects = freshness.validate_initial_dream_lifecycle(
         FreshnessMemoryId(record.source.0),

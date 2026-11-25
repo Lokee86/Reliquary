@@ -184,12 +184,12 @@ pub(super) fn verify_merged(
                 .common
                 .dreams
                 .admission(&expected.pass_id)
-                .map(|a| &a.preexisting_ids)
+                .map(|a| a.preexisting_ids())
                 != source
                     .common
                     .dreams
                     .admission(&expected.pass_id)
-                    .map(|a| &a.preexisting_ids)
+                    .map(|a| a.preexisting_ids())
                 || actual.source != expected.source
                 || actual.revision != expected.revision
                 || actual.body != expected.body
