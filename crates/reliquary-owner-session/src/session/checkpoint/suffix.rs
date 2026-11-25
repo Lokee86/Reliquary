@@ -118,6 +118,22 @@ fn replay_typed_suffix(
         if reliquary_archive::is_turn_or_branch_publication(frame.payload)?
             || reliquary_archive::is_source_removal_publication(frame.payload)?
         {
+            if let Some(change) = reliquary_archive::copied_source_change_in_frame(frame.payload)? {
+                let request = &change.request;
+                if session
+                    .copied_source_head(
+                        &request.namespace,
+                        &request.source_id,
+                        &request.conversation_id,
+                        &request.source_sha256,
+                    )
+                    .is_none()
+                {
+                    return Err(OwnerSessionError::Record(
+                        "checkpoint copied source head is unavailable".into(),
+                    ));
+                }
+            }
             session
                 .archive
                 .replay_frame(container, frame.object, frame.payload, 0)?;

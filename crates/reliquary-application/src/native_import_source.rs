@@ -29,7 +29,7 @@ pub use hermes::{
     HermesCopiedEcho, HermesCopiedEchoKind, HermesCopiedMessage, HermesCopiedRole,
     HermesCopiedSnapshot, HermesCopiedSource, HermesCopiedSourceTurn, HermesCopiedToolOutcome,
     HermesCopyScope, apply_hermes_copy_source_change, read_hermes_archive_range,
-    read_hermes_copy_source, tombstone_hermes_copy,
+    read_hermes_copy_active_message_uids, read_hermes_copy_source, tombstone_hermes_copy,
 };
 pub use reliquary_owner_session::model::{
     CopiedSourceChange as HermesCopySourceChange,

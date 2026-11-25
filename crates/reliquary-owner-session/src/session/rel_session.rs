@@ -588,6 +588,9 @@ impl RelSession {
         conversation: &str,
         node: &str,
     ) -> Result<Vec<reliquary_archive::SourceAttachment>, OwnerSessionError> {
+        if self.archive_source_removed(conversation, node) {
+            return Ok(Vec::new());
+        }
         Ok(self.archive.files_for_source(conversation, node)?)
     }
     pub fn episode(&self, id: reliquary_archive::EpisodeId) -> Option<&reliquary_archive::Episode> {
@@ -783,6 +786,9 @@ impl RelSession {
         conversation_id: &str,
         node_id: &str,
     ) -> Result<Option<reliquary_archive::ResolvedTurn>, OwnerSessionError> {
+        if self.archive_source_removed(conversation_id, node_id) {
+            return Err(reliquary_archive::ArchiveError::MissingContent.into());
+        }
         self.archive
             .resolved_turn(conversation_id, node_id)
             .map_err(|error| OwnerSessionError::Record(error.to_string()))

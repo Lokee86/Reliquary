@@ -175,6 +175,27 @@ pub fn is_turn_or_branch_publication(payload: &[u8]) -> Result<bool, ArchiveErro
         .is_some_and(|body| body.starts_with(b"RELTURN2") || body.starts_with(b"RELBRCH1")))
 }
 
+/// Identify a copied-source change on a physical record prefix.
+pub fn copied_source_change_candidate(prefix: &[u8]) -> bool {
+    match applying_archive_payload(prefix) {
+        Ok(Some(payload)) => payload.starts_with(archive::copied_source::MARKER),
+        Ok(None) => false,
+        Err(_) => true,
+    }
+}
+
+pub fn copied_source_change_in_frame(
+    payload: &[u8],
+) -> Result<Option<AcceptedCopiedSourceChange>, ArchiveError> {
+    let Some(body) = applying_archive_payload(payload)? else {
+        return Ok(None);
+    };
+    if !body.starts_with(archive::copied_source::MARKER) {
+        return Ok(None);
+    }
+    archive::copied_source::decode(body).map(Some)
+}
+
 /// Identify the source removal carriers that can replay against the Archive checkpoint.
 pub fn is_source_removal_publication(payload: &[u8]) -> Result<bool, ArchiveError> {
     Ok(applying_archive_payload(payload)?.is_some_and(|body| {

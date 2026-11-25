@@ -47,6 +47,17 @@ impl InsomniaStore {
         now: i64,
         duration: i64,
     ) -> Result<Option<InsomniaWork>, InsomniaError> {
+        self.claim_next_matching(c, worker, now, duration, |_| true)
+    }
+
+    pub fn claim_next_matching(
+        &mut self,
+        c: &mut Container,
+        worker: &str,
+        now: i64,
+        duration: i64,
+        eligible: impl Fn(EpisodeId) -> bool,
+    ) -> Result<Option<InsomniaWork>, InsomniaError> {
         self.check_owner(c)?;
         if worker.trim().is_empty() || duration <= 0 {
             return Err(InsomniaError::InvalidField("worker lease"));
@@ -61,7 +72,7 @@ impl InsomniaStore {
                     || w.state == InsomniaWorkState::Processing
                         && w.lease_expires_ns.is_none_or(|t| t <= now)
             })
-            .filter(|(id, _)| self.orders.contains_key(id))
+            .filter(|(id, _)| self.orders.contains_key(id) && eligible(**id))
             .min_by_key(|(id, w)| {
                 (
                     w.priority,

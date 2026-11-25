@@ -127,7 +127,8 @@ impl Instance {
         )?)
     }
 
-    /// Read an exact inclusive message range from an accepted copied receipt of this principal.
+    /// Read an exact inclusive message range from this principal's copied receipt.
+    /// A current head also admits exact ranges in its surviving ancestry.
     pub fn read_hermes_copy_source(
         &self,
         owner: OwnerId,
@@ -143,6 +144,26 @@ impl Instance {
             source_sha256,
             start_message_uid,
             end_message_uid,
+        )?)
+    }
+
+    /// Page the current copied source's stable message IDs in newest-first order.
+    /// Each page admits up to 128 IDs and checks the exact authorized head again.
+    pub fn read_hermes_copy_active_message_uids(
+        &self,
+        owner: OwnerId,
+        scope: &HermesCopyScope,
+        source_sha256: [u8; 32],
+        from_leaf: usize,
+        limit: usize,
+    ) -> Result<Option<Vec<String>>, ProductError> {
+        self.require_rel_read(owner)?;
+        Ok(self.inner.read_hermes_copy_active_message_uids(
+            owner.into(),
+            scope,
+            source_sha256,
+            from_leaf,
+            limit,
         )?)
     }
 

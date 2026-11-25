@@ -327,7 +327,14 @@ impl RelWriter {
                 "Insomnia worker limits",
             )));
         }
-        for order in self.session.insomnia.unqueued_orders(max_admissions) {
+        let archive = &self.session.archive;
+        let eligible = self
+            .session
+            .insomnia
+            .unqueued_orders_matching(max_admissions, |id| {
+                !archive.episode_source_removed(reliquary_archive::EpisodeId(id.0))
+            });
+        for order in eligible {
             let episode = self
                 .session
                 .archive
@@ -351,11 +358,13 @@ impl RelWriter {
             );
             self.finish_insomnia_write(queued)?;
         }
-        let claimed = self.session.insomnia.claim_next(
+        let archive = &self.session.archive;
+        let claimed = self.session.insomnia.claim_next_matching(
             &mut self.container,
             worker,
             started_at_ns,
             lease_duration_ns,
+            |id| !archive.episode_source_removed(reliquary_archive::EpisodeId(id.0)),
         );
         let Some(work) = self.finish_insomnia_write(claimed)? else {
             self.session.writer_lease_proof = self.container.writer_lease_proof();

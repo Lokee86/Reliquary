@@ -30,6 +30,7 @@ pub struct CopiedSourceChangeReceipt {
     pub event_id: String,
     pub source_sha256: [u8; 32],
     pub resulting_head_sha256: Option<[u8; 32]>,
+    pub last_surviving_message_uid: Option<String>,
     pub archive_version: u64,
 }
 
@@ -73,7 +74,12 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<AcceptedCopiedSourceChange, Archive
     if bytes.len() > MAX_RECORD_BYTES {
         return Err(invalid());
     }
-    serde_json::from_slice(&bytes[MARKER.len()..]).map_err(|_| invalid())
+    let body = &bytes[MARKER.len()..];
+    let record = serde_json::from_slice(body).map_err(|_| invalid())?;
+    if serde_json::to_vec(&record).map_err(|_| invalid())? != body {
+        return Err(invalid());
+    }
+    Ok(record)
 }
 
 impl Archive {
@@ -94,8 +100,7 @@ impl Archive {
     }
 
     /// Inspect eligibility against the current or a historical removal cut.
-    /// An invalid range has no removal witness. Callers check range validity
-    /// separately wherever they use coordinates as proof.
+    /// Check range validity separately when using coordinates as proof.
     pub fn source_range_removed_at(
         &self,
         conversation: &str,
@@ -148,6 +153,16 @@ impl Archive {
             self.archive_version(),
             self.archive_version(),
         )
+    }
+
+    pub fn episode_source_removed(&self, id: EpisodeId) -> bool {
+        self.episode(id).is_some_and(|episode| {
+            self.source_range_removed(
+                &episode.conversation_id,
+                &episode.start_node_id,
+                &episode.end_node_id,
+            )
+        })
     }
 
     pub fn copied_source_changes(&self) -> &[AcceptedCopiedSourceChange] {
@@ -304,6 +319,7 @@ impl Archive {
                 source_sha256: request.source_sha256,
                 archive_version,
                 resulting_head_sha256: None,
+                last_surviving_message_uid: None,
             },
             branch_id: None,
             prior_leaf: None,
@@ -365,6 +381,7 @@ impl Archive {
         record.branch_id = Some(head.branch_id.to_owned());
         record.prior_leaf = head.node_id.map(str::to_owned);
         record.surviving_node = last_surviving_message_uid.clone();
+        record.receipt.last_surviving_message_uid = last_surviving_message_uid.clone();
         let mut hash = Sha256::new();
         hash.update(b"reliquary/copied-source-rewind-head/v1\0");
         hash.update(self.owner_id.ok_or(ArchiveError::WrongOwner)?);

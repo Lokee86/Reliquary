@@ -1,5 +1,6 @@
 //! Authenticated vector publication; inference never holds owner locks.
 use super::*;
+use crate::instance_owner::RelMount;
 use reliquary_application::{
     EmbeddingEndpoint, PreparedMemoryVectors, commit_phy_memory_vectors, commit_rel_memory_vectors,
     evaluate_memory_vectors, prepare_compatibility_profile,
@@ -40,6 +41,8 @@ impl Instance {
         query: &[f32],
         limit: usize,
     ) -> Result<ArchiveVectorSearch, GatewayError> {
+        self.authorize_rel_access(owner)?;
+        let mount = RelMount::capture(self, owner)?;
         let view = self
             .with_reliquary(owner, |rel| rel.archive_vector_view(profile_id))??
             .ok_or(GatewayError::RetrievalUnavailable(
@@ -50,7 +53,7 @@ impl Instance {
         }
         let removal_version = view.source_removal_version();
         let result = view.search(query, limit)?;
-        self.recheck_archive_removal_version(owner, removal_version)?;
+        self.recheck_archive_removal_version(owner, &mount, removal_version)?;
         Ok(result)
     }
 
@@ -70,6 +73,8 @@ impl Instance {
         query: &[f32],
         policy: reliquary_application::RetrievalConfig,
     ) -> Result<ArchiveHybridSearch, GatewayError> {
+        self.authorize_rel_access(owner)?;
+        let mount = RelMount::capture(self, owner)?;
         let view = self.with_reliquary(owner, |rel| {
             if rel
                 .active_compatibility_profile(profile_id)
@@ -85,7 +90,7 @@ impl Instance {
         let removal_version = view.source_removal_version();
         let result = reliquary_application::rank_archive_hybrid(view, text, query, policy)
             .map_err(GatewayError::Retrieval)?;
-        self.recheck_archive_removal_version(owner, removal_version)?;
+        self.recheck_archive_removal_version(owner, &mount, removal_version)?;
         Ok(result)
     }
 
@@ -98,6 +103,8 @@ impl Instance {
         policy: reliquary_application::RetrievalConfig,
         filter: reliquary_application::TemporalFilter,
     ) -> Result<reliquary_application::TemporalArchiveHybridSearch, GatewayError> {
+        self.authorize_rel_access(owner)?;
+        let mount = RelMount::capture(self, owner)?;
         let view = self.with_reliquary(owner, |rel| {
             if rel
                 .active_compatibility_profile(profile_id)
@@ -114,16 +121,19 @@ impl Instance {
         let result =
             reliquary_application::rank_archive_hybrid_temporal(view, text, query, policy, filter)
                 .map_err(GatewayError::Retrieval)?;
-        self.recheck_archive_removal_version(owner, removal_version)?;
+        self.recheck_archive_removal_version(owner, &mount, removal_version)?;
         Ok(result)
     }
 
-    fn recheck_archive_removal_version(
+    pub(super) fn recheck_archive_removal_version(
         &self,
         owner: OwnerId,
+        mount: &RelMount,
         expected: u64,
     ) -> Result<(), GatewayError> {
-        if self.with_reliquary(owner, RelSession::archive_source_removal_version)? != expected {
+        if self.with_reliquary(owner, RelSession::archive_source_removal_version)? != expected
+            || &RelMount::capture(self, owner)? != mount
+        {
             return Err(GatewayError::StaleRetrieval);
         }
         self.ensure_credential_active()

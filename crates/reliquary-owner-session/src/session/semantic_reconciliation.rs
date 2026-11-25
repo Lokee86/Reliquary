@@ -156,8 +156,9 @@ pub fn reconcile_divergent_rel_copy(
     let left_records = semantic_records(&left_container)?;
     let right_records = semantic_records(&right_container)?;
     for record in left_records.iter().chain(&right_records) {
-        if reliquary_archive::is_source_removal_publication(record)
+        if reliquary_archive::copied_source_change_in_frame(record)
             .map_err(|error| RelReconciliationError::Verification(error.to_string()))?
+            .is_some()
         {
             return Err(RelReconciliationError::UnsupportedState(
                 "Archive source removal",

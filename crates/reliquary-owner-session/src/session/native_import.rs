@@ -48,9 +48,12 @@ pub(super) fn validate_native_import_receipts(
 ) -> Result<(), OwnerSessionError> {
     let mut prefix = ImportEpochStore::prefix(container.owner_id());
     let mut received = std::collections::BTreeSet::new();
+    let mut rewind_heads = std::collections::BTreeSet::new();
     let publications = archive.publication_bindings();
     let mut cursor = container.matching_physical_cursor(|prefix| {
-        is_import_epoch_marker(prefix) || reliquary_archive::import_receipt_candidate(prefix)
+        is_import_epoch_marker(prefix)
+            || reliquary_archive::import_receipt_candidate(prefix)
+            || reliquary_archive::copied_source_change_candidate(prefix)
     })?;
     while let Some(mut frame) = cursor.next_frame()? {
         use std::io::Read;
@@ -86,6 +89,29 @@ pub(super) fn validate_native_import_receipts(
             prefix
                 .ingest_prefix(&payload)
                 .map_err(OwnerSessionError::Record)?;
+            continue;
+        }
+        if let Some(change) = reliquary_archive::copied_source_change_in_frame(&payload)? {
+            let head = change.request.source_sha256;
+            let key = head
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>();
+            let id = import_id(container.owner_id(), &key);
+            if prefix.open_epoch().is_some()
+                || !(rewind_heads.contains(&head)
+                    || (received.contains(&id)
+                        && matches!(
+                            prefix.status(&id),
+                            Some(ImportEpochStatus::Completed { .. })
+                        )))
+            {
+                return Err(OwnerSessionError::Record(
+                    "copied source change has no completed owner head at its physical position"
+                        .into(),
+                ));
+            }
+            rewind_heads.extend(change.receipt.resulting_head_sha256);
             continue;
         }
         let Some(receipt) = reliquary_archive::import_receipt_in_frame(&payload)? else {

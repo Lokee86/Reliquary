@@ -10,7 +10,8 @@ mod echo;
 mod read;
 pub use echo::{HermesCopiedEcho, HermesCopiedEchoKind, HermesCopiedToolOutcome};
 pub use read::{
-    HermesCopiedSource, HermesCopiedSourceTurn, read_hermes_archive_range, read_hermes_copy_source,
+    HermesCopiedSource, HermesCopiedSourceTurn, read_hermes_archive_range,
+    read_hermes_copy_active_message_uids, read_hermes_copy_source,
 };
 
 #[path = "source_hermes_extension.rs"]

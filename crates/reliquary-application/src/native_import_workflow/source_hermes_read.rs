@@ -29,8 +29,33 @@ pub fn read_hermes_copy_source(
     principal: &str,
 ) -> Result<Option<Vec<HermesCopiedSourceTurn>>, reliquary_owner_session::OwnerSessionError> {
     let namespace = scope.namespace(principal);
+    let current_range = || {
+        let conversation = scope.conversation_id();
+        let Some(head) = session.copied_source_head(
+            &namespace,
+            &scope.session_id,
+            &conversation,
+            &source_sha256,
+        ) else {
+            return Ok(None);
+        };
+        if !session.copied_source_head_is_current(&conversation, &head)
+            || !copied_ancestry(session, &conversation, head.node_id)
+                .any(|uid| uid == end_message_uid)
+        {
+            return Ok(None);
+        }
+        read_hermes_archive_range(
+            session,
+            &conversation,
+            start_message_uid,
+            end_message_uid,
+            session.archive_version(),
+            principal,
+        )
+    };
     let Some(copy) = scope.accepted_conversation(session, &source_sha256, &namespace) else {
-        return Ok(None);
+        return current_range();
     };
     if session
         .conversation_tombstone(&copy.conversation_id)
@@ -47,7 +72,7 @@ pub fn read_hermes_copy_source(
         .iter()
         .position(|row| row.source_id == end_message_uid);
     let (Some(start), Some(end)) = (start, end) else {
-        return Ok(None);
+        return current_range();
     };
     let Some(messages) = copy
         .messages
@@ -73,6 +98,49 @@ pub fn read_hermes_copy_source(
         turns.push(turn);
     }
     Ok(Some(turns))
+}
+
+/// Page stable message IDs from an authorized current copied head, newest first.
+pub fn read_hermes_copy_active_message_uids(
+    session: &RelSession,
+    scope: &HermesCopyScope,
+    source_sha256: [u8; 32],
+    from_leaf: usize,
+    limit: usize,
+    principal: &str,
+) -> Result<Option<Vec<String>>, reliquary_owner_session::OwnerSessionError> {
+    if !(1..=MAX_MESSAGES).contains(&limit) {
+        return Err(reliquary_owner_session::OwnerSessionError::ManagementLimit);
+    }
+    let conversation = scope.conversation_id();
+    let Some(head) = session.copied_source_head(
+        &scope.namespace(principal),
+        &scope.session_id,
+        &conversation,
+        &source_sha256,
+    ) else {
+        return Ok(None);
+    };
+    if !session.copied_source_head_is_current(&conversation, &head) {
+        return Ok(None);
+    }
+    Ok(Some(
+        copied_ancestry(session, &conversation, head.node_id)
+            .skip(from_leaf)
+            .take(limit)
+            .map(str::to_owned)
+            .collect(),
+    ))
+}
+
+fn copied_ancestry<'a>(
+    session: &'a RelSession,
+    conversation: &'a str,
+    leaf: Option<&'a str>,
+) -> impl Iterator<Item = &'a str> {
+    std::iter::successors(leaf, move |id| {
+        session.archive_node(conversation, id)?.parent_id.as_deref()
+    })
 }
 
 /// Resolve an exact native Archive ancestry range against its generation cut.
