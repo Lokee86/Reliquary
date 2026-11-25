@@ -65,6 +65,14 @@ impl DreamEvidenceStore {
                 graph_version: frontier.graph_version,
             })
     }
+    pub(crate) fn frontier_replay_facts(
+        &self,
+        pass: &str,
+    ) -> Option<(&[crate::records::dream_batch::Observation], bool)> {
+        let frontier = self.frontiers.get(pass)?;
+        Some((&frontier.candidates, frontier.has_begin))
+    }
+
     pub(crate) fn frontier_has_bound_begin(&self, pass: &str) -> bool {
         self.frontiers.get(pass).is_some_and(|frontier| {
             frontier.has_begin

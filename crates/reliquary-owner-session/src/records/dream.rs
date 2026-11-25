@@ -246,12 +246,13 @@ impl DreamEvidenceStore {
         admissions: impl IntoIterator<Item = DreamBeginAdmission>,
     ) -> Result<Self, String> {
         Self::open_admitted(container, admissions.into_iter().map(StoredAdmission::from))
+            .map(|(store, _)| store)
     }
 
     pub(crate) fn open_admitted(
         container: &Container,
         admissions: impl IntoIterator<Item = StoredAdmission>,
-    ) -> Result<Self, String> {
+    ) -> Result<(Self, Vec<(reliquary_container::ObjectRef, String)>), String> {
         let owner_uuid = container.owner_id();
         let mut admitted = BTreeMap::new();
         for admission in admissions {
@@ -276,6 +277,7 @@ impl DreamEvidenceStore {
             settlement_positions: BTreeMap::new(),
             frontiers: BTreeMap::new(),
         };
+        let mut frontier_positions = Vec::new();
         let mut frames = container
             .scan_matching_frames(super::frame_selection::without_archive_or_packed)
             .map_err(|error| error.to_string())?;
@@ -287,7 +289,9 @@ impl DreamEvidenceStore {
                 if let Some(begin) = begin {
                     store.ingest_physical_begin(begin)?;
                 }
+                let pass_id = frontier.pass_id.clone();
                 store.apply_frontier(frontier)?;
+                frontier_positions.push((frame.object, pass_id));
             } else if payload.starts_with(BEGIN_MAGIC) {
                 let begin = dream_begin_codec::decode(payload)?;
                 if matches!(begin.population, BeginPopulation::NativeBirth { .. }) {
@@ -305,7 +309,7 @@ impl DreamEvidenceStore {
                 store.apply_initial_settlement(settlement)?;
             }
         }
-        Ok(store)
+        Ok((store, frontier_positions))
     }
 
     pub fn begin(&self, pass_id: &str) -> Option<&BeginRecord> {

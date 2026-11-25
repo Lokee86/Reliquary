@@ -356,7 +356,7 @@ pub(super) fn open_common_replaying(
             ));
         }
     }
-    let dreams = DreamEvidenceStore::open_admitted(
+    let (dreams, frontier_positions) = DreamEvidenceStore::open_admitted(
         container,
         dream_admissions
             .into_iter()
@@ -371,6 +371,7 @@ pub(super) fn open_common_replaying(
         &graph,
         &dream_prefix.birth_versions,
         check_native_dream_policy,
+        &frontier_positions,
     )?;
     let dream_pairs = super::dream_pairs::DreamPairs::open(container)?;
     let dream_read_index = super::dream_read_index::DreamReadIndex::build(
