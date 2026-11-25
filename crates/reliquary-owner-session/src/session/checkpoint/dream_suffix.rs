@@ -14,7 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Default)]
 pub(super) struct NativeDreamSources {
-    mapped: Option<BTreeMap<String, BTreeSet<String>>>,
+    mapped: Option<native_import::ImportSourceMap>,
     checked: BTreeSet<reliquary_archive::EpisodeId>,
     birth_populations: Option<BTreeMap<u64, Population>>,
 }
@@ -62,34 +62,20 @@ impl NativeDreamSources {
             .ok_or(OwnerSessionError::StaleDreamCut)?;
         let key = native_import::decode_import_key(&epoch.import_key)
             .ok_or(OwnerSessionError::StaleDreamCut)?;
-        let receipt = session
-            .archive
-            .import_receipt(&key)
-            .ok_or(OwnerSessionError::StaleDreamCut)?;
-        let mapped = self.mapped.get_or_insert_with(|| {
-            receipt
-                .conversations
-                .iter()
-                .map(|conversation| {
-                    (
-                        conversation.conversation_id.clone(),
-                        conversation
-                            .messages
-                            .iter()
-                            .filter_map(|message| message.node_id.clone())
-                            .collect(),
-                    )
-                })
-                .collect()
-        });
+        if self.mapped.is_none() {
+            let receipt = session
+                .archive
+                .import_receipt(&key)?
+                .ok_or(OwnerSessionError::StaleDreamCut)?;
+            self.mapped = Some(native_import::ImportSourceMap::from_receipt(
+                receipt.as_ref(),
+            ));
+        }
+        let mapped = self.mapped.as_ref().expect("native receipt loaded");
         if !native_import::native_dream_episode_is_mapped(
             &session.archive,
             id,
-            |conversation, node| {
-                mapped
-                    .get(conversation)
-                    .is_some_and(|nodes| nodes.contains(node))
-            },
+            |conversation, node| mapped.contains(conversation, node),
         )? {
             return Err(OwnerSessionError::StaleDreamCut);
         }

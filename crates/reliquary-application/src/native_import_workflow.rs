@@ -91,7 +91,7 @@ pub(super) fn stage_native_import_with_admission(
     }
     if writer
         .read_session()
-        .native_import_receipt(&batch.source.import_key)
+        .native_import_receipt_digest(&batch.source.import_key)
         .is_some()
     {
         // The receipt closes staging, including a crash after settlement.
@@ -130,11 +130,11 @@ fn confirm_staged_retry(
 ) -> Result<StagedNativeImport, OwnerSessionError> {
     let session = writer.read_session();
     let receipt = session
-        .native_import_receipt(&batch.source.import_key)
+        .native_import_receipt(&batch.source.import_key)?
         .ok_or_else(|| {
             OwnerSessionError::Record("import retry lacks its durable source receipt".into())
         })?
-        .clone();
+        .into_owned();
     if receipt.conversations != batch.source.conversations
         || receipt.source_namespace != batch.source.source_namespace
         || receipt.source_format != batch.source.source_format

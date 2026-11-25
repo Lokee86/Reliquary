@@ -98,7 +98,8 @@ impl RelWriter {
             .ok_or_else(|| OwnerSessionError::Record("invalid native import key".into()))?;
         let accepted = self
             .session
-            .native_import_receipt(&key)
+            .archive
+            .import_receipt_identity(&key)
             .is_some_and(|receipt| {
                 receipt.owner_uuid == self.session.owner_id
                     && receipt.source_digest == key

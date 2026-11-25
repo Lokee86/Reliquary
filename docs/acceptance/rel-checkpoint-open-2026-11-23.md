@@ -106,6 +106,23 @@ The local Hermes builds used the same plugin source and dependency lock. The exe
 
 Each pair of runs used fresh profiles and alternated which build ran first on successive pairs. After the first two 28-day pairs showed substantial variation, three more pairs were measured. The table includes all samples. Other workloads shared the machine, and overall CPU utilization reached 100% during the measurements. Both year attaches completed faster. On the migrated pair the host requested 33% fewer bytes and used less CPU at the median. Its median elapsed time increased by 0.19 s and its median peak working set rose by 19.1 MiB.
 
+### Import receipts at checkpoint scale
+
+An optimized Windows Core probe compared leased receipt references with the previous resident receipt projection. The checkpoint retains each receipt's admitted identity, its conversation coverage and titles, and its verified physical reference. Source message mappings are read from that frame when needed. The first open in each pair uses an empty checkpoint slot. A fresh process then opens the same disposable REL at the exact verified extent. The tests use the operating system's normal filesystem cache. They time checkpoint publication separately from admission.
+
+Each real fixture used one matched pair against `e13607fa`, with matching REL hashes, verified extents, and restored owner cuts.
+
+| Fixture | Full open, previous → leased | Exact reopen, previous → leased | Checkpoint bytes, previous → leased |
+| --- | ---: | ---: | ---: |
+| Reliquary import, 426,251,206 bytes | 5.228 → 5.249 s | 0.812 → 0.793 s | 60,326,683 → 55,352,179 |
+| Space Rocks import, 164,542,974 bytes | 2.199 → 2.294 s | 0.461 → 0.404 s | 47,842,469 → 37,203,387 |
+
+The synthetic six-import REL holds 216,000 mappings in 263,908,031 bytes. Its checkpoint fell from 224,563,900 bytes to 9,330 bytes. Sampled private memory for exact reopen fell from 274,743,296 to 2,625,536 bytes. The eight-import REL holds 288,000 mappings in 351,877,600 bytes. Its previous projection exceeded the 256 MiB limit on source ID, revision, and parent strings alone, which account for at least 281,232,000 bytes. Full replay on that build reached publication and left no completed checkpoint after the write failed. The candidate published a 12,105-byte checkpoint and selected its exact extent on the next open. Both candidate checkpoints returned all receipt mappings through verified reads, including the retained turn and branch in the last import. REL hashes and owner cuts matched. The synthetic runs overlapped downstream compile checks, so their timings are diagnostic.
+
+The limit still applies to the typed projection. Exact reopen also reads the complete covered REL prefix for integrity, so the cost on a file with a small projection still depends on storage throughput. A prior phase probe on the 426 MB import copy attributed 0.129 s of a 0.756 s exact reopen to checking the prefix and 0.625 s to restoring the projection.
+
+Full replay on the same copy spent 1.51–1.53 s of 4.98 s verifying the Graph prefix, which includes 2,256 historical Dream Frontiers. Their carriers account for 300,246,766 bytes of the REL. In a separate diagnostic sample, decoding those Frontier JSON records took 1.112 s of the 1.480 s Graph prefix phase. Embedded Begin decoding and population construction took 0.042 s. The diagnostic ran alongside compile checks, completed in 5.018 s, and reproduced the owner's hash and restored cuts.
+
 ## Recovery and focused tests
 
 The owner-session checkpoint test crosses a signed standalone reservation and a grouped Memory correction. It compares the exact historical proof with full admission, exercises a vector row spanning two verified pages, checks an interrupted checkpoint staging operation and a damaged page, rejects a same-owner copy's checkpoint, and refuses a torn tail. Container tests also exercise equal-length prefix changes, timestamp continuity, and explicit tail repair. Archive and Memory tests cover digest-checked ranges, detached reads, and grouped payload retry.

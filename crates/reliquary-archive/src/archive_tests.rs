@@ -526,7 +526,7 @@ fn import_receipt_binds_source_mapping_to_archive_nodes_branches_and_files() {
         owner,
     )
     .unwrap();
-    let mut archive = Archive::empty();
+    let mut archive = Archive::open_leased(&container).unwrap();
     let mut source_turn = turn("native-node", None, 1, "private source body");
     source_turn.attachments.push(crate::AttachmentInput {
         filename: "note.txt".into(),
@@ -610,10 +610,75 @@ fn import_receipt_binds_source_mapping_to_archive_nodes_branches_and_files() {
     container.sync().unwrap();
     let reopened = Archive::open(&container).unwrap();
     assert_eq!(
-        reopened.import_receipt(&accepted.import_key),
-        Some(&accepted)
+        reopened.import_receipt(&accepted.import_key).unwrap(),
+        Some(Cow::Borrowed(&accepted))
     );
     assert_eq!(reopened.history_at(3).unwrap(), imported_cut);
+    assert!(matches!(
+        archive.import_receipt(&accepted.import_key).unwrap(),
+        Some(Cow::Owned(receipt)) if receipt == accepted
+    ));
+    let encoded = encode_import_receipt(&accepted).unwrap();
+    container.append(&encoded).unwrap();
+    let mut wrapped = accepted.clone();
+    wrapped.import_key = [0x44; 32];
+    wrapped.source_digest = wrapped.import_key;
+    wrapped.receipt_digest = import_receipt_digest(&wrapped).unwrap();
+    let body = encode_import_receipt(&wrapped).unwrap();
+    let global = container.reserve_version(None).unwrap();
+    container
+        .append_bound_publication_envelope(
+            global,
+            &crate::publication::encode(4, crate::publication::Body::Applying(&body)),
+        )
+        .unwrap();
+    container.sync().unwrap();
+
+    let mut leased = Archive::open_leased(&container).unwrap();
+    assert_eq!(leased.import_receipt_count(), 2);
+    assert_eq!(
+        leased.import_receipt_archive_version(&accepted.import_key),
+        Some(3)
+    );
+    assert_eq!(
+        leased.import_receipts().unwrap(),
+        [accepted.clone(), wrapped.clone()]
+    );
+    assert_eq!(leased.history_at(3).unwrap(), imported_cut);
+    assert!(leased.import_receipt_covers_conversation("conversation-1"));
+    assert_eq!(
+        leased.conversation_title("conversation-1"),
+        Some("Imported title")
+    );
+    let reference = leased
+        .imported_turn_reference("conversation-1", "native-node")
+        .unwrap()
+        .unwrap();
+    assert_eq!(reference.get().2.source_id, "message-source");
+    drop(reference);
+
+    let slot = leased.import_receipts.remove(&wrapped.import_key).unwrap();
+    let projection = serde_json::to_string(&slot).unwrap();
+    assert!(!projection.contains("message-source"));
+    let slot = serde_json::from_str(&projection).unwrap();
+    leased.import_receipts.insert(wrapped.import_key, slot);
+    assert!(matches!(
+        leased.import_receipt(&wrapped.import_key).unwrap(),
+        Some(Cow::Owned(receipt)) if receipt == wrapped
+    ));
+
+    let slot = leased.import_receipts.remove(&wrapped.import_key).unwrap();
+    leased.import_receipts.insert([0x77; 32], slot);
+    assert!(matches!(
+        leased.import_receipt(&[0x77; 32]),
+        Err(ArchiveError::CorruptRecord(
+            "import receipt backing mismatch"
+        ))
+    ));
+    assert!(matches!(
+        container.append(b"AFTERBAD"),
+        Err(ContainerError::WriteRecoveryRequired)
+    ));
 }
 
 #[test]

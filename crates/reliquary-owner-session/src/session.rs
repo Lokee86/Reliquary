@@ -260,6 +260,8 @@ pub struct RelSession {
     freshness: FreshnessStore,
     insomnia: InsomniaStore,
     imports: ImportEpochStore,
+    #[serde(skip)]
+    active_import_source: std::sync::Mutex<Option<native_import::ActiveImportSource>>,
     archive_vectors: ArchiveVectorStore,
     generations: VectorGenerationStore,
     #[serde(skip)]

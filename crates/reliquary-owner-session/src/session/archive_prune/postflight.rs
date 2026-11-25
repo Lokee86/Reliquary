@@ -14,7 +14,12 @@ pub(super) fn verify_reopened(
         || retained.branches() != archive.branches()
         || retained.episodes() != archive.episodes()
         || retained.fragment_definitions() != archive.fragment_definitions()
-        || retained.import_receipts() != archive.import_receipts()
+        || retained
+            .import_receipts()
+            .map_err(|error| error.to_string())?
+            != archive
+                .import_receipts()
+                .map_err(|error| error.to_string())?
         || retained.project_backing_bindings() != archive.project_backing_bindings()
         || after.archive_vectors.infos() != before.archive_vectors.infos()
         || after.generations.generations() != before.generations.generations()

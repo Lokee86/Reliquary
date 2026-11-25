@@ -299,13 +299,12 @@ impl RelSession {
         };
         let key = super::decode_import_key(&start.import_key)
             .ok_or_else(|| OwnerSessionError::Record("invalid native import key".into()))?;
-        let receipt = self.archive.import_receipt(&key).ok_or_else(|| {
+        let mapped = self.native_import_sources(&key)?.ok_or_else(|| {
             OwnerSessionError::Record("native import receipt is unavailable".into())
         })?;
         if open && self.imports.settlement(import_id).is_none() {
-            self.validate_import_work_complete(receipt)?;
+            self.validate_import_work_complete(&mapped)?;
         }
-        let mapped = super::work::mapped_source_nodes(receipt);
         let mut result = Vec::new();
         for (key, completion) in &self.grouped_completions {
             if self

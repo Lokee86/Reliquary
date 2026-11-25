@@ -555,7 +555,10 @@ fn copy_archive_state(
         }
     }
     if request.archive == FreshHistoryArchive::All {
-        for mut receipt in source.import_receipts() {
+        for mut receipt in source
+            .import_receipts()
+            .map_err(|error| error.to_string())?
+        {
             receipt.owner_uuid = target.owner_id();
             destination
                 .put_import_receipt(target, receipt)

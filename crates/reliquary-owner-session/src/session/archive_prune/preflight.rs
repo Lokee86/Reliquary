@@ -99,14 +99,12 @@ pub(super) fn verify_dependencies(
         }
     }
 
-    for receipt in session.archive.import_receipts() {
-        if receipt
-            .conversations
-            .iter()
-            .any(|conversation| selected.contains(&conversation.conversation_id))
-        {
-            return Err("selected Archive content has an unresolved import mapping".into());
-        }
+    if selected.iter().any(|conversation| {
+        session
+            .archive
+            .import_receipt_covers_conversation(conversation)
+    }) {
+        return Err("selected Archive content has an unresolved import mapping".into());
     }
 
     let selected_fragments = session

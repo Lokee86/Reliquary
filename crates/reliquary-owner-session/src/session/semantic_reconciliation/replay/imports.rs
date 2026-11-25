@@ -435,12 +435,13 @@ fn freshness_authority(
 fn output_receipt<'a>(
     epoch: &CompletedEpoch,
     session: &'a RelSession,
-) -> Result<&'a crate::model::ImportReceipt, RelReconciliationError> {
+) -> Result<std::borrow::Cow<'a, crate::model::ImportReceipt>, RelReconciliationError> {
     let key = decode_key(&epoch.start.import_key)
         .ok_or_else(|| conflict("completed import has a noncanonical source key"))?;
     session
         .archive
         .import_receipt(&key)
+        .map_err(conflict)?
         .ok_or_else(|| conflict("completed import lacks its Archive receipt"))
 }
 
@@ -612,7 +613,7 @@ fn replay_archive_range(
             if writer
                 .session
                 .archive
-                .import_receipt(&receipt.import_key)
+                .import_receipt_identity(&receipt.import_key)
                 .is_none()
             {
                 return Err(RelReconciliationError::UnsupportedState(

@@ -23,6 +23,7 @@ pub(in crate::native_import_source) fn attach_predecessor(
     }
     let prior = scope
         .accepted_conversation(session, predecessor, namespace)
+        .map_err(NativeImportStageError::Owner)?
         .ok_or(NativeImportStageError::Conflict)?;
     let parent = prior
         .messages

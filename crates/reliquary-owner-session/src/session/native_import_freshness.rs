@@ -29,15 +29,12 @@ impl RelWriter {
             })?;
         let import_digest = super::decode_import_key(&start.import_key)
             .ok_or_else(|| OwnerSessionError::Record("invalid native import key".into()))?;
-        let receipt = self
+        let mapped = self
             .session
-            .archive
-            .import_receipt(&import_digest)
+            .native_import_sources(&import_digest)?
             .ok_or_else(|| {
                 OwnerSessionError::Record("native import receipt is unavailable".into())
             })?;
-
-        let mapped = super::work::mapped_source_nodes(receipt);
         let positions: BTreeMap<_, _> = self
             .session
             .archive

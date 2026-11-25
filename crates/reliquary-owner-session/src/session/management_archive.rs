@@ -51,11 +51,10 @@ impl RelSession {
         conversation: &str,
         node: &str,
     ) -> Result<Option<RelImportedSource>, OwnerSessionError> {
-        let Some((receipt, conversation, message)) =
-            self.archive.imported_turn_reference(conversation, node)
-        else {
+        let Some(reference) = self.archive.imported_turn_reference(conversation, node)? else {
             return Ok(None);
         };
+        let (receipt, conversation, message) = reference.get();
         let fields = [
             receipt.source_namespace.as_str(),
             receipt.source_format.as_str(),

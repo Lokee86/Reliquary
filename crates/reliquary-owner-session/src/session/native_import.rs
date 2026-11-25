@@ -5,6 +5,7 @@ use crate::records::import::is_import_epoch_marker;
 use crate::records::{
     ImportEpochStatus, ImportFreshnessSettlement, ImportStart, ImportWatermarks, import_id,
 };
+use std::borrow::Cow;
 
 #[path = "native_import_completion.rs"]
 mod completion;
@@ -20,7 +21,7 @@ pub(super) use postprocessing::{
 #[path = "native_import_work.rs"]
 mod work;
 pub use work::InsomniaEpisodeStatus;
-pub(super) use work::mapped_source_nodes;
+pub(super) use work::{ActiveImportSource, ImportSourceMap};
 #[path = "native_import_writer.rs"]
 mod writer;
 
@@ -35,8 +36,14 @@ impl RelSession {
     pub fn native_import_receipt(
         &self,
         import_key: &[u8; 32],
-    ) -> Option<&crate::model::ImportReceipt> {
-        self.archive.import_receipt(import_key)
+    ) -> Result<Option<Cow<'_, crate::model::ImportReceipt>>, OwnerSessionError> {
+        Ok(self.archive.import_receipt(import_key)?)
+    }
+
+    pub fn native_import_receipt_digest(&self, import_key: &[u8; 32]) -> Option<[u8; 32]> {
+        self.archive
+            .import_receipt_identity(import_key)
+            .map(|identity| identity.receipt_digest)
     }
 
     pub fn native_import_settlement(&self, import_id: &str) -> Option<&ImportFreshnessSettlement> {
@@ -89,7 +96,7 @@ fn validate_receipt_at_epoch(
     key: &[u8; 32],
 ) -> Result<String, OwnerSessionError> {
     let receipt = archive
-        .import_receipt(key)
+        .import_receipt_identity(key)
         .ok_or_else(|| OwnerSessionError::Record("missing Archive import receipt".into()))?;
     let key = key
         .iter()

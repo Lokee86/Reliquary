@@ -110,7 +110,7 @@ impl RelWriter {
             .open_epoch()
             .expect("validated open epoch");
         if super::decode_import_key(&start.import_key)
-            .and_then(|key| self.session.native_import_receipt(&key))
+            .and_then(|key| self.session.native_import_receipt_digest(&key))
             .is_none()
         {
             return Err(OwnerSessionError::Record(

@@ -308,10 +308,14 @@ pub(super) fn validate_graph_prefix(
                                 .ok_or(OwnerSessionError::StaleDreamCut)?;
                             let receipt = archive
                                 .archive
-                                .import_receipt(&key)
+                                .import_receipt(&key)?
                                 .ok_or(OwnerSessionError::StaleDreamCut)?;
-                            native_receipt =
-                                Some((version, super::native_import::mapped_source_nodes(receipt)));
+                            native_receipt = Some((
+                                version,
+                                super::native_import::ImportSourceMap::from_receipt(
+                                    receipt.as_ref(),
+                                ),
+                            ));
                         }
                         let (receipt_version, mapped) =
                             native_receipt.as_ref().expect("native receipt loaded");
@@ -322,7 +326,7 @@ pub(super) fn validate_graph_prefix(
                             && !super::native_import::native_dream_episode_is_mapped(
                                 archive.archive,
                                 episode_id,
-                                |conversation, node| mapped.contains(&(conversation, node)),
+                                |conversation, node| mapped.contains(conversation, node),
                             )?
                         {
                             return Err(OwnerSessionError::StaleDreamCut);

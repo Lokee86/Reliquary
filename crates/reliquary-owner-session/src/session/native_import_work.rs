@@ -1,7 +1,8 @@
 //! Imported Episode claim and scoped publication.
 use super::*;
 use reliquary_archive::EpisodeOrigin;
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug)]
 pub struct InsomniaEpisodeStatus {
@@ -13,7 +14,104 @@ pub struct InsomniaEpisodeStatus {
     pub rejected: u32,
 }
 
+pub(in crate::session) struct ActiveImportSource {
+    key: [u8; 32],
+    digest: [u8; 32],
+    nodes: Arc<ImportSourceMap>,
+}
+
+pub(in crate::session) struct ImportSourceMap(BTreeMap<String, BTreeMap<String, bool>>);
+
+impl ImportSourceMap {
+    pub(in crate::session) fn from_receipt(receipt: &crate::model::ImportReceipt) -> Self {
+        let mut mapped = BTreeMap::<String, BTreeMap<String, bool>>::new();
+        for conversation in &receipt.conversations {
+            let nodes = mapped
+                .entry(conversation.conversation_id.clone())
+                .or_default();
+            for message in &conversation.messages {
+                if let Some(node) = &message.node_id {
+                    *nodes.entry(node.clone()).or_default() |= !message.deleted;
+                }
+            }
+        }
+        Self(mapped)
+    }
+
+    pub(in crate::session) fn contains(&self, conversation: &str, node: &str) -> bool {
+        self.0
+            .get(conversation)
+            .is_some_and(|nodes| nodes.contains_key(node))
+    }
+
+    fn contains_live(&self, conversation: &str, node: &str) -> bool {
+        self.0
+            .get(conversation)
+            .and_then(|nodes| nodes.get(node))
+            .copied()
+            .unwrap_or(false)
+    }
+
+    pub(super) fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.0.iter().flat_map(|(conversation, nodes)| {
+            nodes
+                .keys()
+                .map(|node| (conversation.as_str(), node.as_str()))
+        })
+    }
+}
+
 impl RelSession {
+    // Historic lookups never replace the one cache for the current epoch.
+    pub(super) fn native_import_sources(
+        &self,
+        key: &[u8; 32],
+    ) -> Result<Option<Arc<ImportSourceMap>>, OwnerSessionError> {
+        let Some(digest) = self.native_import_receipt_digest(key) else {
+            return Ok(None);
+        };
+        if self
+            .imports
+            .open_epoch()
+            .and_then(|start| super::decode_import_key(&start.import_key))
+            .as_ref()
+            != Some(key)
+        {
+            return Ok(self
+                .native_import_receipt(key)?
+                .map(|receipt| Arc::new(ImportSourceMap::from_receipt(receipt.as_ref()))));
+        }
+        let mut cached = self.active_import_source.lock().map_err(|_| {
+            OwnerSessionError::Record("active import source cache is unavailable".into())
+        })?;
+        if let Some(source) = cached
+            .as_ref()
+            .filter(|source| source.key == *key && source.digest == digest)
+        {
+            return Ok(Some(Arc::clone(&source.nodes)));
+        }
+        let receipt = self.native_import_receipt(key)?.ok_or_else(|| {
+            OwnerSessionError::Record("accepted Archive import receipt is unavailable".into())
+        })?;
+        let nodes = Arc::new(ImportSourceMap::from_receipt(receipt.as_ref()));
+        *cached = Some(ActiveImportSource {
+            key: *key,
+            digest,
+            nodes: Arc::clone(&nodes),
+        });
+        Ok(Some(nodes))
+    }
+
+    pub(super) fn clear_active_import_source(&mut self) {
+        // An exclusive owner write ends the epoch and discards its derived map.
+        let entry = self
+            .active_import_source
+            .get_mut()
+            .unwrap_or_else(|error| error.into_inner());
+        *entry = None;
+        self.active_import_source.clear_poison();
+    }
+
     pub fn validate_import_processing_binding(
         &self,
         import_id: &str,
@@ -65,24 +163,18 @@ impl RelSession {
         import_id: &str,
         conversation: &str,
         node: &str,
-    ) -> bool {
-        self.imports
+    ) -> Result<bool, OwnerSessionError> {
+        let Some(key) = self
+            .imports
             .open_epoch()
             .filter(|epoch| epoch.import_id == import_id)
             .and_then(|epoch| super::decode_import_key(&epoch.import_key))
-            .and_then(|key| self.native_import_receipt(&key))
-            .and_then(|receipt| {
-                receipt
-                    .conversations
-                    .iter()
-                    .find(|entry| entry.conversation_id == conversation)
-            })
-            .is_some_and(|entry| {
-                entry
-                    .messages
-                    .iter()
-                    .any(|message| !message.deleted && message.node_id.as_deref() == Some(node))
-            })
+        else {
+            return Ok(false);
+        };
+        Ok(self
+            .native_import_sources(&key)?
+            .is_some_and(|nodes| nodes.contains_live(conversation, node)))
     }
 
     pub fn scoped_insomnia_status(
@@ -102,11 +194,7 @@ impl RelSession {
             };
             let key = super::decode_import_key(&start.import_key)
                 .ok_or_else(|| OwnerSessionError::Record("invalid import source key".into()))?;
-            Some(
-                self.native_import_receipt(&key)
-                    .map(mapped_source_nodes)
-                    .unwrap_or_default(),
-            )
+            self.native_import_sources(&key)?
         } else {
             None
         };
@@ -114,13 +202,10 @@ impl RelSession {
         episodes.sort_unstable_by_key(|episode| (episode.source_through_ns, episode.id));
         for episode in episodes {
             let matches = match &mapped {
-                None => episode.origin == EpisodeOrigin::Live,
+                None => import_id.is_none() && episode.origin == EpisodeOrigin::Live,
                 Some(mapped) => {
                     episode.origin == EpisodeOrigin::Import
-                        && mapped.contains(&(
-                            episode.conversation_id.as_str(),
-                            episode.start_node_id.as_str(),
-                        ))
+                        && mapped.contains(&episode.conversation_id, &episode.start_node_id)
                 }
             };
             if !matches {
@@ -298,7 +383,7 @@ impl RelWriter {
             .ok_or_else(|| OwnerSessionError::Record("import episode has no open epoch".into()))?;
         let key = super::decode_import_key(&start.import_key)
             .ok_or_else(|| OwnerSessionError::Record("invalid import source key".into()))?;
-        let receipt = self.session.archive.import_receipt(&key).ok_or_else(|| {
+        let mapped = self.session.native_import_sources(&key)?.ok_or_else(|| {
             OwnerSessionError::Record("import work requires a durable source receipt".into())
         })?;
         let episode = self
@@ -325,7 +410,6 @@ impl RelWriter {
             .ok_or(OwnerSessionError::Insomnia(
                 InsomniaError::UnacceptedEpisode,
             ))?;
-        let mapped = mapped_source_nodes(receipt);
         if !source_path_is_mapped(&mapped, &episode.conversation_id, &turns) {
             return Err(OwnerSessionError::Record(
                 "import Episode path escapes its receipt source set".into(),
@@ -335,30 +419,13 @@ impl RelWriter {
     }
 }
 
-pub(in crate::session) fn mapped_source_nodes(
-    receipt: &crate::model::ImportReceipt,
-) -> BTreeSet<(&str, &str)> {
-    receipt
-        .conversations
-        .iter()
-        .flat_map(|conversation| {
-            conversation.messages.iter().filter_map(|message| {
-                Some((
-                    conversation.conversation_id.as_str(),
-                    message.node_id.as_deref()?,
-                ))
-            })
-        })
-        .collect()
-}
-
 pub(super) fn source_path_is_mapped(
-    mapped: &BTreeSet<(&str, &str)>,
+    mapped: &ImportSourceMap,
     conversation: &str,
     turns: &[reliquary_archive::ResolvedTurn],
 ) -> bool {
     !turns.is_empty()
         && turns
             .iter()
-            .all(|turn| mapped.contains(&(conversation, turn.node_id.as_str())))
+            .all(|turn| mapped.contains(conversation, &turn.node_id))
 }

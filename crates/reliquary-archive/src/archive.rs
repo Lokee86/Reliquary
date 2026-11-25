@@ -5,6 +5,7 @@
 
 mod fragment_passages;
 mod history;
+mod import_receipts;
 mod payload;
 mod publications;
 mod retained;
@@ -24,11 +25,14 @@ use crate::{
     ResolvedTurn, SourceAttachment, TurnAcceptance, TurnInput,
 };
 use history::BranchRevision;
+use import_receipts::ImportReceiptSlot;
+pub use import_receipts::{ImportReceiptIdentity, ImportedTurnReference};
 use payload::{FrameRange, Payload};
 use reliquary_container::{
     Container, ContainerError, ContainerIdentity, FileKind, LeasedFrameReader, ObjectRef,
 };
 use sha2::{Digest, Sha256};
+use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::num::NonZeroU64;
 use std::sync::Arc;
@@ -79,7 +83,7 @@ pub struct Archive {
     branch_history: Vec<(u64, BranchRevision)>,
     episodes: BTreeMap<EpisodeId, Episode>,
     episode_versions: BTreeMap<EpisodeId, u64>,
-    import_receipts: BTreeMap<[u8; 32], ImportReceipt>,
+    import_receipts: BTreeMap<[u8; 32], ImportReceiptSlot>,
     import_receipt_versions: BTreeMap<[u8; 32], u64>,
     fragment_definitions: BTreeMap<crate::FragmentId, crate::FragmentDefinition>,
     fragment_versions: BTreeMap<crate::FragmentId, u64>,
@@ -559,54 +563,23 @@ impl Archive {
         }
         receipt.receipt_digest = import_receipt_digest(&receipt)?;
         self.validate_import_receipt(&receipt)?;
-        if let Some(existing) = self.import_receipts.get(&receipt.import_key) {
-            return if existing == &receipt {
-                Ok(existing.clone())
+        if let Some(existing) = self.import_receipt(&receipt.import_key)? {
+            return if existing.as_ref() == &receipt {
+                Ok(existing.into_owned())
             } else {
                 Err(ArchiveError::ConflictingImportReceipt)
             };
         }
         let next_version = self.next_archive_version()?;
         let encoded = encode_import_receipt(&receipt)?;
-        container.append(&encoded)?;
+        let object = container.append(&encoded)?;
         container.sync()?;
-        self.import_receipts
-            .insert(receipt.import_key, receipt.clone());
+        let slot = self.receipt_slot(Cow::Borrowed(&receipt), Some((object, &encoded)))?;
+        self.import_receipts.insert(receipt.import_key, slot);
         self.import_receipt_versions
             .insert(receipt.import_key, next_version);
         self.archive_version = next_version;
         Ok(receipt)
-    }
-
-    pub fn import_receipt(&self, import_key: &[u8; 32]) -> Option<&ImportReceipt> {
-        self.import_receipts.get(import_key)
-    }
-
-    pub fn import_receipts(&self) -> Vec<ImportReceipt> {
-        self.import_receipts.values().cloned().collect()
-    }
-
-    /// Return one accepted receipt witness for an exact native node.
-    pub fn imported_turn_reference(
-        &self,
-        conversation: &str,
-        node: &str,
-    ) -> Option<(
-        &ImportReceipt,
-        &crate::ImportedConversation,
-        &crate::ImportedMessage,
-    )> {
-        self.import_receipts.values().find_map(|receipt| {
-            let conversation = receipt
-                .conversations
-                .iter()
-                .find(|record| record.conversation_id == conversation)?;
-            let message = conversation
-                .messages
-                .iter()
-                .find(|record| record.node_id.as_deref() == Some(node))?;
-            Some((receipt, conversation, message))
-        })
     }
 
     pub fn branch_turns(
@@ -905,13 +878,9 @@ impl Archive {
             .get(conversation_id)
             .map(|title| title.title.as_str())
             .or_else(|| {
-                self.import_receipts.values().find_map(|receipt| {
-                    receipt
-                        .conversations
-                        .iter()
-                        .find(|conversation| conversation.conversation_id == conversation_id)
-                        .and_then(|conversation| conversation.title.as_deref())
-                })
+                self.import_receipts
+                    .values()
+                    .find_map(|slot| slot.title(conversation_id))
             })
     }
 
@@ -1254,17 +1223,18 @@ impl Archive {
                     ));
                 }
                 self.validate_import_receipt(&receipt)?;
-                if let Some(existing) = self.import_receipts.get(&receipt.import_key) {
-                    return if existing == &receipt {
+                let key = receipt.import_key;
+                if let Some(existing) = self.import_receipt(&key)? {
+                    return if existing.as_ref() == &receipt {
                         Ok(())
                     } else {
                         Err(ArchiveError::ConflictingImportReceipt)
                     };
                 }
                 let archive_version = self.next_archive_version()?;
-                self.import_receipt_versions
-                    .insert(receipt.import_key, archive_version);
-                self.import_receipts.insert(receipt.import_key, receipt);
+                let slot = self.receipt_slot(Cow::Owned(receipt), source)?;
+                self.import_receipt_versions.insert(key, archive_version);
+                self.import_receipts.insert(key, slot);
                 self.archive_version = archive_version;
             }
             Record::FragmentDefinitions(definitions) => {

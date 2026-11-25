@@ -329,6 +329,7 @@ impl RelSession {
             freshness,
             insomnia,
             imports,
+            active_import_source: Default::default(),
             archive_vectors,
             generations,
             archive_hybrid_cache: ArchiveHybridCache::default(),

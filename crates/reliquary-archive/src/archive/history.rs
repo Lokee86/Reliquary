@@ -107,8 +107,8 @@ impl Archive {
                         .get(*key)
                         .is_some_and(|seen| *seen <= version)
                 })
-                .map(|(_, receipt)| receipt.clone())
-                .collect(),
+                .map(|(key, slot)| self.read_import_receipt(key, slot).map(Cow::into_owned))
+                .collect::<Result<_, _>>()?,
             fragment_definitions: self
                 .fragment_definitions
                 .iter()
