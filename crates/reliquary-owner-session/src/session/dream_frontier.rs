@@ -1,4 +1,5 @@
 //! Bind the initial candidate frontier before any model calls start.
+use super::dream_empty::InitialDreamBirth;
 use super::*;
 use crate::DreamMemoryCut;
 fn validate(
@@ -81,7 +82,10 @@ impl RelWriter {
             source,
             pass,
             turn,
-            birth_version,
+            birth_version.map_or(
+                InitialDreamBirth::Physical,
+                InitialDreamBirth::NativeFrontier,
+            ),
         )?;
         let result = self.session.common.dreams.append_frontier(
             &mut self.container,
@@ -90,6 +94,7 @@ impl RelWriter {
             candidates,
             self.session.common.graph.graph_version(),
             self.session.common.memories.memory_version(),
+            birth_version,
         );
         match result {
             Ok(value) => {
@@ -126,7 +131,7 @@ impl PhyWriter {
             source,
             pass,
             turn,
-            None,
+            InitialDreamBirth::Physical,
         )?;
         let result = self.common.dreams.append_frontier(
             &mut self.container,
@@ -135,6 +140,7 @@ impl PhyWriter {
             candidates,
             self.common.graph.graph_version(),
             self.common.memories.memory_version(),
+            None,
         );
         match result {
             Ok(value) => {

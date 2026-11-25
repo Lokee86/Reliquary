@@ -4,15 +4,30 @@ use super::identity_receipt::{IdentityHistory, LocalProjection};
 use super::identity_separation::{SeparationHistory, SeparationProjection};
 use super::observations::ObservationPrefix;
 use super::*;
+use crate::records::dream::dream_begin_codec::{self, BeginPopulation};
 use crate::records::user_memory::{UserMemoryEffect, UserMemoryRecord};
 use reliquary_perception_store::observation::ObservationStore;
+
+#[derive(Default)]
+pub(super) struct DreamReplayPrefix {
+    pub birth_versions: BTreeMap<MemoryId, u64>,
+    pub explicit_admissions: Vec<DreamBeginAdmission>,
+    pub native_admissions: Vec<DreamBeginAdmission>,
+}
+
+pub(super) struct DreamArchivePrefix<'a> {
+    pub archive: &'a Archive,
+    pub cuts: &'a BTreeMap<u64, (u64, u64)>,
+}
+
 pub(super) fn validate_graph_prefix(
     container: &Container,
     memory_store: &MemoryStore,
     identity_context: Option<(&PerceptionStore, [u8; 32])>,
     pruned_bodies: &BTreeSet<MemoryBodyId>,
     observation_archive_cuts: &BTreeMap<u64, (u64, u64)>,
-    birth_versions: &mut BTreeMap<MemoryId, u64>,
+    dream_archive: Option<DreamArchivePrefix<'_>>,
+    dreams: &mut DreamReplayPrefix,
 ) -> Result<(IdentityHistory, SeparationHistory, ObservationStore), OwnerSessionError> {
     let mut observations = ObservationStore::default();
     let mut receipts = IdentityHistory::default();
@@ -28,9 +43,24 @@ pub(super) fn validate_graph_prefix(
     let mut graph_version = 0;
     let mut memory_head = 0;
     let mut birth_population = BirthPopulationReplay::new(memory_store);
+    let mut imports = ImportEpochStore::prefix(container.owner_id());
+    let mut native_births = BTreeMap::new();
+    let mut native_receipt = None;
+    let mut native_episodes = BTreeSet::new();
     let mut frames = container
         .scan_matching_frames(crate::records::frame_selection::without_archive_publications)?;
     while let Some(frame) = frames.next_frame()? {
+        if crate::records::import::is_import_epoch_marker(frame.payload) {
+            imports
+                .ingest_prefix(frame.payload)
+                .map_err(OwnerSessionError::Record)?;
+            if imports.open_epoch().is_none() {
+                native_births.clear();
+                native_receipt = None;
+                native_episodes.clear();
+            }
+            continue;
+        }
         if let Some((perception, history_generation)) = identity_context {
             let envelope = reliquary_container::decode_publication(frame.payload)?;
             let body = envelope.as_ref().map_or(frame.payload, |entry| entry.body);
@@ -100,17 +130,122 @@ pub(super) fn validate_graph_prefix(
                 &frontier,
             )?;
             if let Some(payload) = &frontier.begin {
-                let begin = crate::records::dream::dream_begin_codec::decode(payload)
-                    .map_err(OwnerSessionError::Record)?;
-                let birth_version = *birth_versions
+                let begin =
+                    dream_begin_codec::decode(payload).map_err(OwnerSessionError::Record)?;
+                let birth_version = *dreams
+                    .birth_versions
                     .get(&begin.source_id)
                     .ok_or(OwnerSessionError::StaleDreamCut)?;
                 let population = birth_population.at(birth_version)?;
-                if !matches!(
-                    &begin.population,
-                    crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(ids)
-                        if ids == population
-                ) {
+                match begin.population {
+                    BeginPopulation::ExplicitSet(ids) if &ids == population => {
+                        dreams.explicit_admissions.push(DreamBeginAdmission {
+                            owner_uuid: container.owner_id(),
+                            pass_id: begin.pass_id,
+                            source_id: begin.source_id,
+                            turn: begin.turn,
+                            graph_version_before: begin.graph_version_before,
+                            preexisting_ids: ids,
+                            memory_cut: memory_head,
+                        });
+                    }
+                    BeginPopulation::NativeBirth {
+                        first_memory_version,
+                        ..
+                    } => {
+                        let epoch = imports
+                            .open_epoch()
+                            .filter(|epoch| {
+                                epoch.format_version == 2
+                                    && imports.settlement(&epoch.import_id).is_none()
+                            })
+                            .ok_or(OwnerSessionError::StaleDreamCut)?;
+                        let (first, episode_id) = native_births
+                            .get(&begin.source_id)
+                            .copied()
+                            .ok_or(OwnerSessionError::StaleDreamCut)?;
+                        let archive = dream_archive
+                            .as_ref()
+                            .ok_or(OwnerSessionError::StaleDreamCut)?;
+                        let &(archive_cut, turn) = archive
+                            .cuts
+                            .get(&frame.object.offset)
+                            .ok_or(OwnerSessionError::StaleDreamCut)?;
+                        if first != first_memory_version
+                            || birth_version != first_memory_version
+                            || first_memory_version <= epoch.pre.memory_version
+                            || begin.pass_id
+                                != RelWriter::native_import_dream_identity(
+                                    &epoch.import_id,
+                                    begin.source_id,
+                                )
+                                .0
+                            || turn != begin.turn
+                        {
+                            return Err(OwnerSessionError::StaleDreamCut);
+                        }
+                        if native_receipt.is_none() {
+                            let key = super::native_import::decode_import_key(&epoch.import_key)
+                                .ok_or(OwnerSessionError::StaleDreamCut)?;
+                            let version = archive
+                                .archive
+                                .import_receipt_archive_version(&key)
+                                .ok_or(OwnerSessionError::StaleDreamCut)?;
+                            let receipt = archive
+                                .archive
+                                .import_receipt(&key)
+                                .ok_or(OwnerSessionError::StaleDreamCut)?;
+                            native_receipt =
+                                Some((version, super::native_import::mapped_source_nodes(receipt)));
+                        }
+                        let (receipt_version, mapped) =
+                            native_receipt.as_ref().expect("native receipt loaded");
+                        if *receipt_version > archive_cut {
+                            return Err(OwnerSessionError::StaleDreamCut);
+                        }
+                        if native_episodes.insert(episode_id)
+                            && !super::native_import::native_dream_episode_is_mapped(
+                                archive.archive,
+                                episode_id,
+                                |conversation, node| mapped.contains(&(conversation, node)),
+                            )?
+                        {
+                            return Err(OwnerSessionError::StaleDreamCut);
+                        }
+                        // DreamEvidenceStore verifies the durable digest against this exact set
+                        // before applying the Begin.
+                        dreams.native_admissions.push(DreamBeginAdmission {
+                            owner_uuid: begin.owner_uuid,
+                            pass_id: begin.pass_id,
+                            source_id: begin.source_id,
+                            turn: begin.turn,
+                            graph_version_before: begin.graph_version_before,
+                            preexisting_ids: population.clone(),
+                            memory_cut: memory_head,
+                        });
+                    }
+                    _ => return Err(OwnerSessionError::StaleDreamCut),
+                }
+            }
+        } else if frame.payload.starts_with(b"CVDREAM2") {
+            let begin =
+                dream_begin_codec::decode(frame.payload).map_err(OwnerSessionError::Record)?;
+            match begin.population {
+                BeginPopulation::ExplicitSet(ids) => {
+                    dreams.explicit_admissions.push(DreamBeginAdmission {
+                        owner_uuid: container.owner_id(),
+                        pass_id: begin.pass_id,
+                        source_id: begin.source_id,
+                        turn: begin.turn,
+                        graph_version_before: begin.graph_version_before,
+                        preexisting_ids: ids,
+                        memory_cut: memory_store
+                            .first_memory_version(begin.source_id)
+                            .unwrap_or_default(),
+                    });
+                }
+                BeginPopulation::CompactCut { .. } => (),
+                BeginPopulation::NativeBirth { .. } => {
                     return Err(OwnerSessionError::StaleDreamCut);
                 }
             }
@@ -187,7 +322,9 @@ pub(super) fn validate_graph_prefix(
                 memories.insert(record.id.0);
                 memory_bodies.insert(record.body_id.0);
                 if record.revision == 1 {
-                    birth_versions.insert(record.id, record.memory_version);
+                    dreams
+                        .birth_versions
+                        .insert(record.id, record.memory_version);
                 }
             } else if crate::records::insomnia_completion::is_grouped_completion(payload) {
                 let completion = GroupedInsomniaCompletion::decode(payload)
@@ -198,13 +335,25 @@ pub(super) fn validate_graph_prefix(
                 // Memory replay validated the creations in contiguous version
                 // order. Every sibling shares the first version of this frame.
                 let mut cohort_birth = None;
+                let native = imports.open_epoch().is_some_and(|epoch| {
+                    epoch.format_version == 2 && imports.settlement(&epoch.import_id).is_none()
+                });
                 for record in completion.memory_records {
                     let record = reliquary_memory_core::decode_grouped_creation(&record)?;
                     memory_head = record.memory_version;
                     memories.insert(record.id.0);
                     memory_bodies.insert(record.body_id.0);
                     let first = *cohort_birth.get_or_insert(record.memory_version);
-                    birth_versions.insert(record.id, first);
+                    dreams.birth_versions.insert(record.id, first);
+                    if native
+                        && record.revision == 1
+                        && record.source_episode_id == Some(completion.episode_id)
+                    {
+                        native_births.insert(
+                            record.id,
+                            (first, reliquary_archive::EpisodeId(completion.episode_id)),
+                        );
+                    }
                 }
             }
             if let Some((_, version)) = reliquary_memory_core::history_change_in_frame(payload)? {

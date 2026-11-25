@@ -3,13 +3,20 @@
 use super::*;
 use crate::records::{DreamMemoryCut, dream_empty::InitialDreamSettlement};
 
+#[derive(Clone, Copy)]
+pub(super) enum InitialDreamBirth {
+    Physical,
+    Grouped(u64),
+    NativeFrontier(u64),
+}
+
 pub(super) fn initial_admission(
     container: &Container,
     common: &CommonState,
     source: DreamMemoryCut,
     pass_id: String,
     turn: u64,
-    birth_version: Option<u64>,
+    birth: InitialDreamBirth,
 ) -> Result<DreamBeginAdmission, OwnerSessionError> {
     if pass_id.is_empty() || pass_id.trim() != pass_id || pass_id.len() > 256 || turn == 0 {
         return Err(OwnerSessionError::StaleDreamCut);
@@ -38,11 +45,15 @@ pub(super) fn initial_admission(
     if source.revision == 0 || turn == 0 {
         return Err(OwnerSessionError::StaleDreamCut);
     }
-    let population = match birth_version {
-        Some(version) => super::dream_population::birth_population_at(&common.memories, version)?,
-        None => super::dream_population::birth_population(container, &common.memories, source.id)?,
+    let population = match birth {
+        InitialDreamBirth::Grouped(version) | InitialDreamBirth::NativeFrontier(version) => {
+            super::dream_population::birth_population_at(&common.memories, version)?
+        }
+        InitialDreamBirth::Physical => {
+            super::dream_population::birth_population(container, &common.memories, source.id)?
+        }
     };
-    if population.len() > 4096 {
+    if !matches!(birth, InitialDreamBirth::NativeFrontier(_)) && population.len() > 4096 {
         return Err(OwnerSessionError::StaleDreamCut);
     }
     Ok(DreamBeginAdmission {

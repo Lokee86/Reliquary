@@ -126,7 +126,7 @@ impl RelSession {
         let replay = validate_rel_replay_admission(
             container,
             &archive,
-            archive_cuts.grouped_completions,
+            &archive_cuts.grouped_publications,
             leased,
         )?;
         let grouped_completions = replay.completions;
@@ -161,6 +161,10 @@ impl RelSession {
                 (replay.has_identity_history || !observation_archive_cuts.is_empty())
                     .then_some(history_generation),
                 &observation_archive_cuts,
+                Some(super::replay_prefix::DreamArchivePrefix {
+                    archive: &archive,
+                    cuts: &archive_cuts.grouped_publications,
+                }),
             )?;
         if archive
             .project_correlations()

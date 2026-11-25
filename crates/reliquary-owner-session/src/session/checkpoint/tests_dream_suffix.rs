@@ -1,4 +1,9 @@
 use super::*;
+use crate::records::dream::{
+    dream_begin_codec::{self, BeginPopulation},
+    population_digest,
+};
+use crate::records::dream_frontier::FrontierRecord;
 use crate::records::{GroupedInsomniaCompletion, GroupedMemoryBody, ImportEpochStatus};
 use crate::session::{DreamBatchCut, DreamPairPublication, RelWriter};
 use reliquary_archive::{Branch, ImportReceipt, TurnInput};
@@ -8,11 +13,13 @@ use reliquary_memory_core::{
     MemoryBodyId, MemoryRecord, encode_grouped_creation, memory_body_bytes, memory_body_id,
     memory_id,
 };
+use std::collections::BTreeSet;
 
 const OWNER: [u8; 16] = [93; 16];
+const PREDECESSORS: usize = 4097;
 
 #[test]
-fn suspended_import_checkpoint_replays_initial_dream_suffix() {
+fn suspended_import_checkpoint_replays_large_native_dream_population() {
     let directory = tempfile::tempdir().unwrap();
     let owner = directory.path().join("dream-suffix.rel");
     let private = directory.path().join("private");
@@ -46,6 +53,28 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
         revision: older.revision,
         body_id: older.body_id,
     };
+    let mut predecessors = BTreeSet::from([older.id]);
+    for index in 1..PREDECESSORS {
+        let memory = writer
+            .session
+            .common
+            .memories
+            .publish(
+                &mut writer.container,
+                None,
+                0,
+                reliquary_memory_core::MemoryDraft {
+                    lifecycle_state: "knowledge".into(),
+                    mutation_id: format!("dream-suffix-predecessor-{index}"),
+                    ..super::tests::draft()
+                },
+            )
+            .unwrap()
+            .revision
+            .record;
+        predecessors.insert(memory.id);
+    }
+    assert_eq!(predecessors.len(), PREDECESSORS);
     writer
         .session
         .freshness
@@ -130,6 +159,8 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
         .claim_native_import_episode(&start.import_id, episode, "fixture", 202, 100)
         .unwrap();
     let id = memory_id("dream-suffix-memory");
+    let sibling_id = memory_id("dream-suffix-sibling");
+    let first_memory_version = writer.read_session().memory_version() + 1;
     let body_id = memory_body_id("Dream candidate", "candidate memory body");
     let record = MemoryRecord {
         id,
@@ -156,7 +187,18 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
         mutation_id: "dream-suffix-memory".into(),
         created_at_ns: 203,
         updated_at_ns: 203,
-        memory_version: writer.read_session().memory_version() + 1,
+        memory_version: first_memory_version + 1,
+    };
+    let sibling = MemoryRecord {
+        id: sibling_id,
+        mutation_id: "dream-suffix-sibling".into(),
+        memory_version: first_memory_version,
+        ..record.clone()
+    };
+    let sibling_cut = crate::DreamMemoryCut {
+        id: sibling.id,
+        revision: sibling.revision,
+        body_id: sibling.body_id,
     };
     writer
         .commit_native_import_completion_with_routed_receipts(
@@ -171,18 +213,21 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
                 extractor_model: "fixture".into(),
                 extractor_version: "v1".into(),
                 rejected_count: 0,
-                memory_ids: vec![id.0],
+                memory_ids: vec![sibling_id.0, id.0],
                 external_memory_refs: vec![],
                 global_version_start: writer.next_global_version().unwrap(),
                 bodies: vec![GroupedMemoryBody {
                     id: MemoryBodyId(body_id.0),
                     bytes: memory_body_bytes("Dream candidate", "candidate memory body"),
                 }],
-                memory_records: vec![encode_grouped_creation(&record).unwrap()],
+                memory_records: vec![
+                    encode_grouped_creation(&sibling).unwrap(),
+                    encode_grouped_creation(&record).unwrap(),
+                ],
                 routing_metadata: vec![],
                 freshness_birth_turn: Some(writer.read_session().rel_turn_count()),
                 freshness_policy_version: Some(1),
-                freshness_birth_memory_ids: vec![id.0],
+                freshness_birth_memory_ids: vec![sibling_id.0, id.0],
             },
             204,
             &[],
@@ -202,6 +247,10 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
         .expect("writable checkpoint")
         .refresh(&container, &session, true);
     drop((session, container));
+    let forged_owner = directory.path().join("forged-dream-suffix.rel");
+    std::fs::copy(&owner, &forged_owner).unwrap();
+    let unsettled_owner = directory.path().join("unsettled-dream-candidate.rel");
+    std::fs::copy(&owner, &unsettled_owner).unwrap();
 
     let mut writer = RelWriter::open_path(
         &owner,
@@ -217,9 +266,22 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
     };
     let (pass, publication) = RelWriter::native_import_dream_identity(&import_id, id);
     let turn = writer.read_session().rel_turn_count();
-    writer
+    assert!(
+        writer
+            .begin_native_import_dream_frontier(
+                &import_id,
+                pass.clone(),
+                cut,
+                vec![sibling_cut],
+                turn
+            )
+            .is_err()
+    );
+    let admission = writer
         .begin_native_import_dream_frontier(&import_id, pass.clone(), cut, vec![older_cut], turn)
         .unwrap();
+    assert_eq!(admission.preexisting_ids, predecessors);
+    assert!(!admission.preexisting_ids.contains(&sibling_id));
     writer
         .commit_native_import_dream_batch(
             &import_id,
@@ -276,10 +338,28 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
     assert_eq!(warm.open_native_import_id(), Some(import_id.as_str()));
     assert_eq!(warm.common.graph.active_relations().count(), 1);
     assert!(warm.dream_pair_evaluated(id, older.id));
-    assert!(warm.common.dreams.initial_settlement(&pass).is_some());
+    let warm_settlement = warm.common.dreams.settlement_record(&pass).unwrap().clone();
+    assert_eq!(warm_settlement.roots, BTreeSet::from([older.id]));
     assert_eq!(warm.current_memory(id).unwrap().record.revision, 2);
+    assert_eq!(warm.current_memory(sibling_id).unwrap().record, sibling);
     let warm_frontier = warm.initial_dream_frontier(&pass).unwrap();
     assert_eq!(warm_frontier.candidates, [older_cut]);
+    let warm_begin = warm.dream_begin(&pass).unwrap().clone();
+    assert_eq!(
+        warm_begin.population,
+        BeginPopulation::NativeBirth {
+            first_memory_version,
+            digest: population_digest(&predecessors),
+        }
+    );
+    assert_eq!(
+        warm.common
+            .dreams
+            .admission(&pass)
+            .unwrap()
+            .preexisting_ids(),
+        &predecessors
+    );
     let warm_relations = warm.graph_relations();
     let warm_memory_version = warm.memory_version();
     let warm_graph_version = warm.graph_version();
@@ -287,6 +367,44 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
     let warm_freshness = warm.freshness.records_at(&memory_cut).unwrap();
     let current_cut = warm.current_historical_cut();
     let warm_proof = warm.historical_proof(OWNER, &current_cut).unwrap();
+    let assert_replay_parity = |restored: &RelSession| {
+        assert_eq!(restored.open_native_import_id(), Some(import_id.as_str()));
+        assert_eq!(restored.memory_version(), warm_memory_version);
+        assert_eq!(restored.graph_version(), warm_graph_version);
+        assert_eq!(restored.graph_relations(), warm_relations);
+        assert_eq!(
+            restored.initial_dream_frontier(&pass),
+            Some(warm_frontier.clone())
+        );
+        assert_eq!(restored.dream_begin(&pass), Some(&warm_begin));
+        assert_eq!(
+            restored.common.dreams.settlement_record(&pass),
+            Some(&warm_settlement)
+        );
+        assert_eq!(
+            restored
+                .common
+                .dreams
+                .admission(&pass)
+                .unwrap()
+                .preexisting_ids(),
+            &predecessors
+        );
+        assert!(restored.dream_pair_evaluated(id, older.id));
+        assert_eq!(restored.current_memory(id).unwrap().record.revision, 2);
+        assert_eq!(restored.current_memory(sibling_id).unwrap().record, sibling);
+        let restored_cut = restored
+            .freshness
+            .cut_through_turn(restored.rel_turn_count());
+        assert_eq!(
+            restored.freshness.records_at(&restored_cut).unwrap(),
+            warm_freshness
+        );
+        assert_eq!(
+            restored.historical_proof(OWNER, &current_cut).unwrap(),
+            warm_proof
+        );
+    };
     checkpoint.refresh(&container, &warm, true);
     drop((warm, container));
 
@@ -295,36 +413,28 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
     let (container, exact, checkpoint) =
         open_leased(lease, Some(slot.clone()), extent, true).unwrap();
     assert_eq!(checkpoint.unwrap().attempted_extent, Some(extent));
-    assert_eq!(
-        exact.historical_proof(OWNER, &current_cut).unwrap(),
-        warm_proof
-    );
-    assert!(exact.dream_begin(&pass).is_some());
+    assert_replay_parity(&exact);
     drop((exact, container));
 
     let full = RelSession::open_path_current(&owner).unwrap();
-    assert_eq!(full.open_native_import_id(), Some(import_id.as_str()));
-    assert_eq!(full.memory_version(), warm_memory_version);
-    assert_eq!(full.graph_version(), warm_graph_version);
-    assert_eq!(full.graph_relations(), warm_relations);
-    assert_eq!(full.initial_dream_frontier(&pass), Some(warm_frontier));
-    let full_cut = full.freshness.cut_through_turn(full.rel_turn_count());
-    assert_eq!(
-        warm_freshness,
-        full.freshness.records_at(&full_cut).unwrap()
-    );
-    assert_eq!(
-        warm_proof,
-        full.historical_proof(OWNER, &current_cut).unwrap()
-    );
+    assert_replay_parity(&full);
     drop(full);
 
     // A second physical settlement is corrupt even when every byte matches
     // the last legitimate settlement. A provisional restore cannot mask it.
     let mut container = Container::open_writer(&owner).unwrap();
     let mut tail = container.scan_frames_from(before_dream).unwrap();
+    let mut frontier = None;
     let mut settlement = None;
     while let Some(frame) = tail.next_frame().unwrap() {
+        if frame.payload.starts_with(b"RELDRC01") {
+            assert!(frame.payload.len() < 3 * 1024);
+            let decoded = FrontierRecord::decode(frame.payload).unwrap().unwrap();
+            let payload = decoded.begin.as_deref().unwrap();
+            assert!(payload.len() < 320);
+            assert_eq!(dream_begin_codec::decode(payload).unwrap(), warm_begin);
+            assert!(frontier.replace(decoded).is_none());
+        }
         if frame.payload.starts_with(b"RELDRF02") {
             settlement = Some(frame.payload.to_vec());
         }
@@ -338,4 +448,66 @@ fn suspended_import_checkpoint_replays_initial_dream_suffix() {
     let extent = lease.extent();
     assert!(open_leased(lease, Some(slot), extent, true).is_err());
     assert!(RelSession::open_path_current(&owner).is_err());
+
+    // The forged frontier is correctly encoded and carries the real birth
+    // coordinate, but its digest does not authenticate the historical set.
+    let mut frontier = frontier.unwrap();
+    let mut premature_frontier = frontier.clone();
+    premature_frontier.candidates = vec![sibling_cut.into()];
+    let mut forged_begin = warm_begin;
+    let BeginPopulation::NativeBirth { digest, .. } = &mut forged_begin.population else {
+        panic!("native Dream Begin expected");
+    };
+    digest[0] ^= 1;
+    frontier.begin = Some(dream_begin_codec::encode(&forged_begin).unwrap());
+    for (fixture, owner, frontier) in [
+        ("forged-digest", forged_owner, frontier),
+        ("unsettled-candidate", unsettled_owner, premature_frontier),
+    ] {
+        let payload = frontier.encode().unwrap();
+        let slot = private.join(format!("{fixture}.checkpoint"));
+        let lease =
+            Container::prepare_checkpoint_open(&owner, true, FileKind::Reliquary, Some(OWNER))
+                .unwrap();
+        let extent = lease.extent();
+        assert_eq!(extent, before_dream);
+        let (mut container, mut baseline, mut checkpoint) =
+            open_leased(lease, Some(slot.clone()), extent, true).unwrap();
+        checkpoint
+            .as_mut()
+            .unwrap()
+            .refresh(&container, &baseline, true);
+        assert_eq!(
+            Entry::open(&slot).unwrap().manifest.physical.covered_end,
+            extent
+        );
+        assert!(
+            super::dream_suffix::replay(
+                &mut baseline,
+                &payload,
+                &import_id,
+                first_memory_version - 1,
+                &mut super::dream_suffix::NativeDreamSources::default(),
+            )
+            .is_err(),
+            "seeded replay admitted {fixture}"
+        );
+        assert!(baseline.dream_begin(&pass).is_none());
+        container.append(&payload).unwrap();
+        container.sync().unwrap();
+        drop((baseline, container));
+
+        let lease =
+            Container::prepare_checkpoint_open(&owner, true, FileKind::Reliquary, Some(OWNER))
+                .unwrap();
+        let extent = lease.extent();
+        assert!(
+            open_leased(lease, Some(slot), extent, true).is_err(),
+            "checkpoint open admitted {fixture}"
+        );
+        assert!(
+            RelSession::open_path_current(&owner).is_err(),
+            "full replay admitted {fixture}"
+        );
+    }
 }

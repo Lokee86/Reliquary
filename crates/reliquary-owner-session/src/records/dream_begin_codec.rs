@@ -6,8 +6,15 @@ const MAGIC: &[u8; 8] = b"CVDREAM2";
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(bound(deserialize = "I: serde::Deserialize<'de> + Ord"))]
 pub enum BeginPopulation<I = MemoryId> {
-    CompactCut { memory_cut: u64, digest: [u8; 32] },
+    CompactCut {
+        memory_cut: u64,
+        digest: [u8; 32],
+    },
     ExplicitSet(BTreeSet<I>),
+    NativeBirth {
+        first_memory_version: u64,
+        digest: [u8; 32],
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -27,6 +34,10 @@ pub enum BeginPopulationRef<'a, I> {
         digest: &'a [u8; 32],
     },
     ExplicitSet(&'a BTreeSet<I>),
+    NativeBirth {
+        first_memory_version: u64,
+        digest: &'a [u8; 32],
+    },
 }
 
 pub fn decode(bytes: &[u8]) -> Result<BeginRecord, String> {
@@ -43,7 +54,7 @@ pub fn decode_with_id<I: Copy + Ord>(
     }
     let owner_uuid = reader.array()?;
     let variant = reader.u8()?;
-    if variant > 1 {
+    if variant > 2 {
         return Err("unknown Dream begin variant".into());
     }
     let pass_id_len = reader.u32()? as usize;
@@ -92,6 +103,16 @@ pub fn decode_with_id<I: Copy + Ord>(
             }
             BeginPopulation::ExplicitSet(ids)
         }
+        2 => {
+            let first_memory_version = reader.u64()?;
+            if first_memory_version == 0 {
+                return Err("zero Dream native birth version".into());
+            }
+            BeginPopulation::NativeBirth {
+                first_memory_version,
+                digest: reader.array()?,
+            }
+        }
         _ => return Err("unknown Dream begin variant".into()),
     };
     if reader.at != bytes.len() {
@@ -128,6 +149,13 @@ pub fn encode_with_id<I: Copy + Ord>(
                 digest,
             },
             BeginPopulation::ExplicitSet(ids) => BeginPopulationRef::ExplicitSet(ids),
+            BeginPopulation::NativeBirth {
+                first_memory_version,
+                digest,
+            } => BeginPopulationRef::NativeBirth {
+                first_memory_version: *first_memory_version,
+                digest,
+            },
         },
     )
 }
@@ -146,12 +174,21 @@ pub fn encode_fields<I: Copy + Ord>(
     }
     let pass_id_len =
         u32::try_from(pass_id.len()).map_err(|_| "Dream pass ID exceeds u32 length".to_owned())?;
-    let population_len = match &population {
+    let (variant, population_len) = match &population {
         BeginPopulationRef::CompactCut { memory_cut, .. } => {
             if *memory_cut == 0 {
                 return Err("zero Dream Memory prefix cut".into());
             }
-            8_usize + 32
+            (0, 8_usize + 32)
+        }
+        BeginPopulationRef::NativeBirth {
+            first_memory_version,
+            ..
+        } => {
+            if *first_memory_version == 0 {
+                return Err("zero Dream native birth version".into());
+            }
+            (2, 8_usize + 32)
         }
         BeginPopulationRef::ExplicitSet(ids) => {
             let source = as_bytes(&source_id);
@@ -167,13 +204,14 @@ pub fn encode_fields<I: Copy + Ord>(
                 previous = Some(raw);
             }
             u32::try_from(ids.len()).map_err(|_| "too many Dream population IDs".to_owned())?;
-            4_usize
+            let len = 4_usize
                 .checked_add(
                     ids.len()
                         .checked_mul(32)
                         .ok_or_else(|| "Dream population size overflow".to_owned())?,
                 )
-                .ok_or_else(|| "Dream population size overflow".to_owned())?
+                .ok_or_else(|| "Dream population size overflow".to_owned())?;
+            (1, len)
         }
     };
     let capacity = 8_usize
@@ -191,26 +229,27 @@ pub fn encode_fields<I: Copy + Ord>(
         .map_err(|_| "Dream begin record allocation failed".to_owned())?;
     out.extend_from_slice(MAGIC);
     out.extend_from_slice(&owner_uuid);
+    out.push(variant);
+    out.extend_from_slice(&pass_id_len.to_le_bytes());
+    out.extend_from_slice(pass_id.as_bytes());
+    out.extend_from_slice(as_bytes(&source_id));
+    out.extend_from_slice(&turn.to_le_bytes());
+    out.extend_from_slice(&graph_version_before.to_le_bytes());
     match population {
         BeginPopulationRef::CompactCut { memory_cut, digest } => {
-            out.push(0);
-            out.extend_from_slice(&pass_id_len.to_le_bytes());
-            out.extend_from_slice(pass_id.as_bytes());
-            out.extend_from_slice(as_bytes(&source_id));
-            out.extend_from_slice(&turn.to_le_bytes());
-            out.extend_from_slice(&graph_version_before.to_le_bytes());
             out.extend_from_slice(&memory_cut.to_le_bytes());
+            out.extend_from_slice(digest);
+        }
+        BeginPopulationRef::NativeBirth {
+            first_memory_version,
+            digest,
+        } => {
+            out.extend_from_slice(&first_memory_version.to_le_bytes());
             out.extend_from_slice(digest);
         }
         BeginPopulationRef::ExplicitSet(ids) => {
             let count =
                 u32::try_from(ids.len()).map_err(|_| "too many Dream population IDs".to_owned())?;
-            out.push(1);
-            out.extend_from_slice(&pass_id_len.to_le_bytes());
-            out.extend_from_slice(pass_id.as_bytes());
-            out.extend_from_slice(as_bytes(&source_id));
-            out.extend_from_slice(&turn.to_le_bytes());
-            out.extend_from_slice(&graph_version_before.to_le_bytes());
             out.extend_from_slice(&count.to_le_bytes());
             for id in ids {
                 out.extend_from_slice(as_bytes(id));

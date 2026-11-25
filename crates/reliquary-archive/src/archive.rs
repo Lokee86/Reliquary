@@ -659,16 +659,34 @@ impl Archive {
     /// The returned text and source identities are rehydrated from this
     /// Archive. The Episode start must be an ancestor of its end node.
     pub fn episode_turns(&self, id: EpisodeId) -> Result<Option<Vec<ResolvedTurn>>, ArchiveError> {
+        self.episode_path(id)?
+            .map(|path| self.resolve_path(path))
+            .transpose()
+    }
+
+    /// Return the Episode's accepted source path without loading turn text.
+    pub fn episode_node_ids(&self, id: EpisodeId) -> Result<Option<Vec<&str>>, ArchiveError> {
+        Ok(self
+            .episode_path(id)?
+            .map(|path| path.into_iter().map(|node| node.id.as_str()).collect()))
+    }
+
+    fn episode_path(&self, id: EpisodeId) -> Result<Option<Vec<&Node>>, ArchiveError> {
         let Some(episode) = self.episodes.get(&id) else {
             return Ok(None);
         };
-        let mut path = self.branch_path(&episode.conversation_id, &episode.end_node_id)?;
-        let start = path
-            .iter()
-            .position(|node| node.id == episode.start_node_id)
-            .ok_or(ArchiveError::InvalidEpisodeRange)?;
-        let selected = path.drain(start..).collect();
-        self.resolve_path(selected).map(Some)
+        let mut node = self.require_node(&episode.conversation_id, &episode.end_node_id)?;
+        let mut path = vec![node];
+        while node.id != episode.start_node_id {
+            let parent = node
+                .parent_id
+                .as_deref()
+                .ok_or(ArchiveError::InvalidEpisodeRange)?;
+            node = self.require_node(&episode.conversation_id, parent)?;
+            path.push(node);
+        }
+        path.reverse();
+        Ok(Some(path))
     }
 
     /// Rehydrate one turn by its immutable conversation and node identity.
@@ -910,6 +928,11 @@ impl Archive {
     /// Archive clock assigned when this Episode was first accepted.
     pub fn episode_archive_version(&self, id: EpisodeId) -> Option<u64> {
         self.episode_versions.get(&id).copied()
+    }
+
+    /// Archive clock assigned when this source receipt was accepted.
+    pub fn import_receipt_archive_version(&self, import_key: &[u8; 32]) -> Option<u64> {
+        self.import_receipt_versions.get(import_key).copied()
     }
 
     /// Archive clock assigned when this immutable source node was first

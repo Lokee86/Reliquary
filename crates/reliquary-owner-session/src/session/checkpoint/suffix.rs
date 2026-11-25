@@ -104,6 +104,7 @@ fn replay_import_suffix(
     let mut frames = container.scan_frames_from(covered_end)?;
     let mut source_tail = false;
     let mut dream_tail = false;
+    let mut native_sources = super::dream_suffix::NativeDreamSources::default();
     while let Some(frame) = frames.next_frame()? {
         let payload = frame.payload;
         if payload.starts_with(b"RELVERS1") || payload.starts_with(b"RELVERS2") {
@@ -122,8 +123,14 @@ fn replay_import_suffix(
             // fixed Archive and extraction cohort. Other histories go through
             // canonical replay, which discards this provisional session.
             if source_tail
-                || super::dream_suffix::replay(session, payload, import_id, pre_import_memory)
-                    .is_err()
+                || super::dream_suffix::replay(
+                    session,
+                    payload,
+                    import_id,
+                    pre_import_memory,
+                    &mut native_sources,
+                )
+                .is_err()
             {
                 return Ok(false);
             }

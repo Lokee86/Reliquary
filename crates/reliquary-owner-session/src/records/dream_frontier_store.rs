@@ -28,7 +28,11 @@ impl DreamEvidenceStore {
             .begins
             .get(&record.pass_id)
             .ok_or("frontier lacks Begin")?;
-        self.validate_frontier(&record, begin.source_id, &self.journal)?;
+        let admission = self
+            .admissions
+            .get(&record.pass_id)
+            .ok_or("frontier lacks admission")?;
+        self.validate_frontier(&record, begin, admission.memory_cut, &self.journal)?;
         self.frontiers.insert(record.pass_id.clone(), record.into());
         Ok(())
     }
@@ -36,11 +40,14 @@ impl DreamEvidenceStore {
     fn validate_frontier(
         &self,
         record: &FrontierRecord,
-        source_id: MemoryId,
+        begin: &StoredBegin,
+        memory_cut: u64,
         journal: &DreamFreshnessJournal,
     ) -> Result<(), String> {
         if record.owner != self.owner_uuid
-            || source_id != record.source.cut().id
+            || begin.source_id != record.source.cut().id
+            || (begin.native_birth().is_some()
+                && (record.memory_version != memory_cut || record.begin.is_none()))
             || self.frontiers.contains_key(&record.pass_id)
             || journal.pending_ref(&record.pass_id).is_none()
         {
@@ -82,6 +89,7 @@ impl DreamEvidenceStore {
         candidates: Vec<crate::DreamMemoryCut>,
         graph_version: u64,
         memory_version: u64,
+        native_birth_version: Option<u64>,
     ) -> Result<DreamBeginAdmission, String> {
         self.check_owner(container)?;
         if let Some(old) = self.frontiers.get(&admission.pass_id) {
@@ -105,7 +113,13 @@ impl DreamEvidenceStore {
                 source_id: admission.source_id,
                 turn: admission.turn,
                 graph_version_before: admission.graph_version_before,
-                population: BeginPopulation::ExplicitSet(admission.preexisting_ids.clone()),
+                population: match native_birth_version {
+                    Some(first_memory_version) => BeginPopulation::NativeBirth {
+                        first_memory_version,
+                        digest: population_digest(&admission.preexisting_ids),
+                    },
+                    None => BeginPopulation::ExplicitSet(admission.preexisting_ids.clone()),
+                },
             };
             let stored = StoredAdmission::from(admission.clone());
             self.validate_begin(&begin, &stored)?;
@@ -133,7 +147,7 @@ impl DreamEvidenceStore {
                 &self.journal,
             ),
         };
-        self.validate_frontier(&record, begin.source_id, journal)?;
+        self.validate_frontier(&record, begin, admission.memory_cut, journal)?;
         let bytes = record.encode()?;
         container.append(&bytes).map_err(|e| e.to_string())?;
         container.sync().map_err(|e| e.to_string())?;

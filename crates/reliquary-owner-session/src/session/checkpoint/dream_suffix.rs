@@ -7,13 +7,83 @@ use crate::records::{
     dream_empty::InitialDreamSettlement,
     dream_frontier::FrontierRecord,
 };
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
+
+#[derive(Default)]
+pub(super) struct NativeDreamSources {
+    mapped: Option<BTreeMap<String, BTreeSet<String>>>,
+    checked: BTreeSet<reliquary_archive::EpisodeId>,
+}
+
+impl NativeDreamSources {
+    fn verify_episode(
+        &mut self,
+        session: &RelSession,
+        import_id: &str,
+        source: MemoryId,
+    ) -> Result<(), OwnerSessionError> {
+        let record = session.common.memories.revision_record(source, Some(1))?;
+        let id = reliquary_archive::EpisodeId(
+            record
+                .source_episode_id
+                .ok_or(OwnerSessionError::StaleDreamCut)?,
+        );
+        if self.checked.contains(&id) {
+            return Ok(());
+        }
+        let epoch = session
+            .imports
+            .open_epoch()
+            .filter(|epoch| {
+                epoch.import_id == import_id
+                    && epoch.format_version == 2
+                    && session.imports.settlement(import_id).is_none()
+            })
+            .ok_or(OwnerSessionError::StaleDreamCut)?;
+        let key = native_import::decode_import_key(&epoch.import_key)
+            .ok_or(OwnerSessionError::StaleDreamCut)?;
+        let receipt = session
+            .archive
+            .import_receipt(&key)
+            .ok_or(OwnerSessionError::StaleDreamCut)?;
+        let mapped = self.mapped.get_or_insert_with(|| {
+            receipt
+                .conversations
+                .iter()
+                .map(|conversation| {
+                    (
+                        conversation.conversation_id.clone(),
+                        conversation
+                            .messages
+                            .iter()
+                            .filter_map(|message| message.node_id.clone())
+                            .collect(),
+                    )
+                })
+                .collect()
+        });
+        if !native_import::native_dream_episode_is_mapped(
+            &session.archive,
+            id,
+            |conversation, node| {
+                mapped
+                    .get(conversation)
+                    .is_some_and(|nodes| nodes.contains(node))
+            },
+        )? {
+            return Err(OwnerSessionError::StaleDreamCut);
+        }
+        self.checked.insert(id);
+        Ok(())
+    }
+}
 
 pub(super) fn replay(
     session: &mut RelSession,
     payload: &[u8],
     import_id: &str,
     pre_import_memory: u64,
+    native_sources: &mut NativeDreamSources,
 ) -> Result<(), OwnerSessionError> {
     match payload.get(..8) {
         Some(b"RELDRC01") => replay_frontier(
@@ -23,6 +93,7 @@ pub(super) fn replay(
             FrontierRecord::decode(payload)
                 .map_err(OwnerSessionError::Record)?
                 .ok_or(OwnerSessionError::StaleDreamCut)?,
+            native_sources,
         ),
         Some(b"RELDRB01") => replay_batch(
             session,
@@ -47,6 +118,7 @@ fn replay_frontier(
     import_id: &str,
     pre_import_memory: u64,
     frontier: FrontierRecord,
+    native_sources: &mut NativeDreamSources,
 ) -> Result<(), OwnerSessionError> {
     let common = &session.common;
     let source = frontier.source.cut().id;
@@ -59,10 +131,22 @@ fn replay_frontier(
         })?;
     let birth = import_birth(session, import_id, source)?;
     let population = dream_population::birth_population_at(&common.memories, birth)?;
+    // The Dream store checks the digest against this authenticated population
+    // before installing the frontier.
+    let population_bound = match &begin.population {
+        BeginPopulation::NativeBirth {
+            first_memory_version,
+            ..
+        } => {
+            native_sources.verify_episode(session, import_id, source)?;
+            *first_memory_version == birth && birth > pre_import_memory
+        }
+        BeginPopulation::ExplicitSet(ids) => ids.len() <= 4096 && *ids == population,
+        BeginPopulation::CompactCut { .. } => false,
+    };
     if begin.turn != session.rel_turn_count()
         || frontier.pass_id != RelWriter::native_import_dream_identity(import_id, source).0
-        || population.len() > 4096
-        || !matches!(&begin.population, BeginPopulation::ExplicitSet(ids) if ids == &population)
+        || !population_bound
         || common.dreams.has_other_pending_frontier(
             &native_import::native_import_dream_prefix(import_id),
             &frontier.pass_id,
@@ -168,6 +252,21 @@ fn replay_settlement(
         .dreams
         .admission(&pass)
         .ok_or(OwnerSessionError::StaleDreamCut)?;
+    let begin = common
+        .dreams
+        .begun(&pass)
+        .ok_or(OwnerSessionError::StaleDreamCut)?;
+    let population_bound = if let Some(first_memory_version) = begin.native_birth() {
+        // Admission already authenticated the precise birth cut on this
+        // suffix or in the verified checkpoint. The grouped birth below
+        // remains the same immutable revision-one record.
+        first_memory_version == birth
+    } else {
+        let population = admission.preexisting_ids();
+        population.len() <= 4096
+            && dream_population::BirthPopulationReplay::new(&common.memories)
+                .contains(birth, population)?
+    };
     let source = common.memories.revision_record(record.source, None)?;
     if record.pass_id != pass
         || !common.dreams.frontier_has_bound_begin(&pass)
@@ -188,9 +287,7 @@ fn replay_settlement(
             .memories
             .record_at_cut(record.source, admission.memory_cut)
             .is_some_and(|memory| !memory.archived)
-        || admission.preexisting_ids().len() > 4096
-        || !dream_population::BirthPopulationReplay::new(&common.memories)
-            .contains(birth, admission.preexisting_ids())?
+        || !population_bound
         || record.roots != dream_initial::roots(common, &pass)?
     {
         return Err(OwnerSessionError::StaleDreamCut);

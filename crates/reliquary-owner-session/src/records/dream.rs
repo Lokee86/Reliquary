@@ -93,7 +93,13 @@ impl StoredAdmission {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 enum BeginKind {
     Explicit,
-    Compact { digest: [u8; 32] },
+    Compact {
+        digest: [u8; 32],
+    },
+    NativeBirth {
+        first_memory_version: u64,
+        digest: [u8; 32],
+    },
 }
 
 impl From<&BeginRecord> for BeginKind {
@@ -101,6 +107,13 @@ impl From<&BeginRecord> for BeginKind {
         match &begin.population {
             BeginPopulation::ExplicitSet(_) => Self::Explicit,
             BeginPopulation::CompactCut { digest, .. } => Self::Compact { digest: *digest },
+            BeginPopulation::NativeBirth {
+                first_memory_version,
+                digest,
+            } => Self::NativeBirth {
+                first_memory_version: *first_memory_version,
+                digest: *digest,
+            },
         }
     }
 }
@@ -129,6 +142,16 @@ impl StoredBegin {
         matches!(self.kind, BeginKind::Compact { .. })
     }
 
+    pub(crate) fn native_birth(&self) -> Option<u64> {
+        match self.kind {
+            BeginKind::NativeBirth {
+                first_memory_version,
+                ..
+            } => Some(first_memory_version),
+            _ => None,
+        }
+    }
+
     fn view(&self, admission: &StoredAdmission) -> &BeginRecord {
         self.view.get_or_init(|| {
             Arc::new(BeginRecord {
@@ -143,6 +166,13 @@ impl StoredBegin {
                     }
                     BeginKind::Compact { digest } => BeginPopulation::CompactCut {
                         memory_cut: admission.memory_cut,
+                        digest,
+                    },
+                    BeginKind::NativeBirth {
+                        first_memory_version,
+                        digest,
+                    } => BeginPopulation::NativeBirth {
+                        first_memory_version,
                         digest,
                     },
                 },
@@ -204,6 +234,11 @@ impl DreamEvidenceStore {
                 .unwrap_or(frame.payload);
             if payload.starts_with(BEGIN_MAGIC) {
                 let begin = dream_begin_codec::decode(payload)?;
+                if frontier.is_none()
+                    && matches!(begin.population, BeginPopulation::NativeBirth { .. })
+                {
+                    return Err("Dream native birth requires a bound frontier".into());
+                }
                 store.ingest_physical_begin(begin)?;
             } else if payload.starts_with(JOURNAL_MAGIC) {
                 store.journal.ingest(payload)?;
@@ -246,6 +281,9 @@ impl DreamEvidenceStore {
         begin: BeginRecord,
     ) -> Result<bool, String> {
         self.check_owner(container)?;
+        if matches!(begin.population, BeginPopulation::NativeBirth { .. }) {
+            return Err("Dream native birth requires a bound frontier".into());
+        }
         if self.has_other_initial_pass(begin.source_id, &begin.pass_id) {
             return Err("Memory already has a first-cycle Dream Begin".into());
         }
@@ -359,6 +397,17 @@ impl DreamEvidenceStore {
                     || *digest != population_digest(admission.preexisting_ids())
                 {
                     return Err("Dream compact population lacks exact prefix proof".into());
+                }
+            }
+            BeginPopulation::NativeBirth {
+                first_memory_version,
+                digest,
+            } => {
+                if *first_memory_version == 0
+                    || *first_memory_version > admission.memory_cut
+                    || *digest != population_digest(admission.preexisting_ids())
+                {
+                    return Err("Dream native birth population lacks exact birth proof".into());
                 }
             }
             BeginPopulation::ExplicitSet(ids) => {

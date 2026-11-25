@@ -288,3 +288,22 @@ impl RelSession {
 pub(in crate::session) fn native_import_dream_prefix(import_id: &str) -> String {
     format!("native-import-dream:{import_id}:")
 }
+
+pub(in crate::session) fn native_dream_episode_is_mapped(
+    archive: &Archive,
+    id: reliquary_archive::EpisodeId,
+    maps_node: impl Fn(&str, &str) -> bool,
+) -> Result<bool, OwnerSessionError> {
+    let Some(episode) = archive
+        .episode(id)
+        .filter(|episode| episode.origin == reliquary_archive::EpisodeOrigin::Import)
+    else {
+        return Ok(false);
+    };
+    Ok(archive.episode_node_ids(id)?.is_some_and(|nodes| {
+        !nodes.is_empty()
+            && nodes
+                .iter()
+                .all(|node| maps_node(&episode.conversation_id, node))
+    }))
+}

@@ -14,10 +14,13 @@ mod freshness;
 mod plan;
 #[path = "native_import_postprocessing.rs"]
 mod postprocessing;
-pub(super) use postprocessing::{VerifiedDreamImport, native_import_dream_prefix};
+pub(super) use postprocessing::{
+    VerifiedDreamImport, native_dream_episode_is_mapped, native_import_dream_prefix,
+};
 #[path = "native_import_work.rs"]
 mod work;
 pub use work::InsomniaEpisodeStatus;
+pub(super) use work::mapped_source_nodes;
 #[path = "native_import_writer.rs"]
 mod writer;
 
@@ -145,7 +148,7 @@ pub(super) fn validate_native_import_receipts(
     Ok(())
 }
 
-fn decode_import_key(value: &str) -> Option<[u8; 32]> {
+pub(super) fn decode_import_key(value: &str) -> Option<[u8; 32]> {
     if value.len() != 64 {
         return None;
     }

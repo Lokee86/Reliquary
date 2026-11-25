@@ -2,7 +2,9 @@
 use super::dream_population::BirthPopulationReplay;
 use super::*;
 use crate::records::{
-    dream_empty::InitialDreamSettlement, dream_group::GroupedDreamRelation,
+    dream::{dream_begin_codec::BeginPopulation, freshness_journal::DreamEntry},
+    dream_empty::InitialDreamSettlement,
+    dream_group::GroupedDreamRelation,
     dream_supersession::GroupedDreamSupersession,
 };
 use std::collections::{BTreeMap, BTreeSet};
@@ -13,11 +15,15 @@ pub(super) fn validate(
     memories: &MemoryStore,
     graph_store: &GraphStore,
     birth_versions: &BTreeMap<MemoryId, u64>,
+    check_native_policy: bool,
 ) -> Result<(), OwnerSessionError> {
     let mut bodies = BTreeMap::new();
     let mut birth_population = BirthPopulationReplay::new(memories);
     let mut begun = BTreeMap::new();
     let mut frontiers = BTreeMap::new();
+    let mut pending_frontiers = BTreeSet::<String>::new();
+    let mut settled_passes = BTreeSet::new();
+    let mut imports = check_native_policy.then(|| ImportEpochStore::prefix(container.owner_id()));
     let mut evaluated = BTreeSet::new();
     let mut pair_refs = Vec::new();
     let mut memory_head = 0;
@@ -31,6 +37,21 @@ pub(super) fn validate(
     let mut frames = container
         .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
     while let Some(frame) = frames.next_frame()? {
+        if let Some(imports) = &mut imports {
+            if crate::records::import::is_import_epoch_marker(frame.payload) {
+                imports
+                    .ingest_prefix(frame.payload)
+                    .map_err(OwnerSessionError::Record)?;
+                continue;
+            }
+            if let Some(DreamEntry::Settled(pass) | DreamEntry::ReplaySettled(pass)) = dreams
+                .journal()
+                .replay_entry(frame.payload)
+                .map_err(OwnerSessionError::Record)?
+            {
+                pending_frontiers.remove(&pass);
+            }
+        }
         let envelope = reliquary_container::decode_publication(frame.payload)?;
         let payload = envelope.as_ref().map_or(frame.payload, |e| e.body);
         if let Some(frontier) = crate::records::dream_frontier::FrontierRecord::decode(payload)
@@ -39,7 +60,39 @@ pub(super) fn validate(
             if let Some(payload) = &frontier.begin {
                 let begin = crate::records::dream::dream_begin_codec::decode(payload)
                     .map_err(OwnerSessionError::Record)?;
+                if matches!(begin.population, BeginPopulation::NativeBirth { .. }) {
+                    let epoch = imports
+                        .as_ref()
+                        .and_then(ImportEpochStore::open_epoch)
+                        .ok_or(OwnerSessionError::StaleDreamCut)?;
+                    let prefix = super::native_import::native_import_dream_prefix(&epoch.import_id);
+                    let has_other_pending = pending_frontiers
+                        .range(prefix.clone()..)
+                        .take_while(|pass| pass.starts_with(&prefix))
+                        .any(|pass| pass != &begin.pass_id);
+                    if has_other_pending
+                        || frontier.candidates.iter().any(|candidate| {
+                            let id = MemoryId(candidate.id);
+                            evaluated.contains(&ordered(begin.source_id, id))
+                                || (!memories
+                                    .first_memory_version(id)
+                                    .is_some_and(|version| version <= epoch.pre.memory_version)
+                                    && !settled_passes.contains(
+                                        &RelWriter::native_import_dream_identity(
+                                            &epoch.import_id,
+                                            id,
+                                        )
+                                        .0,
+                                    ))
+                        })
+                    {
+                        return Err(OwnerSessionError::StaleDreamCut);
+                    }
+                }
                 begun.insert(begin.pass_id, (graph, memory_head));
+            }
+            if check_native_policy {
+                pending_frontiers.insert(frontier.pass_id.clone());
             }
             frontiers.insert(frontier.pass_id.clone(), frontier);
             continue;
@@ -181,19 +234,23 @@ pub(super) fn validate(
             // A destination replay can preserve a verified source Dream's
             // explicit population even after introducing independent left-side
             // births. Compact populations remain exact physical-prefix proofs.
-            let population = admission.preexisting_ids();
-            let population_valid = if begin.is_compact() {
-                population == birth_population.at(birth_version)?
+            let native_birth = begin.native_birth();
+            let population_valid = if let Some(first) = native_birth {
+                // Native frontier admission already authenticated the exact set.
+                first == birth_version
+            } else if begin.is_compact() {
+                admission.preexisting_ids() == birth_population.at(birth_version)?
             } else {
-                birth_population.contains(birth_version, population)?
+                birth_population.contains(birth_version, admission.preexisting_ids())?
             };
             let roots: BTreeSet<_> = direct_links
                 .get(&record.source)
                 .into_iter()
                 .flatten()
                 .filter_map(|(candidate, version)| {
-                    (*version > begin.graph_version_before && population.contains(candidate))
-                        .then_some(*candidate)
+                    (*version > begin.graph_version_before
+                        && admission.preexisting_contains(candidate))
+                    .then_some(*candidate)
                 })
                 .collect();
             if frontiers.get(&record.pass_id).is_some_and(
@@ -228,7 +285,10 @@ pub(super) fn validate(
             if record.admit == source.archived
                 || (source.archived && !archival_origin)
                 || (source.archived && !duplicate_origin && !record.credit_roots.is_empty())
-                || !record.credit_roots.is_subset(population)
+                || record
+                    .credit_roots
+                    .iter()
+                    .any(|id| !admission.preexisting_contains(id))
                 || record
                     .credit_roots
                     .iter()
@@ -238,7 +298,7 @@ pub(super) fn validate(
             }
             let effects = FreshnessStore::initial_dream_effects(&record.freshness_effects)
                 .map_err(OwnerSessionError::Record)?;
-            if population.len() > 4096
+            if (native_birth.is_none() && admission.preexisting_ids().len() > 4096)
                 || effects.len() > 64
                 || effects.keys().any(|id| {
                     !memories
@@ -278,6 +338,10 @@ pub(super) fn validate(
                 memory_head = reliquary_memory_core::history_change_in_frame(delta)?
                     .ok_or(OwnerSessionError::StaleDreamCut)?
                     .1;
+            }
+            if check_native_policy {
+                pending_frontiers.remove(&record.pass_id);
+                settled_passes.insert(record.pass_id);
             }
         }
     }

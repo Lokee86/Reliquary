@@ -63,7 +63,7 @@ pub(super) struct RelReplayAdmission {
 pub(super) fn validate_rel_replay_admission(
     container: &Container,
     archive: &Archive,
-    grouped_archive_cuts: BTreeMap<u64, (u64, u64)>,
+    grouped_archive_cuts: &BTreeMap<u64, (u64, u64)>,
     leased: bool,
 ) -> Result<RelReplayAdmission, OwnerSessionError> {
     let mut admission = RelReplayAdmission::default();

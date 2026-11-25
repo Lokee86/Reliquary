@@ -67,7 +67,7 @@ impl RelWriter {
             source,
             pass_id,
             turn,
-            None,
+            InitialDreamBirth::Physical,
         )?;
         // The caller has independently reopened and authenticated the source
         // Begin. Only identities already eligible at this destination birth
@@ -92,7 +92,7 @@ impl RelWriter {
             source,
             pass_id,
             turn,
-            birth_version,
+            birth_version.map_or(InitialDreamBirth::Physical, InitialDreamBirth::Grouped),
         )?;
         self.append_checked_initial_begin(admission)
     }

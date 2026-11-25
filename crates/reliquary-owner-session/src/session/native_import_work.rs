@@ -335,7 +335,9 @@ impl RelWriter {
     }
 }
 
-pub(super) fn mapped_source_nodes(receipt: &crate::model::ImportReceipt) -> BTreeSet<(&str, &str)> {
+pub(in crate::session) fn mapped_source_nodes(
+    receipt: &crate::model::ImportReceipt,
+) -> BTreeSet<(&str, &str)> {
     receipt
         .conversations
         .iter()

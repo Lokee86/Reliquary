@@ -30,7 +30,16 @@ struct Admission {
 impl Serialize for DreamEvidenceStore {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut ordered: Vec<_> = self.admissions.values().collect();
-        ordered.sort_unstable_by_key(|a| (a.memory_cut, a.pass_id.as_str()));
+        ordered.sort_by_cached_key(|admission| {
+            // Many native passes can share a frontier cut. Their populations
+            // follow the sequence of source births within that cut.
+            let population_cut = self
+                .begins
+                .get(&admission.pass_id)
+                .and_then(StoredBegin::native_birth)
+                .map_or(admission.memory_cut, |version| version.saturating_sub(1));
+            (population_cut, admission.pass_id.as_str())
+        });
         let empty = Population::from_set(BTreeSet::new());
         let mut previous = &empty;
         let admissions = ordered
@@ -162,17 +171,24 @@ mod tests {
             let body_id = MemoryBodyId([0; 32]);
             let cut = 600 + i;
             let turn = i + 1;
+            let native_birth = i % 4 == 1;
+            let memory_cut = if native_birth { 600 + PASSES } else { cut };
             let begin = BeginRecord {
                 owner_uuid: owner,
                 pass_id: pass_id.clone(),
                 source_id,
                 turn,
                 graph_version_before: i,
-                population: if i % 2 == 0 {
+                population: if native_birth {
+                    BeginPopulation::NativeBirth {
+                        first_memory_version: cut + 1,
+                        digest: population_digest(&cohort),
+                    }
+                } else if i % 2 == 0 {
                     BeginPopulation::ExplicitSet(cohort.clone())
                 } else {
                     BeginPopulation::CompactCut {
-                        memory_cut: cut,
+                        memory_cut,
                         digest: population_digest(&cohort),
                     }
                 },
@@ -184,7 +200,7 @@ mod tests {
                 turn,
                 graph_version_before: i,
                 preexisting_ids: cohort.clone(),
-                memory_cut: cut,
+                memory_cut,
             };
             let frontier = FrontierRecord {
                 owner,
@@ -198,7 +214,7 @@ mod tests {
                 .into(),
                 candidates: Vec::new(),
                 graph_version: i,
-                memory_version: cut,
+                memory_version: memory_cut,
             };
             store
                 .replay_initial_frontier(frontier, begin, admission)
@@ -267,6 +283,9 @@ mod tests {
         for pass_id in ["pass-0960", "pass-0959", "pass-0001"] {
             assert_eq!(restored.begin(pass_id), store.begin(pass_id));
         }
+        let native = restored.begun("pass-0959").unwrap();
+        assert_eq!(native.native_birth(), Some(602));
+        assert!(!native.is_compact());
         assert_eq!(restored.journal.pending("legacy"), Some(legacy));
         assert_eq!(
             restored.journal.pending("pass-0001"),

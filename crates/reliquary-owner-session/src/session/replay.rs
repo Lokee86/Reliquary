@@ -32,6 +32,7 @@ pub(super) fn open_common_for_owner(
         reliquary_memory_core::MemoryReplayStart::Detached,
         None,
         &BTreeMap::new(),
+        None,
     )
     .map(|(common, _, _, _)| common)
 }
@@ -136,6 +137,7 @@ pub(super) fn open_common_replaying(
     memory_start: reliquary_memory_core::MemoryReplayStart,
     identity_generation: Option<[u8; 32]>,
     observation_archive_cuts: &BTreeMap<u64, (u64, u64)>,
+    dream_archive: Option<super::replay_prefix::DreamArchivePrefix<'_>>,
 ) -> Result<
     (
         CommonState,
@@ -259,7 +261,7 @@ pub(super) fn open_common_replaying(
         &maintenance,
         &grouped_body_ids,
     )?;
-    let mut dream_birth_versions = BTreeMap::new();
+    let mut dream_prefix = super::replay_prefix::DreamReplayPrefix::default();
     let (identity_history, identity_separation_history, observations) =
         super::replay_prefix::validate_graph_prefix(
             container,
@@ -267,76 +269,43 @@ pub(super) fn open_common_replaying(
             identity_generation.map(|generation| (&perception, generation)),
             &pruned_bodies,
             observation_archive_cuts,
-            &mut dream_birth_versions,
+            dream_archive,
+            &mut dream_prefix,
         )?;
     memories.retain_pruned_body_fence(pruned_bodies);
-    let mut dream_admissions = dream_admissions.into_iter().collect::<Vec<_>>();
-    let mut frames = container
-        .scan_matching_frames(crate::records::frame_selection::without_archive_or_packed)?;
-    while let Some(frame) = frames.next_frame()? {
-        let frontier = crate::records::dream_frontier::FrontierRecord::decode(frame.payload)
-            .map_err(OwnerSessionError::Record)?;
-        let (begin, frontier_cut) = match frontier.as_ref().and_then(|record| record.begin.as_ref())
+    let mut admissions_by_pass = BTreeMap::new();
+    for admission in dream_admissions {
+        if admissions_by_pass
+            .insert(admission.pass_id.clone(), admission)
+            .is_some()
         {
-            Some(payload) => (
-                Some(
-                    crate::records::dream::dream_begin_codec::decode(payload)
-                        .map_err(OwnerSessionError::Record)?,
-                ),
-                frontier.as_ref().map(|record| record.memory_version),
-            ),
-            None if frame.payload.starts_with(b"CVDREAM2") => (
-                Some(
-                    crate::records::dream::dream_begin_codec::decode(frame.payload)
-                        .map_err(OwnerSessionError::Record)?,
-                ),
-                None,
-            ),
-            None => (None, None),
-        };
-        let Some(begin) = begin else { continue };
-        let population = match &begin.population {
-            crate::records::dream::dream_begin_codec::BeginPopulation::CompactCut { .. } => {
-                if frontier_cut.is_some() {
-                    return Err(OwnerSessionError::Record(
-                        "embedded Dream Begin requires explicit population".into(),
-                    ));
-                }
-                // The ordered prefix reader below derives the exact retained set.
-                continue;
-            }
-            crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(ids) => {
-                ids.clone()
-            }
-        };
-        let memory_cut = frontier_cut.unwrap_or_else(|| match begin.population {
-            crate::records::dream::dream_begin_codec::BeginPopulation::CompactCut {
-                memory_cut,
-                ..
-            } => memory_cut,
-            crate::records::dream::dream_begin_codec::BeginPopulation::ExplicitSet(_) => memories
-                .first_memory_version(begin.source_id)
-                .unwrap_or_default(),
-        });
-        let derived = DreamBeginAdmission {
-            owner_uuid: container.owner_id(),
-            pass_id: begin.pass_id.clone(),
-            source_id: begin.source_id,
-            turn: begin.turn,
-            graph_version_before: begin.graph_version_before,
-            preexisting_ids: population,
-            memory_cut,
-        };
+            return Err(OwnerSessionError::Record(
+                "duplicate Dream Begin admission".into(),
+            ));
+        }
+    }
+    for admission in dream_prefix.explicit_admissions {
         // Preserve an explicit trusted admission when one was supplied. The
         // Dream store below validates every durable Begin field against it;
         // notably, the legacy explicit-set encoding does not carry its
         // physical Memory cut, so replacing that cut with an inferred value
         // would reject otherwise valid retained evidence.
-        if !dream_admissions.iter().any(|a| a.pass_id == begin.pass_id) {
-            dream_admissions.push(derived);
-        }
+        admissions_by_pass
+            .entry(admission.pass_id.clone())
+            .or_insert(admission);
     }
 
+    let check_native_dream_policy = !dream_prefix.native_admissions.is_empty();
+    for admission in dream_prefix.native_admissions {
+        if let Some(supplied) = admissions_by_pass.get(&admission.pass_id) {
+            if supplied != &admission {
+                return Err(OwnerSessionError::StaleDreamCut);
+            }
+        } else {
+            admissions_by_pass.insert(admission.pass_id.clone(), admission);
+        }
+    }
+    let mut dream_admissions: Vec<_> = admissions_by_pass.into_values().collect();
     let compact = super::dream_prefix::observe_compact_dream_prefix(container, &dream_admissions)?;
     dream_admissions.extend(compact);
     for admission in &dream_admissions {
@@ -369,7 +338,8 @@ pub(super) fn open_common_replaying(
         &dreams,
         &memories,
         &graph,
-        &dream_birth_versions,
+        &dream_prefix.birth_versions,
+        check_native_dream_policy,
     )?;
     let dream_pairs = super::dream_pairs::DreamPairs::open(container)?;
     let dream_read_index = super::dream_read_index::DreamReadIndex::build(

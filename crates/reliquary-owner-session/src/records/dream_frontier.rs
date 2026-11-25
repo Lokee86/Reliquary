@@ -1,4 +1,5 @@
 //! Durable identity of the bounded candidates that must finish before settlement.
+use crate::records::dream::dream_begin_codec::{self, BeginPopulation};
 use crate::records::dream_batch::Observation;
 use crate::{DreamMemoryCut, MemoryId};
 use serde::{Deserialize, Serialize};
@@ -53,11 +54,13 @@ impl FrontierRecord {
             return Err("invalid Dream frontier cut".into());
         }
         if let Some(payload) = &self.begin {
-            let begin = crate::records::dream::dream_begin_codec::decode(payload)?;
+            let begin = dream_begin_codec::decode(payload)?;
             if begin.owner_uuid != self.owner
                 || begin.pass_id != self.pass_id
                 || begin.source_id != MemoryId(self.source.id)
                 || begin.graph_version_before != self.graph_version
+                || matches!(begin.population, BeginPopulation::NativeBirth { first_memory_version, .. }
+                    if first_memory_version > self.memory_version)
             {
                 return Err("frontier Begin mismatch".into());
             }

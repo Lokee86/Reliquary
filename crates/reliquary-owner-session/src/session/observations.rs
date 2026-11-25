@@ -20,7 +20,7 @@ fn is_observation(prefix: &[u8]) -> bool {
 #[derive(Default)]
 pub(super) struct ArchiveReplayCuts {
     pub observations: BTreeMap<u64, (u64, u64)>,
-    pub grouped_completions: BTreeMap<u64, (u64, u64)>,
+    pub grouped_publications: BTreeMap<u64, (u64, u64)>,
 }
 
 pub(super) fn open_archive(
@@ -30,14 +30,15 @@ pub(super) fn open_archive(
     let mut cuts = ArchiveReplayCuts::default();
     // Find the grouped carrier positions without reading their bodies. The
     // Archive replay can supply each preceding cut as it advances over them.
-    let mut grouped =
-        container.matching_physical_cursor(|prefix| prefix.starts_with(b"RELINSC"))?;
+    let mut grouped = container.matching_physical_cursor(|prefix| {
+        prefix.starts_with(b"RELINSC") || prefix.starts_with(b"RELDRC01")
+    })?;
     while let Some(frame) = grouped.next_frame()? {
-        cuts.grouped_completions
+        cuts.grouped_publications
             .insert(frame.object().offset, (0, 0));
     }
     drop(grouped);
-    let mut grouped = cuts.grouped_completions.iter_mut().peekable();
+    let mut grouped = cuts.grouped_publications.iter_mut().peekable();
     let archive = Archive::open_observing_prefixes(
         container,
         leased,
