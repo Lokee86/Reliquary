@@ -179,8 +179,13 @@ fn legacy_import_marker_remains_a_fence_but_cannot_resume_mutation() {
         writer.container.append(&payload).unwrap();
         writer.container.sync().unwrap();
     }
-    let admission = GraphAdmission::for_replay(owner, [], [], [], [], []);
-    let mut writer = RelWriter::open_path(&path.0, admission, [], []).unwrap();
+    let writer = RelWriter::open_path_current(&path.0).unwrap();
+    #[cfg(feature = "d02-observation")]
+    let extent = writer.container.extent().unwrap();
+    drop(writer);
+    let mut writer = RelWriter::open_path_current(&path.0).unwrap();
+    #[cfg(feature = "d02-observation")]
+    assert_eq!(writer.observed_checkpoint_prefix(), Some(extent));
     let before = writer
         .container
         .read_frames()
@@ -427,5 +432,56 @@ fn reopen_rejects_archive_import_receipt_without_an_epoch() {
     assert!(matches!(
         RelSession::open_path(&path.0, &admission, [], []),
         Err(OwnerSessionError::Record(message)) if message.contains("physical position")
+    ));
+}
+
+#[test]
+fn reopen_checks_each_raw_import_receipt_position() {
+    let path = Temp::new();
+    let owner = [122; 16];
+    let mut writer = RelWriter::create_path(&path.0, ReliquaryScope::Project, owner).unwrap();
+    let ImportEpochStatus::Open(start) = writer
+        .start_native_import(&"02".repeat(32), "fixture/account", "schema-1", 1)
+        .unwrap()
+    else {
+        panic!("new fixture import must be open");
+    };
+    writer
+        .commit_native_import_receipt(
+            &start.import_id,
+            reliquary_archive::ImportReceipt {
+                schema_version: 1,
+                owner_uuid: owner,
+                import_key: [2; 32],
+                source_digest: [2; 32],
+                source_namespace: start.source_namespace.clone(),
+                source_format: start.source_format.clone(),
+                conversations: Vec::new(),
+                receipt_digest: [0; 32],
+            },
+        )
+        .unwrap();
+    let receipt = writer
+        .container
+        .read_frames()
+        .unwrap()
+        .into_iter()
+        .find(|frame| frame.payload.starts_with(b"CVAIMPT1"))
+        .unwrap()
+        .payload;
+    writer.complete_native_import(&start.import_id, 2).unwrap();
+    drop(writer);
+    assert!(RelSession::open_path_current(&path.0).is_ok());
+
+    let mut container = Container::open_writer(&path.0).unwrap();
+    container.append(&receipt).unwrap();
+    container.sync().unwrap();
+    // Archive accepts an identical raw receipt; the owner must still check
+    // this occurrence against the epoch open at its own position.
+    assert!(Archive::open(&container).is_ok());
+    drop(container);
+    assert!(matches!(
+        RelSession::open_path_current(&path.0),
+        Err(OwnerSessionError::Record(message)) if message.contains("no owner epoch at its physical position")
     ));
 }

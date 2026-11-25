@@ -23,7 +23,7 @@ use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
-const MAGIC: &[u8; 8] = b"RELCP011";
+const MAGIC: &[u8; 8] = b"RELCP012";
 const STATE_START: u64 = 16;
 const MAX_MANIFEST_BYTES: usize = 16 * 1024 * 1024;
 const REFRESH_BYTES: u64 = 16 * 1024 * 1024;
@@ -224,9 +224,14 @@ impl WriterCheckpoint {
             &mut staged,
             cut_seal(&physical, &session.history_generation),
         );
-        session
-            .serialize(&mut rmp_serde::Serializer::new(&mut pages).with_struct_map())
-            .map_err(io::Error::other)?;
+        let mut serializer = rmp_serde::Serializer::new(&mut pages);
+        // Legacy import records omit their leading format-version field.
+        if session.imports.has_legacy_markers() {
+            session.serialize(&mut serializer.with_struct_map())
+        } else {
+            session.serialize(&mut serializer)
+        }
+        .map_err(io::Error::other)?;
         let state_len = pages.finish()?;
         let manifest_at = staged.stream_position()?;
         let manifest = encode(&Manifest {

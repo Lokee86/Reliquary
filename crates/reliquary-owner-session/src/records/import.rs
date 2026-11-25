@@ -43,6 +43,10 @@ pub struct ImportEpochStore {
 }
 
 impl ImportEpochStore {
+    pub(crate) fn has_legacy_markers(&self) -> bool {
+        self.starts.values().any(|start| start.format_version == 1)
+    }
+
     pub(crate) fn prefix(owner: [u8; 16]) -> Self {
         Self {
             owner: Some(owner),

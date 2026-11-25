@@ -21,6 +21,7 @@ fn is_observation(prefix: &[u8]) -> bool {
 pub(super) struct ArchiveReplayCuts {
     pub observations: BTreeMap<u64, (u64, u64)>,
     pub grouped_publications: BTreeMap<u64, (u64, u64)>,
+    pub import_receipts: Vec<(u64, [u8; 32])>,
 }
 
 pub(super) fn open_archive(
@@ -39,18 +40,24 @@ pub(super) fn open_archive(
     }
     drop(grouped);
     let mut grouped = cuts.grouped_publications.iter_mut().peekable();
-    let archive = Archive::open_observing_prefixes(
+    let archive = Archive::open_observing_frames(
         container,
         leased,
         |prefix| is_observation(prefix) || reliquary_archive::archive_replay_frame(prefix),
-        |object, payload, archive, turn| {
-            while let Some((_, cut)) = grouped.next_if(|(offset, _)| **offset < object.offset) {
-                *cut = (archive, turn);
-            }
-            if let Ok(Some(frame)) = reliquary_container::decode_publication(payload)
-                && frame.body.starts_with(PREFIX)
+        |frame| {
+            let cut = (frame.archive_version, frame.activity);
+            while let Some((_, grouped_cut)) =
+                grouped.next_if(|(offset, _)| **offset < frame.object.offset)
             {
-                cuts.observations.insert(frame.version, (archive, turn));
+                *grouped_cut = cut;
+            }
+            if let Some(key) = frame.import_receipt_key {
+                cuts.import_receipts.push((frame.object.offset, key));
+            }
+            if let Ok(Some(publication)) = reliquary_container::decode_publication(frame.payload)
+                && publication.body.starts_with(PREFIX)
+            {
+                cuts.observations.insert(publication.version, cut);
             }
         },
     )?;

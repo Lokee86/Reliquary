@@ -14,7 +14,7 @@ impl Archive {
         object: ObjectRef,
         frame_payload: &[u8],
         publication: Publication<'_>,
-    ) -> Result<(), ArchiveError> {
+    ) -> Result<Option<[u8; 32]>, ArchiveError> {
         let archive_version = publication.archive_version;
         if self.next_archive_version()? != archive_version {
             return Err(invalid_coordinate());
@@ -25,7 +25,7 @@ impl Archive {
             transaction_time_ns: container.transaction_time_ns(publication.envelope.version),
             bound_reservation: publication.envelope.bound_reservation,
         };
-        let (first_local, first_global) = match publication.body {
+        let (first_local, first_global, import_receipt_key) = match publication.body {
             Body::Applying(payload) => {
                 let record = decode_record(payload)?.ok_or_else(invalid_coordinate)?;
                 if matches!(
@@ -36,20 +36,25 @@ impl Archive {
                 ) {
                     return Err(invalid_coordinate());
                 }
-                self.apply_record(record, true, Some((object, frame_payload)))?;
+                let import_receipt_key =
+                    self.apply_replayed_record(record, true, (object, frame_payload))?;
                 if self.archive_version != archive_version {
                     return Err(invalid_coordinate());
                 }
-                (archive_version, coordinate.global_version)
+                (
+                    archive_version,
+                    coordinate.global_version,
+                    import_receipt_key,
+                )
             }
             Body::Repeat(origin) => {
                 let global_version = self.first_applying(origin)?.global_version;
                 self.archive_version = archive_version;
-                (origin, global_version)
+                (origin, global_version, None)
             }
         };
         self.record_binding(coordinate, object, first_local, first_global);
-        Ok(())
+        Ok(import_receipt_key)
     }
 
     pub(super) fn check_publication(

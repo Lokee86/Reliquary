@@ -55,6 +55,16 @@ pub use evidence::{
     MAX_EVIDENCE_SEARCH_RESULTS, MAX_EVIDENCE_SEARCH_SCAN, MAX_EVIDENCE_TURNS,
 };
 
+/// A successfully replayed physical frame and its preceding Archive cuts.
+pub struct ArchiveReplayFrame<'a> {
+    pub object: ObjectRef,
+    pub payload: &'a [u8],
+    pub archive_version: u64,
+    pub activity: u64,
+    /// The key of a physical import receipt admitted at this frame.
+    pub import_receipt_key: Option<[u8; 32]>,
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Archive {
     #[serde(skip)]
@@ -138,7 +148,7 @@ impl Archive {
     }
 
     fn open_with_payloads(container: &Container, leased: bool) -> Result<Self, ArchiveError> {
-        Self::open_observing_prefixes(container, leased, archive_replay_frame, |_, _, _, _| {})
+        Self::open_observing_frames(container, leased, archive_replay_frame, |_| {})
     }
 
     /// Observe Archive version and activity at selected physical frames.
@@ -148,6 +158,24 @@ impl Archive {
         leased: bool,
         select: fn(&[u8]) -> bool,
         mut observe: impl FnMut(ObjectRef, &[u8], u64, u64),
+    ) -> Result<Self, ArchiveError> {
+        Self::open_observing_frames(container, leased, select, |frame| {
+            observe(
+                frame.object,
+                frame.payload,
+                frame.archive_version,
+                frame.activity,
+            );
+        })
+    }
+
+    /// Observe selected physical frames after replay admits them.
+    /// The selector must include all frames selected by `archive_replay_frame`.
+    pub fn open_observing_frames(
+        container: &Container,
+        leased: bool,
+        select: fn(&[u8]) -> bool,
+        mut observe: impl FnMut(ArchiveReplayFrame<'_>),
     ) -> Result<Self, ArchiveError> {
         let mut archive = Self::empty();
         if leased {
@@ -164,29 +192,22 @@ impl Archive {
         if has_project_clock {
             let mut frames = container.scan_clocked_matching_frames(select)?;
             while let Some(frame) = frames.next_frame()? {
-                observe(
-                    frame.object,
-                    frame.payload,
-                    archive.archive_version,
-                    archive.rel_turn_count,
-                );
-                archive.replay_frame(
+                observe(archive.replay_observed_frame(
                     container,
                     frame.object,
                     frame.payload,
                     frame.global_version,
-                )?;
+                )?);
             }
         } else {
             let mut frames = container.scan_matching_frames(select)?;
             while let Some(frame) = frames.next_frame()? {
-                observe(
+                observe(archive.replay_observed_frame(
+                    container,
                     frame.object,
                     frame.payload,
-                    archive.archive_version,
-                    archive.rel_turn_count,
-                );
-                archive.replay_frame(container, frame.object, frame.payload, 0)?;
+                    0,
+                )?);
             }
         }
         Ok(archive)
@@ -201,8 +222,39 @@ impl Archive {
         payload: &[u8],
         global_version: u64,
     ) -> Result<(), ArchiveError> {
+        self.replay_observed_frame(container, object, payload, global_version)?;
+        Ok(())
+    }
+
+    fn replay_observed_frame<'a>(
+        &mut self,
+        container: &Container,
+        object: ObjectRef,
+        payload: &'a [u8],
+        global_version: u64,
+    ) -> Result<ArchiveReplayFrame<'a>, ArchiveError> {
+        let archive_version = self.archive_version;
+        let activity = self.rel_turn_count;
+        let import_receipt_key =
+            self.replay_receipt_key(container, object, payload, global_version)?;
+        Ok(ArchiveReplayFrame {
+            object,
+            payload,
+            archive_version,
+            activity,
+            import_receipt_key,
+        })
+    }
+
+    fn replay_receipt_key(
+        &mut self,
+        container: &Container,
+        object: ObjectRef,
+        payload: &[u8],
+        global_version: u64,
+    ) -> Result<Option<[u8; 32]>, ArchiveError> {
         if let Some(publication) = crate::publication::in_frame(payload)? {
-            self.replay_publication(container, object, payload, publication)?;
+            return self.replay_publication(container, object, payload, publication);
         } else if let Some(record) = decode_record(payload)? {
             match &record {
                 Record::Retained(_) => {
@@ -222,9 +274,23 @@ impl Archive {
                 }
                 _ => {}
             }
-            self.apply_record(record, false, Some((object, payload)))?;
+            return self.apply_replayed_record(record, false, (object, payload));
         }
-        Ok(())
+        Ok(None)
+    }
+
+    fn apply_replayed_record(
+        &mut self,
+        record: Record<'_>,
+        allow_retained_project_identity: bool,
+        source: (ObjectRef, &[u8]),
+    ) -> Result<Option<[u8; 32]>, ArchiveError> {
+        let import_receipt_key = match &record {
+            Record::Import(receipt) => Some(receipt.import_key),
+            _ => None,
+        };
+        self.apply_record(record, allow_retained_project_identity, Some(source))?;
+        Ok(import_receipt_key)
     }
 
     /// Accept a source turn once. Its stable node ID is supplied by the source;
@@ -1566,11 +1632,90 @@ fn valid_import_text(value: &str) -> bool {
 }
 
 fn import_receipt_digest(receipt: &ImportReceipt) -> Result<[u8; 32], ArchiveError> {
+    // The field order must match the durable ImportReceipt JSON.
+    #[derive(serde::Serialize)]
+    struct UnsignedImportReceipt<'a> {
+        schema_version: u32,
+        owner_uuid: &'a [u8; 16],
+        import_key: &'a [u8; 32],
+        source_namespace: &'a str,
+        source_format: &'a str,
+        source_digest: &'a [u8; 32],
+        conversations: &'a [crate::ImportedConversation],
+        receipt_digest: [u8; 32],
+    }
+
+    let unsigned = UnsignedImportReceipt {
+        schema_version: receipt.schema_version,
+        owner_uuid: &receipt.owner_uuid,
+        import_key: &receipt.import_key,
+        source_namespace: &receipt.source_namespace,
+        source_format: &receipt.source_format,
+        source_digest: &receipt.source_digest,
+        conversations: &receipt.conversations,
+        receipt_digest: [0; 32],
+    };
+    let invalid = || ArchiveError::CorruptRecord("invalid import receipt");
+    let mut writer = std::io::BufWriter::new(Sha256::new());
+    serde_json::to_writer(&mut writer, &unsigned).map_err(|_| invalid())?;
+    let hasher = writer.into_inner().map_err(|_| invalid())?;
+    Ok(hasher.finalize().into())
+}
+
+#[test]
+fn import_receipt_digest_preserves_canonical_json() {
+    let message = crate::ImportedMessage {
+        source_id: "first".into(),
+        revision: "v1".into(),
+        source_parent_id: None,
+        replaces: None,
+        deleted: false,
+        node_id: Some("node".into()),
+        fingerprint: [3; 32],
+        artifacts: vec![crate::ImportedArtifact {
+            source_id: "image".into(),
+            source_ref: "file\\\"image.png".into(),
+            sha256: [4; 32],
+            file_id: [5; 32],
+        }],
+        source_author: Some(crate::ImportedSourceAuthor {
+            id: Some("author".into()),
+            is_bot: None,
+        }),
+    };
+    let receipt = ImportReceipt {
+        schema_version: 1,
+        owner_uuid: [1; 16],
+        import_key: [2; 32],
+        source_namespace: "source\nnamespace".into(),
+        source_format: crate::HERMES_COPIED_SOURCE_FORMAT.into(),
+        source_digest: [2; 32],
+        conversations: vec![crate::ImportedConversation {
+            source_id: "thread".into(),
+            conversation_id: "conversation".into(),
+            title: Some("Archive \"夜\"\n".repeat(1024)),
+            messages: vec![
+                message.clone(),
+                crate::ImportedMessage {
+                    source_id: "second".into(),
+                    source_parent_id: Some(message.source_id.clone()),
+                    source_author: None,
+                    ..message
+                },
+            ],
+            branches: vec![crate::ImportedBranch {
+                source_id: "main".into(),
+                branch_id: "branch".into(),
+                leaf_node_id: Some("node".into()),
+                canonical: true,
+            }],
+        }],
+        receipt_digest: [6; 32],
+    };
     let mut unsigned = receipt.clone();
     unsigned.receipt_digest = [0; 32];
-    let bytes = serde_json::to_vec(&unsigned)
-        .map_err(|_| ArchiveError::CorruptRecord("invalid import receipt"))?;
-    Ok(Sha256::digest(bytes).into())
+    let expected: [u8; 32] = Sha256::digest(serde_json::to_vec(&unsigned).unwrap()).into();
+    assert_eq!(import_receipt_digest(&receipt).unwrap(), expected);
 }
 
 fn activity_role(role: &str) -> bool {
