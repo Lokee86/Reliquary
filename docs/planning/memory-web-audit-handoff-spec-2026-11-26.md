@@ -53,6 +53,7 @@ Run the normal formatting and locked workspace compile check at integration. Com
 ## Related docs
 
 - [Shared audit and scheduling](memory-web-audit-spec-2026-11-24.md)
+- [Ego audit handoff and recovery](roadmap.md#ego-audit-handoff-and-recovery)
 - [Observation creation](observation-creation-spec-2026-11-24.md)
 - [Original Ego stages](https://github.com/Lokee86/Reliquary/blob/2b5bd0ea/docs/ego-web-synthesis-plan.md#L29-L39)
 

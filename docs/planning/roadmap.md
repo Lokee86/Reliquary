@@ -40,6 +40,12 @@ Use the source timestamp to order preference evidence and Chronos to resolve sup
 
 With Ego enabled, Context Engine includes the active PHY's saved Personality in the instruction context for ordinary assistant sessions. Adaptive Personality has its own behavioral evidence policy.
 
+## Ego audit handoff and recovery
+
+Use a small local SQLite database for Ego work in progress. Save each accepted batch's topics and exact Memory references under a stable batch ID, bound to the active PHY, source owner, and captured source cut. Commit the batch before marking its Ego audit work complete. On restart, Ego can resume consolidation and synthesis from the saved references.
+
+Commit the finished summary and its source cut to the PHY before deleting that run's rows. On restart, use the committed summary to recognize a finished run and clear its rows. Reuse the database for subsequent runs. [Proposal handoff](memory-web-audit-handoff-spec-2026-11-26.md)
+
 ## Ego summary inspection and control
 
 Authorized inspection can show current and retained revisions and their provenance under the existing PHY and source access rules. Manual changes append revisions, and removals append tombstones. For a summary with sections and points, a topic tombstone takes the topic and its points out of the current summary. Inspection leaves Freshness unchanged.
