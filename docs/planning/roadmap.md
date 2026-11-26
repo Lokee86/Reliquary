@@ -61,6 +61,12 @@ By default, a later audit can propose an equivalent topic or point and publish a
 
 REL-backed points use current source Freshness for context selection. In V1, revived Memories can seed the next scheduled audit. An independent audit trigger for reawakened Memories remains a future option. [Audit cadence](memory-web-audit-spec-2026-11-24.md#automatic-audit-cadence-and-sampling)
 
+## Ego Identity
+
+Identity is the assistant's enduring role and self-description, stored as a named record in the active PHY. The Inspector lets authorized users create and edit Identities, see which one is active, and explicitly switch to another saved Identity. Edits append a revision. Switching is a separate selection of the active Identity. [Current Identity storage](../../crates/reliquary-ego-store/src/store.rs) · [Earlier activation API](https://github.com/Lokee86/Reliquary/blob/973617b2/src/phylactery_ego.rs#L40-L62)
+
+The user invokes `/identity` to have the assistant draft a change to a selected Identity. Show the exact proposed text and save it only after the user approves it. Bind that approval to the target PHY, Identity ID, expected revision and approved text. Recheck write access and the revision at save time. A user's direct edits in the Inspector use the same owner and revision checks.
+
 ## Ego Anchors
 
 Show Anchors as **Pinned context** in the Inspector. Authorized users can view, create, edit and remove pins directly. Show each pin's owner as the active PHY or the named REL. A PHY pin carries user-specific standing context. A REL pin carries standing context for work in that REL. A private preference about one REL can stay PHY-owned with its applicability stated in the text. Context Engine selects applicable authorized pins within the Ego budget. [Existing Anchor storage](../../crates/reliquary-ego-store/src/store.rs)
