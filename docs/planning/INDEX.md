@@ -18,6 +18,7 @@ Unresolved future corrections and their acceptance boundaries.
 - [cross-rel-entity-identity-spec-2026-11-23.md](cross-rel-entity-identity-spec-2026-11-23.md) - Cross-REL Entity evidence, decisions and reconsideration.
 - [cross-rel-entity-separation-confirmation-spec-2026-11-23.md](cross-rel-entity-separation-confirmation-spec-2026-11-23.md) - User confirmation and undo for a selected cross-REL Entity pair.
 - [cross-rel-entity-staged-evaluation-2026-11-23.md](cross-rel-entity-staged-evaluation-2026-11-23.md) - Three-call identity evaluation, pre-cutover trial and acceptance gates.
+- [ego-rel-summary-spec-2026-11-26.md](ego-rel-summary-spec-2026-11-26.md) - Two-call Ego REL summary synthesis, verification and publication sequence.
 - [leiden-community-recomputation-plan-2026-11-18.md](leiden-community-recomputation-plan-2026-11-18.md) - Leiden implementation order and copied-REL acceptance.
 - [leiden-community-recomputation-spec-2026-11-18.md](leiden-community-recomputation-spec-2026-11-18.md) - Leiden recomputation contract and compatibility.
 - [memory-web-audit-call-trial-2026-11-24.md](memory-web-audit-call-trial-2026-11-24.md) - Paired inference trial and manual ranking for Ego and Perception extraction.

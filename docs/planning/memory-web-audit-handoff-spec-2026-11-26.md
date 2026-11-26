@@ -12,7 +12,7 @@ Keep one structured discovery call for the shared REL audit, with separate Ego a
 
 | Consumer | Discovery item | Next stage |
 | --- | --- | --- |
-| Ego | Suggested topic (`subject`) and one to six Memory slots (`source_slots`). | Summary Extraction reads the selected Memories and determines the details and qualifiers for the summary. |
+| Ego | Suggested topic (`subject`) and one to six Memory slots (`source_slots`). | [Ego REL summary](ego-rel-summary-spec-2026-11-26.md) consolidates the topic, drafts points from selected Memories, and verifies the exact draft before publication. |
 | Perception | Proposed Observation (`proposition`), one to eight source slots (`source_slots`), and an empty `participant_slots` list for ordinary Observations. A Relationship uses two to four distinct resolved Entity slots in that list. | Synthesize reads the selected sources and decides the exact wording, status, time scope, participant roles and final citations. It may abstain. |
 
 ## Source binding and eligibility

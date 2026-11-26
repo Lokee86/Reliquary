@@ -32,6 +32,8 @@ The first audit publishes from a bounded working set. A recurring audit runs aft
 
 The active PHY stores an itemized summary for each eligible source REL. Each section has independently readable points and exact supporting Memory references. The source REL supplies the current Freshness scores for context selection.
 
+For the REL-backed summary, Ego consolidates and compares the audit topics before synthesis. It drafts up to five points per topic in one structured call, verifies those exact points and citations in a second structured call, and publishes accepted points with the source cut. [Frozen synthesis and verification contract](ego-rel-summary-spec-2026-11-26.md)
+
 The PHY's own summary provides durable personal preference context through authorized recall and inspection on demand. Its audit covers the full eligible set of active, settled PHY Memories that express personal preferences. It can reuse the shared auditor with a PHY-specific admission and summary contract. The summary may use prose, points, or a mix, with provenance retained and content revised as its evidence changes. The exact category and type filters for this preference summary remain open. [Audit handoff](memory-web-audit-handoff-spec-2026-11-26.md)
 
 Cap the current saved PHY preference summary at 50,000 tokens for the first release. Organize material by topic so recall can select the relevant sections under the current request budget. Details beyond the saved summary budget remain available through the original PHY Memories.
