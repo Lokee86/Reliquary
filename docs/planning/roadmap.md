@@ -28,9 +28,15 @@ Ego and Perception use the same audit code for bounded batches, coverage of sele
 
 The first audit publishes from a bounded working set. A recurring audit runs after each 25 newly settled Memories and examines the changed sources and affected graph endpoints, with local context as needed. Each discovery request holds up to 125 distinct Memories. Each run adds up to 15 Stale and five Dormant inputs for Perception, with independent rotation. The samples also route to existing Observation receptors. Ego keeps its Fresh-only evidence boundary. [Historical Ego audit plan](https://github.com/Lokee86/Reliquary/blob/2b5bd0eabfbac0a85f899d7d730220b5e8e93efa/docs/ego-service-crate-extraction-spec-2026-10-28.md#L55-L65) · [Shared audit and Observation specification](memory-web-audit-spec-2026-11-24.md) · [Implementation plan](memory-web-audit-plan-2026-11-24.md)
 
+## Ego summary contracts
+
+The active PHY stores an itemized summary for each eligible source REL. Each section has independently readable points and exact supporting Memory references. The source REL supplies the current Freshness scores for context selection.
+
+The PHY's own summary provides durable personal preference context across sessions. Its audit covers the full eligible set of active, settled PHY Memories that express personal preferences. It can reuse the shared auditor with a PHY-specific admission and summary contract. The summary may use prose, points, or a mix, with provenance retained and content revised as its evidence changes. The exact category and type filters for this preference summary remain open. Adaptive Personality has its own behavioral evidence policy. [Audit handoff](memory-web-audit-handoff-spec-2026-11-26.md)
+
 ## Ego summary inspection and control
 
-The planned Ego summaries live in the active PHY with source-qualified topic and point history. Authorized inspection can show current and retained revisions and their provenance under the existing PHY and source access rules. Manual changes append revisions, and removals append tombstones. A topic tombstone takes the topic and its points out of the current summary. Inspection leaves Freshness unchanged.
+Authorized inspection can show current and retained revisions and their provenance under the existing PHY and source access rules. Manual changes append revisions, and removals append tombstones. For a summary with sections and points, a topic tombstone takes the topic and its points out of the current summary. Inspection leaves Freshness unchanged.
 
 By default, a later audit can propose an equivalent topic or point and publish a new entry when its sources support it. Preventing that return is a separate, opt-in suppression of the topic or point. The suppression and its withdrawal are append-only. A later summary specification will define how proposed items match a suppressed item before publication.
 
