@@ -34,6 +34,10 @@ The active PHY stores an itemized summary for each eligible source REL. Each sec
 
 The PHY's own summary provides durable personal preference context through authorized recall and inspection on demand. Its audit covers the full eligible set of active, settled PHY Memories that express personal preferences. It can reuse the shared auditor with a PHY-specific admission and summary contract. The summary may use prose, points, or a mix, with provenance retained and content revised as its evidence changes. The exact category and type filters for this preference summary remain open. [Audit handoff](memory-web-audit-handoff-spec-2026-11-26.md)
 
+Give the current PHY summary a generous, finite saved-size budget. Organize material by topic so recall can select the relevant sections under the current request budget. Details beyond the saved summary budget remain available through the original PHY Memories. The exact budget remains open.
+
+Use the source timestamp to order preference evidence and Chronos to resolve supported time limits. Apply an explicit later correction within its scope, and keep narrower preferences when they remain applicable. Consolidate repeats and append a summary revision when its content or support changes. [Temporal evidence](temporal-search-spec-2026-11-23.md)
+
 With Ego enabled, Context Engine includes the active PHY's saved Personality in the instruction context for ordinary assistant sessions. Adaptive Personality has its own behavioral evidence policy.
 
 ## Ego summary inspection and control
