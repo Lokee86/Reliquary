@@ -199,7 +199,7 @@ fn prepare(rel: &RelSession, state: &mut WorkerState) -> Result<TickInput, Owner
         state.review_exhausted = true;
     }
     let mut progress = PerceptionAuditProgress::decode(&row.bytes)?;
-    let advance = progress.advance(rel)?;
+    let advance = progress.advance_scheduled(rel, &mut state.recurring_audit_first)?;
     Ok(TickInput::Audit {
         previous: row.fingerprint,
         progress,

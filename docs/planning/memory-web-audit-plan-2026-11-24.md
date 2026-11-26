@@ -8,7 +8,7 @@ Implement the [shared auditor and Observation contract](memory-web-audit-spec-20
 
 ## Overview
 
-Build the shared batch runner and authorized read path first. Connect both discovery contracts as two lists in one structured call. Hand Perception proposals to the six-stage creation workflow through verification and publication. Connect the normal Gateway processing path at the 25-Memory cadence, with a bounded first page followed by incremental work. Verify each owning interface before the integrated run.
+Build the shared batch runner and authorized read path first. Connect both discovery contracts as two lists in one structured call. Hand Perception proposals to the six-stage creation workflow through verification and publication. Connect the normal Gateway processing path with a paged initial audit and incremental work at the 25-Memory cadence. Let due incremental work make progress between bootstrap pages. Verify each owning interface before the integrated run.
 
 ## Implementation sequence
 

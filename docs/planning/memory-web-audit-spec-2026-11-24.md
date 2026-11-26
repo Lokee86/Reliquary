@@ -42,7 +42,7 @@ Perception's list uses the ordinary or relational contract selected for the batc
 
 ## Bounded first audit and recurring coverage
 
-For an existing REL, freeze an initial authorized cut and select a bounded page of already-settled eligible Memories. Publish accepted results from that page. A separate bootstrap cursor can continue through remaining retained history in bounded work at that cut while newly changed work progresses. Record the initial cut as the starting frontier for recurring change selection. In a new REL, the first eligible group of 25 is the first working set. Opening or inspecting a REL remains read-only.
+For an existing REL, freeze an initial authorized cut and cover its eligible, already-settled Memories in bounded pages. Publish accepted results as each batch completes. Keep the bootstrap cursor through reopen and continue until the initial cut is exhausted. The 125-Memory limit applies to each request. Between bootstrap pages, let ready recurring work advance independently from the initial cut. In a new REL, the first eligible group of 25 is the first working set. Opening or inspecting a REL remains read-only.
 
 For a recurring audit, admit the due group of newly settled Memories and the affected sources from committed changes since the previous accepted frontier:
 

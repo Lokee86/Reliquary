@@ -7,6 +7,7 @@ pub const AUDIT_DORMANT_SAMPLES: usize = 5;
 pub const AUDIT_WORK_PAGE_SIZE: usize = 125;
 const MAX_PROGRESS_BYTES: usize = 32 * 1024;
 const PROGRESS_VERSION: u8 = 1;
+const BOOTSTRAP_END: MemoryId = MemoryId([u8::MAX; 32]);
 const LIVE_CONTRIBUTION_GROUP: usize = 5;
 // Reserve room for the cadence group and both sample bands. Each source
 // change adds at most one Memory, each Graph change two, and each Entity
@@ -199,7 +200,7 @@ impl PerceptionAuditProgress {
         Self {
             version: PROGRESS_VERSION,
             bootstrap_cut: (cut.memory != 0).then(|| cut.clone()),
-            bootstrap_after: None,
+            bootstrap_after: (cut.memory == 0).then_some(BOOTSTRAP_END),
             live_settled_after: cut.settlements,
             live_memory_after: cut.memory,
             live_contribution: None,
@@ -269,6 +270,16 @@ impl PerceptionAuditProgress {
         &mut self,
         rel: &RelSession,
     ) -> Result<PerceptionAuditAdvance, OwnerSessionError> {
+        self.advance_scheduled(rel, &mut false)
+    }
+
+    /// Alternate between bootstrap and ready recurring steps. The worker's
+    /// preference is transient because neither durable cursor depends on it.
+    pub fn advance_scheduled(
+        &mut self,
+        rel: &RelSession,
+        recurring_first: &mut bool,
+    ) -> Result<PerceptionAuditAdvance, OwnerSessionError> {
         let source_removal = rel.archive_source_removal_version();
         if self.after.source_removal != source_removal {
             self.after.source_removal = source_removal;
@@ -297,18 +308,37 @@ impl PerceptionAuditProgress {
         if self.page.is_some() {
             return Ok(PerceptionAuditAdvance::Ready);
         }
-        if let Some(cut) = self.bootstrap_cut.clone() {
-            self.advance_bootstrap(rel, cut)?;
+        if self.bootstrap_cut.is_none()
+            && self.bootstrap_after.is_none()
+            && self.resume_first_page_only_bootstrap(rel)?
+        {
             return Ok(PerceptionAuditAdvance::Updated);
         }
-        if let Some(mut run) = self.run.take() {
+        if let Some(cut) = self.bootstrap_cut.clone()
+            && !*recurring_first
+        {
+            self.advance_bootstrap(rel, cut)?;
+            *recurring_first = true;
+            return Ok(PerceptionAuditAdvance::Updated);
+        }
+        let recurring = if let Some(mut run) = self.run.take() {
             self.advance_run(rel, &mut run)?;
             if self.after != run.cut || self.page.is_some() {
                 self.run = Some(run);
             }
-            return Ok(PerceptionAuditAdvance::Updated);
+            PerceptionAuditAdvance::Updated
+        } else {
+            self.advance_cadence(rel)?
+        };
+        if let Some(cut) = self.bootstrap_cut.clone() {
+            if recurring == PerceptionAuditAdvance::Idle {
+                self.advance_bootstrap(rel, cut)?;
+                *recurring_first = true;
+                return Ok(PerceptionAuditAdvance::Updated);
+            }
+            *recurring_first = false;
         }
-        self.advance_cadence(rel)
+        Ok(recurring)
     }
 
     pub fn finish_page(&mut self) {
@@ -372,6 +402,46 @@ impl PerceptionAuditProgress {
         Ok(true)
     }
 
+    /// Older workers cleared both fields when queuing a bootstrap page. Find
+    /// the latest such transition, including after an older worker reopened a
+    /// REL with bootstrap still in progress. Already-accepted pages stay done.
+    fn resume_first_page_only_bootstrap(
+        &mut self,
+        rel: &RelSession,
+    ) -> Result<bool, OwnerSessionError> {
+        let mut history = rel
+            .observations
+            .records()
+            .iter()
+            .filter_map(|(_, record)| record.batch.progress.as_ref());
+        let Some(initial) = history.next() else {
+            return Ok(false);
+        };
+        if Self::decode(&initial.bytes)?.bootstrap_cut.is_none() {
+            self.bootstrap_after = Some(BOOTSTRAP_END);
+            return Ok(true);
+        }
+        let mut first_closed = None;
+        for entry in history.rev() {
+            let progress = Self::decode(&entry.bytes)?;
+            if progress.bootstrap_cut.is_some() {
+                break;
+            }
+            first_closed = Some(progress);
+        }
+        if let Some(page) = first_closed.and_then(|progress| progress.page) {
+            let mut cut = page.cut;
+            cut.source_removal = self.after.source_removal;
+            self.bootstrap_cut = Some(cut);
+            self.bootstrap_after = page.sources.last().map(|source| source.memory);
+        } else {
+            // Keep a terminal cursor after clearing the cut so a later poll
+            // can distinguish exhaustion from the older worker's early stop.
+            self.bootstrap_after = Some(BOOTSTRAP_END);
+        }
+        Ok(true)
+    }
+
     fn advance_bootstrap(
         &mut self,
         rel: &RelSession,
@@ -379,10 +449,6 @@ impl PerceptionAuditProgress {
     ) -> Result<(), OwnerSessionError> {
         let ids = rel.perception_source_ids_page(self.bootstrap_after, AUDIT_WORK_PAGE_SIZE);
         let rows = rel.perception_source_metadata(&cut, &ids)?;
-        if rows.is_empty() && ids.len() == AUDIT_WORK_PAGE_SIZE {
-            self.bootstrap_after = ids.last().copied();
-            return Ok(());
-        }
         if !rows.is_empty() {
             self.page = Some(page(
                 cut,
@@ -397,8 +463,12 @@ impl PerceptionAuditProgress {
                 Vec::new(),
             ));
         }
-        self.bootstrap_cut = None;
-        self.bootstrap_after = None;
+        if ids.len() == AUDIT_WORK_PAGE_SIZE {
+            self.bootstrap_after = ids.last().copied();
+        } else {
+            self.bootstrap_cut = None;
+            self.bootstrap_after = Some(BOOTSTRAP_END);
+        }
         Ok(())
     }
 

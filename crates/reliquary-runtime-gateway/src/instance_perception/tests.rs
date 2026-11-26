@@ -8,8 +8,9 @@ use reliquary_owner_session::model::{
     MemorySourceRef, MemoryTextField,
 };
 use reliquary_owner_session::observation::{
-    ObservationCitation, ObservationComparison, ObservationComparisonOutcome, ObservationProfile,
-    ObservationSource, ObservationStanding,
+    ObservationAuditProgress, ObservationBatch, ObservationCitation, ObservationComparison,
+    ObservationComparisonOutcome, ObservationPolicy, ObservationProfile, ObservationSource,
+    ObservationStanding,
 };
 use reliquary_owner_session::{
     DreamMemoryCut, EntityMentionCommit, PerceptionAuditAdvance, PerceptionAuditProgress,
@@ -20,6 +21,7 @@ use reliquary_switchboard::{
     GeneralEndpointError, HostedEmbeddingInputSemantics, HostedInferenceIdentity,
 };
 use serde_json::{Map, Value, json};
+use sha2::{Digest, Sha256};
 use std::{fs, path::PathBuf};
 
 const OWNER: [u8; 16] = [162; 16];
@@ -42,6 +44,7 @@ const C_QUALIFIED: &str =
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum Call {
     Discovered { proposals: usize, sampled: bool },
+    CapturedMemoryTexts(Vec<String>),
     Synthesized(String),
     Receptors,
     Verified(String),
@@ -75,6 +78,13 @@ impl GeneralEndpoint for Script {
         Ok(match schema {
             "memory_web_audit_v1" => {
                 let sources = input["sources"].as_array().unwrap();
+                self.record(Call::CapturedMemoryTexts(
+                    sources
+                        .iter()
+                        .filter(|row| row["kind"] == "memory")
+                        .filter_map(|row| row["text"].as_str().map(str::to_owned))
+                        .collect(),
+                ));
                 let slot = |kind, text| {
                     sources
                         .iter()
@@ -784,4 +794,132 @@ fn mounted_worker_publishes_ordinary_relational_and_derived_claims_and_reviews_n
             .proposition,
         QUALIFIED
     );
+}
+
+#[test]
+fn bootstrap_continues_after_first_bounded_memory_page() {
+    let fixture = Fixture::new();
+    let sources = (0..130)
+        .map(|index| {
+            (
+                format!("bootstrap-memory-{index:03}"),
+                "A durable project note for bootstrap coverage.",
+            )
+        })
+        .collect::<Vec<_>>();
+    fixture.append(&sources, 0);
+
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    assert!(run(&fixture, 0, 0, &calls, |_| true).is_empty());
+
+    let captured = captured_audit_memory_texts(&calls);
+    for (title, _) in &sources {
+        assert!(
+            captured.contains(title),
+            "bootstrap never exposed {title} to discovery"
+        );
+    }
+    if let Some(path) = std::env::var_os("RELIQUARY_TEST_AUDITED_REL") {
+        let mut source = fs::File::open(&fixture.path).unwrap();
+        let mut copy = fs::File::create_new(path).unwrap();
+        std::io::copy(&mut source, &mut copy).unwrap();
+        copy.sync_all().unwrap();
+    }
+
+    let additions = (0..25)
+        .map(|index| {
+            (
+                format!("recurring-memory-{index:03}"),
+                "A new settled note for the recurring audit.",
+            )
+        })
+        .collect::<Vec<_>>();
+    fixture.append(&additions, 0);
+    calls.lock().unwrap().clear();
+    run(&fixture, 0, 0, &calls, |_| true);
+    let captured = captured_audit_memory_texts(&calls);
+    assert!(sources.iter().all(|(title, _)| !captured.contains(title)));
+    assert!(additions.iter().all(|(title, _)| captured.contains(title)));
+}
+
+#[test]
+fn bootstrap_resumes_past_an_accepted_version_one_page() {
+    let fixture = Fixture::new();
+    let sources = (0..130)
+        .map(|index| {
+            (
+                format!("bootstrap-memory-{index:03}"),
+                "A durable project note for bootstrap coverage.",
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut memories = fixture.append(&sources, 0);
+    memories.sort_by_key(|memory| memory.id);
+
+    let mut writer = RelWriter::open_path_current(&fixture.path).unwrap();
+    let cut = writer.read_session().perception_source_cut();
+    let mut progress = PerceptionAuditProgress::new(cut.clone());
+    let publish_version_one = |writer: &mut RelWriter, progress: Value| {
+        assert_eq!(progress["version"], 1);
+        let progress: PerceptionAuditProgress = serde_json::from_value(progress).unwrap();
+        let bytes = progress.encode().unwrap();
+        let fingerprint = Sha256::digest(&bytes).into();
+        let previous = writer
+            .read_session()
+            .observation_progress()
+            .map(|row| row.fingerprint);
+        writer
+            .publish_observation_batch(ObservationBatch {
+                owner_id: cut.owner_id,
+                history_generation: cut.history_generation,
+                input_fingerprint: fingerprint,
+                policy: ObservationPolicy {
+                    version: 1,
+                    general_route: [1; 32],
+                    decision_route: [1; 32],
+                },
+                operations: Vec::new(),
+                progress: Some(ObservationAuditProgress {
+                    previous,
+                    fingerprint,
+                    bytes,
+                }),
+            })
+            .unwrap();
+    };
+    publish_version_one(&mut writer, json!(progress));
+    assert_eq!(
+        progress.advance(writer.read_session()).unwrap(),
+        PerceptionAuditAdvance::Updated
+    );
+    assert_eq!(progress.page.as_ref().unwrap().sources.len(), 125);
+    let mut legacy = json!(progress);
+    legacy["bootstrap_cut"] = Value::Null;
+    legacy["bootstrap_after"] = Value::Null;
+    publish_version_one(&mut writer, legacy.clone());
+    legacy["page"] = Value::Null;
+    publish_version_one(&mut writer, legacy);
+    drop(writer);
+
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    run(&fixture, 0, 0, &calls, |_| true);
+    let captured = captured_audit_memory_texts(&calls);
+    for (index, memory) in memories.iter().enumerate() {
+        let title = memory.source_node_id.as_ref().unwrap();
+        assert_eq!(captured.contains(title), index >= 125, "{title}");
+    }
+}
+
+fn captured_audit_memory_texts(calls: &Mutex<Vec<Call>>) -> BTreeSet<String> {
+    calls
+        .lock()
+        .unwrap()
+        .iter()
+        .filter_map(|call| match call {
+            Call::CapturedMemoryTexts(texts) => Some(texts),
+            _ => None,
+        })
+        .flatten()
+        .cloned()
+        .collect()
 }

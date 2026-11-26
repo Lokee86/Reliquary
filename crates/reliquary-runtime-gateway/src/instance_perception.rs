@@ -138,6 +138,7 @@ impl Drop for PerceptionLifecycle {
 
 #[derive(Default)]
 struct WorkerState {
+    recurring_audit_first: bool,
     review_after: Option<ObservationId>,
     review_cut: Option<(u64, u64, u64, u64, u64)>,
     review_exhausted: bool,
