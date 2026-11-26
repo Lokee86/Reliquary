@@ -2,6 +2,8 @@
 
 Parent index: [Planning](./INDEX.md)
 
+The [audit handoff follow-up](memory-web-audit-handoff-spec-2026-11-26.md) defines the next revision of the Propose and Synthesize boundary.
+
 ## Purpose
 
 Turn a claim proposed by the shared Memory Web audit into a verified Observation with exact provenance. Perception needs to check the existing REL for overlooked support, exceptions and contradictions before making the claim available to retrieval.

@@ -21,6 +21,7 @@ Unresolved future corrections and their acceptance boundaries.
 - [leiden-community-recomputation-plan-2026-11-18.md](leiden-community-recomputation-plan-2026-11-18.md) - Leiden implementation order and copied-REL acceptance.
 - [leiden-community-recomputation-spec-2026-11-18.md](leiden-community-recomputation-spec-2026-11-18.md) - Leiden recomputation contract and compatibility.
 - [memory-web-audit-call-trial-2026-11-24.md](memory-web-audit-call-trial-2026-11-24.md) - Paired inference trial and manual ranking for Ego and Perception extraction.
+- [memory-web-audit-handoff-spec-2026-11-26.md](memory-web-audit-handoff-spec-2026-11-26.md) - Topic and Observation proposals with exact source references for downstream analysis.
 - [memory-web-audit-plan-2026-11-24.md](memory-web-audit-plan-2026-11-24.md) - Shared audit implementation sequence and focused acceptance.
 - [memory-web-audit-spec-2026-11-24.md](memory-web-audit-spec-2026-11-24.md) - Shared Ego and Perception audit, older Memory sampling and Observation publication.
 - [observation-creation-spec-2026-11-24.md](observation-creation-spec-2026-11-24.md) - Six-stage Observation creation, one-call Jev verification and publication.

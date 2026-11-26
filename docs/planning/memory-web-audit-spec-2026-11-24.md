@@ -2,6 +2,8 @@
 
 Parent index: [Planning](./INDEX.md)
 
+The [audit handoff follow-up](memory-web-audit-handoff-spec-2026-11-26.md) defines the next revision of the Ego and Perception proposal contracts.
+
 ## Purpose
 
 Give Ego and Perception one way to audit an authorized Memory Web with predictable coverage and cost. Ego uses it to extract grounded material for summaries. Perception uses it to discover and verify Observation candidates, including Relationships between Entities. Core already resolves mentions and finds Memories and Relationships by Entity. It currently lacks the audit controller and a product path that turns those inputs into Observations. [Current semantic processing](../architecture/semantic-processing.md) · [Historical Ego audit](https://github.com/Lokee86/Reliquary/blob/2b5bd0eabfbac0a85f899d7d730220b5e8e93efa/docs/ego-service-crate-extraction-spec-2026-10-28.md#L55-L77)
