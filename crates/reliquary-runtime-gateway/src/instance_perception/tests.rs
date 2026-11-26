@@ -76,7 +76,7 @@ impl GeneralEndpoint for Script {
     ) -> Result<Value, GeneralEndpointError> {
         let input: Value = serde_json::from_str(payload).unwrap();
         Ok(match schema {
-            "memory_web_audit_v1" => {
+            "memory_web_audit_v2" => {
                 let sources = input["sources"].as_array().unwrap();
                 self.record(Call::CapturedMemoryTexts(
                     sources
@@ -92,9 +92,13 @@ impl GeneralEndpoint for Script {
                         .map(|row| row["slot"].clone())
                 };
                 let mut proposals = Vec::new();
-                let mut propose = |text, evidence, participants| {
+                let mut propose = |text, evidence, participants: Value| {
                     if let Some(slot) = evidence {
-                        proposals.push(draft(text, json!([slot]), participants));
+                        proposals.push(json!({
+                            "proposition": text,
+                            "source_slots": [slot],
+                            "participant_slots": participants,
+                        }));
                     }
                 };
                 match self.phase {
@@ -109,10 +113,7 @@ impl GeneralEndpoint for Script {
                             propose(
                                 RELATIONAL,
                                 slot("memory", PAIR),
-                                json!([
-                                    {"participant_slot":mira["slot"],"role":"supervisor"},
-                                    {"participant_slot":atlas["slot"],"role":"purchasing desk"}
-                                ]),
+                                json!([mira["slot"], atlas["slot"]]),
                             );
                         }
                     }
@@ -132,15 +133,31 @@ impl GeneralEndpoint for Script {
                     "perception":{"candidates":proposals,"lookups":[]},
                 })
             }
-            "observation_synthesis_v1" => {
+            "observation_synthesis_v2" => {
                 let proposition = input["proposal"]["proposition"].as_str().unwrap();
                 self.record(Call::Synthesized(proposition.into()));
                 let value = if self.phase <= 3 {
-                    draft(
-                        proposition,
-                        input["proposal_sources"].clone(),
-                        input["proposal_participants"].clone(),
-                    )
+                    let participants = if proposition == RELATIONAL {
+                        let sources = input["source_slots"].as_array().unwrap();
+                        assert!(sources.iter().any(|row| row["text"] == PAIR));
+                        let slots = input["proposal_participants"].as_array().unwrap();
+                        let offered = input["participant_slots"].as_array().unwrap();
+                        assert_eq!(
+                            offered[slots[0].as_u64().unwrap() as usize]["label"],
+                            "Mira"
+                        );
+                        assert_eq!(
+                            offered[slots[1].as_u64().unwrap() as usize]["label"],
+                            "Atlas"
+                        );
+                        json!([
+                            {"participant_slot":slots[0],"role":"supervisor"},
+                            {"participant_slot":slots[1],"role":"purchasing desk"}
+                        ])
+                    } else {
+                        json!([])
+                    };
+                    draft(proposition, input["proposal_sources"].clone(), participants)
                 } else if matches!(proposition, A | B | C) {
                     let (successor, required_text) = match proposition {
                         A => (QUALIFIED, &[BASE, LIMIT][..]),
@@ -629,7 +646,10 @@ fn mounted_worker_publishes_ordinary_relational_and_derived_claims_and_reviews_n
     let relational = claim(&second, RELATIONAL);
     assert!(
         matches!(&relational.claim.profile, ObservationProfile::Relational(participants)
-        if participants.len() == 2 && participants.iter().all(|p| p.revision == 1))
+        if participants.len() == 2
+            && participants.iter().all(|p| p.revision == 1)
+            && participants.iter().any(|p| p.role.as_deref() == Some("supervisor"))
+            && participants.iter().any(|p| p.role.as_deref() == Some("purchasing desk")))
     );
 
     fixture.append(&window("third-group", None), 0);

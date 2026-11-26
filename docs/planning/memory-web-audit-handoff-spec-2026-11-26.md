@@ -4,7 +4,7 @@ Parent index: [Planning](./INDEX.md)
 
 ## Purpose
 
-The shared audit chooses what Ego and Perception should investigate. Today the Ego list also writes a point and assigns status and time for each passage. Perception uses its full claim type at discovery, including status, time and Relationship roles, then Synthesize reads the same sources to decide those fields again. The handoff should give each consumer a suggestion and the sources it needs for its own evidence analysis. [Ego contract](../../crates/reliquary-ego/src/lib.rs) · [Perception contract](../../crates/reliquary-perception/src/claim.rs)
+The shared audit chooses what Ego and Perception should investigate. The first audit contract also wrote an Ego point and assigned status and time for each passage. It used Perception's full claim type at discovery, then Synthesize read the same sources to decide those fields again. The handoff gives each consumer a suggestion and the sources it needs for its own evidence analysis. [Ego contract](../../crates/reliquary-ego/src/lib.rs) · [Perception contract](../../crates/reliquary-perception/src/proposal.rs)
 
 ## Overview
 

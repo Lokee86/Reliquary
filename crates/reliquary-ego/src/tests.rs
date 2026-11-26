@@ -65,14 +65,8 @@ impl GeneralEndpoint for Endpoint {
         Ok(json!({
             "ego": {
                 "candidates": [
-                    {"subject": "Pilot and launch", "evidence": [
-                        {"source_slot": 0, "point": "Pilot approval", "status": "observed", "time_scope": "past"},
-                        {"source_slot": 0, "point": "Launch", "status": "planned", "time_scope": "future"}
-                    ]},
-                    {"subject": "Mixed source", "evidence": [
-                        {"source_slot": 0, "point": "Pilot approval", "status": "observed", "time_scope": "past"},
-                        {"source_slot": 1, "point": "Old claim", "status": "possible", "time_scope": "current"}
-                    ]}
+                    {"subject": "Pilot and launch", "source_slots": [0, 2, 0]},
+                    {"subject": "Mixed source", "source_slots": [0, 1]}
                 ],
                 "lookups": []
             },
@@ -82,9 +76,10 @@ impl GeneralEndpoint for Endpoint {
 }
 
 #[test]
-fn fresh_subject_can_have_multiple_typed_entries_from_one_source() {
+fn topic_selects_distinct_exact_fresh_memory_references() {
     let fresh = passage(1, Grade::Fresh, Eligibility::BOTH);
     let stale = passage(2, Grade::Stale, Eligibility::PERCEPTION);
+    let supporting = passage(3, Grade::Fresh, Eligibility::EGO);
     let batches = plan_batches(
         CUT,
         &[
@@ -95,6 +90,10 @@ fn fresh_subject_can_have_multiple_typed_entries_from_one_source() {
             WorkItem {
                 passage: stale.clone(),
                 mandatory: Eligibility::PERCEPTION,
+            },
+            WorkItem {
+                passage: supporting.clone(),
+                mandatory: Eligibility::EGO,
             },
         ],
         &[],
@@ -121,49 +120,12 @@ fn fresh_subject_can_have_multiple_typed_entries_from_one_source() {
         panic!("expected a valid Ego list");
     };
     assert_eq!(rejected, 1);
-    assert_eq!(exposure, vec![fresh.citation]);
+    assert_eq!(exposure, vec![fresh.citation, supporting.citation]);
     assert_eq!(candidates.len(), 1);
-    assert_eq!(candidates[0].evidence.len(), 2);
-    assert_eq!(candidates[0].evidence[0].excerpt, fresh.text);
-    assert_eq!(candidates[0].evidence[0].status, Status::Observed);
-    assert_eq!(candidates[0].evidence[1].status, Status::Planned);
-    assert_eq!(candidates[0].evidence[1].time_scope, TimeScope::Future);
+    assert_eq!(candidates[0].subject, "Pilot and launch");
+    assert_eq!(candidates[0].sources, [fresh.citation, supporting.citation]);
     let ListResult::Accepted { candidates, .. } = result.perception else {
         panic!("expected an independent Perception list");
     };
     assert_eq!(candidates, vec![stale.citation]);
-}
-
-#[test]
-fn exact_evidence_change_preserves_unaffected_points() {
-    let past = passage(1, Grade::Fresh, Eligibility::EGO);
-    let current = passage(2, Grade::Fresh, Eligibility::EGO);
-    let evidence = |passage: Passage, point: &str| EgoEvidence {
-        citation: passage.citation,
-        point: point.into(),
-        excerpt: passage.text,
-        status: Status::Observed,
-        time_scope: TimeScope::Current,
-    };
-    let candidate = EgoCandidate {
-        subject: "Pilot".into(),
-        evidence: vec![
-            evidence(past.clone(), "Past point"),
-            evidence(current.clone(), "Current point"),
-        ],
-    };
-    let checked = recheck_evidence(vec![candidate], |citation| {
-        if citation == past.citation {
-            EvidenceStanding::NoLongerFresh
-        } else {
-            EvidenceStanding::CurrentFresh
-        }
-    });
-    assert_eq!(checked.retained.len(), 1);
-    assert_eq!(checked.retained[0].evidence.len(), 1);
-    assert_eq!(checked.retained[0].evidence[0].citation, current.citation);
-    assert_eq!(checked.changed.len(), 1);
-    assert_eq!(checked.changed[0].subject, "Pilot");
-    assert_eq!(checked.changed[0].previous, past.citation);
-    assert_eq!(checked.changed[0].standing, EvidenceStanding::NoLongerFresh);
 }

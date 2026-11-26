@@ -1,14 +1,11 @@
-//! Fresh-only, source-linked inputs for downstream Ego summary generation.
+//! Topics and exact Memory references for downstream Ego extraction.
 
-use reliquary_memory_audit::{
-    CandidateContract, Feature, Slots, SourceCitation, Status, TimeScope,
-};
+use reliquary_memory_audit::{CandidateContract, Feature, Slots, SourceCitation};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
 const MAX_SUBJECT_BYTES: usize = 160;
-const MAX_POINT_BYTES: usize = 256;
-const MAX_EVIDENCE_ENTRIES: usize = 6;
+const MAX_SOURCE_SLOTS: usize = 6;
 
 #[derive(Clone, Copy, Default)]
 pub struct EgoContract;
@@ -16,23 +13,14 @@ pub struct EgoContract;
 #[derive(Clone, Eq, PartialEq)]
 pub struct EgoCandidate {
     pub subject: String,
-    pub evidence: Vec<EgoEvidence>,
-}
-
-#[derive(Clone, Eq, PartialEq)]
-pub struct EgoEvidence {
-    pub citation: SourceCitation,
-    pub point: String,
-    pub status: Status,
-    pub time_scope: TimeScope,
-    pub excerpt: String,
+    pub sources: Vec<SourceCitation>,
 }
 
 impl CandidateContract for EgoContract {
     type Candidate = EgoCandidate;
 
     fn instruction(&self) -> &'static str {
-        "Extract subjects useful for a current summary. Use only Fresh Memory slots eligible for Ego. Each evidence entry states one source-supported point and its status and time scope. A source can ground distinct entries. Preserve uncertainty and temporal qualifiers. A detail found only in an older or ineligible source cannot be used."
+        "Suggest topics useful for a current summary and select the Memory slots eligible for Ego worth reading for each topic. Return a short subject and its source slots."
     }
 
     fn candidate_schema(&self) -> Value {
@@ -40,50 +28,39 @@ impl CandidateContract for EgoContract {
             "type": "object",
             "properties": {
                 "subject": { "type": "string", "maxLength": MAX_SUBJECT_BYTES },
-                "evidence": {
-                    "type": "array", "minItems": 1, "maxItems": MAX_EVIDENCE_ENTRIES,
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "source_slot": { "type": "integer", "minimum": 0, "maximum": u16::MAX },
-                            "point": { "type": "string", "maxLength": MAX_POINT_BYTES },
-                            "status": { "type": "string", "enum": ["observed", "planned", "requested", "possible", "expected"] },
-                            "time_scope": { "type": "string", "enum": ["past", "current", "future", "unspecified"] }
-                        },
-                        "required": ["source_slot", "point", "status", "time_scope"],
-                        "additionalProperties": false
-                    }
+                "source_slots": {
+                    "type": "array", "minItems": 1, "maxItems": MAX_SOURCE_SLOTS,
+                    "items": { "type": "integer", "minimum": 0, "maximum": u16::MAX }
                 }
             },
-            "required": ["subject", "evidence"],
+            "required": ["subject", "source_slots"],
             "additionalProperties": false
         })
     }
 
     fn parse_candidate(&self, value: Value, slots: &Slots<'_>) -> Option<EgoCandidate> {
         let wire: CandidateFields = serde_json::from_value(value).ok()?;
-        let subject = bounded_text(wire.subject, MAX_SUBJECT_BYTES)?;
-        if !(1..=MAX_EVIDENCE_ENTRIES).contains(&wire.evidence.len()) {
+        let subject = wire.subject.trim();
+        if subject.is_empty()
+            || subject.len() > MAX_SUBJECT_BYTES
+            || !(1..=MAX_SOURCE_SLOTS).contains(&wire.source_slots.len())
+        {
             return None;
         }
-        let mut evidence = Vec::new();
-        for entry in wire.evidence {
-            let point = bounded_text(entry.point, MAX_POINT_BYTES)?;
-            let source = slots
-                .source(entry.source_slot)
-                .filter(|source| source.allows(Feature::Ego))?;
-            let entry = EgoEvidence {
-                citation: source.citation,
-                point,
-                status: entry.status,
-                time_scope: entry.time_scope,
-                excerpt: source.text.clone(),
-            };
-            if !evidence.contains(&entry) {
-                evidence.push(entry);
+        let mut sources = Vec::new();
+        for slot in wire.source_slots {
+            let citation = slots
+                .source(slot)
+                .filter(|source| source.allows(Feature::Ego))?
+                .citation;
+            if !sources.contains(&citation) {
+                sources.push(citation);
             }
         }
-        Some(EgoCandidate { subject, evidence })
+        Some(EgoCandidate {
+            subject: subject.to_owned(),
+            sources,
+        })
     }
 }
 
@@ -91,80 +68,7 @@ impl CandidateContract for EgoContract {
 #[serde(deny_unknown_fields)]
 struct CandidateFields {
     subject: String,
-    evidence: Vec<EvidenceFields>,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct EvidenceFields {
-    source_slot: u16,
-    point: String,
-    status: Status,
-    time_scope: TimeScope,
-}
-
-fn bounded_text(text: String, limit: usize) -> Option<String> {
-    let text = text.trim();
-    (!text.is_empty() && text.len() <= limit).then(|| text.to_owned())
-}
-
-/// Authorized owner assessment of whether a previously accepted exact citation still qualifies.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum EvidenceStanding {
-    CurrentFresh,
-    NoLongerFresh,
-    Replaced { replacement: SourceCitation },
-    Unavailable,
-}
-
-#[derive(Clone, Eq, PartialEq)]
-pub struct EvidenceChange {
-    pub subject: String,
-    pub point: String,
-    pub status: Status,
-    pub time_scope: TimeScope,
-    pub previous: SourceCitation,
-    pub standing: EvidenceStanding,
-}
-
-pub struct RecheckedEvidence {
-    pub retained: Vec<EgoCandidate>,
-    pub changed: Vec<EvidenceChange>,
-}
-
-/// Keep points backed by unchanged Fresh evidence and hand off exact changes for affected points.
-pub fn recheck_evidence(
-    prior: Vec<EgoCandidate>,
-    mut standing: impl FnMut(SourceCitation) -> EvidenceStanding,
-) -> RecheckedEvidence {
-    use std::collections::BTreeMap;
-
-    let mut retained = Vec::new();
-    let mut changed = Vec::new();
-    let mut checks = BTreeMap::new();
-    for mut candidate in prior {
-        candidate.evidence.retain(|entry| {
-            let value = *checks
-                .entry(entry.citation)
-                .or_insert_with(|| standing(entry.citation));
-            if value == EvidenceStanding::CurrentFresh {
-                return true;
-            }
-            changed.push(EvidenceChange {
-                subject: candidate.subject.clone(),
-                point: entry.point.clone(),
-                status: entry.status,
-                time_scope: entry.time_scope,
-                previous: entry.citation,
-                standing: value,
-            });
-            false
-        });
-        if !candidate.evidence.is_empty() {
-            retained.push(candidate);
-        }
-    }
-    RecheckedEvidence { retained, changed }
+    source_slots: Vec<u16>,
 }
 
 #[cfg(test)]

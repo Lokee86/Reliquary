@@ -4,17 +4,19 @@ mod claim;
 mod contribution;
 mod general;
 mod native;
+mod proposal;
 mod receptors;
 mod synthesis;
 mod verification;
 
-pub use claim::{ClaimParticipant, ObservationProfile, PerceptionContract, ProposedClaim};
+pub use claim::{ClaimParticipant, ObservationClaim, ObservationProfile, Status, TimeScope};
 pub use contribution::{
     CONTRIBUTION_POLICY_VERSION, ContributionDecision, ContributionHitDecision, ContributionState,
     ScopeChoice, TemporalChoice, contribute,
 };
 pub use general::{StageError, StageLimits};
 pub use native::{DecisionDiagnostics, HitVerdict, NativeDecisionError};
+pub use proposal::{ObservationProposal, PerceptionContract};
 pub use receptors::{
     RECEPTOR_POLICY_VERSION, ReceptorBinding, ReceptorCategory, ReceptorDescription, ReceptorSet,
     generate_receptors, receptor_fingerprint,

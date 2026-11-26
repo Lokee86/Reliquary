@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{fmt, time::Duration};
 
-pub const CONTRACT_VERSION: u32 = 1;
+pub const CONTRACT_VERSION: u32 = 2;
 pub const MAX_MEMORIES: usize = 125;
 pub const MAX_CANDIDATES_PER_LIST: usize = 4;
 pub const MAX_OPTIONAL_PASSAGE_BYTES: usize = 8 * 1024;
@@ -173,25 +173,6 @@ impl Default for BatchLimits {
             max_response_bytes: MAX_RESPONSE_BYTES,
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Status {
-    Observed,
-    Planned,
-    Requested,
-    Possible,
-    Expected,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TimeScope {
-    Past,
-    Current,
-    Future,
-    Unspecified,
 }
 
 /// A semantic owner supplies the item schema and validates each candidate against Core slots.

@@ -242,6 +242,21 @@ pub(super) fn participant(owner: [u8; 16], anchor: &PerceptionParticipantEvidenc
     }
 }
 
+pub(super) fn participant_anchor<'a>(
+    participant: &Participant,
+    anchors: &'a BTreeMap<EntityId, Vec<PerceptionParticipantEvidence>>,
+) -> Result<&'a PerceptionParticipantEvidence> {
+    anchors
+        .get(&EntityId(participant.entity_id))
+        .and_then(|entries| {
+            entries.iter().find(|entry| {
+                entry.entity_revision == participant.revision
+                    && entry.canonical_name == participant.label
+            })
+        })
+        .ok_or(Error::PendingEvidence)
+}
+
 pub(super) fn bind_participants(
     participants: &[ClaimParticipant],
     anchors: &BTreeMap<EntityId, Vec<PerceptionParticipantEvidence>>,
@@ -249,18 +264,9 @@ pub(super) fn bind_participants(
     participants
         .iter()
         .map(|p| {
-            let id = EntityId(p.participant.entity_id);
-            let evidence = anchors
-                .get(&id)
-                .and_then(|entries| {
-                    entries.iter().find(|entry| {
-                        entry.entity_revision == p.participant.revision
-                            && entry.canonical_name == p.participant.label
-                    })
-                })
-                .ok_or(Error::PendingEvidence)?;
+            let evidence = participant_anchor(&p.participant, anchors)?;
             Ok(ObservationParticipant {
-                entity_id: id,
+                entity_id: evidence.entity_id,
                 revision: evidence.entity_revision,
                 role: p.role.clone(),
                 mention: ObservationMention {

@@ -24,7 +24,7 @@ use std::sync::Arc;
 
 pub use reliquary_ego::EgoCandidate;
 pub use reliquary_memory_audit::{Feature, ListResult, LookupError};
-pub use reliquary_perception::ProposedClaim;
+pub use reliquary_perception::ObservationProposal;
 
 /// Immutable, nonsecret binding supplied by the configured runtime.
 #[derive(Clone)]

@@ -1,12 +1,12 @@
 use reliquary_memory_audit::{
     BatchLimits, Eligibility, Feature, Grade, ListResult, OwnerCut, Participant, Passage,
-    SourceCitation, SourceId, Status, TextField, TimeScope, WorkItem, plan_batches, run_batch,
+    SourceCitation, SourceId, TextField, WorkItem, plan_batches, run_batch,
 };
 use reliquary_perception::{
-    ExistingObservation, ExistingObservationRef, HitVerdict, ObservationProfile,
-    PerceptionContract, ProposedClaim, ReceptorBinding, ReceptorCategory, RevisionContext,
-    RevisionEvidence, StageBinding, StageError, StageLimits, SynthesisDecision, SynthesisRequest,
-    generate_receptors, receptor_fingerprint, synthesize,
+    ExistingObservation, ExistingObservationRef, HitVerdict, ObservationClaim, ObservationProfile,
+    ObservationProposal, PerceptionContract, ReceptorBinding, ReceptorCategory, RevisionContext,
+    RevisionEvidence, StageBinding, StageError, StageLimits, Status, SynthesisDecision,
+    SynthesisRequest, TimeScope, generate_receptors, receptor_fingerprint, synthesize,
 };
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
 use serde_json::{Value, json};
@@ -84,10 +84,9 @@ fn participant(id: u8, label: &str) -> Participant {
     }
 }
 
-fn wire_claim(text: &str, source: u16, participants: Value) -> Value {
+fn wire_proposal(text: &str, source: u16, participants: &[u16]) -> Value {
     json!({
-        "proposition": text, "status": "observed", "time_scope": "current",
-        "source_slots": [source], "participants": participants,
+        "proposition": text, "source_slots": [source], "participant_slots": participants,
     })
 }
 
@@ -111,15 +110,12 @@ fn discovery_binds_ordinary_and_relational_candidates_to_eligible_slots_in_one_b
             mandatory: Eligibility::PERCEPTION,
         })
         .collect();
-    let roles = json!([{"participant_slot":0,"role":"manager"},{"participant_slot":1,"role":null}]);
     let endpoint = Endpoint::new(json!({
         "perception":{"lookups":[], "candidates":[
-            wire_claim("Entry uses a badge.", 1, json!([])),
-            wire_claim("Facilities manages plant access.", 0, roles.clone()),
-            wire_claim("Facilities manages plant access.", 1, roles),
-            wire_claim("Facilities manages plant access.", 0, json!([
-                {"participant_slot":0,"role":"manager"},{"participant_slot":0,"role":null}
-            ]))
+            wire_proposal("Entry uses a badge.", 1, &[]),
+            wire_proposal("Facilities manages plant access.", 0, &[0, 1]),
+            wire_proposal("Facilities manages plant access.", 1, &[0, 1]),
+            wire_proposal("Facilities manages plant access.", 0, &[0, 0])
         ]}
     }));
     let ego = PerceptionContract::default();
@@ -148,14 +144,10 @@ fn discovery_binds_ordinary_and_relational_candidates_to_eligible_slots_in_one_b
     assert_eq!(rejected, 2);
     assert_eq!(candidates.len(), 2);
     assert_eq!(candidates[0].profile, ObservationProfile::Ordinary);
-    assert_eq!(candidates[0].citations, [derived_source.citation]);
+    assert_eq!(candidates[0].sources, [derived_source.citation]);
     assert_eq!(candidates[1].profile, ObservationProfile::Relational);
-    assert_eq!(candidates[1].citations, [relational_source.citation]);
-    assert!(candidates[1].participants[0].participant == participants[0]);
-    assert_eq!(
-        candidates[1].participants[0].role.as_deref(),
-        Some("manager")
-    );
+    assert_eq!(candidates[1].sources, [relational_source.citation]);
+    assert!(candidates[1].participants == participants);
     assert_eq!(endpoint.calls.lock().unwrap().len(), 1);
 }
 
@@ -163,20 +155,18 @@ fn discovery_binds_ordinary_and_relational_candidates_to_eligible_slots_in_one_b
 fn synthesis_preserves_the_exact_draft_rejects_repeated_work_and_routes_checked_duplicates() {
     let original = passage(
         SourceId::Memory([2; 32]),
-        "Visitor access requires a badge.",
+        "Facilities plans to require visitor badges next month.",
         Eligibility::PERCEPTION,
     );
     let narrower = passage(
         SourceId::Memory([3; 32]),
-        "Visitor badges are required on weekdays.",
+        "The badge plan applies to weekday visitors next month.",
         Eligibility::PERCEPTION,
     );
-    let proposal = ProposedClaim {
-        proposition: original.text.clone(),
+    let proposal = ObservationProposal {
+        proposition: "Visitor badges are required.".into(),
         profile: ObservationProfile::Ordinary,
-        status: Status::Observed,
-        time_scope: TimeScope::Current,
-        citations: vec![original.citation],
+        sources: vec![original.citation],
         participants: vec![],
     };
     let sources = [original.clone(), narrower.clone()];
@@ -192,9 +182,11 @@ fn synthesis_preserves_the_exact_draft_rejects_repeated_work_and_routes_checked_
         existing: &[],
         revision: None,
     };
-    let original_reply =
-        json!({"draft": wire_claim(&original.text, 0, json!([])), "duplicate_slot": null});
-    let endpoint = Endpoint::new(original_reply.clone());
+    let mut planned_claim = json!({
+        "proposition": original.text, "status": "planned", "time_scope": "future",
+        "source_slots": [0], "participants": [],
+    });
+    let endpoint = Endpoint::new(json!({"draft": planned_claim, "duplicate_slot": null}));
     let SynthesisDecision::Draft(first) =
         synthesize(&endpoint, &request, StageLimits::default()).unwrap()
     else {
@@ -202,10 +194,16 @@ fn synthesis_preserves_the_exact_draft_rejects_repeated_work_and_routes_checked_
     };
     assert_eq!(first.claim.proposition, original.text);
     assert_eq!(first.claim.citations, [original.citation]);
+    assert_eq!(first.claim.status, Status::Planned);
+    assert_eq!(first.claim.time_scope, TimeScope::Future);
     {
         let calls = endpoint.calls.lock().unwrap();
         assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0].0, "observation_synthesis_v1");
+        assert_eq!(calls[0].0, "observation_synthesis_v2");
+        assert_eq!(
+            calls[0].1["proposal"],
+            json!({"proposition": proposal.proposition, "profile": "ordinary"})
+        );
         assert_eq!(calls[0].1["source_slots"][0]["text"], original.text);
         assert_eq!(calls[0].1["proposal_sources"], json!([0]));
     }
@@ -222,9 +220,9 @@ fn synthesis_preserves_the_exact_draft_rejects_repeated_work_and_routes_checked_
         synthesize(&endpoint, &request, StageLimits::default()),
         Err(StageError::InvalidReply)
     ));
-    let mut endpoint = Endpoint::new(json!({
-        "draft": wire_claim(&narrower.text, 1, json!([])), "duplicate_slot": null,
-    }));
+    planned_claim["proposition"] = json!(narrower.text);
+    planned_claim["source_slots"] = json!([1]);
+    let mut endpoint = Endpoint::new(json!({"draft": planned_claim, "duplicate_slot": null}));
     let SynthesisDecision::Draft(successor) =
         synthesize(&endpoint, &request, StageLimits::default()).unwrap()
     else {
@@ -288,7 +286,7 @@ fn receptors_bind_the_exact_claim_and_embedding_profile_with_separate_descriptio
     );
     let mut draft = reliquary_perception::SynthesisDraft {
         id: [1; 32],
-        claim: ProposedClaim {
+        claim: ObservationClaim {
             proposition: source.text,
             profile: ObservationProfile::Ordinary,
             status: Status::Observed,

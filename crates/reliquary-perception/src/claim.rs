@@ -1,15 +1,12 @@
-use reliquary_memory_audit::{
-    CandidateContract, Feature, Participant, Passage, Slots, SourceCitation, SourceId, Status,
-    TimeScope,
-};
+use reliquary_memory_audit::{Feature, Participant, Passage, SourceCitation, SourceId};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
-const MAX_PROPOSITION_BYTES: usize = 4096;
+pub(crate) const MAX_PROPOSITION_BYTES: usize = 4096;
 const MAX_ROLE_BYTES: usize = 96;
 pub(crate) const MAX_CITATIONS: usize = 8;
-const MAX_PARTICIPANTS: usize = 4;
+pub(crate) const MAX_PARTICIPANTS: usize = 4;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -19,14 +16,27 @@ pub enum ObservationProfile {
     Relational,
 }
 
-/// Relational discovery can also produce ordinary claims, identified by empty participants.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct PerceptionContract {
-    pub profile: ObservationProfile,
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Status {
+    Observed,
+    Planned,
+    Requested,
+    Possible,
+    Expected,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TimeScope {
+    Past,
+    Current,
+    Future,
+    Unspecified,
 }
 
 #[derive(Clone, Eq, PartialEq)]
-pub struct ProposedClaim {
+pub struct ObservationClaim {
     pub proposition: String,
     pub profile: ObservationProfile,
     pub status: Status,
@@ -41,51 +51,6 @@ pub struct ClaimParticipant {
     pub role: Option<String>,
 }
 
-impl CandidateContract for PerceptionContract {
-    type Candidate = ProposedClaim;
-
-    fn instruction(&self) -> &'static str {
-        // Keep this policy part of the audit's versioned batch contract.
-        match self.profile {
-            ObservationProfile::Ordinary => concat!(
-                "Propose a useful Observation from eligible Perception passages, including settled older sources. ",
-                "Each item expresses one grounded proposition with one supported status and time scope. ",
-                "Retain uncertainty and temporal qualifiers, distinguish plans and requests from outcomes, ",
-                "and select direct support or the premises of a bounded conclusion. ",
-                "Exclude unsupported generalizations and causal guesses. ",
-                "Propose ordinary Observations and return empty participants.",
-            ),
-            ObservationProfile::Relational => concat!(
-                "Propose a useful Observation from eligible Perception passages, including settled older sources. ",
-                "Each item expresses one grounded proposition with one supported status and time scope. ",
-                "Retain uncertainty and temporal qualifiers, distinguish plans and requests from outcomes, ",
-                "and select direct support or the premises of a bounded conclusion. ",
-                "Exclude unsupported generalizations and causal guesses. ",
-                "Use empty participants for ordinary Observations. For relational Observations cite Memory ",
-                "passages that ground two to four distinct resolved participant slots. An ordinary Observation ",
-                "can supply additional evidence. Select grounded roles ",
-                "or null. Co-occurrence, similar names and existing labels do not establish a relationship.",
-            ),
-        }
-    }
-
-    fn candidate_schema(&self) -> Value {
-        claim_schema(self.profile, false)
-    }
-
-    fn parse_candidate(&self, value: Value, slots: &Slots<'_>) -> Option<ProposedClaim> {
-        let fields: ClaimFields = serde_json::from_value(value).ok()?;
-        if self.profile == ObservationProfile::Ordinary && !fields.participants.is_empty() {
-            return None;
-        }
-        bind_claim(
-            fields,
-            |slot| slots.source(slot),
-            |slot| slots.participant(slot),
-        )
-    }
-}
-
 pub(crate) fn object(properties: Value, required: &[&str]) -> Value {
     json!({
         "type": "object", "properties": properties,
@@ -93,12 +58,11 @@ pub(crate) fn object(properties: Value, required: &[&str]) -> Value {
     })
 }
 
-pub(crate) fn claim_schema(profile: ObservationProfile, require_profile: bool) -> Value {
-    let max = match profile {
-        ObservationProfile::Ordinary => 0,
-        ObservationProfile::Relational => MAX_PARTICIPANTS,
+pub(crate) fn claim_schema(profile: ObservationProfile) -> Value {
+    let (min, max) = match profile {
+        ObservationProfile::Ordinary => (0, 0),
+        ObservationProfile::Relational => (2, MAX_PARTICIPANTS),
     };
-    let min = usize::from(profile == ObservationProfile::Relational && require_profile) * 2;
     let slot = json!({"type":"integer", "minimum":0, "maximum":u16::MAX});
     let participant = object(
         json!({
@@ -145,29 +109,20 @@ struct ParticipantFields {
 
 pub(crate) fn bind_claim<'a>(
     fields: ClaimFields,
-    mut source: impl FnMut(u16) -> Option<&'a Passage>,
+    source: impl FnMut(u16) -> Option<&'a Passage>,
     mut participant: impl FnMut(u16) -> Option<&'a Participant>,
-) -> Option<ProposedClaim> {
+) -> Option<ObservationClaim> {
     let profile = if fields.participants.is_empty() {
         ObservationProfile::Ordinary
     } else {
         ObservationProfile::Relational
     };
     if !nonblank_bounded(&fields.proposition, MAX_PROPOSITION_BYTES)
-        || !(1..=MAX_CITATIONS).contains(&fields.source_slots.len())
         || !participant_count(profile, fields.participants.len())
     {
         return None;
     }
-    let mut citations = Vec::new();
-    for slot in fields.source_slots {
-        let source = source(slot)?;
-        let citation = source.citation;
-        if !source.allows(Feature::Perception) || citations.contains(&citation) {
-            return None;
-        }
-        citations.push(citation);
-    }
+    let citations = bind_sources(fields.source_slots, source)?;
     if !has_participant_evidence(profile, &citations) {
         return None;
     }
@@ -183,7 +138,7 @@ pub(crate) fn bind_claim<'a>(
             role: fields.role,
         });
     }
-    Some(ProposedClaim {
+    Some(ObservationClaim {
         proposition: fields.proposition,
         profile,
         status: fields.status,
@@ -193,20 +148,42 @@ pub(crate) fn bind_claim<'a>(
     })
 }
 
-pub(crate) fn valid_claim(claim: &ProposedClaim) -> bool {
+pub(crate) fn bind_sources<'a>(
+    slots: Vec<u16>,
+    mut source: impl FnMut(u16) -> Option<&'a Passage>,
+) -> Option<Vec<SourceCitation>> {
+    if !(1..=MAX_CITATIONS).contains(&slots.len()) {
+        return None;
+    }
+    let mut citations = Vec::new();
+    for slot in slots {
+        let passage = source(slot)?;
+        if !passage.allows(Feature::Perception) || citations.contains(&passage.citation) {
+            return None;
+        }
+        citations.push(passage.citation);
+    }
+    Some(citations)
+}
+
+pub(crate) fn valid_claim(claim: &ObservationClaim) -> bool {
     let mut identities = BTreeSet::new();
-    let mut citations = BTreeSet::new();
     nonblank_bounded(&claim.proposition, MAX_PROPOSITION_BYTES)
         && participant_count(claim.profile, claim.participants.len())
-        && claim.citations.len() <= MAX_CITATIONS
-        && has_participant_evidence(claim.profile, &claim.citations)
-        && claim
-            .citations
-            .iter()
-            .all(|citation| citations.insert(citation))
+        && valid_source_references(claim.profile, &claim.citations)
         && claim.participants.iter().all(|entry| {
             valid_role(entry.role.as_deref()) && identities.insert(entry.participant.entity_id)
         })
+}
+
+pub(crate) fn valid_source_references(
+    profile: ObservationProfile,
+    citations: &[SourceCitation],
+) -> bool {
+    let mut unique = BTreeSet::new();
+    citations.len() <= MAX_CITATIONS
+        && has_participant_evidence(profile, citations)
+        && citations.iter().all(|citation| unique.insert(citation))
 }
 
 fn has_participant_evidence(profile: ObservationProfile, citations: &[SourceCitation]) -> bool {
@@ -216,7 +193,7 @@ fn has_participant_evidence(profile: ObservationProfile, citations: &[SourceCita
             .any(|cite| matches!(cite.source, SourceId::Memory(_)))
 }
 
-fn participant_count(profile: ObservationProfile, count: usize) -> bool {
+pub(crate) fn participant_count(profile: ObservationProfile, count: usize) -> bool {
     match profile {
         ObservationProfile::Ordinary => count == 0,
         ObservationProfile::Relational => (2..=MAX_PARTICIPANTS).contains(&count),
@@ -231,14 +208,14 @@ pub(crate) fn nonblank_bounded(text: &str, max_bytes: usize) -> bool {
     !text.trim().is_empty() && text.len() <= max_bytes
 }
 
-pub(crate) fn model_claim(claim: &ProposedClaim) -> Value {
+pub(crate) fn model_claim(claim: &ObservationClaim) -> Value {
     json!({
         "proposition": claim.proposition, "profile": claim.profile,
         "status": claim.status, "time_scope": claim.time_scope,
     })
 }
 
-pub(crate) fn participant_identity(claim: &ProposedClaim, with_revision: bool) -> Value {
+pub(crate) fn participant_identity(claim: &ObservationClaim, with_revision: bool) -> Value {
     let mut participants: Vec<_> = claim.participants.iter().collect();
     participants.sort_by_key(|entry| (entry.participant.owner_id, entry.participant.entity_id));
     Value::Array(
@@ -256,7 +233,7 @@ pub(crate) fn participant_identity(claim: &ProposedClaim, with_revision: bool) -
     )
 }
 
-pub(crate) fn model_participants(claim: &ProposedClaim) -> Vec<Value> {
+pub(crate) fn model_participants(claim: &ObservationClaim) -> Vec<Value> {
     claim
         .participants
         .iter()

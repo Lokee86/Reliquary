@@ -54,10 +54,12 @@ impl GeneralEndpoint for Endpoint {
         schema_name: &str,
         schema: &Value,
     ) -> Result<Value, GeneralEndpointError> {
-        assert_eq!(schema_name, "memory_web_audit_v1");
+        assert_eq!(schema_name, "memory_web_audit_v2");
+        let request: Value = serde_json::from_str(user_payload).unwrap();
+        assert_eq!(request["contract"], 2);
         self.requests.lock().unwrap().push((
             system_prompt.len() + user_payload.len() + schema.to_string().len(),
-            serde_json::from_str(user_payload).unwrap(),
+            request,
         ));
         self.replies.lock().unwrap().pop_front().unwrap()
     }

@@ -85,10 +85,11 @@ impl GeneralEndpoint for Script<'_> {
                 "other":["Change to access schedule at the gallery"]
             }));
         }
-        assert_eq!(schema_name, "observation_synthesis_v1");
+        assert_eq!(schema_name, "observation_synthesis_v2");
         let state: Value = serde_json::from_str(packet).unwrap();
         let (claim, slots) = if let Some(replacement) = self.replacement_support {
-            assert!(!state["revision"].is_null());
+            assert_eq!(state["revision"]["prior_claim"]["status"], "observed");
+            assert_eq!(state["revision"]["prior_claim"]["time_scope"], "current");
             let rows = state["source_slots"].as_array().unwrap();
             assert_eq!(rows.len(), 1);
             assert_eq!(rows[0]["text"], replacement);
@@ -245,12 +246,10 @@ fn prepares_and_rechecks_a_verified_successor_outside_owner_read_closures() {
         end_byte: content.len() as u32,
         ..cite
     };
-    let proposal = ProposedClaim {
+    let proposal = ObservationProposal {
         proposition: CLAIM.into(),
         profile: reliquary_perception::ObservationProfile::Ordinary,
-        status: Status::Observed,
-        time_scope: TimeScope::Current,
-        citations: vec![audit_citation(cite)],
+        sources: vec![audit_citation(cite)],
         participants: Vec::new(),
     };
     let held = AtomicBool::new(false);

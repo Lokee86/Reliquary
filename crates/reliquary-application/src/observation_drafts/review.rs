@@ -189,7 +189,7 @@ fn capture_review(
         .collect();
     required.sort_unstable();
     required.dedup();
-    let mut prior = semantic_claim(rel, head.revision);
+    let prior = semantic_claim(rel, head.revision);
     let prior_id = digest(json!([
         "reliquary-observation-review-head-v1",
         existing_ref(head.revision)
@@ -253,20 +253,30 @@ fn capture_review(
         )?;
         all_current.extend(alternatives.iter().map(|row| row.citation));
     }
-    if !unchanged && !prior.participants.is_empty() {
+    let mut participants: Vec<_> = prior
+        .participants
+        .into_iter()
+        .map(|entry| entry.participant)
+        .collect();
+    if !unchanged && !participants.is_empty() {
         let anchors = capture.anchors(&all_current)?;
-        prior.participants.retain_mut(|p| {
+        participants.retain_mut(|p| {
             let Some(evidence) = anchors
-                .get(&EntityId(p.participant.entity_id))
+                .get(&EntityId(p.entity_id))
                 .and_then(|entries| entries.first())
             else {
                 return false;
             };
-            p.participant = participant(cut.owner_id, evidence);
+            *p = participant(cut.owner_id, evidence);
             true
         });
     }
-    prior.citations = current.iter().copied().map(audit_citation).collect();
+    let proposal = ObservationProposal {
+        proposition: prior.proposition,
+        profile: prior.profile,
+        sources: current.iter().copied().map(audit_citation).collect(),
+        participants: participants.clone(),
+    };
     let mut synthesis = SynthesisInput {
         source_removal: capture.cut.source_removal,
         binding: StageBinding {
@@ -274,12 +284,8 @@ fn capture_review(
             proposal_id: prior_id,
             route_identity: routes.route_identity,
         },
-        participants: prior
-            .participants
-            .iter()
-            .map(|p| p.participant.clone())
-            .collect(),
-        proposal: prior,
+        participants,
+        proposal,
         source_slots: Vec::new(),
         existing: Vec::new(),
     };
@@ -313,7 +319,7 @@ fn capture_review(
         if synthesis.proposal.profile == reliquary_perception::ObservationProfile::Relational
             && !synthesis
                 .proposal
-                .citations
+                .sources
                 .iter()
                 .any(|cite| matches!(cite.source, reliquary_memory_audit::SourceId::Memory(_)))
             && let Some(direct) = synthesis.source_slots.iter().find(|passage| {
@@ -323,7 +329,7 @@ fn capture_review(
                 )
             })
         {
-            synthesis.proposal.citations.push(direct.citation);
+            synthesis.proposal.sources.push(direct.citation);
         }
     }
     let initial_judgments = head
@@ -437,7 +443,7 @@ fn resolve(
     }
 }
 
-pub(super) fn semantic_claim(rel: &RelSession, row: &ObservationRevision) -> ProposedClaim {
+pub(super) fn semantic_claim(rel: &RelSession, row: &ObservationRevision) -> ObservationClaim {
     let draft = &row.draft;
     let profile = match draft.profile {
         ObservationProfile::Ordinary => reliquary_perception::ObservationProfile::Ordinary,
@@ -460,7 +466,7 @@ pub(super) fn semantic_claim(rel: &RelSession, row: &ObservationRevision) -> Pro
             role: p.role.clone(),
         })
         .collect();
-    ProposedClaim {
+    ObservationClaim {
         proposition: draft.proposition.clone(),
         profile,
         participants,

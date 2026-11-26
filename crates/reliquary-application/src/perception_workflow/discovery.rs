@@ -1,13 +1,14 @@
 use super::*;
 use reliquary_ego::{EgoCandidate, EgoContract};
 use reliquary_memory_audit::{
-    AuditError, Batch, BatchLimits, BatchResult, Participant, WorkItem, plan_batches, run_batch,
+    AuditError, Batch, BatchLimits, BatchResult, CONTRACT_VERSION, Participant, WorkItem,
+    plan_batches, run_batch,
 };
 use reliquary_owner_session::observation::ObservationStanding;
 use reliquary_owner_session::{
     AuditDiscoveryCursor, OwnerSessionError, PerceptionAuditPage, RelSession,
 };
-use reliquary_perception::{ObservationProfile, PerceptionContract, ProposedClaim};
+use reliquary_perception::{ObservationProfile, PerceptionContract};
 use std::collections::BTreeSet;
 
 // Leave room for schema, source coordinates, participant context and wire
@@ -26,7 +27,7 @@ pub struct AuditDiscovery {
     batches: Vec<Batch>,
 }
 
-pub type AuditDiscoveryResult = BatchResult<EgoCandidate, ProposedClaim>;
+pub type AuditDiscoveryResult = BatchResult<EgoCandidate, ObservationProposal>;
 
 impl AuditDiscovery {
     pub fn batch_count(&self) -> usize {
@@ -259,6 +260,7 @@ fn capture_key(
 ) -> Result<[u8; 32], OwnerSessionError> {
     let mut hash = Sha256::new();
     hash.update(b"reliquary-perception-audit-capture-v1\0");
+    hash.update(CONTRACT_VERSION.to_le_bytes());
     hash.update(route);
     if source_removal != 0 {
         hash.update(source_removal.to_le_bytes());
@@ -347,8 +349,8 @@ pub fn retain_current_ego_evidence(
     let cut = rel.perception_source_cut();
     for candidate in candidates.iter_mut() {
         let mut retained = Vec::new();
-        for evidence in candidate.evidence.drain(..) {
-            let cite = owner_citation(evidence.citation);
+        for source in candidate.sources.drain(..) {
+            let cite = owner_citation(source);
             let ObservationSource::Memory(id) = cite.source else {
                 continue;
             };
@@ -357,15 +359,13 @@ pub fn retain_current_ego_evidence(
                 row.grade == PerceptionSourceGrade::Fresh
                     && row.source.revision == cite.revision
                     && row.source.body_id.0 == cite.body_id
-            }) && rel
-                .observation_citation_text(&cite)
-                .is_ok_and(|text| text == evidence.excerpt)
+            }) && rel.observation_citation_text(&cite).is_ok()
             {
-                retained.push(evidence);
+                retained.push(source);
             }
         }
-        candidate.evidence = retained;
+        candidate.sources = retained;
     }
-    candidates.retain(|candidate| !candidate.evidence.is_empty());
+    candidates.retain(|candidate| !candidate.sources.is_empty());
     Ok(())
 }

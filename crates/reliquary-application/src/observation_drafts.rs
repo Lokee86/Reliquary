@@ -9,9 +9,9 @@ mod tests;
 
 use capture::{
     Capture, Excerpt, audit_citation, bind_participants, fit_context, observation_citation,
-    participant,
+    participant, participant_anchor,
 };
-use reliquary_memory_audit::{OwnerCut, Participant, Passage, Status, TimeScope};
+use reliquary_memory_audit::{OwnerCut, Participant, Passage};
 use reliquary_owner_session::model::{CompatibilityProfileId, EntityId};
 use reliquary_owner_session::observation::{
     ObservationCitation, ObservationDraft, ObservationId, ObservationOperation, ObservationPolicy,
@@ -21,10 +21,11 @@ use reliquary_owner_session::observation::{
 use reliquary_owner_session::{OwnerSessionError, RelSession};
 use reliquary_perception::{
     ClaimParticipant, EvidencePassage, ExistingObservation, ExistingObservationRef, HitVerdict,
-    NativeDecisionError, ProposedClaim, ReceptorBinding, ReceptorCategory, RevisionContext,
-    RevisionEvidence, StageBinding, StageError, StageLimits, SynthesisDecision, SynthesisDraft,
-    SynthesisRequest, VERIFICATION_POLICY_VERSION, VerificationDecision, VerificationState,
-    VerificationVerdict, generate_receptors, synthesize, verify,
+    NativeDecisionError, ObservationClaim, ObservationProposal, ReceptorBinding, ReceptorCategory,
+    RevisionContext, RevisionEvidence, StageBinding, StageError, StageLimits, Status,
+    SynthesisDecision, SynthesisDraft, SynthesisRequest, TimeScope, VERIFICATION_POLICY_VERSION,
+    VerificationDecision, VerificationState, VerificationVerdict, generate_receptors, synthesize,
+    verify,
 };
 use reliquary_switchboard::{DecisionEndpoint, EmbeddingEndpoint, EmbeddingMode, GeneralEndpoint};
 use serde_json::{Value, json};
@@ -179,7 +180,7 @@ impl PreparedObservation {
 struct SynthesisInput {
     binding: StageBinding,
     source_removal: u64,
-    proposal: ProposedClaim,
+    proposal: ObservationProposal,
     source_slots: Vec<Passage>,
     participants: Vec<Participant>,
     existing: Vec<ExistingObservation>,
@@ -241,7 +242,7 @@ pub fn evaluate_proposal(
     read: &impl ScopedObservationRead,
     routes: &ObservationDraftRoutes<'_>,
     cut: OwnerCut,
-    proposal: &ProposedClaim,
+    proposal: &ObservationProposal,
 ) -> Result<ProposalEvaluation> {
     let mut input = read.read(|rel| proposal_input(rel, routes, cut, proposal))?;
     let mut draft = match input.run(routes, None)? {
@@ -324,7 +325,7 @@ fn proposal_input(
     rel: &RelSession,
     routes: &ObservationDraftRoutes<'_>,
     cut: OwnerCut,
-    proposal: &ProposedClaim,
+    proposal: &ObservationProposal,
 ) -> Result<SynthesisInput> {
     let mut capture = Capture::new(rel);
     if capture.cut.owner_id != cut.owner_id
@@ -334,14 +335,17 @@ fn proposal_input(
         return Err(Error::Stale);
     }
     let citations: Vec<_> = proposal
-        .citations
+        .sources
         .iter()
         .copied()
         .map(observation_citation)
         .collect();
     if !proposal.participants.is_empty() {
         capture.check_relational_sources(&citations)?;
-        bind_participants(&proposal.participants, &capture.anchors(&citations)?)?;
+        let anchors = capture.anchors(&citations)?;
+        for participant in &proposal.participants {
+            participant_anchor(participant, &anchors)?;
+        }
     }
     let mut remaining = MAX_EXISTING_BYTES;
     let mut input = SynthesisInput {
@@ -353,24 +357,18 @@ fn proposal_input(
                 cut.history_generation,
                 proposal.proposition,
                 proposal.profile,
-                proposal.status,
-                proposal.time_scope,
                 citations,
                 proposal
                     .participants
                     .iter()
-                    .map(|p| (p.participant.entity_id, p.participant.revision, &p.role))
+                    .map(|p| (p.entity_id, p.revision))
                     .collect::<Vec<_>>()
             ])),
             route_identity: routes.route_identity,
         },
         proposal: proposal.clone(),
         source_slots: Vec::new(),
-        participants: proposal
-            .participants
-            .iter()
-            .map(|row| row.participant.clone())
-            .collect(),
+        participants: proposal.participants.clone(),
         existing: rel
             .observations_after(None, MAX_EXISTING)
             .into_iter()
@@ -411,7 +409,10 @@ fn existing_ref(row: &ObservationRevision) -> ExistingObservationRef {
     }
 }
 
-fn canonical_claim(capture: &mut Capture<'_>, claim: &ProposedClaim) -> Result<ObservationDraft> {
+fn canonical_claim(
+    capture: &mut Capture<'_>,
+    claim: &ObservationClaim,
+) -> Result<ObservationDraft> {
     let citations: Vec<_> = claim
         .citations
         .iter()

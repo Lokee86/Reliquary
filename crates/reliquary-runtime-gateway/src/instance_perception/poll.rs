@@ -411,7 +411,7 @@ fn proposals(
     state: &mut WorkerState,
     cut: &PerceptionSourceCut,
     memory_profile: Option<CompatibilityProfileId>,
-    candidates: Vec<reliquary_application::perception_workflow::ProposedClaim>,
+    candidates: Vec<reliquary_application::perception_workflow::ObservationProposal>,
 ) -> Result<(Vec<PreparedObservation>, Vec<ObservationOperation>), GatewayError> {
     let routes = draft_routes(owner.routes, memory_profile);
     let mut drafts = Vec::new();

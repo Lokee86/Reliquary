@@ -4,8 +4,8 @@ use crate::claim::{
 };
 use crate::general::{complete, fingerprint};
 use crate::{
-    HitVerdict, ProposedClaim, RECEPTOR_POLICY_VERSION, StageError, StageLimits,
-    VERIFICATION_POLICY_VERSION,
+    HitVerdict, ObservationClaim, ObservationProposal, RECEPTOR_POLICY_VERSION, StageError,
+    StageLimits, VERIFICATION_POLICY_VERSION,
 };
 use reliquary_memory_audit::{Feature, OwnerCut, Participant, Passage, SourceCitation, SourceId};
 use reliquary_switchboard::GeneralEndpoint;
@@ -13,21 +13,22 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const SYNTHESIS_POLICY_VERSION: u16 = 1;
+pub const SYNTHESIS_POLICY_VERSION: u16 = 2;
 const MAX_SOURCE_BYTES: usize = 24 * 1024;
 const MAX_PARTICIPANT_SLOTS: usize = 16;
 const MAX_EXISTING_SLOTS: usize = 16;
 const MAX_LABEL_BYTES: usize = 512;
 const MAX_BACKCHECK_SLOTS: usize = 3;
 const PROMPT: &str = concat!(
-    "Draft one exact Observation from the supplied authorized passages. Preserve the proposed profile ",
-    "and write one source-supported proposition. Include its status, applicable time, conditions and ",
-    "scope in the exact wording. A proposal or request supports its own status. Require evidence for ",
-    "an observed outcome. Use direct evidence or a bounded conclusion with citations for all its premises. ",
+    "Draft one exact Observation from the supplied authorized passages. Use the proposed statement as ",
+    "a lead and preserve its profile. Determine the claim from the passages and include its supported ",
+    "status, applicable time, conditions and scope in the exact wording. A plan or request supports ",
+    "its own status. Require evidence for an observed outcome. Use direct evidence or a bounded ",
+    "conclusion with citations for all its premises. ",
     "Retain uncertainty left by the sources. Do not guess about cause or generalize beyond the passages. ",
     "Choose only provided source and participant slots. For an ordinary Observation leave participants empty. ",
-    "For a relationship select two to four distinct resolved participants, support the relationship and ",
-    "the supplied roles in the selected Memory passages, and use null for a role that is unspecified. ",
+    "For a relationship select two to four distinct resolved participants and ground the relationship ",
+    "and each role in the selected Memory passages. Use null for an unspecified role. ",
     "When revising, consider the disposition and text of each supplied back-check passage. Select a ",
     "passage as a citation only when it grounds the exact new wording. An existing Observation slot may ",
     "be selected when its claim is equivalent in meaning, status, applicable time, scope and participant roles. ",
@@ -53,13 +54,13 @@ pub struct ExistingObservationRef {
 #[derive(Clone, Eq, PartialEq)]
 pub struct ExistingObservation {
     pub target: ExistingObservationRef,
-    pub claim: ProposedClaim,
+    pub claim: ObservationClaim,
 }
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct SynthesisDraft {
     pub id: [u8; 32],
-    pub claim: ProposedClaim,
+    pub claim: ObservationClaim,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -76,7 +77,7 @@ pub struct RevisionContext {
 
 pub struct SynthesisRequest<'a> {
     pub binding: StageBinding,
-    pub proposal: &'a ProposedClaim,
+    pub proposal: &'a ObservationProposal,
     pub sources: &'a [Passage],
     pub participants: &'a [Participant],
     pub existing: &'a [ExistingObservation],
@@ -105,7 +106,7 @@ pub fn synthesize(
     let state = request.state();
     let schema = object(
         json!({
-            "draft": {"anyOf":[claim_schema(request.proposal.profile, true), {"type":"null"}]},
+            "draft": {"anyOf":[claim_schema(request.proposal.profile), {"type":"null"}]},
             "duplicate_slot": {"type":["integer","null"], "minimum":0, "maximum":MAX_EXISTING_SLOTS - 1},
         }),
         &["draft", "duplicate_slot"],
@@ -113,7 +114,7 @@ pub fn synthesize(
     let response = complete(
         endpoint,
         PROMPT,
-        "observation_synthesis_v1",
+        "observation_synthesis_v2",
         &schema,
         &state,
         limits,
@@ -185,8 +186,8 @@ impl SynthesisRequest<'_> {
         let mut source_revisions = BTreeMap::new();
         let mut participants = BTreeSet::new();
         let mut existing = BTreeSet::new();
-        valid_claim(self.proposal)
-            && (self.revision.is_some() || !self.proposal.citations.is_empty())
+        self.proposal.valid()
+            && (self.revision.is_some() || !self.proposal.sources.is_empty())
             && (1..=MAX_CITATIONS).contains(&self.sources.len())
             && self
                 .sources
@@ -209,7 +210,7 @@ impl SynthesisRequest<'_> {
             })
             && self
                 .proposal
-                .citations
+                .sources
                 .iter()
                 .all(|citation| citations.contains(citation))
             && self.participants.len() <= MAX_PARTICIPANT_SLOTS
@@ -223,7 +224,7 @@ impl SynthesisRequest<'_> {
                 .proposal
                 .participants
                 .iter()
-                .all(|p| self.participants.contains(&p.participant))
+                .all(|p| self.participants.contains(p))
             && self.existing.len() <= MAX_EXISTING_SLOTS
             && self.existing.iter().all(|known| {
                 known.target.owner_id == cut.owner_id
@@ -284,12 +285,10 @@ impl SynthesisRequest<'_> {
             .participants
             .iter()
             .map(|p| {
-                let slot = self
-                    .participants
+                self.participants
                     .iter()
-                    .position(|entry| entry == &p.participant)
-                    .expect("validated participant slot");
-                json!({"participant_slot": slot, "role": p.role})
+                    .position(|entry| entry == p)
+                    .expect("validated participant slot")
             })
             .collect();
         let existing: Vec<_> = self
@@ -309,12 +308,13 @@ impl SynthesisRequest<'_> {
             })).collect();
             json!({
                 "prior_claim": model_claim(&revision.prior.claim),
+                "prior_participants": model_participants(&revision.prior.claim),
                 "backcheck": backcheck,
             })
         });
         json!({
-            "proposal": model_claim(self.proposal),
-            "proposal_sources": self.proposal.citations.iter().map(|c| self.source_slot(*c)).collect::<Vec<_>>(),
+            "proposal": {"proposition": self.proposal.proposition, "profile": self.proposal.profile},
+            "proposal_sources": self.proposal.sources.iter().map(|c| self.source_slot(*c)).collect::<Vec<_>>(),
             "proposal_participants": proposal_participants,
             "source_slots": sources,
             "participant_slots": participants,
@@ -323,7 +323,7 @@ impl SynthesisRequest<'_> {
         })
     }
 
-    fn draft_identity(&self, model: &str, state: &Value, result: &ProposedClaim) -> [u8; 32] {
+    fn draft_identity(&self, model: &str, state: &Value, result: &ObservationClaim) -> [u8; 32] {
         let sources: Vec<_> = self.sources.iter().map(|row| row.citation).collect();
         let participants: Vec<_> = self
             .participants
@@ -353,14 +353,14 @@ impl SynthesisRequest<'_> {
     }
 }
 
-fn compatible_claim(left: &ProposedClaim, right: &ProposedClaim) -> bool {
+fn compatible_claim(left: &ObservationClaim, right: &ObservationClaim) -> bool {
     left.profile == right.profile
         && left.status == right.status
         && left.time_scope == right.time_scope
         && participant_identity(left, false) == participant_identity(right, false)
 }
 
-fn unchanged(prior: &ProposedClaim, draft: &ProposedClaim) -> bool {
+fn unchanged(prior: &ObservationClaim, draft: &ObservationClaim) -> bool {
     compatible_claim(prior, draft)
         && normalize(&prior.proposition) == normalize(&draft.proposition)
         && prior.citations.len() == draft.citations.len()
