@@ -3161,7 +3161,7 @@ dependencies = [
 
 [[package]]
 name = "reliquary-cli"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "reliquary-memory",
  "rpassword",
@@ -3277,7 +3277,7 @@ dependencies = [
 
 [[package]]
 name = "reliquary-memory"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "blake3",
  "reliquary-application",

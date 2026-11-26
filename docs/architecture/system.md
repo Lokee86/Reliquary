@@ -24,7 +24,7 @@ Owner-session uses MessagePack for its private checkpoint projection. The worksp
 | Product workflows | `reliquary-application` | Validates and coordinates named cross-owner workflows, then asks owner sessions to publish. See [application](application.md). |
 | Runtime access and provider routing | `reliquary-runtime-gateway`, `reliquary-switchboard` | Gateway owns mounted owner access, authorization, workers, queue and host lifecycle; Switchboard owns runtime config and provider adapters. See [Gateway](gateway.md) and [Switchboard](switchboard.md). |
 
-The shared auditor receives bounded passages and an authorized lookup callback. Ego and Perception depend on it for their separate candidate contracts. Application composes their inference and the owner writer.
+The shared auditor receives bounded passages and an authorized lookup callback. Ego and Perception depend on it for their separate candidate contracts. Application composes their inference and the owner writer. Core v0.2.2 updates the audit and synthesis model contracts while retaining REL and PHY 2.1 and the version 1 audit progress format.
 
 The Rust call direction is intentionally constrained: semantic crates do not own persistence; Application may depend on semantic owners and owner-session value/commit APIs; Gateway composes Application and owner sessions but does not implement semantic policy or encode domain-store records. Container and writable stores do not escape to higher layers. The exact permitted package edges are the DAG contract, not this table.
 

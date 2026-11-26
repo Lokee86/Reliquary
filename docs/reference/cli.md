@@ -10,7 +10,7 @@ This page records the current `reliquary` standalone CLI grammar, shared output 
 
 Build with `cargo build --manifest-path cli/Cargo.toml --locked`. The program is a local host using the `reliquary-memory` Root API. It emits one JSON value on stdout for successful one-shot operations. Errors are JSON on stderr in the form `{"error":{"kind":"...","message":"..."}}` and exit nonzero. A returned result with `ok: false` also exits nonzero. `--json` is accepted as a global marker and removed before parsing; repeating it is an error.
 
-No arguments, exactly `--help`/`-h`, and exactly `--version`/`-V` are special invocations. `--help` identifies the installed CLI package version and lists the supported 2.1 commands. `--version` returns that same version in JSON. `--config FILE` may prefix a command and is rotated to the command arguments; commands that accept it may also take it in their own options. Default config path is `reliquary.cfg`.
+No arguments, exactly `--help`/`-h`, and exactly `--version`/`-V` are special invocations. `--help` identifies the installed CLI package version and lists the supported 2.1 commands. `--version` returns that same version in JSON. The CLI and its Root dependency share the Core release version. `--config FILE` may prefix a command and is rotated to the command arguments; commands that accept it may also take it in their own options. Default config path is `reliquary.cfg`.
 
 `rel verify` and `phy verify` use ordinary 2.1 admission for files produced by the [offline history migration](../planning/owner-history-migration-plan-2026-11-18.md). Original FRS07 inputs produce a format error.
 
