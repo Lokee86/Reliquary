@@ -20,7 +20,7 @@ The normal sequence is **Audit → Consolidate and compare → Synthesize → Ve
 4. **Verify once per topic.** Submit the frozen points with their IDs and the same Memory packet to the verifier. Each point has independent meaning, status, time-scope and attribution judgments. Keep only points with valid citations and all four judgments supported. A hold affects that point. A valid response with zero accepted points completes the attempt without new summary content. Rejected points have no automatic rewrite, relabel or third call. An incomplete or malformed stage reply follows the saved work's retry handling and does not count as a completed topic.
 5. **Publish verified points and advance the source cut.** Ego proposes the section update. For a matched section, carry forward eligible unaffected points and add verified points that cite at least one of the new Memory revisions. Apply existing source standing, suppression and append-only revision rules. Application rechecks authorized owner bindings and exact source standing before owner-session publishes the resulting summary and source cut to the active PHY. Release the run's work rows after that commit. A source change during inference requires revalidating the work against its new capture before reusing any output. [Summary contracts and controls](roadmap.md#ego-summary-contracts)
 
-Keep synthesis, verification and the point acceptance policy in `reliquary-ego`. Application orchestrates source access, configured inference and publication through the existing owner boundaries. Switchboard supplies structured inference and embeddings through the configured routes. The accepted sequence uses separate structured requests and can bind the same model for both. The trial used GPT-5.6 Sol at low reasoning effort in both calls. The PHY preference summary, Personality, and later context selection have separate contracts. [Current Ego handoff](../../crates/reliquary-ego/src/lib.rs) · [Switchboard ownership](../architecture/switchboard.md)
+Keep synthesis, verification and the point acceptance policy in `reliquary-ego`. Application orchestrates source access, configured inference and publication through the existing owner boundaries. Switchboard supplies structured inference and embeddings through the configured routes. The accepted sequence uses separate structured requests and can bind the same model for both. The trial used GPT-5.6 Sol at low reasoning effort in both calls. The [PHY summary](roadmap.md#phy-summary) uses its own whole-text publication contract. Context Engine owns later selection. [Current Ego handoff](../../crates/reliquary-ego/src/lib.rs) · [Switchboard ownership](../architecture/switchboard.md)
 
 ## Request and result contract
 
@@ -52,7 +52,7 @@ Earlier held-out temporal checks kept ongoing rules separate from snapshots and 
 
 ## Open decisions
 
-The active PHY's personal preference summary needs its separate evidence and synthesis policy. The context engine still needs its selection and packing policy for verified points. Matching proposed topics or points against a manual suppression is tracked in the [inspection and control design](roadmap.md#ego-summary-inspection-and-control).
+Context Engine still needs its selection and packing policy for verified REL points and the saved PHY summary. Matching proposed topics or points against a manual suppression is tracked in the [inspection and control design](roadmap.md#ego-summary-inspection-and-control).
 
 ## Related docs
 

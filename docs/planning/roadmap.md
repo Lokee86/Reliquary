@@ -34,13 +34,18 @@ The active PHY stores an itemized summary for each eligible source REL. Each sec
 
 For the REL-backed summary, Ego consolidates and compares the audit topics before synthesis. It drafts up to five points per topic in one structured call, verifies those exact points and citations in a second structured call, and publishes accepted points with the source cut. [Frozen synthesis and verification contract](ego-rel-summary-spec-2026-11-26.md)
 
-The PHY's own summary provides durable personal preference context through authorized recall and inspection on demand. Its audit covers the full eligible set of active, settled PHY Memories that express personal preferences. It can reuse the shared auditor with a PHY-specific admission and summary contract. The summary may use prose, points, or a mix, with provenance retained and content revised as its evidence changes. The exact category and type filters for this preference summary remain open. [Audit handoff](memory-web-audit-handoff-spec-2026-11-26.md)
+## PHY summary
 
-Cap the current saved PHY preference summary at 50,000 tokens for the first release. Organize material by topic so recall can select the relevant sections under the current request budget. Details beyond the saved summary budget remain available through the original PHY Memories.
+Ego maintains one current text summary of the active PHY's own Memories. A successful refresh replaces the current text as a whole and records its source cut and provenance. Topics and points can organize the draft. The routine user profile and on-demand recall draw from the same saved summary, and recall can also search the original PHY Memories. [Durable handoff](#ego-audit-handoff-and-recovery)
 
-Use the source timestamp to order preference evidence and Chronos to resolve supported time limits. Apply an explicit later correction within its scope, and keep narrower preferences when they remain applicable. Consolidate repeats and append a summary revision when its content or support changes. [Temporal evidence](temporal-search-spec-2026-11-23.md)
+Every Memory category and type is eligible. The audit reads active, settled PHY Memories and selects durable personal context and standing guidance for the summary. Cover the initial eligible cut, then refresh after five eligible Memory changes. Use the source timestamp to order evidence and Chronos to resolve supported time limits. Apply corrections within their scope and retain narrower rules that still apply. [Audit handoff](memory-web-audit-handoff-spec-2026-11-26.md) · [Temporal evidence](temporal-search-spec-2026-11-23.md)
 
-With Ego enabled, Context Engine includes the active PHY's saved Personality in the instruction context for ordinary assistant sessions. Adaptive Personality has its own behavioral evidence policy.
+1. **Audit and synthesize.** Prepare a source-backed draft of the full replacement summary.
+2. **Check size.** Measure the exact draft text with the token counter used for the saved cap. A draft that fits goes directly to verification.
+3. **Compress if over budget.** Give the full draft to one bounded compression job. The model rewrites for information density and can use a tokenizer tool to measure candidate text and refine it within the same job. Preserve as many distinct facts as possible, including dates, scope, conditions and exceptions that change their meaning. Use the same token counter for the tool and the final size check. [Token-counting interface](../../crates/reliquary-context-engine/src/compaction_budget.rs)
+4. **Verify the final text and save.** Verify the exact candidate against the captured sources. If compression ran, compare with the draft for material information lost or changed in the rewrite. Recheck the final size and source standing before publishing the whole replacement and its source cut. Publish only after those checks and verification pass. [Ego audit handoff and recovery](#ego-audit-handoff-and-recovery)
+
+Use 4,000 tokens as the proposed starting saved cap for calibration. Context Engine selects the routine profile under the shared Ego injection budget. [Ego injection budget](https://github.com/Lokee86/Reliquary/blob/2b5bd0ea/docs/ego-cross-chat-context-plan.md#L51-L69)
 
 ## Ego audit handoff and recovery
 
