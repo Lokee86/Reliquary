@@ -32,7 +32,9 @@ The first audit publishes from a bounded working set. A recurring audit runs aft
 
 The active PHY stores an itemized summary for each eligible source REL. Each section has independently readable points and exact supporting Memory references. The source REL supplies the current Freshness scores for context selection.
 
-The PHY's own summary provides durable personal preference context across sessions. Its audit covers the full eligible set of active, settled PHY Memories that express personal preferences. It can reuse the shared auditor with a PHY-specific admission and summary contract. The summary may use prose, points, or a mix, with provenance retained and content revised as its evidence changes. The exact category and type filters for this preference summary remain open. Adaptive Personality has its own behavioral evidence policy. [Audit handoff](memory-web-audit-handoff-spec-2026-11-26.md)
+The PHY's own summary provides durable personal preference context through authorized recall and inspection on demand. Its audit covers the full eligible set of active, settled PHY Memories that express personal preferences. It can reuse the shared auditor with a PHY-specific admission and summary contract. The summary may use prose, points, or a mix, with provenance retained and content revised as its evidence changes. The exact category and type filters for this preference summary remain open. [Audit handoff](memory-web-audit-handoff-spec-2026-11-26.md)
+
+With Ego enabled, Context Engine includes the active PHY's saved Personality in the instruction context for ordinary assistant sessions. Adaptive Personality has its own behavioral evidence policy.
 
 ## Ego summary inspection and control
 
