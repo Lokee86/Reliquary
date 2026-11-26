@@ -61,6 +61,18 @@ By default, a later audit can propose an equivalent topic or point and publish a
 
 REL-backed points use current source Freshness for context selection. In V1, revived Memories can seed the next scheduled audit. An independent audit trigger for reawakened Memories remains a future option. [Audit cadence](memory-web-audit-spec-2026-11-24.md#automatic-audit-cadence-and-sampling)
 
+## Ego Anchors
+
+Show Anchors as **Pinned context** in the Inspector. Authorized users can view, create, edit and remove pins directly. Show each pin's owner as the active PHY or the named REL. A PHY pin carries user-specific standing context. A REL pin carries standing context for work in that REL. A private preference about one REL can stay PHY-owned with its applicability stated in the text. Context Engine selects applicable authorized pins within the Ego budget. [Existing Anchor storage](../../crates/reliquary-ego-store/src/store.rs)
+
+| Assistant tool | When to use it |
+| --- | --- |
+| `pin_anchor` | Create a pin when the user asks to keep something in view whenever it applies or approves a proposed pin. Supply the text and explicit PHY or REL owner. |
+| `modify_anchor` | Edit an existing pin at the user's request. Supply the owner, Anchor ID, expected revision and replacement text. |
+| `delete_anchor` | Remove an existing pin at the user's request. Supply the owner, Anchor ID and expected revision. |
+
+The assistant can recognize pin requests in ordinary language. A request to remember something ordinarily uses the Memory workflow. Resolve ambiguous scope with the user before pinning. The write path verifies write access to the selected owner and checks the named Anchor and revision on edits and removals. Inspector edits and assistant tool writes use the same owner checks. Edits append revisions and removals append tombstones.
+
 ## Observation creation
 
 Perception synthesizes the proposed claim and its citations, generates draft receptors, back-checks the REL, verifies the exact draft in one Jev request, and finalizes through the owner writer. The live verification contract passed the publication decision on 24 fresh authored drafts. [Creation specification and implementation plan](observation-creation-spec-2026-11-24.md)
