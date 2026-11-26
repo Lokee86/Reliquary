@@ -33,6 +33,10 @@ Move each responsibility directly to its final owner. The integration window sta
 
 These checks use small authored files and a recording endpoint. The resource assertion is bounded work per poll with no full-REL body load for an ordinary batch, no Freshness history replay per candidate, and no audit work on a passive open. Synthetic scale cases exercise the cursor and batch caps at the unit or owner-session seam. Corpus quality calibration and wall-clock performance benchmarks are separate work.
 
+## Graph exploration follow-up
+
+Extend the shared lookup contract to accept a Memory slot as a graph anchor. Reuse authorized incident-link reads, source validation and the existing optional passage budget. On one small fixture, have the auditor follow a link from a newly Fresh Memory and continue from the result to eligible evidence two hops away. Check that both discovery lists keep their own evidence eligibility, that repeated anchors and results stay within the budget, and that exploration leaves the mandatory coverage count alone. [Graph exploration design](memory-web-audit-spec-2026-11-24.md#graph-exploration-follow-up)
+
 ## Completion
 
 - Verify both contracts use one structured discovery call per ordinary audit batch and the layer directions match the updated DAG. Review the actual Gateway-to-owner read and publication paths for direct store bypasses and duplicate writers.
