@@ -74,6 +74,13 @@ impl GeneralEndpoint for Endpoint {
 
 fn capture() -> PhySummaryCapture {
     PhySummaryCapture {
+        cut: PhyAuditCut {
+            owner_id: [1; 16],
+            history_generation: [2; 32],
+            memory: 3,
+            graph: 2,
+            settlements: 4,
+        },
         completion: EgoCompletion {
             id: [6; 32],
             cut: reliquary_owner_session::EgoSourceCut {
@@ -88,6 +95,7 @@ fn capture() -> PhySummaryCapture {
         as_of: "2026-11-27".into(),
         prior: None,
         changes: vec![],
+        input_revisions: [(MemoryId([3; 32]), Some(1))].into(),
         evidence: vec![MemoryEvidence {
             citation: SourceCitation {
                 owner_id: [1; 16],
@@ -153,6 +161,7 @@ fn over_limit_capture_analyzes_each_packet_before_final_verification() {
     for id in 6..12 {
         let mut new = capture.evidence[0].clone();
         new.citation.source = SourceId::Memory([id; 32]);
+        capture.input_revisions.insert(MemoryId([id; 32]), Some(1));
         new.text.push_str(&" padding".repeat(225));
         new.citation.end_byte = new.text.len() as u32;
         capture.evidence.push(new);
@@ -173,4 +182,46 @@ fn over_limit_capture_analyzes_each_packet_before_final_verification() {
             .chunks_exact(2)
             .all(|pair| pair == ["ego_phy_draft", "ego_phy_verify"])
     );
+}
+
+#[test]
+fn commit_revalidation_checks_only_used_heads_withdrawals_and_exact_evidence() {
+    let mut capture = capture();
+    let used = MemoryId([3; 32]);
+    let withdrawn = MemoryId([13; 32]);
+    capture.input_revisions.insert(withdrawn, None);
+    let head = |revision, content: &str| SourceHead {
+        revision,
+        body_id: [4; 32],
+        body: MemoryBody {
+            title: "Meetings".into(),
+            content: content.into(),
+        },
+    };
+    let recheck = |current_text, current_revision, withdrawal_restored| {
+        let mut ids = Vec::new();
+        let checked = revalidate_inputs(&capture, |id| {
+            ids.push(id);
+            Ok(match id {
+                id if id == used => Some(head(current_revision, current_text)),
+                id if id == withdrawn && withdrawal_restored => Some(head(1, "Old rule restored.")),
+                id if id == withdrawn => None,
+                _ => panic!("checked an unrelated Memory"),
+            })
+        });
+        (checked, ids)
+    };
+    let (result, read) = recheck("Meetings use video.", 1, false);
+    assert!(result.is_ok());
+    assert_eq!(read, [used, withdrawn]);
+    for (text, revision, restored) in [
+        ("Meetings use video.", 2, false),
+        ("Meetings use audio.", 1, false),
+        ("Meetings use video.", 1, true),
+    ] {
+        assert!(matches!(
+            recheck(text, revision, restored).0,
+            Err(PhySummaryError::Owner(OwnerSessionError::ManagementStale))
+        ));
+    }
 }

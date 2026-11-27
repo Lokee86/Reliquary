@@ -13,7 +13,7 @@ use reliquary_memory_audit::{SourceCitation, SourceId, TextField};
 use reliquary_owner_session::{
     EgoCitation, EgoCompletion, EgoParagraph, EgoPhyPublication, EgoPhyText, EgoTextField,
     MAX_EGO_PHY_SUMMARY_TOKENS, MemoryId, OwnerSessionError, PhyAuditChange, PhyAuditCut,
-    PhyWriter,
+    PhyWriter, model::MemoryBody,
 };
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError, GeneralTool};
 use serde_json::{Value, json};
@@ -25,12 +25,14 @@ use std::{
 const PASSAGE_BYTES: usize = 4 * 1024;
 
 pub struct PhySummaryCapture {
+    cut: PhyAuditCut,
     completion: EgoCompletion,
     expected_revision: u64,
     as_of: String,
     prior: Option<PriorSummary>,
     changes: Vec<MemoryChange>,
     evidence: Vec<MemoryEvidence>,
+    input_revisions: BTreeMap<MemoryId, Option<u64>>,
 }
 
 #[derive(Debug)]
@@ -151,6 +153,21 @@ pub fn capture_phy_summary(
         }
     }
 
+    let mut input_revisions: BTreeMap<_, _> = changed_ids
+        .iter()
+        .map(|(&id, &(_, revision))| (id, revision))
+        .collect();
+    for paragraph in prior
+        .iter()
+        .flat_map(|summary| &summary.paragraphs)
+        .filter(|p| p.can_carry)
+    {
+        for citation in &paragraph.citations {
+            if let SourceId::Memory(id) = citation.source {
+                input_revisions.insert(MemoryId(id), Some(citation.revision));
+            }
+        }
+    }
     let mut evidence = BTreeMap::new();
     let mut seen = BTreeSet::new();
     for citation in accepted.iter().flat_map(|topic| &topic.sources).copied() {
@@ -158,6 +175,7 @@ pub fn capture_phy_summary(
             continue;
         }
         let (record, text) = phy_audit_citation(phy, cut, citation)?;
+        input_revisions.insert(record.id, Some(record.revision));
         let source_date = date(record.source_time_ns.unwrap_or(record.created_at_ns));
         append_passages(&mut evidence, citation, &source_date, &text);
     }
@@ -170,6 +188,7 @@ pub fn capture_phy_summary(
         {
             return Err(PhySummaryError::InvalidCapture);
         }
+        input_revisions.insert(id, current.as_ref().map(|(record, _)| record.revision));
         let Some((record, body)) = current else {
             continue;
         };
@@ -195,6 +214,7 @@ pub fn capture_phy_summary(
         }
     }
     Ok(PhySummaryCapture {
+        cut,
         completion,
         expected_revision: saved.map_or(0, |summary| summary.revision),
         as_of: date(as_of_ns),
@@ -207,7 +227,94 @@ pub fn capture_phy_summary(
             })
             .collect(),
         evidence: evidence.into_values().collect(),
+        input_revisions,
     })
+}
+
+/// Recheck the source inputs under the final writer lease. Unrelated source
+/// changes can advance the current owner head without invalidating this work.
+pub fn revalidate_phy_summary(
+    phy: &PhyWriter,
+    capture: &PhySummaryCapture,
+) -> Result<(), PhySummaryError> {
+    let latest = phy.phy_audit_cut();
+    if !capture.cut.is_at_or_before(latest)
+        || phy.ego_phy_summary().map_or(0, |summary| summary.revision) != capture.expected_revision
+    {
+        return Err(PhySummaryError::Owner(OwnerSessionError::ManagementStale));
+    }
+    revalidate_inputs(capture, |id| {
+        Ok(phy
+            .phy_audit_evidence(latest, id)?
+            .map(|(record, body)| SourceHead {
+                revision: record.revision,
+                body_id: record.body_id.0,
+                body,
+            }))
+    })
+}
+
+struct SourceHead {
+    revision: u64,
+    body_id: [u8; 32],
+    body: MemoryBody,
+}
+
+fn revalidate_inputs(
+    capture: &PhySummaryCapture,
+    mut read: impl FnMut(MemoryId) -> Result<Option<SourceHead>, OwnerSessionError>,
+) -> Result<(), PhySummaryError> {
+    let mut citations = BTreeMap::<_, Vec<_>>::new();
+    let prior = capture
+        .prior
+        .iter()
+        .flat_map(|summary| &summary.paragraphs)
+        .filter(|paragraph| paragraph.can_carry)
+        .flat_map(|paragraph| &paragraph.citations)
+        .map(|citation| (citation, None));
+    let supplied = capture
+        .evidence
+        .iter()
+        .map(|evidence| (&evidence.citation, Some(evidence.text.as_str())));
+    for (citation, text) in prior.chain(supplied) {
+        let SourceId::Memory(id) = citation.source else {
+            return Err(PhySummaryError::InvalidCapture);
+        };
+        citations
+            .entry(MemoryId(id))
+            .or_default()
+            .push((citation, text));
+    }
+    for (&id, &expected) in &capture.input_revisions {
+        let head = read(id)?;
+        if head.as_ref().map(|head| head.revision) != expected {
+            return Err(PhySummaryError::Owner(OwnerSessionError::ManagementStale));
+        }
+        if let Some(references) = citations.remove(&id) {
+            let valid = head.is_some_and(|head| {
+                references.iter().all(|(citation, exact)| {
+                    let text = match citation.field {
+                        TextField::Title => &head.body.title,
+                        TextField::Content => &head.body.content,
+                    };
+                    head.body_id == citation.body_id
+                        && head.revision == citation.revision
+                        && text
+                            .get(citation.start_byte as usize..citation.end_byte as usize)
+                            .is_some_and(|text| {
+                                !text.is_empty() && exact.is_none_or(|exact| exact == text)
+                            })
+                })
+            });
+            if !valid {
+                return Err(PhySummaryError::Owner(OwnerSessionError::ManagementStale));
+            }
+        }
+    }
+    if !citations.is_empty() {
+        return Err(PhySummaryError::InvalidCapture);
+    }
+    Ok(())
 }
 
 fn append_passages(
