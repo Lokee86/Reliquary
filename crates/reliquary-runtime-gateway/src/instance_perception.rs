@@ -67,33 +67,37 @@ impl Gateway {
 pub(crate) struct PerceptionAvailability(Weak<Control>);
 
 impl PerceptionAvailability {
-    pub(crate) fn can_audit(&self, owner: OwnerId, mount: &RelMount, route: [u8; 32]) -> bool {
+    pub(crate) fn with_audit_status<T>(
+        &self,
+        owner: OwnerId,
+        mount: &RelMount,
+        route: [u8; 32],
+        action: impl FnOnce(bool) -> T,
+    ) -> T {
         let Some(control) = self.0.upgrade() else {
-            return false;
+            return action(false);
         };
         if control.stopping.load(Ordering::Acquire) || !matches!(mount, RelMount::Write(_)) {
-            return false;
+            return action(false);
         }
         let Ok(routes) = control.routes.read() else {
-            return false;
+            return action(false);
         };
-        if routes
-            .as_ref()
-            .is_none_or(|current| current.identity != route)
-        {
-            return false;
-        }
         let Ok(admissions) = control.admissions.lock() else {
-            return false;
+            return action(false);
         };
-        admissions.iter().any(|admission| {
-            admission.managed.contains(&owner)
-                && admission.instance.upgrade().is_some_and(|instance| {
-                    instance.authorize_rel_access(owner).is_ok()
-                        && RelMount::capture(&instance, owner)
-                            .is_ok_and(|current| current == *mount)
-                })
-        })
+        let available = routes
+            .as_ref()
+            .is_some_and(|current| current.identity == route)
+            && admissions.iter().any(|admission| {
+                admission.managed.contains(&owner)
+                    && admission.instance.upgrade().is_some_and(|instance| {
+                        instance.authorize_rel_access(owner).is_ok()
+                            && RelMount::capture(&instance, owner)
+                                .is_ok_and(|current| current == *mount)
+                    })
+            });
+        action(available)
     }
 }
 

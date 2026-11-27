@@ -138,15 +138,19 @@ impl EgoWorker {
                     }
                 }
                 self.still_authorized(owner)?;
-                if run.kind == EgoRunKind::RelIndependentRecurring
-                    && self.shared_perception_available(owner)
-                {
-                    return Err(GatewayError::StaleRelContext);
-                }
                 self.instance
                     .with_ego_phy_writer_under_topology(self.phy, |phy| {
                         if !self.running.load(Ordering::Acquire) {
                             return Err(OwnerSessionError::ManagementStale);
+                        }
+                        if run.kind == EgoRunKind::RelIndependentRecurring {
+                            return self.with_shared_perception_status(owner, |available| {
+                                if available {
+                                    Err(OwnerSessionError::ManagementStale)
+                                } else {
+                                    phy.publish_ego_rel_summary(publication)
+                                }
+                            });
                         }
                         phy.publish_ego_rel_summary(publication)
                     })?;

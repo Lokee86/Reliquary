@@ -199,11 +199,20 @@ impl EgoWorker {
     }
 
     fn shared_perception_available(&self, owner: OwnerId) -> bool {
-        self.shared_perception.as_ref().is_some_and(|perception| {
-            self.source_mounts
-                .get(&owner)
-                .is_some_and(|mount| perception.can_audit(owner, mount, self.routes.identity))
-        })
+        self.with_shared_perception_status(owner, |available| available)
+    }
+
+    fn with_shared_perception_status<T>(
+        &self,
+        owner: OwnerId,
+        action: impl FnOnce(bool) -> T,
+    ) -> T {
+        match (&self.shared_perception, self.source_mounts.get(&owner)) {
+            (Some(perception), Some(mount)) => {
+                perception.with_audit_status(owner, mount, self.routes.identity, action)
+            }
+            _ => action(false),
+        }
     }
 
     fn poll_owner(&self, owner: OwnerId) -> Result<bool, String> {
