@@ -194,7 +194,10 @@ fn validate_run(run: EgoRun, batches: &[AcceptedEgoBatch]) -> Result<(), RelEgoE
     if run.phy == run.source.owner_id
         || !matches!(
             run.kind,
-            EgoRunKind::RelBootstrap | EgoRunKind::RelSharedBootstrap | EgoRunKind::RelRecurring
+            EgoRunKind::RelBootstrap
+                | EgoRunKind::RelSharedBootstrap
+                | EgoRunKind::RelRecurring
+                | EgoRunKind::RelIndependentRecurring
         )
         || batches.iter().any(|batch| !ids.insert(batch.id))
         || batches

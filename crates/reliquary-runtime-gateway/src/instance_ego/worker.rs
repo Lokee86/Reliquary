@@ -4,6 +4,7 @@ use super::*;
 use crate::{
     ego_audit_handoff::{EgoAuditRegistration, shared_ego_run_closed},
     instance_owner::RelMount,
+    instance_perception::{PerceptionAvailability, PerceptionLifecycle},
     owner_workers::{OwnerWorkerDriver, OwnerWorkerPoll},
 };
 use reliquary_application::{
@@ -59,6 +60,7 @@ pub(super) struct EgoWorker {
     phy: OwnerId,
     phy_mount: Weak<MountedPhyWriter>,
     source_mounts: BTreeMap<OwnerId, RelMount>,
+    shared_perception: Option<PerceptionAvailability>,
     owners: Vec<OwnerId>,
     pending: Mutex<EgoPendingWork>,
     running: Arc<AtomicBool>,
@@ -72,9 +74,21 @@ impl Gateway {
         &self,
         instance: Arc<Instance>,
         phy: OwnerId,
+        rels: Vec<OwnerId>,
+        profile_dir: &Path,
+        routes: EgoRoutes,
+    ) -> Result<EgoWorkerHandle, GatewayError> {
+        self.start_ego_worker_with_perception(instance, phy, rels, profile_dir, routes, None)
+    }
+
+    pub fn start_ego_worker_with_perception(
+        &self,
+        instance: Arc<Instance>,
+        phy: OwnerId,
         mut rels: Vec<OwnerId>,
         profile_dir: &Path,
         routes: EgoRoutes,
+        perception: Option<&PerceptionLifecycle>,
     ) -> Result<EgoWorkerHandle, GatewayError> {
         if !Arc::ptr_eq(&self.owners, &instance.owners) || !profile_dir.is_dir() {
             return Err(GatewayError::HostAdapter(
@@ -98,6 +112,7 @@ impl Gateway {
             phy,
             phy_mount: Arc::downgrade(&phy_mount),
             source_mounts,
+            shared_perception: perception.map(PerceptionLifecycle::availability),
             owners: std::iter::once(phy).chain(rels.iter().copied()).collect(),
             pending: Mutex::new(pending),
             running: running.clone(),
@@ -183,6 +198,14 @@ impl EgoWorker {
         Ok(())
     }
 
+    fn shared_perception_available(&self, owner: OwnerId) -> bool {
+        self.shared_perception.as_ref().is_some_and(|perception| {
+            self.source_mounts
+                .get(&owner)
+                .is_some_and(|mount| perception.can_audit(owner, mount, self.routes.identity))
+        })
+    }
+
     fn poll_owner(&self, owner: OwnerId) -> Result<bool, String> {
         self.still_authorized(owner).map_err(as_error)?;
         let mut pending = self
@@ -226,19 +249,27 @@ impl EgoWorker {
             .instance
             .with_reliquary(owner, |rel| rel.perception_source_cut().history_generation)
             .map_err(as_error)?;
-        let has_coverage = current_summary
-            .as_ref()
-            .is_some_and(|complete| complete.cut.history_generation == history);
+        let coverage =
+            current_summary.filter(|complete| complete.cut.history_generation == history);
         let ready_initial = ready.is_some_and(|run| run.kind == EgoRunKind::RelBootstrap);
-        let resuming_bootstrap = pending
-            .open_checkpoint_run(phy, source)
-            .map_err(as_error)?
-            .is_some();
-        if resuming_bootstrap || (!has_coverage && !ready_initial) {
+        let open = pending.open_checkpoint_run(phy, source).map_err(as_error)?;
+        let shared = self.shared_perception_available(owner);
+        if let Some(run) =
+            open.filter(|run| shared && run.kind == EgoRunKind::RelIndependentRecurring)
+        {
+            pending.discard_stale(run).map_err(as_error)?;
+            return Ok(true);
+        }
+        if open.is_some_and(|run| run.kind == EgoRunKind::RelBootstrap)
+            || (coverage.is_none() && !ready_initial)
+        {
             return self.advance_rel_bootstrap(owner, &mut pending);
         }
         if let Some(run) = ready {
             return self.publish_rel(owner, run, &mut pending);
+        }
+        if !shared && let Some(coverage) = coverage {
+            return self.advance_rel_recurring(owner, coverage.cut, &mut pending);
         }
         Ok(false)
     }

@@ -28,6 +28,12 @@ impl EgoWorker {
             pending.clear_completed(run).map_err(as_error)?;
             return Ok(true);
         }
+        if run.kind == EgoRunKind::RelIndependentRecurring
+            && self.shared_perception_available(owner)
+        {
+            pending.discard_stale(run).map_err(as_error)?;
+            return Ok(true);
+        }
         if !self.accepted_run_current(owner, run, pending)? {
             return Ok(true);
         }
@@ -79,6 +85,12 @@ impl EgoWorker {
         .map_err(as_error)?;
 
         self.still_authorized(owner).map_err(as_error)?;
+        if run.kind == EgoRunKind::RelIndependentRecurring
+            && self.shared_perception_available(owner)
+        {
+            pending.discard_stale(run).map_err(as_error)?;
+            return Ok(true);
+        }
         let _topology = self
             .instance
             .rel_topology
@@ -126,6 +138,11 @@ impl EgoWorker {
                     }
                 }
                 self.still_authorized(owner)?;
+                if run.kind == EgoRunKind::RelIndependentRecurring
+                    && self.shared_perception_available(owner)
+                {
+                    return Err(GatewayError::StaleRelContext);
+                }
                 self.instance
                     .with_ego_phy_writer_under_topology(self.phy, |phy| {
                         if !self.running.load(Ordering::Acquire) {

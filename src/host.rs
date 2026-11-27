@@ -47,7 +47,7 @@ struct MountedOwnerRecord {
 pub struct Gateway {
     pub(crate) inner: runtime::Gateway,
     pub(crate) identity: Arc<runtime::IdentityLifecycle>,
-    perception: Arc<runtime::PerceptionLifecycle>,
+    pub(crate) perception: Arc<runtime::PerceptionLifecycle>,
     mounted: Arc<Mutex<BTreeMap<OwnerId, MountedOwnerRecord>>>,
 }
 

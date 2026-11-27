@@ -90,7 +90,7 @@ impl Instance {
             )
         })?;
         let binding = runtime.processing_route_identity();
-        Ok(self.gateway.inner.start_ego_worker(
+        Ok(self.gateway.inner.start_ego_worker_with_perception(
             self.inner.clone(),
             phy.into(),
             source_rels.iter().copied().map(Into::into).collect(),
@@ -102,6 +102,7 @@ impl Instance {
                 embedding_profile: binding.perception_embedding,
                 count_tokens: Arc::new(count_tokens),
             },
+            Some(&self.gateway.perception),
         )?)
     }
 

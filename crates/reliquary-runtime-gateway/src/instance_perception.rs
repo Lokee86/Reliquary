@@ -63,7 +63,45 @@ impl Gateway {
     }
 }
 
+/// A weak view of the shared audit's ability to produce work for one owner.
+pub(crate) struct PerceptionAvailability(Weak<Control>);
+
+impl PerceptionAvailability {
+    pub(crate) fn can_audit(&self, owner: OwnerId, mount: &RelMount, route: [u8; 32]) -> bool {
+        let Some(control) = self.0.upgrade() else {
+            return false;
+        };
+        if control.stopping.load(Ordering::Acquire) || !matches!(mount, RelMount::Write(_)) {
+            return false;
+        }
+        let Ok(routes) = control.routes.read() else {
+            return false;
+        };
+        if routes
+            .as_ref()
+            .is_none_or(|current| current.identity != route)
+        {
+            return false;
+        }
+        let Ok(admissions) = control.admissions.lock() else {
+            return false;
+        };
+        admissions.iter().any(|admission| {
+            admission.managed.contains(&owner)
+                && admission.instance.upgrade().is_some_and(|instance| {
+                    instance.authorize_rel_access(owner).is_ok()
+                        && RelMount::capture(&instance, owner)
+                            .is_ok_and(|current| current == *mount)
+                })
+        })
+    }
+}
+
 impl PerceptionLifecycle {
+    pub(crate) fn availability(&self) -> PerceptionAvailability {
+        PerceptionAvailability(Arc::downgrade(&self.control))
+    }
+
     pub fn set_routes(&self, routes: Option<PerceptionRoutes>) -> Result<(), GatewayError> {
         let mut current = self
             .control

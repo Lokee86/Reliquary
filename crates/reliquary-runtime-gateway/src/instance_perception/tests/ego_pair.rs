@@ -239,3 +239,99 @@ fn assert_reopened_proof(
         Some(completion)
     );
 }
+
+#[test]
+fn managed_ego_refreshes_read_only_rel_without_perception_routes() {
+    use reliquary_owner_session::{EgoCompletion, EgoRelPublication, EgoSourceCut};
+    let fixture = Fixture::new();
+    fixture.append(&[("First Atlas evidence".into(), BASE)], 0);
+    let prior = RelSession::open_path_current(&fixture.path)
+        .unwrap()
+        .perception_source_cut();
+    let phy_path = fixture.path.with_extension("phy");
+    {
+        let mut phy = PhyWriter::create_path(&phy_path, AUDIT_PHY).unwrap();
+        phy.publish_ego_rel_summary(EgoRelPublication {
+            source_owner_id: prior.owner_id,
+            expected_revision: 0,
+            completion: Some(EgoCompletion {
+                id: [14; 32],
+                cut: EgoSourceCut {
+                    owner_id: prior.owner_id,
+                    history_generation: prior.history_generation,
+                    memory_version: prior.memory,
+                    audit_frontier: prior.settlements,
+                },
+                batch_ids: vec![],
+            }),
+            changes: vec![],
+        })
+        .unwrap();
+    }
+    let additional: Vec<_> = (0..25)
+        .map(|index| (format!("Later Atlas evidence {index:02}"), BASE))
+        .collect();
+    fixture.append(&additional, 0);
+
+    let profile_dir = fixture.path.with_extension("sqlite");
+    fs::create_dir(&profile_dir).unwrap();
+    let gateway = Gateway::new();
+    let rel = gateway.mount_reliquary_current(&fixture.path).unwrap();
+    let phy = gateway
+        .mount_writable_phylactery_current(&phy_path)
+        .unwrap();
+    let instance = Arc::new(gateway.instance("alice", [rel], [phy]).unwrap());
+    let perception = gateway.perception_lifecycle();
+    perception.admit(&instance, vec![rel]).unwrap();
+    let mut worker = gateway
+        .start_ego_worker_with_perception(
+            instance.clone(),
+            phy,
+            vec![rel],
+            &profile_dir,
+            EgoRoutes {
+                general: Arc::new(EgoScript),
+                embedding: Some(Arc::new(Script {
+                    phase: 0,
+                    calls: Arc::new(Mutex::new(Vec::new())),
+                })),
+                identity: [4; 32],
+                embedding_profile: [5; 32],
+                count_tokens: Arc::new(|text| text.len() as u64),
+            },
+            Some(&perception),
+        )
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let summary = instance
+            .inspect_ego_rel_summary(phy, rel, None)
+            .unwrap()
+            .unwrap();
+        if summary.revision == 2 {
+            assert_eq!(summary.points[0].statement.as_deref(), Some(BASE));
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "Ego-only recurring REL audit did not publish"
+        );
+        thread::sleep(Duration::from_millis(40));
+    }
+    worker.stop().unwrap();
+    drop(perception);
+    drop(instance);
+    drop(gateway);
+    let reopened = PhySession::open_path_current(&phy_path).unwrap();
+    let done = reopened
+        .ego_rel_summary(rel.0)
+        .unwrap()
+        .completion
+        .as_ref()
+        .unwrap();
+    assert_eq!(done.cut.audit_frontier, prior.settlements + 25);
+    assert!(!done.batch_ids.is_empty());
+    let source = RelSession::open_path_current(&fixture.path).unwrap();
+    assert!(source.observation_progress().is_none());
+    fs::remove_file(profile_dir.join("ego-pending.sqlite3")).unwrap();
+}

@@ -19,6 +19,7 @@ pub enum EgoRunKind {
     RelBootstrap,
     RelSharedBootstrap,
     RelRecurring,
+    RelIndependentRecurring,
     PhyBootstrap,
     PhyRefresh,
 }
@@ -48,6 +49,7 @@ impl EgoRun {
             EgoRunKind::PhyBootstrap => 2,
             EgoRunKind::PhyRefresh => 3,
             EgoRunKind::RelSharedBootstrap => 4,
+            EgoRunKind::RelIndependentRecurring => 5,
         }]);
         hash.update(self.route);
         hash.update(self.contract.to_le_bytes());
@@ -383,6 +385,7 @@ fn ensure_run(connection: &Connection, run: EgoRun) -> Result<bool, EgoPendingEr
     let initial = match run.kind {
         EgoRunKind::RelBootstrap | EgoRunKind::PhyBootstrap => 2,
         EgoRunKind::RelSharedBootstrap => 1,
+        EgoRunKind::RelIndependentRecurring => -1,
         _ => 0,
     };
     let started_ns = std::time::SystemTime::now()
