@@ -63,7 +63,9 @@ REL-backed points use current source Freshness for context selection. In V1, rev
 
 ## Ego Identity
 
-Identity is the assistant's enduring role and self-description, stored as a named record in the active PHY. The Inspector lets authorized users create and edit Identities, see which one is active, and explicitly switch to another saved Identity. Edits append a revision. Switching is a separate selection of the active Identity. [Current Identity storage](../../crates/reliquary-ego-store/src/store.rs) · [Earlier activation API](https://github.com/Lokee86/Reliquary/blob/973617b2/src/phylactery_ego.rs#L40-L62)
+Identity holds the assistant's user-authored role, voice and standing self-description as a named record in the active PHY. The Inspector lets authorized users create and edit Identities, see which one is active, and explicitly switch to another saved Identity. Edits append a revision. Switching is a separate selection of the active Identity. [Current Identity storage](../../crates/reliquary-ego-store/src/store.rs) · [Earlier activation API](https://github.com/Lokee86/Reliquary/blob/973617b2/src/phylactery_ego.rs#L40-L62)
+
+The [single PHY summary](#phy-summary) carries learned preferences about how to work with the user. Together, Identity and that summary supersede the earlier standalone Personality layer.
 
 The user invokes `/identity` to have the assistant draft a change to a selected Identity. Show the exact proposed text and save it only after the user approves it. Bind that approval to the target PHY, Identity ID, expected revision and approved text. Recheck write access and the revision at save time. A user's direct edits in the Inspector use the same owner and revision checks.
 
