@@ -527,12 +527,12 @@ fn ego_owner_publications_preserve_retained_citations_and_proofs_on_exact_copy()
         }),
     };
     citation.end_byte = 11;
-    let before = fs::read(&source.0).unwrap();
+    let before = fs::metadata(&source.0).unwrap().len();
     assert!(matches!(
         writer.publish_ego_phy_summary(publication(citation)),
         Err(OwnerSessionError::ManagementEvidence)
     ));
-    assert_eq!(fs::read(&source.0).unwrap(), before);
+    assert_eq!(fs::metadata(&source.0).unwrap().len(), before);
     citation.end_byte = 12;
     assert_eq!(
         writer

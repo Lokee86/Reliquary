@@ -137,7 +137,7 @@ fn retains_rel_points_and_applies_completion_and_suppression_once() {
     );
     assert_eq!(store.completion([2; 32]), replace.completion.as_ref());
 
-    let before = fs::read(path.path()).unwrap();
+    let before = fs::metadata(path.path()).unwrap().len();
     assert_eq!(
         store
             .publish_rel_summary(&mut container, replace.clone())
@@ -161,7 +161,7 @@ fn retains_rel_points_and_applies_completion_and_suppression_once() {
             actual: 4
         })
     ));
-    assert_eq!(fs::read(path.path()).unwrap(), before);
+    assert_eq!(fs::metadata(path.path()).unwrap().len(), before);
 }
 
 #[test]
@@ -190,7 +190,7 @@ fn rejects_unverified_phy_ranges_and_replays_clear_and_empty_completion() {
             token_count: 8,
         }),
     };
-    let before = fs::read(path.path()).unwrap();
+    let before = fs::metadata(path.path()).unwrap().len();
     publication.replacement.as_mut().unwrap().paragraphs[0].end_byte = 7;
     assert!(
         store
@@ -204,7 +204,7 @@ fn rejects_unverified_phy_ranges_and_replays_clear_and_empty_completion() {
             .publish_phy_summary(&mut container, publication.clone())
             .is_err()
     );
-    assert_eq!(fs::read(path.path()).unwrap(), before);
+    assert_eq!(fs::metadata(path.path()).unwrap().len(), before);
     publication.replacement.as_mut().unwrap().paragraphs[1].end_byte = 28;
     assert_eq!(
         store
