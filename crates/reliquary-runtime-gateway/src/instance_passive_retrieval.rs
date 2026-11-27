@@ -66,25 +66,8 @@ impl Instance {
                 Err(error) => Err(error),
             }
         } else if self.phy_grants.contains(&owner) {
-            let has_vectors = |phy: &PhySession| {
-                phy.memory_vector_infos().into_iter().any(|info| {
-                    phy.active_compatibility_profile(info.compatibility_profile_id)
-                        .is_some()
-                })
-            };
-            match self.phylactery(owner) {
-                Ok(phy) => Ok(has_vectors(&phy)),
-                Err(GatewayError::WriterUnavailable) => {
-                    self.with_entity_phy_writer(owner, |writer| {
-                        writer.memory_vector_infos().into_iter().any(|info| {
-                            writer
-                                .active_compatibility_profile(info.compatibility_profile_id)
-                                .is_some()
-                        })
-                    })
-                }
-                Err(error) => Err(error),
-            }
+            self.phy_retrieval_embedding_profiles(owner)
+                .map(|profiles| !profiles.is_empty())
         } else {
             self.reliquary(owner).map(|_| false)
         }

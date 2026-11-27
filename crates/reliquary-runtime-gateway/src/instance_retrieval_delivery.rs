@@ -26,12 +26,15 @@ impl Instance {
             .try_lock()
             .map_err(|_| GatewayError::HostStatusUnknown)?;
         let sources = prepared
-            .evaluation
-            .memories
+            .body_bindings
             .iter()
-            .map(|memory| FreshnessMemoryId(memory.id.0))
+            .map(|(id, _, _)| FreshnessMemoryId(id.0))
             .collect::<Vec<_>>();
-        if let Some(receipt) = self.accepted_use_receipt(prepared.owner, &prepared.use_id)? {
+        if let Some(receipt) = if turn.phy.is_none() || !sources.is_empty() {
+            self.accepted_use_receipt(prepared.owner, &prepared.use_id)?
+        } else {
+            None
+        } {
             if receipt.accepted_turn != prepared.accepted_turn || receipt.sources != sources {
                 return Err(GatewayError::InvalidPreparedRetrieval);
             }
@@ -55,7 +58,9 @@ impl Instance {
         }
         // Establish writer availability before the external receiver can
         // consume content; a read-only mount may prepare, but cannot deliver.
-        self.with_rel_writer(prepared.owner, |_| ())?;
+        if turn.phy.is_none() || !sources.is_empty() {
+            self.with_rel_writer(prepared.owner, |_| ())?;
+        }
         let operation = MemoryDeliveryOperation {
             stable_id: prepared.use_id.clone(),
             payload_digest: prepared.digest,
@@ -118,6 +123,9 @@ impl Instance {
             }
         };
         validate_prepared(self, turn, prepared)?;
+        if turn.phy.is_some() {
+            self.revalidate_before_handoff(turn, prepared)?;
+        }
         // Host consumption is known even if the durable Freshness write fails.
         // Retain the pending exact manifest until its receipt is reconciled.
         self.mark_confirmed_consumption(turn, prepared, false)?;
@@ -159,13 +167,45 @@ impl Instance {
         prepared: &PreparedMemoryDelivery,
     ) -> Result<(), GatewayError> {
         validate_prepared(self, turn, prepared)?;
+        self.check_phy_delivery(
+            turn,
+            prepared.phy_generation,
+            &prepared.phy_memories,
+            prepared
+                .preview
+                .observations
+                .iter()
+                .map(|hit| hit.claim.citation),
+        )?;
+        if turn.mount.is_none() {
+            return Ok(());
+        }
         let snapshot = self.with_reliquary(prepared.owner, |rel| {
-            if rel.archive_source_removal_version() != prepared.removal_cut
-                || !observations_are_current(rel, &prepared.preview.observations)
+            let observations_current = if turn.phy.is_some() {
+                prepared
+                    .preview
+                    .observations
+                    .iter()
+                    .filter(|hit| hit.claim.citation.owner_id == prepared.owner.as_bytes())
+                    .all(|hit| {
+                        rel.observation_citation_text(&hit.claim.citation)
+                            .is_ok_and(|text| text == hit.claim.proposition)
+                    })
+            } else {
+                observations_are_current(rel, &prepared.preview.observations)
+            };
+            if rel.archive_source_removal_version() != prepared.removal_cut || !observations_current
             {
                 return Err(GatewayError::StaleRetrieval);
             }
-            capture_memory_snapshot(rel, prepared.profile, false).map_err(|error| match error {
+            let profile = if turn.phy.is_some() {
+                prepared
+                    .profile
+                    .filter(|id| rel.active_compatibility_profile(*id).is_some())
+            } else {
+                prepared.profile
+            };
+            capture_memory_snapshot(rel, profile, false).map_err(|error| match error {
                 GatewayError::RetrievalUnavailable(_) => GatewayError::StaleRetrieval,
                 other => other,
             })

@@ -1078,10 +1078,10 @@ pub use external_processing::{
 
 mod agentic_retrieval;
 pub use agentic_retrieval::{
-    AgenticMemory, AgenticObservation, RetrievalAction, RetrievalAnchorReport, RetrievalDirection,
-    RetrievalEvaluation, RetrievalRelationEvidence, evaluate_retrieval,
-    evaluate_snapshot_retrieval, evaluate_snapshot_retrieval_with_observations,
-    observation_matches_temporal,
+    AgenticMemory, AgenticObservation, AgenticScope, RetrievalAction, RetrievalAnchorReport,
+    RetrievalDirection, RetrievalEvaluation, RetrievalRelationEvidence, evaluate_retrieval,
+    evaluate_scoped_snapshot_retrieval, evaluate_snapshot_retrieval,
+    evaluate_snapshot_retrieval_with_observations, observation_matches_temporal,
 };
 pub use reliquary_retrieval::agentic::{MAX_AGENTIC_CANDIDATES, RetrievalTurn};
 pub use reliquary_retrieval::memory_retrieval::{

@@ -12,6 +12,7 @@ pub(super) fn evaluate(
     anchors: &[MemoryId],
     by_id: BTreeMap<MemoryId, &AgenticMemory>,
     temporal: Option<&TemporalOffer>,
+    eligibility: Option<&AgenticScope<'_>>,
 ) -> Result<RetrievalEvaluation, String> {
     struct PreparedAnchor {
         report: RetrievalAnchorReport,
@@ -93,6 +94,7 @@ pub(super) fn evaluate(
                             &anchor.offered,
                             by_id,
                             temporal,
+                            eligibility,
                         )
                     }?;
                     anchor.report.approved = approved;
@@ -123,15 +125,20 @@ pub(super) fn evaluate(
     }
     let mut staged = turn.clone();
     staged.record_evaluated(evaluated_union);
+    let limit = eligibility.map_or(usize::MAX, |scope| {
+        scope.ranking.result_limit.min(MAX_AGENTIC_CANDIDATES)
+    });
     Ok(RetrievalEvaluation {
         next: staged,
         memories: approved_union
             .into_iter()
+            .take(limit)
             .filter_map(|id| by_id.get(&id).map(|memory| (*memory).clone()))
             .collect(),
         already_provided: BTreeSet::new(),
         anchors: reports,
         temporal_evidence: BTreeMap::new(),
         temporal_evidence_truncated: BTreeSet::new(),
+        scores: BTreeMap::new(),
     })
 }

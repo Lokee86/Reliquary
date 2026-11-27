@@ -10,6 +10,16 @@ impl Instance {
         stable_id: &str,
         router: &CapabilityRouter,
     ) -> Result<bool, GatewayError> {
+        self.recover_agentic_memory_delivery_with_authority(turn, stable_id, router, true)
+    }
+
+    pub fn recover_agentic_memory_delivery_with_authority(
+        &self,
+        turn: &MemoryRetrievalTurn,
+        stable_id: &str,
+        router: &CapabilityRouter,
+        can_record_rel: bool,
+    ) -> Result<bool, GatewayError> {
         validate_turn_binding(self, turn, turn.owner, &turn.turn_id)?;
         if turn.mode != RetrievalMode::Deliver {
             return Err(GatewayError::InvalidPreparedRetrieval);
@@ -19,7 +29,9 @@ impl Instance {
             .try_lock()
             .map_err(|_| GatewayError::HostStatusUnknown)?;
         let owner = turn.owner;
-        self.with_rel_writer(owner, |_| ())?;
+        if turn.phy.is_none() {
+            self.with_rel_writer(owner, |_| ())?;
+        }
         {
             let state = turn
                 .state
@@ -89,16 +101,41 @@ impl Instance {
             return Err(GatewayError::InvalidHandoffReceipt);
         }
         let use_id = stable_id.to_owned();
+        let phy = turn.phy.as_ref();
+        let phy_owner = phy.map(|binding| binding.owner().as_bytes());
+        let phy_owner_text = phy_owner.as_ref().map(|owner| hex(owner));
+        let is_phy_memory =
+            |memory: &ManifestMemory| phy_owner_text.as_ref() == Some(&memory.owner_id);
+        if manifest.phy_generation != phy.map(scoped::PhyRecallBinding::history_generation)
+            || manifest.phy_owner_id != phy_owner_text
+            || (phy.is_none() && !manifest.ranked.is_empty())
+            || manifest.memories.iter().any(|memory| {
+                !is_phy_memory(memory)
+                    && (turn.mount.is_none() || memory.owner_id != manifest.owner_id)
+            })
+        {
+            return Err(GatewayError::InvalidHandoffReceipt);
+        }
         let ids = manifest
             .memories
             .iter()
-            .map(|memory| parse_memory_id(&memory.memory_id))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|memory| {
+                let id = parse_memory_id(&memory.memory_id)?;
+                Ok(if is_phy_memory(memory) {
+                    scoped::phy_memory_key(
+                        phy_owner.ok_or(GatewayError::InvalidHandoffReceipt)?,
+                        id,
+                    )
+                } else {
+                    id
+                })
+            })
+            .collect::<Result<Vec<_>, GatewayError>>()?;
         let observation_ids = manifest
             .observations
             .iter()
             .filter_map(|claim| match claim.citation.source {
-                ObservationSource::Observation(id) => Some(id),
+                ObservationSource::Observation(id) => Some((claim.citation.owner_id, id)),
                 ObservationSource::Memory(_) => None,
             })
             .collect::<BTreeSet<_>>();
@@ -117,16 +154,54 @@ impl Instance {
                     .is_ok()
             })
             || manifest
-                .memories
+                .selected_observations
                 .iter()
-                .any(|memory| memory.owner_id != manifest.owner_id)
+                .chain(manifest.observations.iter().map(|claim| &claim.citation))
+                .any(|cite| {
+                    if Some(cite.owner_id) == phy_owner {
+                        Some(cite.history_generation) != manifest.phy_generation
+                            || !matches!(cite.source, ObservationSource::Observation(_))
+                    } else {
+                        turn.mount.is_none() || cite.owner_id != owner.as_bytes()
+                    }
+                })
         {
             return Err(GatewayError::InvalidHandoffReceipt);
         }
-        let sources = ids
+        let rel_memories = manifest
+            .memories
             .iter()
-            .map(|id| FreshnessMemoryId(id.0))
+            .zip(&ids)
+            .filter(|(memory, _)| !is_phy_memory(memory))
             .collect::<Vec<_>>();
+        let rel_observations = manifest
+            .observations
+            .iter()
+            .filter(|claim| Some(claim.citation.owner_id) != phy_owner)
+            .collect::<Vec<_>>();
+        let sources = rel_memories
+            .iter()
+            .map(|(_, id)| FreshnessMemoryId(id.0))
+            .collect::<Vec<_>>();
+        if phy.is_some() {
+            if manifest.ranked.len() != ids.len() + observation_ids.len()
+                || manifest.ranked.len() > MAX_AGENTIC_OBSERVATIONS
+                || !valid_ranked_manifest(&manifest)
+            {
+                return Err(GatewayError::InvalidHandoffReceipt);
+            }
+            self.revalidate_recovered_phy(
+                turn,
+                &manifest,
+                manifest
+                    .memories
+                    .iter()
+                    .filter(|memory| is_phy_memory(memory)),
+            )?;
+        }
+        if !sources.is_empty() && !can_record_rel {
+            return Err(GatewayError::WriterUnavailable);
+        }
         // Validate the retained frontier before publishing any receipt.
         for id in manifest.selected_ids.iter().chain(&manifest.searched_ids) {
             parse_memory_id(id)?;
@@ -136,9 +211,8 @@ impl Instance {
                 .begin_query_with_filter(query, manifest.temporal_filter)
                 .map_err(|_| GatewayError::InvalidHandoffReceipt)?;
         }
-        let recorded = self.with_rel_writer(owner, |writer| -> Result<bool, GatewayError> {
+        let check_rel = |rel: &RelSession| -> Result<bool, GatewayError> {
             validate_turn_binding(self, turn, owner, &turn.turn_id)?;
-            let rel = writer.read_session();
             if let Some(existing) = rel.accepted_external_use(&use_id) {
                 if existing.accepted_turn != manifest.accepted_turn || existing.sources != sources {
                     return Err(GatewayError::InvalidHandoffReceipt);
@@ -146,23 +220,29 @@ impl Instance {
                 return Ok(false);
             }
             let observation_cut = ObservationReadCut::capture(rel);
-            if manifest.selected_observations.iter().any(|cite| !observation_cut.contains(cite)) {
+            if manifest
+                .selected_observations
+                .iter()
+                .filter(|cite| Some(cite.owner_id) != phy_owner)
+                .any(|cite| !observation_cut.contains(cite))
+            {
                 return Err(GatewayError::InvalidHandoffReceipt);
             }
-            for claim in &manifest.observations {
+            for &claim in &rel_observations {
                 let ObservationSource::Observation(id) = claim.citation.source else {
                     return Err(GatewayError::InvalidHandoffReceipt);
                 };
                 if !rel.observation_revision_source_eligible(id, claim.citation.revision) {
                     return Err(GatewayError::StaleRetrieval);
                 }
-                let exact = rel.observation_revision(id, claim.citation.revision)
+                let exact = rel
+                    .observation_revision(id, claim.citation.revision)
                     .is_some_and(|row| ObservationClaim::from(row.revision) == *claim);
                 if !exact {
                     return Err(GatewayError::StaleRetrieval);
                 }
             }
-            for (memory, id) in manifest.memories.iter().zip(&ids) {
+            for &(memory, id) in &rel_memories {
                 if !rel.memory_revision_source_eligible(*id, memory.revision) {
                     return Err(GatewayError::StaleRetrieval);
                 }
@@ -177,20 +257,30 @@ impl Instance {
                     return Err(GatewayError::StaleRetrieval);
                 }
             }
-            if sources.is_empty() {
-                return Ok(false);
+            Ok(true)
+        };
+        let recorded = if !sources.is_empty() {
+            self.with_rel_writer(owner, |writer| -> Result<bool, GatewayError> {
+                if !check_rel(writer.read_session())? {
+                    return Ok(false);
+                }
+                Ok(writer.record_external_accepted_use(
+                    &use_id,
+                    sources.clone(),
+                    manifest.accepted_turn,
+                    FreshnessEventProof {
+                        graph_version: manifest.graph_version,
+                        community_generation: manifest.community_generation,
+                        community_graph_version: manifest.community_graph_version,
+                    },
+                )?)
+            })??
+        } else {
+            if turn.mount.is_some() {
+                self.with_reliquary(owner, check_rel)??;
             }
-            Ok(writer.record_external_accepted_use(
-                &use_id,
-                sources,
-                manifest.accepted_turn,
-                FreshnessEventProof {
-                    graph_version: manifest.graph_version,
-                    community_generation: manifest.community_generation,
-                    community_graph_version: manifest.community_graph_version,
-                },
-            )?)
-        })??;
+            false
+        };
         self.restore_selected_turn(turn, &manifest, &ids, &use_id)?;
         Ok(recorded)
     }
@@ -287,4 +377,27 @@ impl Instance {
         entry.consumption_confirmed = false;
         Ok(())
     }
+}
+
+fn valid_ranked_manifest(manifest: &DeliveryManifest) -> bool {
+    let mut memories = manifest
+        .memories
+        .iter()
+        .map(|memory| RetrievalMemoryReference {
+            owner_id: memory.owner_id.clone(),
+            memory_id: memory.memory_id.clone(),
+            revision: memory.revision,
+            body_id: memory.body_id.clone(),
+        })
+        .collect::<BTreeSet<_>>();
+    let mut observations = manifest
+        .observations
+        .iter()
+        .map(|claim| claim.citation)
+        .collect::<BTreeSet<_>>();
+    manifest.ranked.iter().all(|hit| match hit {
+        RetrievalRankedHit::Memory { reference } => memories.remove(reference),
+        RetrievalRankedHit::Observation { citation } => observations.remove(citation),
+    }) && memories.is_empty()
+        && observations.is_empty()
 }

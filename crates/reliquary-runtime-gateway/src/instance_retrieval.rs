@@ -44,6 +44,8 @@ pub struct PreparedMemoryDelivery {
     pub(super) profile: Option<CompatibilityProfileId>,
     pub(super) preview: RetrievalPreview,
     pub(super) removal_cut: u64,
+    pub(super) phy_generation: Option<[u8; 32]>,
+    pub(super) phy_memories: Vec<RetrievalMemoryReference>,
     pub(super) body_bindings: Vec<(
         reliquary_owner_session::model::MemoryId,
         u64,
@@ -56,6 +58,10 @@ impl PreparedMemoryDelivery {
     /// The opaque result remains the only authority to deliver its contents.
     pub fn stable_id(&self) -> &str {
         &self.use_id
+    }
+
+    pub fn has_rel_memories(&self) -> bool {
+        !self.body_bindings.is_empty()
     }
 }
 
@@ -89,7 +95,7 @@ pub struct RetrievalOutcome {
 }
 
 /// The composed MemoryRetrieval route. Resolution follows the existing
-/// dedicated → shared decision → adapted general → unavailable hierarchy.
+/// dedicated ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ shared decision ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ adapted general ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ unavailable hierarchy.
 pub struct MemoryRetrievalRoute(Arc<dyn DecisionEndpoint>);
 impl MemoryRetrievalRoute {
     /// Bind the endpoint already resolved by the configured runtime.
@@ -141,7 +147,8 @@ pub struct MemoryRetrievalTurn {
     pub(super) turn_id: String,
     pub(super) controller_id: Uuid,
     pub(super) state: std::sync::Mutex<TurnState>,
-    mount: RelMount,
+    mount: Option<RelMount>,
+    phy: Option<scoped::PhyRecallBinding>,
     mode: RetrievalMode,
     delivery: Mutex<()>,
 }
@@ -174,6 +181,12 @@ struct DeliveryPayload<'a> {
     pub(super) selected_observations: Vec<ObservationCitation>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(super) observations: Vec<&'a ObservationClaim>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) phy_generation: Option<[u8; 32]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) phy_owner_id: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(super) ranked: Vec<RetrievalRankedHit>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -196,6 +209,12 @@ pub(super) struct DeliveryManifest {
     pub(super) selected_observations: Vec<ObservationCitation>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(super) observations: Vec<ObservationClaim>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) phy_generation: Option<[u8; 32]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) phy_owner_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(super) ranked: Vec<RetrievalRankedHit>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -210,7 +229,14 @@ pub(super) struct ManifestMemory {
 
 #[path = "instance_retrieval_preview.rs"]
 pub(crate) mod preview;
-pub use preview::{RetrievalCut, RetrievalMemory, RetrievalPreview, RetrievalSource};
+pub use preview::{
+    RetrievalCut, RetrievalMemory, RetrievalMemoryReference, RetrievalPreview, RetrievalRankedHit,
+    RetrievalSource,
+};
+
+#[path = "instance_retrieval_scoped.rs"]
+mod scoped;
+pub use scoped::ActivePhyRecall;
 
 #[path = "instance_retrieval_delivery.rs"]
 mod delivery;
@@ -246,20 +272,20 @@ pub(super) fn validate_turn_binding(
 ) -> Result<(), GatewayError> {
     validate_turn_controller(instance, turn, owner, turn_id)?;
     instance.ensure_credential_active()?;
-    if !instance.rel_grants.contains(&owner) {
-        return Err(GatewayError::UnauthorizedRel {
-            principal: instance.principal.to_string(),
-            owner,
-        });
-    }
-    let mount = RelMount::capture(instance, owner).map_err(|error| match error {
-        GatewayError::UnknownOwner(_) | GatewayError::WrongOwnerKind(_) => {
-            GatewayError::StaleRetrieval
+    if let Some(previous) = &turn.mount {
+        instance.authorize_rel_access(owner)?;
+        let mount = RelMount::capture(instance, owner).map_err(|error| match error {
+            GatewayError::UnknownOwner(_) | GatewayError::WrongOwnerKind(_) => {
+                GatewayError::StaleRetrieval
+            }
+            other => other,
+        })?;
+        if *previous != mount {
+            return Err(GatewayError::StaleRetrieval);
         }
-        other => other,
-    })?;
-    if turn.mount != mount {
-        return Err(GatewayError::StaleRetrieval);
+    }
+    if let Some(phy) = &turn.phy {
+        phy.validate(instance)?;
     }
     Ok(())
 }
