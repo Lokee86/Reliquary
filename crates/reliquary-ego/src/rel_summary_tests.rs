@@ -1,5 +1,5 @@
 use super::*;
-use reliquary_memory_audit::TextField;
+use reliquary_memory_audit::{SourceId, TextField};
 
 fn memory(id: u8, revision: u64, text: &str) -> MemoryEvidence {
     MemoryEvidence {

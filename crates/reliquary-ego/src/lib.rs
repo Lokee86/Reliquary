@@ -1,6 +1,8 @@
 //! Topics and exact Memory references for downstream Ego extraction.
 
+pub mod phy_summary;
 pub mod rel_summary;
+mod summary_evidence;
 
 use reliquary_memory_audit::{CandidateContract, Feature, Slots, SourceCitation};
 use serde::{Deserialize, Serialize};
