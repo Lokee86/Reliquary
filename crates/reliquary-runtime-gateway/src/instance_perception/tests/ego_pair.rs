@@ -56,9 +56,18 @@ impl GeneralEndpoint for EgoScript {
                 "point_id": 0, "meaning": "supported", "status": "supported",
                 "time_scope": "supported", "attribution": "supported", "hold_reason": "",
             }]}),
-            "ego_phy_draft" => json!({"paragraphs": [{
-                "text": PROFILE, "support": [{"slot": 0, "quote": PROFILE_EVIDENCE}],
-            }]}),
+            "ego_phy_draft" => {
+                let source = payload["memories"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|row| row["text"] == PROFILE_EVIDENCE)
+                    .expect("fixture should offer the source body");
+                json!({"paragraphs": [{
+                    "text": PROFILE,
+                    "support": [{"slot": source["slot"], "quote": PROFILE_EVIDENCE}],
+                }]})
+            }
             "ego_phy_verify" => json!({
                 "checks": [{"paragraph_id": 0, "meaning": "supported", "time": "supported",
                     "scope": "supported", "attribution": "supported", "hold_reason": ""}],
@@ -228,6 +237,7 @@ fn mounted_ego_phy_refresh_waits_for_five_distinct_accepted_memories() {
     }
     let (gateway, instance, phy, mut worker) = start_mounted_phy_worker(&phy_path, &profile_dir);
     let summary = wait_for_phy_revision(&instance, phy, 2);
+    assert_eq!(summary.completion.cut.memory_version, 6);
     assert_eq!(summary.text.unwrap().text, PROFILE);
     worker.stop().unwrap();
     drop(instance);
