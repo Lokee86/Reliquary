@@ -454,6 +454,7 @@ fn shared_phy_audit_retries_only_the_unaccepted_list_then_reopens_both_results()
     );
     ego.stop().unwrap();
     perception.stop().unwrap();
+    drop(perception);
     drop(registration);
     drop(instance);
     drop(gateway);
