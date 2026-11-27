@@ -71,12 +71,16 @@ The user invokes `/identity` to have the assistant draft a change to a selected 
 
 ## Ego Anchors
 
-Show Anchors as **Pinned context** in the Inspector. Authorized users can view, create, edit and remove pins directly. Show each pin's owner as the active PHY or the named REL. A PHY pin carries user-specific standing context. A REL pin carries standing context for work in that REL. A private preference about one REL can stay PHY-owned with its applicability stated in the text. Ego selects applicable authorized pins for its budgeted package. [Existing Anchor storage](../../crates/reliquary-ego-store/src/store.rs)
+Show Anchors as **Pinned context** in the Inspector. Authorized users can view, create, edit and remove pins directly. Show each pin's owner and editable priority. New Pins default to Normal. A PHY pin carries user-specific standing context. A REL pin carries standing context for work in that REL. A private preference about one REL can stay PHY-owned with its applicability stated in the text. Ego selects applicable authorized pins for its budgeted package. [Existing Anchor storage](../../crates/reliquary-ego-store/src/store.rs)
+
+Rank applicable, authorized Pins by **High → Normal → Low** for context packing. Within each tier, prefer the active REL, then the active PHY, then parents and farther ancestors in order of distance. Use stable owner and Pin IDs for any remaining ties. [Stored Pin priority](../../crates/reliquary-ego-store/src/model.rs#L40-L52)
+
+Use the Inspector's authorized Pin lookup in the ordinary assistant turn, including for Pins omitted from the budgeted package. When a new user message clearly reaffirms or softens the standing guidance in a matched Pin, the assistant uses `modify_anchor` to move its saved priority one tier up or down within High, Normal and Low. Apply a tier the user names directly. Require a clear match to the Pin and its scope, and use the same owner and revision checks as other edits.
 
 | Assistant tool | When to use it |
 | --- | --- |
-| `pin_anchor` | Create a pin when the user asks to keep something in view whenever it applies or approves a proposed pin. Supply the text and explicit PHY or REL owner. |
-| `modify_anchor` | Edit an existing pin at the user's request. Supply the owner, Anchor ID, expected revision and replacement text. |
+| `pin_anchor` | Create a Pin when the user asks to keep something in view whenever it applies or approves a proposed Pin. Supply the text and explicit PHY or REL owner. Accept a priority when the user requests or approves one. |
+| `modify_anchor` | Edit a Pin at the user's request or adjust its priority after a clear reaffirmation or softening. Supply the owner, Anchor ID, expected revision and the fields to edit. A priority-only edit preserves the text. |
 | `delete_anchor` | Remove an existing pin at the user's request. Supply the owner, Anchor ID and expected revision. |
 
 The assistant can recognize pin requests in ordinary language. A request to remember something ordinarily uses the Memory workflow. Resolve ambiguous scope with the user before pinning. The write path verifies write access to the selected owner and checks the named Anchor and revision on edits and removals. Inspector edits and assistant tool writes use the same owner checks. Edits append revisions and removals append tombstones.
