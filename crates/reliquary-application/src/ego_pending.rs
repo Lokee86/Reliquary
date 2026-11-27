@@ -5,12 +5,13 @@ use std::{path::Path, time::Duration};
 use reliquary_ego::EgoCandidate;
 use reliquary_memory_audit::{MAX_CANDIDATES_PER_LIST, OwnerCut, SourceId};
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum EgoRunKind {
     RelBootstrap,
+    RelSharedBootstrap,
     RelRecurring,
     PhyBootstrap,
     PhyRefresh,
@@ -40,6 +41,7 @@ impl EgoRun {
             EgoRunKind::RelRecurring => 1,
             EgoRunKind::PhyBootstrap => 2,
             EgoRunKind::PhyRefresh => 3,
+            EgoRunKind::RelSharedBootstrap => 4,
         }]);
         hash.update(self.route);
         hash.update(self.contract.to_le_bytes());
@@ -120,6 +122,7 @@ impl EgoPendingWork {
                     phy BLOB NOT NULL,
                     source BLOB NOT NULL,
                     binding BLOB NOT NULL,
+                    checkpoint BLOB,
                     sealed INTEGER NOT NULL DEFAULT 0
                  );
                  CREATE INDEX ego_run_pair ON ego_run (phy, source, sealed);
@@ -216,24 +219,101 @@ impl EgoPendingWork {
         phy: [u8; 16],
         source: [u8; 16],
     ) -> Result<Option<EgoRun>, EgoPendingError> {
-        let row = self
+        self.run_by_query(
+            "SELECT id, binding FROM ego_run
+                 WHERE phy = ?1 AND source = ?2 AND sealed = 1 ORDER BY rowid LIMIT 1",
+            phy,
+            source,
+        )
+    }
+
+    /// Independent bootstrap and PHY workers own their durable seek cursor.
+    pub fn open_checkpoint_run(
+        &self,
+        phy: [u8; 16],
+        source: [u8; 16],
+    ) -> Result<Option<EgoRun>, EgoPendingError> {
+        self.run_by_query(
+            "SELECT id, binding FROM ego_run WHERE phy = ?1 AND source = ?2
+             AND sealed = 0 AND checkpoint IS NOT NULL ORDER BY rowid LIMIT 1",
+            phy,
+            source,
+        )
+    }
+
+    pub fn pending_runs(
+        &self,
+        phy: [u8; 16],
+        source: [u8; 16],
+    ) -> Result<Vec<EgoRun>, EgoPendingError> {
+        let mut statement = self.connection.prepare(
+            "SELECT id, binding FROM ego_run WHERE phy = ?1 AND source = ?2 AND sealed = 0
+             ORDER BY rowid",
+        )?;
+        let rows = statement.query_map(params![phy.as_slice(), source.as_slice()], run_row)?;
+        rows.map(|row| {
+            let (id, binding) = row?;
+            decode_run(phy, source, id, binding)
+        })
+        .collect()
+    }
+
+    fn run_by_query(
+        &self,
+        query: &str,
+        phy: [u8; 16],
+        source: [u8; 16],
+    ) -> Result<Option<EgoRun>, EgoPendingError> {
+        self.connection
+            .query_row(query, params![phy.as_slice(), source.as_slice()], run_row)
+            .optional()?
+            .map(|(id, binding)| decode_run(phy, source, id, binding))
+            .transpose()
+    }
+
+    pub fn checkpoint<T: DeserializeOwned>(
+        &self,
+        run: EgoRun,
+    ) -> Result<Option<T>, EgoPendingError> {
+        let encoded = self
             .connection
             .query_row(
-                "SELECT id, binding FROM ego_run
-                 WHERE phy = ?1 AND source = ?2 AND sealed = 1 ORDER BY rowid LIMIT 1",
-                params![phy.as_slice(), source.as_slice()],
-                |row| Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, Vec<u8>>(1)?)),
+                "SELECT checkpoint FROM ego_run WHERE id = ?1",
+                [run.id().as_slice()],
+                |row| row.get::<_, Option<Vec<u8>>>(0),
             )
-            .optional()?;
-        row.map(|(id, binding)| {
-            let run: EgoRun =
-                serde_json::from_slice(&binding).map_err(|_| EgoPendingError::Codec)?;
-            if run.phy != phy || run.source.owner_id != source || id != run.id() {
-                return Err(EgoPendingError::InvalidBinding);
-            }
-            Ok(run)
-        })
-        .transpose()
+            .optional()?
+            .flatten();
+        encoded
+            .map(|encoded| serde_json::from_slice(&encoded).map_err(|_| EgoPendingError::Codec))
+            .transpose()
+    }
+
+    pub fn save_checkpoint<T: Serialize>(
+        &mut self,
+        run: EgoRun,
+        checkpoint: &T,
+    ) -> Result<(), EgoPendingError> {
+        let encoded = serde_json::to_vec(checkpoint).map_err(|_| EgoPendingError::Codec)?;
+        let tx = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        if ensure_run(&tx, run)? {
+            return Err(EgoPendingError::InvalidBinding);
+        }
+        tx.execute(
+            "UPDATE ego_run SET checkpoint = ?1 WHERE id = ?2",
+            params![encoded, run.id().as_slice()],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Invalidate a run after an owner generation or route binding changes.
+    pub fn discard_stale(&mut self, run: EgoRun) -> Result<(), EgoPendingError> {
+        self.connection
+            .execute("DELETE FROM ego_run WHERE id = ?1", [run.id().as_slice()])?;
+        Ok(())
     }
 
     pub fn next_batch(
@@ -262,6 +342,23 @@ impl EgoPendingWork {
         )?;
         Ok(())
     }
+}
+
+fn run_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<(Vec<u8>, Vec<u8>)> {
+    Ok((row.get(0)?, row.get(1)?))
+}
+
+fn decode_run(
+    phy: [u8; 16],
+    source: [u8; 16],
+    id: Vec<u8>,
+    binding: Vec<u8>,
+) -> Result<EgoRun, EgoPendingError> {
+    let run: EgoRun = serde_json::from_slice(&binding).map_err(|_| EgoPendingError::Codec)?;
+    if run.phy != phy || run.source.owner_id != source || id != run.id() {
+        return Err(EgoPendingError::InvalidBinding);
+    }
+    Ok(run)
 }
 
 fn ensure_run(connection: &Connection, run: EgoRun) -> Result<bool, EgoPendingError> {
