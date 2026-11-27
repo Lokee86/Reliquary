@@ -57,22 +57,36 @@ impl GeneralEndpoint for EgoScript {
                 "time_scope": "supported", "attribution": "supported", "hold_reason": "",
             }]}),
             "ego_phy_draft" => {
-                let source = payload["memories"]
+                let paragraphs = payload["memories"]
                     .as_array()
                     .unwrap()
                     .iter()
                     .find(|row| row["text"] == PROFILE_EVIDENCE)
-                    .expect("fixture should offer the source body");
-                json!({"paragraphs": [{
-                    "text": PROFILE,
-                    "support": [{"slot": source["slot"], "quote": PROFILE_EVIDENCE}],
-                }]})
+                    .into_iter()
+                    .map(|source| {
+                        json!({
+                            "text": PROFILE,
+                            "support": [{"slot": source["slot"], "quote": PROFILE_EVIDENCE}],
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                json!({"paragraphs": paragraphs})
             }
-            "ego_phy_verify" => json!({
-                "checks": [{"paragraph_id": 0, "meaning": "supported", "time": "supported",
-                    "scope": "supported", "attribution": "supported", "hold_reason": ""}],
-                "continuity": supported,
-            }),
+            "ego_phy_verify" => {
+                let checks = payload["final_summary"]["paragraphs"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|paragraph| {
+                        json!({
+                            "paragraph_id": paragraph["paragraph_id"], "meaning": "supported",
+                            "time": "supported", "scope": "supported", "attribution": "supported",
+                            "hold_reason": "",
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                json!({"checks": checks, "continuity": supported})
+            }
             _ => {
                 return Err(GeneralEndpointError::InvalidResponse(
                     "unexpected Ego fixture request",
