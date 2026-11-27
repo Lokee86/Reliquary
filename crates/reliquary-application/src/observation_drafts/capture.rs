@@ -1,4 +1,4 @@
-use super::{Error, Result};
+use super::{Error, ObservationRead, Result};
 use reliquary_memory_audit::{
     Eligibility, Grade, Participant, Passage, SourceCitation, SourceId, TextField,
 };
@@ -9,7 +9,7 @@ use reliquary_owner_session::observation::{
 };
 use reliquary_owner_session::{
     PerceptionMemoryEvidence, PerceptionParticipantEvidence, PerceptionSourceCut,
-    PerceptionSourceGrade, RelSession,
+    PerceptionSourceGrade,
 };
 use reliquary_perception::ClaimParticipant;
 use std::collections::{BTreeMap, BTreeSet};
@@ -71,16 +71,16 @@ pub(super) fn fit_context(rows: &mut [Excerpt], budget: usize) -> Result<()> {
 }
 
 pub(super) struct Capture<'a> {
-    pub rel: &'a RelSession,
+    pub owner: ObservationRead<'a>,
     pub cut: PerceptionSourceCut,
     memories: BTreeMap<MemoryId, Option<PerceptionMemoryEvidence>>,
 }
 
 impl<'a> Capture<'a> {
-    pub fn new(rel: &'a RelSession) -> Self {
+    pub fn new(owner: ObservationRead<'a>) -> Self {
         Self {
-            rel,
-            cut: rel.perception_source_cut(),
+            owner,
+            cut: owner.perception_source_cut(),
             memories: BTreeMap::new(),
         }
     }
@@ -88,7 +88,7 @@ impl<'a> Capture<'a> {
     pub fn memory(&mut self, id: MemoryId) -> Result<Option<&PerceptionMemoryEvidence>> {
         if let std::collections::btree_map::Entry::Vacant(entry) = self.memories.entry(id) {
             let result = self
-                .rel
+                .owner
                 .perception_memory_evidence(&self.cut, &[id])
                 .map_err(Error::Owner)?
                 .pop();
@@ -103,6 +103,7 @@ impl<'a> Capture<'a> {
         {
             return Err(Error::Stale);
         }
+        let phy = matches!(self.owner, ObservationRead::Phy(_));
         match cite.source {
             ObservationSource::Memory(id) => {
                 let row = self.memory(MemoryId(id))?.ok_or(Error::PendingEvidence)?;
@@ -110,19 +111,23 @@ impl<'a> Capture<'a> {
                 if record.revision != cite.revision || record.body_id.0 != cite.body_id {
                     return Err(Error::Stale);
                 }
-                let grade = match row.metadata.grade {
-                    PerceptionSourceGrade::Fresh => Grade::Fresh,
-                    PerceptionSourceGrade::Stale => Grade::Stale,
-                    PerceptionSourceGrade::Dormant => Grade::Dormant,
+                let grade = if phy {
+                    Grade::Settled
+                } else {
+                    match row.metadata.grade {
+                        PerceptionSourceGrade::Fresh => Grade::Fresh,
+                        PerceptionSourceGrade::Stale => Grade::Stale,
+                        PerceptionSourceGrade::Dormant => Grade::Dormant,
+                    }
                 };
                 let excerpt = excerpt(cite, text_field(row, cite.field), row.source_lineage)?;
-                self.rel
+                self.owner
                     .observation_citation_text(&cite)
                     .map_err(Error::Owner)?;
                 Ok((excerpt, grade))
             }
             ObservationSource::Observation(id) => {
-                let row = self.rel.observation(id).ok_or(Error::Stale)?;
+                let row = self.owner.observation(id).ok_or(Error::Stale)?;
                 if row.standing != ObservationStanding::Current {
                     return Err(Error::PendingEvidence);
                 }
@@ -135,7 +140,7 @@ impl<'a> Capture<'a> {
                 }
                 Ok((
                     excerpt(cite, &row.revision.draft.proposition, id.0)?,
-                    Grade::Fresh,
+                    if phy { Grade::Settled } else { Grade::Fresh },
                 ))
             }
         }
@@ -153,7 +158,7 @@ impl<'a> Capture<'a> {
             let ObservationSource::Observation(id) = cite.source else {
                 continue;
             };
-            let source = self.rel.observation(id).ok_or(Error::Stale)?;
+            let source = self.owner.observation(id).ok_or(Error::Stale)?;
             if source.standing != ObservationStanding::Current
                 || source.revision.revision != cite.revision
                 || source.revision.draft.body_id() != cite.body_id
@@ -188,7 +193,7 @@ impl<'a> Capture<'a> {
             }
             ObservationSource::Observation(id) => {
                 self.citation(cite)?;
-                let current = self.rel.observation(id).ok_or(Error::Stale)?;
+                let current = self.owner.observation(id).ok_or(Error::Stale)?;
                 for &support in &current.revision.draft.citations {
                     self.flatten(support, seen, rows)?;
                 }
@@ -216,11 +221,11 @@ impl<'a> Capture<'a> {
                 body_id: reliquary_owner_session::model::MemoryBodyId(cite.body_id),
             };
             for anchor in self
-                .rel
+                .owner
                 .perception_participant_evidence(&self.cut, source)
                 .map_err(Error::Owner)?
             {
-                let current = self.rel.entity(anchor.entity_id).is_some_and(|entity| {
+                let current = self.owner.entity(anchor.entity_id).is_some_and(|entity| {
                     entity.revision == anchor.entity_revision
                         && !entity.kind.eq_ignore_ascii_case("generic")
                 });

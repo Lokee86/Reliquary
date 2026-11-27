@@ -44,16 +44,16 @@ pub(super) fn optional_hits(
         .collect();
     let mut graph = BTreeSet::new();
     for &id in &anchors {
-        graph.extend(capture.rel.perception_graph_neighbors(id));
+        graph.extend(capture.owner.perception_graph_neighbors(id));
     }
     let anchor = anchors.first().copied();
-    let profile = profile.filter(|&id| capture.rel.active_compatibility_profile(id).is_some());
+    let profile = profile.filter(|&id| capture.owner.active_compatibility_profile(id).is_some());
     let mut ranked = Vec::new();
     for receptor in receptors {
         let mut ids: BTreeMap<MemoryId, f64> = graph.iter().map(|id| (*id, 0.12)).collect();
         for query in [&receptor.description, claim] {
             for (rank, id) in capture
-                .rel
+                .owner
                 .perception_lexical_candidates(query, LOOKUP_LIMIT)
                 .into_iter()
                 .enumerate()
@@ -66,7 +66,7 @@ pub(super) fn optional_hits(
         }
         if let Some((anchor, profile)) = anchor.zip(profile) {
             match capture
-                .rel
+                .owner
                 .dream_candidate_pool(anchor, profile, &receptor.vector)
             {
                 Ok(candidates) => {
@@ -83,7 +83,7 @@ pub(super) fn optional_hits(
         }
         let ids_in_scope = ids.keys().copied().collect::<Vec<_>>();
         let eligible = capture
-            .rel
+            .owner
             .perception_source_metadata(&capture.cut, &ids_in_scope)
             .map_err(Error::Owner)?;
         let mut matches = Vec::new();
@@ -91,7 +91,7 @@ pub(super) fn optional_hits(
             let id = row.source.id;
             let vector_score = if let Some(profile) = profile {
                 capture
-                    .rel
+                    .owner
                     .memory_vector_row(profile, row.source.body_id)
                     .map_err(Error::Owner)?
                     .and_then(|vector| reliquary_vectors::cosine(&vector, &receptor.vector))

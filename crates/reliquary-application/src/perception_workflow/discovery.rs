@@ -14,11 +14,11 @@ use std::collections::BTreeSet;
 // Leave room for schema, source coordinates, participant context and wire
 // encoding. The auditor enforces the actual serialized route limit.
 pub(super) const MAX_CAPTURE_TEXT_BYTES: usize = 96 * 1024;
-const MAX_PARTICIPANT_SLOTS: usize = 16;
+pub(super) const MAX_PARTICIPANT_SLOTS: usize = 16;
 pub(super) const MAX_LOOKUP_INPUTS: usize = 32;
 pub(super) const MAX_LOOKUP_PASSAGE_BYTES: usize = 2 * 1024;
-const MAX_LOCAL_SOURCES: usize = 8;
-const MAX_LOCAL_PASSAGE_BYTES: usize = 1024;
+pub(super) const MAX_LOCAL_SOURCES: usize = 8;
+pub(super) const MAX_LOCAL_PASSAGE_BYTES: usize = 1024;
 
 pub struct AuditDiscovery {
     pub key: [u8; 32],

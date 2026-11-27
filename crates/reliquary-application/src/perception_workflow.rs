@@ -5,14 +5,16 @@ mod phy_discovery;
 
 pub use contribution::{
     ContributionEmbeddingCache, ContributionFailure, ContributionWork, capture_contribution,
-    capture_duplicate_contribution, evaluate_contribution,
+    capture_duplicate_contribution, capture_phy_contribution, capture_phy_duplicate_contribution,
+    evaluate_contribution,
 };
 pub use discovery::retain_current_ego_evidence;
 pub use discovery::{
     AuditDiscovery, AuditDiscoveryResult, audit_lookups, capture_discovery, discover,
 };
 pub use phy_discovery::{
-    PhyAuditDiscovery, capture_phy_discovery, discover_phy, phy_audit_citation, phy_audit_lookups,
+    PhyAuditDiscovery, capture_phy_discovery, capture_phy_perception_discovery, discover_phy,
+    discover_phy_for_features, phy_audit_citation, phy_audit_lookups,
 };
 use reliquary_memory_audit::{Grade, Passage, SourceCitation, SourceId, TextField};
 use reliquary_owner_session::model::MemoryTextField;
