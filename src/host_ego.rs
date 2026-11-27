@@ -1,11 +1,16 @@
 //! Authorized Reliquary Ego operations for native hosts and Inspector.
 
-use super::{Instance, OwnerGrant, OwnerId, ProductError, runtime};
+use super::{Instance, OwnerGrant, OwnerId, ProductError, ProductErrorKind, runtime};
+use crate::ConfiguredRuntime;
+use std::{path::Path, sync::Arc};
 
 pub use runtime::{
-    EgoAnchor as EgoPin, EgoAnchorId as EgoPinId, EgoAnchorPriority as EgoPinPriority, EgoContext,
-    EgoContextBinding, EgoIdentity, EgoIdentityDraft, EgoIdentityId, EgoIdentitySelection,
-    EgoPinPatch, EgoQueryVector, PreparedEgoIdentity,
+    EgoAnchor as EgoPin, EgoAnchorId as EgoPinId, EgoAnchorPriority as EgoPinPriority, EgoCitation,
+    EgoContext, EgoContextBinding, EgoIdentity, EgoIdentityDraft, EgoIdentityId,
+    EgoIdentitySelection, EgoPhySummary, EgoPinPatch, EgoPointId, EgoPointInspection,
+    EgoPointStatus, EgoQueryVector, EgoRelInspection, EgoSummaryEdit, EgoSummaryItemId,
+    EgoTextField, EgoTimeScope, EgoTopicId, EgoTopicInspection, EgoWorkerHandle,
+    PreparedEgoIdentity,
 };
 
 #[derive(Clone, Copy)]
@@ -24,6 +29,82 @@ impl From<EgoScope> for runtime::EgoScope {
 }
 
 impl Instance {
+    pub fn inspect_ego_phy_summary(
+        &self,
+        phy: OwnerId,
+        revision: Option<u64>,
+    ) -> Result<Option<EgoPhySummary>, ProductError> {
+        self.require_phy_read(phy)?;
+        Ok(self.inner.inspect_ego_phy_summary(phy.into(), revision)?)
+    }
+
+    pub fn inspect_ego_rel_summary(
+        &self,
+        phy: OwnerId,
+        source: OwnerId,
+        revision: Option<u64>,
+    ) -> Result<Option<EgoRelInspection>, ProductError> {
+        self.require_phy_read(phy)?;
+        self.require_rel_read(source)?;
+        Ok(self
+            .inner
+            .inspect_ego_rel_summary(phy.into(), source.into(), revision)?)
+    }
+
+    pub fn edit_ego_rel_summary(
+        &self,
+        phy: OwnerId,
+        source: OwnerId,
+        expected_summary_revision: u64,
+        edit: EgoSummaryEdit,
+    ) -> Result<u64, ProductError> {
+        self.require(OwnerGrant::OperatePhylactery(phy))?;
+        self.require_rel_read(source)?;
+        Ok(self.inner.edit_ego_rel_summary(
+            phy.into(),
+            source.into(),
+            expected_summary_revision,
+            edit,
+        )?)
+    }
+
+    /// Bind the explicitly active PHY and managed source RELs during normal
+    /// profile startup. Dropping the handle drains the worker before switching
+    /// owners or replacing the configured routes.
+    pub fn start_ego_worker(
+        &self,
+        phy: OwnerId,
+        source_rels: &[OwnerId],
+        protected_profile_dir: &Path,
+        runtime: &ConfiguredRuntime,
+        count_tokens: impl Fn(&str) -> u64 + Send + Sync + 'static,
+    ) -> Result<EgoWorkerHandle, ProductError> {
+        self.require(OwnerGrant::OperatePhylactery(phy))?;
+        for &owner in source_rels {
+            self.require_rel_read(owner)?;
+        }
+        let general = runtime.general_endpoint().ok_or_else(|| {
+            ProductError::new(
+                ProductErrorKind::Unavailable,
+                "Ego General route is unavailable",
+            )
+        })?;
+        let binding = runtime.processing_route_identity();
+        Ok(self.gateway.inner.start_ego_worker(
+            self.inner.clone(),
+            phy.into(),
+            source_rels.iter().copied().map(Into::into).collect(),
+            protected_profile_dir,
+            runtime::EgoRoutes {
+                general,
+                embedding: runtime.embedding_endpoint(),
+                identity: binding.perception,
+                embedding_profile: binding.perception_embedding,
+                count_tokens: Arc::new(count_tokens),
+            },
+        )?)
+    }
+
     pub fn ego_pins(&self, scope: EgoScope) -> Result<Vec<EgoPin>, ProductError> {
         match scope {
             EgoScope::Rel(owner) => self.require_rel_read(owner)?,

@@ -444,11 +444,14 @@ mod instance_conversation;
 mod instance_dream;
 mod instance_ego;
 pub use instance_ego::{
-    EgoContext, EgoContextBinding, EgoIdentityDraft, EgoPinPatch, EgoQueryVector, EgoScope,
-    PreparedEgoIdentity,
+    EgoContext, EgoContextBinding, EgoIdentityDraft, EgoPinPatch, EgoPointInspection,
+    EgoQueryVector, EgoRelInspection, EgoRoutes, EgoScope, EgoSummaryEdit, EgoSummaryItemId,
+    EgoTopicInspection, EgoWorkerHandle, PreparedEgoIdentity,
 };
 pub use reliquary_owner_session::{
-    EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId, EgoIdentitySelection,
+    EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoCitation, EgoIdentity, EgoIdentityId,
+    EgoIdentitySelection, EgoPhySummary, EgoPointId, EgoPointStatus, EgoTextField, EgoTimeScope,
+    EgoTopicId,
 };
 mod owner_workers;
 mod workflow_workers;

@@ -183,6 +183,14 @@ Later edits to the reviewed Entities preserve the confirmation when both histori
 
 `resolve_rel_dependencies()` returns the ordered, granted closure, ending with the source REL. A denied branch contributes no owners through that path. A granted dependency that is unavailable prevents a partial resolution. `Instance::prepare_context_workflow` renders current stored Ego syntheses from the resolved dependencies ahead of the primary request as budgeted evidence. Caller token estimates cover the base request. Requests, plans and finalization recheck the resolved mounts, declarations and synthesis cuts. Compaction uses its original transcript sources.
 
+## Ego
+
+`Instance::start_ego_worker` binds the explicitly selected writable PHY, readable source RELs, configured routes and a profile-local pending directory. The host retains the worker handle while that admission is current and drains it before changing the profile's routes or mounts. Ordinary chat read credentials can call `ego_context` at request assembly with active owner IDs, query and host token budget.
+
+`ego_pins` gives the Inspector and assistant the same scoped lookup. `pin_anchor`, `modify_anchor` and `delete_anchor` require the owning write grant and an exact Pin revision for edits and removal. Priority-only patches preserve the text. Named PHY Identities have separate revision and selection controls. The trusted host presents the immutable `prepare_ego_identity` draft and uses `approve_ego_identity` after user approval. The approval is bound to the owner, mounted writer, originating Instance and exact revision.
+
+Authorized summary inspection returns current or retained revisions with exact source coordinates. REL summary edits append changes on the same topic or point ID and require an expected summary and item revision. The package ranks and packs from current authorized evidence without changing source Freshness. [Ego design](planning/ego-implementation-spec-2026-11-27.md) · [Product controls test](../tests/ego_controls.rs)
+
 ## Maintenance and reconciliation boundaries
 
 Rewrite, prune, repair, reclaim, copy, and reconciliation operations create a new destination and never replace an existing source or destination. Quiesce writable owners before preparing copy maintenance, and independently reopen/verify the result. Fresh-history rewrite fails closed when authenticated user Memory correction, retirement, association, or Community naming authority/request history cannot be preserved.

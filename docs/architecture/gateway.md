@@ -57,6 +57,8 @@ Shared REL Ego discovery records accepted topics and empty accepted batches in e
 
 The Perception worker advances one bounded page of missing claim embeddings per eligible poll. Gateway admits current claims into the same retrieval cut and ranking as Memories, then returns typed Observation citations and rechecks exact current standing at delivery. Confirmed delivery recovery reads its earlier accepted manifest and provenance. [Managed Perception worker](../../crates/reliquary-runtime-gateway/src/instance_perception.rs)
 
+Ego's managed worker uses the PHY owner lease. It resumes a destination-specific REL bootstrap when prior shared coverage has no durable Ego handoff. It then accepts closed shared REL runs and schedules private PHY refreshes through their own captured cursor. It releases owner locks during inference, holds source and destination fences at publication, and retires accepted work after the completion record is durable. [Mounted Ego worker](../../crates/reliquary-runtime-gateway/src/instance_ego/worker.rs)
+
 ## External host contracts
 
 The public `TrustedHostAdapter` contract supplies configured capabilities, authenticated `connect`, declared per-capability queue guarantees, reconciliation, stable-id handoff/status/cancel, and optional confirmed memory delivery/status. `HostQueueGuarantees::complete` requires durable acceptance, stable submission IDs, linearizable cancel/dequeue, queryable operation status, and idempotent handoff before Gateway treats the capability as executable. Host-reported capability declarations are not proof that an adapter honors them; production host conformance requires independent integration verification.

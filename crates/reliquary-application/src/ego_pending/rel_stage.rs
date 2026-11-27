@@ -39,7 +39,7 @@ impl EgoPendingWork {
         Ok(())
     }
 
-    pub(crate) fn rel_stage(
+    pub(crate) fn stage(
         &self,
         run: EgoRun,
         key: [u8; 32],
@@ -61,7 +61,7 @@ impl EgoPendingWork {
 
     /// Retain only a fully validated stage result. If concurrent responses
     /// differ, the first accepted result remains the one used on retry.
-    pub(crate) fn accept_rel_stage(
+    pub(crate) fn accept_stage(
         &mut self,
         run: EgoRun,
         key: [u8; 32],

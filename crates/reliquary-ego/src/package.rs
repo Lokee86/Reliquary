@@ -47,6 +47,10 @@ pub struct SupportScore {
     pub score: i16,
 }
 
+pub fn eligible_freshness(supports: &[SupportScore]) -> bool {
+    PointFreshness::from_supports(supports).is_some()
+}
+
 pub struct RelPoint<'a> {
     pub key: PointKey,
     pub owner_rank: OwnerRank,

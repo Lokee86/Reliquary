@@ -1,5 +1,6 @@
 //! Prepare one verified PHY summary publication from the mounted audit capture.
 
+use crate::ego_pending::{EgoPendingWork, EgoRun};
 use crate::perception_workflow::phy_audit_citation;
 use chrono::{DateTime, Utc};
 use reliquary_ego::{
@@ -17,6 +18,7 @@ use reliquary_owner_session::{
 };
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError, GeneralTool};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt,
@@ -40,6 +42,7 @@ pub enum PhySummaryError {
     Owner(OwnerSessionError),
     Policy(phy_summary::Error),
     Endpoint(GeneralEndpointError),
+    Pending,
     InvalidCapture,
     InputLimit,
 }
@@ -50,6 +53,7 @@ impl fmt::Display for PhySummaryError {
             Self::Owner(_) => "PHY summary source is unavailable",
             Self::Policy(_) => "PHY summary failed its structured stage",
             Self::Endpoint(_) => "PHY summary inference failed",
+            Self::Pending => "PHY summary stage receipt unavailable",
             Self::InvalidCapture => "invalid PHY summary capture binding",
             Self::InputLimit => "PHY summary evidence exceeded the route budget",
         })
@@ -388,6 +392,57 @@ fn owner_citation(citation: SourceCitation) -> Result<EgoCitation, PhySummaryErr
         start_byte: citation.start_byte,
         end_byte: citation.end_byte,
     })
+}
+
+/// Reuse an exact verified replacement or hold after restart, before the
+/// mounted publisher revalidates the captured evidence and commits it.
+pub fn prepare_pending_phy_publication(
+    capture: &PhySummaryCapture,
+    run: EgoRun,
+    pending: &mut EgoPendingWork,
+    endpoint: &dyn GeneralEndpoint,
+    counter: &(dyn Fn(&str) -> u64 + Sync),
+    max_input_bytes: usize,
+) -> Result<Option<EgoPhyPublication>, PhySummaryError> {
+    if run.id() != capture.completion.id {
+        return Err(PhySummaryError::InvalidCapture);
+    }
+    let mut digest = Sha256::new();
+    digest.update(b"Reliquary Ego PHY verified draft v1");
+    digest.update(run.id());
+    digest.update(capture.expected_revision.to_le_bytes());
+    digest.update((max_input_bytes as u64).to_le_bytes());
+    digest.update(capture.as_of.as_bytes());
+    let proof = json!({
+        "cut": capture.cut,
+        "changes": capture.changes,
+        "batch_ids": capture.completion.batch_ids,
+        "evidence": capture.evidence.iter().map(|source| json!({
+            "citation": source.citation, "date": source.source_date, "text": source.text,
+        })).collect::<Vec<_>>(),
+        "input_revisions": capture.input_revisions.iter().collect::<Vec<_>>(),
+        "prior": capture.prior.as_ref().map(|prior| json!({
+            "text": prior.text,
+            "paragraphs": prior.paragraphs.iter().map(|paragraph| json!({
+                "start": paragraph.start_byte, "end": paragraph.end_byte,
+                "support": paragraph.citations, "carry": paragraph.can_carry,
+            })).collect::<Vec<_>>(),
+        })),
+    });
+    digest.update(serde_json::to_vec(&proof).map_err(|_| PhySummaryError::InvalidCapture)?);
+    let key = digest.finalize().into();
+    if let Some(stored) = pending
+        .stage(run, key)
+        .map_err(|_| PhySummaryError::Pending)?
+    {
+        return serde_json::from_value(stored).map_err(|_| PhySummaryError::Pending);
+    }
+    let publication = prepare_phy_publication(capture, endpoint, counter, max_input_bytes)?;
+    let receipt = serde_json::to_value(&publication).map_err(|_| PhySummaryError::Pending)?;
+    pending
+        .accept_stage(run, key, &receipt)
+        .map_err(|_| PhySummaryError::Pending)?;
+    Ok(publication)
 }
 
 pub fn prepare_phy_publication(

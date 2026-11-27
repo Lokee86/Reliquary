@@ -8,7 +8,13 @@ use serde::{Deserialize, Serialize};
 use std::sync::Weak;
 
 mod context;
+mod summaries;
+mod worker;
 pub use context::{EgoContext, EgoContextBinding, EgoQueryVector};
+pub use summaries::{
+    EgoPointInspection, EgoRelInspection, EgoSummaryEdit, EgoSummaryItemId, EgoTopicInspection,
+};
+pub use worker::{EgoRoutes, EgoWorkerHandle};
 
 #[derive(Clone, Copy)]
 pub enum EgoScope {
@@ -83,6 +89,18 @@ impl Instance {
         owner: OwnerId,
         operation: impl FnOnce(&mut PhyWriter) -> Result<T, OwnerSessionError>,
     ) -> Result<T, GatewayError> {
+        let _topology = self
+            .rel_topology
+            .read()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        self.with_ego_phy_writer_under_topology(owner, operation)
+    }
+
+    fn with_ego_phy_writer_under_topology<T>(
+        &self,
+        owner: OwnerId,
+        operation: impl FnOnce(&mut PhyWriter) -> Result<T, OwnerSessionError>,
+    ) -> Result<T, GatewayError> {
         let mount = self.ego_phy_writer_mount(owner)?;
         let mut writer = mount
             .writer
@@ -98,6 +116,25 @@ impl Instance {
             return Err(OwnerSessionError::ManagementStale.into());
         }
         Ok(operation(&mut writer)?)
+    }
+
+    fn with_ego_rel_writer<T>(
+        &self,
+        owner: OwnerId,
+        operation: impl FnOnce(&mut RelWriter) -> Result<T, OwnerSessionError>,
+    ) -> Result<T, GatewayError> {
+        let _topology = self
+            .rel_topology
+            .read()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        self.with_rel_writer(owner, |writer| {
+            let _credential = self
+                .credential_publication
+                .read()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            self.authorize_rel_access(owner)?;
+            Ok(operation(writer)?)
+        })?
     }
 
     pub(super) fn with_ego_phy<T>(
@@ -141,14 +178,8 @@ impl Instance {
     ) -> Result<EgoAnchor, GatewayError> {
         let id = EgoAnchorId(*Uuid::new_v4().as_bytes());
         match scope {
-            EgoScope::Rel(owner) => self.with_rel_writer(owner, |writer| {
-                let _credential = self
-                    .credential_publication
-                    .read()
-                    .map_err(|_| GatewayError::RegistryPoisoned)?;
-                self.authorize_rel_access(owner)?;
-                Ok(writer.create_ego_anchor(id, priority, text)?)
-            })?,
+            EgoScope::Rel(owner) => self
+                .with_ego_rel_writer(owner, |writer| writer.create_ego_anchor(id, priority, text)),
             EgoScope::Phy(owner) => self
                 .with_ego_phy_writer(owner, |writer| writer.create_ego_anchor(id, priority, text)),
         }
@@ -169,15 +200,10 @@ impl Instance {
             ))
         };
         match scope {
-            EgoScope::Rel(owner) => self.with_rel_writer(owner, |writer| {
-                let _credential = self
-                    .credential_publication
-                    .read()
-                    .map_err(|_| GatewayError::RegistryPoisoned)?;
-                self.authorize_rel_access(owner)?;
+            EgoScope::Rel(owner) => self.with_ego_rel_writer(owner, |writer| {
                 let (priority, text) = parts(writer.read_session().ego_anchor(id))?;
-                Ok(writer.update_ego_anchor(id, expected_revision, priority, text)?)
-            })?,
+                writer.update_ego_anchor(id, expected_revision, priority, text)
+            }),
             EgoScope::Phy(owner) => self.with_ego_phy_writer(owner, |writer| {
                 let (priority, text) = parts(writer.ego_anchor(id))?;
                 writer.update_ego_anchor(id, expected_revision, priority, text)
@@ -192,14 +218,9 @@ impl Instance {
         expected_revision: u64,
     ) -> Result<(), GatewayError> {
         match scope {
-            EgoScope::Rel(owner) => self.with_rel_writer(owner, |writer| {
-                let _credential = self
-                    .credential_publication
-                    .read()
-                    .map_err(|_| GatewayError::RegistryPoisoned)?;
-                self.authorize_rel_access(owner)?;
-                Ok(writer.delete_ego_anchor(id, expected_revision)?)
-            })?,
+            EgoScope::Rel(owner) => self.with_ego_rel_writer(owner, |writer| {
+                writer.delete_ego_anchor(id, expected_revision)
+            }),
             EgoScope::Phy(owner) => self.with_ego_phy_writer(owner, |writer| {
                 writer.delete_ego_anchor(id, expected_revision)
             }),

@@ -470,7 +470,7 @@ impl RelPreparation<'_, '_> {
         for batch in inputs.chunks(EMBEDDING_BATCH_SIZE) {
             let input = serde_json::to_string(batch).map_err(|_| RelEgoError::Binding)?;
             let key = stage_key(self.routes.embedding_profile, "embed", &[], "", &input, "");
-            let stored = self.pending.rel_stage(self.run, key)?;
+            let stored = self.pending.stage(self.run, key)?;
             let response: Vec<Vec<f32>> = match &stored {
                 Some(value) => {
                     serde_json::from_value(value.clone()).map_err(|_| RelEgoError::Binding)?
@@ -661,7 +661,7 @@ impl RelPreparation<'_, '_> {
             &payload,
             &schema,
         );
-        if let Some(reply) = self.pending.rel_stage(self.run, key)? {
+        if let Some(reply) = self.pending.stage(self.run, key)? {
             return Ok((key, reply));
         }
         let reply = self
@@ -673,7 +673,7 @@ impl RelPreparation<'_, '_> {
     }
 
     fn remember(&mut self, key: [u8; 32], reply: &Value) -> Result<(), RelEgoError> {
-        self.pending.accept_rel_stage(self.run, key, reply)?;
+        self.pending.accept_stage(self.run, key, reply)?;
         Ok(())
     }
 }

@@ -380,10 +380,11 @@ fn decode_run(
 fn ensure_run(connection: &Connection, run: EgoRun) -> Result<bool, EgoPendingError> {
     let binding = serde_json::to_vec(&run).map_err(|_| EgoPendingError::Codec)?;
     let id = run.id();
-    let initial = matches!(
-        run.kind,
-        EgoRunKind::RelBootstrap | EgoRunKind::RelSharedBootstrap | EgoRunKind::PhyBootstrap
-    );
+    let initial = match run.kind {
+        EgoRunKind::RelBootstrap | EgoRunKind::PhyBootstrap => 2,
+        EgoRunKind::RelSharedBootstrap => 1,
+        _ => 0,
+    };
     let started_ns = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .ok()

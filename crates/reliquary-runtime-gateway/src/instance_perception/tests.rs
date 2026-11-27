@@ -1,4 +1,5 @@
 use super::*;
+mod ego_pair;
 use crate::{
     InspectedObservation,
     ego_audit_handoff::{shared_ego_run, shared_ego_run_closed},
