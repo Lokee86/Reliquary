@@ -431,12 +431,13 @@ fn synthesize(
         }
     };
     let verification = candidate.verification();
-    Ok(verification.accept(call(
+    let reply = call(
         endpoint,
         with_analysis(verification.request(), analyses),
         "ego_phy_verify",
         max_input_bytes,
-    )?)?)
+    )?;
+    Ok(verification.accept(reply)?)
 }
 
 fn analyze_packets(
