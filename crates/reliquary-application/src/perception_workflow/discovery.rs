@@ -2,7 +2,7 @@ use super::*;
 use reliquary_ego::{EgoCandidate, EgoContract};
 use reliquary_memory_audit::{
     AuditError, Batch, BatchLimits, BatchResult, CONTRACT_VERSION, GraphLink, LookupPassage,
-    Participant, WorkItem, plan_batches, run_batch_with_lookup,
+    Participant, WorkItem, plan_batches, run_batch_for_features,
 };
 use reliquary_owner_session::observation::ObservationStanding;
 use reliquary_owner_session::{
@@ -32,6 +32,10 @@ pub type AuditDiscoveryResult = BatchResult<EgoCandidate, ObservationProposal>;
 impl AuditDiscovery {
     pub fn batch_count(&self) -> usize {
         self.batches.len()
+    }
+
+    pub fn batch_features(&self, ordinal: usize) -> Option<Eligibility> {
+        self.batches.get(ordinal).map(Batch::active_features)
     }
 }
 
@@ -289,14 +293,16 @@ pub fn discover(
     capture: &AuditDiscovery,
     batch: usize,
     endpoint: &dyn GeneralEndpoint,
+    requested: Eligibility,
     lookup: &mut impl FnMut(Feature, LookupRequest<'_>) -> Result<Vec<LookupPassage>, LookupError>,
 ) -> Result<AuditDiscoveryResult, AuditError> {
     let batch = capture.batches.get(batch).ok_or(AuditError::InvalidInput)?;
-    run_batch_with_lookup(
+    run_batch_for_features(
         batch,
         endpoint,
         &EgoContract,
         &capture.contract,
+        requested,
         &mut |_: &OwnerCut, feature, request: LookupRequest<'_>| lookup(feature, request),
     )
 }

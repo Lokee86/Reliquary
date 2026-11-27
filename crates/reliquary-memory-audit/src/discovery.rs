@@ -102,10 +102,41 @@ where
     L: FnMut(&OwnerCut, Feature, LookupRequest<'_>) -> Result<Vec<LookupPassage>, LookupError>
         + ?Sized,
 {
+    run_batch_for_features(
+        batch,
+        endpoint,
+        ego,
+        perception,
+        batch.active_features(),
+        lookup,
+    )
+}
+
+/// Evaluate only the lists still awaiting acknowledgment on this capture.
+pub fn run_batch_for_features<E, P, L>(
+    batch: &Batch,
+    endpoint: &dyn GeneralEndpoint,
+    ego: &E,
+    perception: &P,
+    requested: Eligibility,
+    lookup: &mut L,
+) -> Result<BatchResult<E::Candidate, P::Candidate>, AuditError>
+where
+    E: CandidateContract,
+    P: CandidateContract,
+    L: FnMut(&OwnerCut, Feature, LookupRequest<'_>) -> Result<Vec<LookupPassage>, LookupError>
+        + ?Sized,
+{
     if *batch.contract != RequestContract::new(ego, perception) {
         return Err(AuditError::ContractChanged);
     }
-    let active = batch.active_features();
+    let active = batch.active_features().intersect(requested);
+    if active == Eligibility::NONE {
+        return Ok(BatchResult {
+            ego: ListResult::Inactive,
+            perception: ListResult::Inactive,
+        });
+    }
     let mut response = dispatch(
         batch,
         endpoint,

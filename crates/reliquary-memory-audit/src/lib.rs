@@ -10,7 +10,7 @@ mod tests;
 pub use batch::{Batch, plan_batches, plan_batches_in_mode};
 pub use discovery::{
     BatchResult, GraphLink, ListFailure, ListResult, LookupError, LookupPassage, LookupRequest,
-    run_batch, run_batch_with_lookup,
+    run_batch, run_batch_for_features, run_batch_with_lookup,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

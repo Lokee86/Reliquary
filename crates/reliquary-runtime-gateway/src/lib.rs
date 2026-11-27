@@ -223,6 +223,7 @@ impl MountedOwner {
 pub struct Gateway {
     owners: Arc<RwLock<HashMap<OwnerId, MountedOwner>>>,
     owner_worker_leases: Arc<Mutex<BTreeSet<(OwnerId, u8)>>>,
+    pub(crate) ego_audit_registry: Arc<ego_audit_handoff::EgoAuditRegistry>,
     credential_publication: Arc<RwLock<()>>,
     rel_topology: Arc<RwLock<()>>,
 }
@@ -487,6 +488,7 @@ pub use instance_identity::{
     IdentitySeparationPreview, IdentitySeparationRequest, IdentitySeparationReview,
     IdentitySeparationState, PreparedIdentitySeparation,
 };
+mod ego_audit_handoff;
 mod instance_perception;
 mod instance_perception_lifecycle;
 pub use instance_perception::{PerceptionLifecycle, PerceptionRoutes};

@@ -34,6 +34,7 @@ struct Admission {
 struct Control {
     topology: Weak<RwLock<HashMap<OwnerId, MountedOwner>>>,
     leases: Arc<Mutex<BTreeSet<(OwnerId, u8)>>>,
+    ego_audit_registry: Arc<crate::ego_audit_handoff::EgoAuditRegistry>,
     routes: RwLock<Option<Arc<PerceptionRoutes>>>,
     admissions: Mutex<Vec<Admission>>,
     wake: Condvar,
@@ -51,6 +52,7 @@ impl Gateway {
             control: Arc::new(Control {
                 topology: Arc::downgrade(&self.owners),
                 leases: self.owner_worker_leases.clone(),
+                ego_audit_registry: self.ego_audit_registry.clone(),
                 routes: RwLock::new(None),
                 admissions: Mutex::new(Vec::new()),
                 wake: Condvar::new(),
@@ -146,8 +148,7 @@ struct WorkerState {
     malformed_reviews: BTreeMap<ObservationId, (u64, u64, u64, u64, u64)>,
     malformed_contribution: Option<[u8; 32]>,
     malformed_creation: Option<([u8; 32], u32)>,
-    ego_candidates: Vec<reliquary_application::perception_workflow::EgoCandidate>,
-    ego_cut: Option<reliquary_owner_session::PerceptionSourceCut>,
+    ego_retry: Option<(([u8; 32], u32), Instant)>,
     contribution_vectors: reliquary_application::perception_workflow::ContributionEmbeddingCache,
     probed_profiles: BTreeSet<CompatibilityProfileId>,
     memory_profile: Option<CompatibilityProfileId>,

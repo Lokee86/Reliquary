@@ -1,5 +1,10 @@
 use super::*;
-use crate::InspectedObservation;
+use crate::{
+    InspectedObservation,
+    ego_audit_handoff::{shared_ego_run, shared_ego_run_closed},
+};
+use reliquary_application::ego_pending::{EgoBatchKey, EgoPendingWork, EgoRunKind};
+use reliquary_application::perception_workflow::capture_discovery;
 use reliquary_archive::{Archive, EpisodeBoundary, EpisodeOrigin, TurnInput};
 use reliquary_container::{Container, ReliquaryScope};
 use reliquary_memory_core::MemoryDraft;
@@ -26,6 +31,7 @@ use sha2::{Digest, Sha256};
 use std::{fs, path::PathBuf};
 
 const OWNER: [u8; 16] = [162; 16];
+const AUDIT_PHY: [u8; 16] = [163; 16];
 const CONVERSATION: &str = "Perception acceptance";
 const OLD: &str = "A separate archive pilot limited inactive requests during an earlier trial.";
 const BASE: &str = "Every Atlas purchase request is reviewed before payment is released.";
@@ -79,6 +85,9 @@ impl GeneralEndpoint for Script {
         let input: Value = serde_json::from_str(payload).unwrap();
         Ok(match schema {
             "memory_web_audit_v3" => {
+                if self.phase == 8 {
+                    assert_eq!(input["active"], json!({"ego":false, "perception":true}));
+                }
                 let sources = input["sources"].as_array().unwrap();
                 self.record(Call::CapturedMemoryTexts(
                     sources
@@ -499,6 +508,10 @@ impl Fixture {
 impl Drop for Fixture {
     fn drop(&mut self) {
         let _ = fs::remove_file(&self.path);
+        let _ = fs::remove_file(self.path.with_extension("phy"));
+        let pending = self.path.with_extension("sqlite");
+        let _ = fs::remove_file(&pending);
+        let _ = fs::remove_dir(pending);
     }
 }
 
@@ -537,7 +550,32 @@ fn run(
     calls: &Arc<Mutex<Vec<Call>>>,
     complete: impl Fn(&[InspectedObservation]) -> bool,
 ) -> Vec<InspectedObservation> {
-    let (gateway, owner, instance) = fixture.mount();
+    let (gateway, owner, mut instance) = fixture.mount();
+    let mut registration = None;
+    if matches!(phase, 6..=8) {
+        let phy_path = fixture.path.with_extension("phy");
+        drop(PhyWriter::create_path(&phy_path, AUDIT_PHY).unwrap());
+        let phy = gateway
+            .mount_writable_phylactery_current(&phy_path)
+            .unwrap();
+        let pending = fixture.path.with_extension("sqlite");
+        if phase == 7 {
+            fs::create_dir(&pending).unwrap();
+        }
+        assert!(matches!(
+            gateway
+                .ego_audit_registry
+                .admit(&instance, phy, &[owner], &pending),
+            Err(GatewayError::UnauthorizedPhy { .. })
+        ));
+        instance = Arc::new(gateway.instance("alice", [owner], [phy]).unwrap());
+        registration = Some(
+            gateway
+                .ego_audit_registry
+                .admit(&instance, phy, &[owner], &pending)
+                .unwrap(),
+        );
+    }
     let script = Arc::new(Script {
         phase,
         calls: calls.clone(),
@@ -557,6 +595,36 @@ fn run(
         .with_native_perception_decision(script, "fixture/native-jev")
         .unwrap();
     let identity = routes.processing_route_identity();
+    if phase == 8 {
+        // Simulate termination after the SQLite commit but before the REL has
+        // even published its page acknowledgment.
+        let (run, key) = instance
+            .with_reliquary(owner, |rel| {
+                let mut progress = PerceptionAuditProgress::new(rel.perception_source_cut());
+                assert_eq!(
+                    progress.advance(rel).unwrap(),
+                    PerceptionAuditAdvance::Updated
+                );
+                let page = progress.page.unwrap();
+                let capture = capture_discovery(rel, &page, identity.perception).unwrap();
+                let run = shared_ego_run(&page.cut, true, identity.perception);
+                (
+                    reliquary_application::ego_pending::EgoRun {
+                        phy: AUDIT_PHY,
+                        ..run
+                    },
+                    EgoBatchKey {
+                        capture: capture.key,
+                        ordinal: 0,
+                    },
+                )
+            })
+            .unwrap();
+        EgoPendingWork::open(&fixture.path.with_extension("sqlite"))
+            .unwrap()
+            .accept_batch(run, key, &[])
+            .unwrap();
+    }
     let lifecycle = gateway.perception_lifecycle();
     lifecycle
         .set_routes(Some(PerceptionRoutes {
@@ -580,6 +648,14 @@ fn run(
             && complete(&items)
             && instance
                 .with_reliquary(owner, |rel| {
+                    if phase == 7 {
+                        return rel.observation_progress().is_some_and(|row| {
+                            let progress = PerceptionAuditProgress::decode(&row.bytes).unwrap();
+                            progress
+                                .page
+                                .is_some_and(|page| page.perception_accepted && !page.ego_accepted)
+                        });
+                    }
                     audit_idle(rel)
                         && rel
                             .observation_claim_index_profiles()
@@ -606,6 +682,7 @@ fn run(
         thread::sleep(Duration::from_millis(25));
     };
     drop(lifecycle);
+    drop(registration);
     gateway.quiesce_owner(owner).unwrap();
     items
 }
@@ -976,6 +1053,17 @@ fn bootstrap_resumes_past_an_accepted_version_one_page() {
     let calls = Arc::new(Mutex::new(Vec::new()));
     run(&fixture, 6, 0, &calls, |_| true);
     assert!(calls.lock().unwrap().contains(&Call::GraphFollowUp));
+    let rel = RelSession::open_path_current(&fixture.path).unwrap();
+    let mut pending = EgoPendingWork::open(&fixture.path.with_extension("sqlite")).unwrap();
+    let runs = pending.pending_runs(AUDIT_PHY, OWNER).unwrap();
+    assert_eq!(runs.len(), 1);
+    assert_eq!(runs[0].kind, EgoRunKind::RelSharedBootstrap);
+    assert!(shared_ego_run_closed(&rel, runs[0]).unwrap());
+    let batch = pending.next_batch(runs[0], 0).unwrap().unwrap();
+    assert_eq!(batch.candidates[0].subject, "Connected note");
+    assert_eq!(batch.candidates[0].sources[0].body_id, target.body_id.0);
+    pending.seal(runs[0]).unwrap();
+    assert_eq!(pending.ready_run(AUDIT_PHY, OWNER).unwrap(), Some(runs[0]));
     let captured = captured_audit_memory_texts(&calls);
     for (index, memory) in memories.iter().enumerate() {
         let title = memory.source_node_id.as_ref().unwrap();
@@ -995,4 +1083,42 @@ fn captured_audit_memory_texts(calls: &Mutex<Vec<Call>>) -> BTreeSet<String> {
         .flatten()
         .cloned()
         .collect()
+}
+
+#[test]
+fn perception_accepts_its_list_while_ego_storage_is_held() {
+    let fixture = Fixture::new();
+    fixture.append(&[("independent-list".into(), "A durable note.")], 0);
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    run(&fixture, 7, 0, &calls, |_| true);
+    let rel = RelSession::open_path_current(&fixture.path).unwrap();
+    let row = rel.observation_progress().unwrap();
+    let page = PerceptionAuditProgress::decode(&row.bytes)
+        .unwrap()
+        .page
+        .unwrap();
+    assert!(page.perception_accepted);
+    assert!(!page.ego_accepted);
+}
+
+#[test]
+fn shared_empty_batch_replays_before_owner_page_acknowledgment() {
+    let fixture = Fixture::new();
+    fixture.append(&[("durable-empty".into(), "A stand-alone note.")], 0);
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    run(&fixture, 8, 0, &calls, |_| true);
+
+    let rel = RelSession::open_path_current(&fixture.path).unwrap();
+    let pending = EgoPendingWork::open(&fixture.path.with_extension("sqlite")).unwrap();
+    let runs = pending.pending_runs(AUDIT_PHY, OWNER).unwrap();
+    assert_eq!(runs.len(), 1);
+    assert!(shared_ego_run_closed(&rel, runs[0]).unwrap());
+    let batch = pending.next_batch(runs[0], 0).unwrap().unwrap();
+    assert!(batch.candidates.is_empty());
+    assert!(
+        pending
+            .next_batch(runs[0], batch.sequence)
+            .unwrap()
+            .is_none()
+    );
 }

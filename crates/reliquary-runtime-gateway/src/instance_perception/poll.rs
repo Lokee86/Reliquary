@@ -1,14 +1,16 @@
 use super::*;
 
 pub(super) mod claim_vectors;
+use crate::ego_audit_handoff::shared_ego_run;
+use reliquary_application::ego_pending::EgoBatchKey;
 use reliquary_application::observation_drafts::{
     ObservationDraftRoutes, ObservationWorkflowError, PreparedObservation, ProposalEvaluation,
     ScopedObservationRead, evaluate_proposal, evaluate_review,
 };
 use reliquary_application::perception_workflow::{
-    ContributionFailure, ContributionWork, ListResult, LookupError, LookupRequest, audit_lookups,
-    audit_owner_cut, capture_contribution, capture_discovery, capture_duplicate_contribution,
-    discover, evaluate_contribution, retain_current_ego_evidence,
+    ContributionFailure, ContributionWork, Eligibility, ListResult, LookupError, LookupRequest,
+    audit_lookups, audit_owner_cut, capture_contribution, capture_discovery,
+    capture_duplicate_contribution, discover, evaluate_contribution, retain_current_ego_evidence,
 };
 use reliquary_application::{SwitchboardEmbeddingEndpoint, verify_compatibility_profile};
 use reliquary_owner_session::observation::{
@@ -140,10 +142,6 @@ fn prepare(rel: &RelSession, state: &mut WorkerState) -> Result<TickInput, Owner
         )));
     };
     let cut = rel.perception_source_cut();
-    if !state.ego_candidates.is_empty() && state.ego_cut.as_ref() != Some(&cut) {
-        retain_current_ego_evidence(rel, &mut state.ego_candidates)?;
-        state.ego_cut = Some(cut.clone());
-    }
     let changes = (
         cut.memory,
         cut.graph,
@@ -214,6 +212,7 @@ fn audit_page(
     previous: [u8; 32],
     mut progress: PerceptionAuditProgress,
 ) -> Result<bool, GatewayError> {
+    let bootstrap = progress.shared_page_is_bootstrap();
     let page = progress
         .page
         .as_mut()
@@ -271,11 +270,47 @@ fn audit_page(
         )?;
         return Ok(true);
     }
-    let batch_key = (capture.key, page.batch);
-    let creation_held = state.malformed_creation == Some(batch_key);
-    if creation_held && page.ego_accepted {
-        return Ok(false);
+    let key = EgoBatchKey {
+        capture: capture.key,
+        ordinal: page.batch,
+    };
+    let batch_key = (key.capture, key.ordinal);
+    let active = capture
+        .batch_features(page.batch as usize)
+        .ok_or(OwnerSessionError::ManagementStale)?;
+    let run = shared_ego_run(&page.cut, bootstrap, owner.routes.identity);
+    let mut changed = false;
+    let targets = owner
+        .control
+        .ego_audit_registry
+        .targets(owner.instance, owner.id, &owner.mount);
+    if !active.ego || targets.as_ref().is_ok_and(|targets| targets.is_empty()) {
+        changed |= !page.ego_accepted;
+        page.ego_accepted = true;
     }
+    if !active.perception {
+        changed |= !page.perception_accepted;
+        page.perception_accepted = true;
+    }
+    let held_ego = state
+        .ego_retry
+        .is_some_and(|(key, after)| key == batch_key && Instant::now() < after);
+    let due_ego = !page.ego_accepted && !held_ego;
+    let creation_held = state.malformed_creation == Some(batch_key);
+    let due_perception = !page.perception_accepted && !creation_held;
+
+    let cached = if due_ego {
+        targets
+            .as_ref()
+            .ok()
+            .and_then(|targets| targets.cached(run, key))
+    } else {
+        None
+    };
+    let request = Eligibility {
+        ego: due_ego && cached.is_none() && targets.is_ok(),
+        perception: due_perception,
+    };
     let mut lookup = |feature, request: LookupRequest<'_>| {
         owner
             .read(|rel| audit_lookups(rel, &page.cut, feature, request))
@@ -286,28 +321,42 @@ fn audit_page(
         &capture,
         page.batch as usize,
         owner.routes.general.as_ref(),
+        request,
         &mut lookup,
     )
     .map_err(|_| workflow_wait("Perception discovery response unavailable"))?;
-    let mut ego = None;
-    let mut changed = false;
-    if !page.ego_accepted {
-        match discovery.ego {
-            ListResult::Inactive => {
-                page.ego_accepted = true;
-                changed = true;
-            }
-            ListResult::Accepted { candidates, .. } => {
-                ego = Some(candidates);
-                page.ego_accepted = true;
-                changed = true;
-            }
-            ListResult::Incomplete(_) => {}
+
+    let ego = cached.or_else(|| match discovery.ego {
+        ListResult::Accepted { candidates, .. } => Some(candidates),
+        ListResult::Incomplete(_) | ListResult::Inactive => None,
+    });
+    if due_ego {
+        let saved = if let (Some(mut candidates), Ok(targets)) = (ego, targets) {
+            let valid = owner
+                .read(|rel| {
+                    if capture_discovery(rel, &page_before, owner.routes.identity)?.key
+                        != key.capture
+                    {
+                        return Err(OwnerSessionError::ManagementStale);
+                    }
+                    retain_current_ego_evidence(rel, &mut candidates)
+                })
+                .is_ok_and(|result| result.is_ok());
+            valid && targets.persist(run, key, &candidates)
+        } else {
+            false
+        };
+        if saved {
+            page.ego_accepted = true;
+            changed = true;
+            state.ego_retry = None;
+        } else {
+            state.ego_retry = Some((batch_key, Instant::now() + RETRY_INTERVALS[1]));
         }
     }
     let mut drafts = Vec::new();
     let mut operations = Vec::new();
-    if !page.perception_accepted && !creation_held {
+    if due_perception {
         match discovery.perception {
             ListResult::Inactive => {
                 page.perception_accepted = true;
@@ -341,7 +390,11 @@ fn audit_page(
         }
     }
     if !changed {
-        return Err(workflow_wait("Perception discovery list remains pending"));
+        return if due_perception && !creation_held {
+            Err(workflow_wait("Perception discovery list remains pending"))
+        } else {
+            Ok(false)
+        };
     }
     if page.ego_accepted && page.perception_accepted {
         page.finish_batch()?;
@@ -358,15 +411,9 @@ fn audit_page(
             if now.key != capture.key {
                 return Err(OwnerSessionError::ManagementStale.into());
             }
-            if let Some(candidates) = &mut ego {
-                retain_current_ego_evidence(rel, candidates)?;
-            }
             Ok(())
         },
     )?;
-    if let Some(ego) = ego {
-        state.ego_candidates = ego;
-    }
     Ok(true)
 }
 
