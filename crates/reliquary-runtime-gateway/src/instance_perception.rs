@@ -1,5 +1,6 @@
 //! Managed Perception work on the same owner lease and mount fences as live work.
 mod phy;
+pub(crate) use phy::phy_ego_status;
 mod poll;
 #[cfg(test)]
 mod tests;

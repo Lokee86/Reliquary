@@ -4,7 +4,7 @@ use super::*;
 use crate::{
     ego_audit_handoff::{EgoAuditRegistration, shared_ego_run_closed},
     instance_owner::RelMount,
-    instance_perception::{PerceptionAvailability, PerceptionLifecycle},
+    instance_perception::{PerceptionAvailability, PerceptionLifecycle, phy_ego_status},
     owner_workers::{OwnerWorkerDriver, OwnerWorkerPoll},
 };
 use reliquary_application::{
@@ -107,6 +107,7 @@ impl Gateway {
         let pending = EgoPendingWork::open(&pending_path)
             .map_err(|_| GatewayError::RetrievalUnavailable("Ego pending work unavailable"))?;
         let running = Arc::new(AtomicBool::new(true));
+        let route = routes.identity;
         let driver = Arc::new(EgoWorker {
             instance: instance.clone(),
             phy,
@@ -120,9 +121,9 @@ impl Gateway {
             ticket: AtomicUsize::new(0),
             retry: Mutex::new(BTreeMap::new()),
         });
-        let registration = self
-            .ego_audit_registry
-            .admit(&instance, phy, &rels, &pending_path)?;
+        let registration =
+            self.ego_audit_registry
+                .admit(&instance, phy, &rels, &pending_path, route)?;
         let coordinator = self.start_owner_workers(
             instance,
             phy,
@@ -238,13 +239,10 @@ impl EgoWorker {
                 }
             }
         }
-        let ready = pending.ready_run(phy, source).map_err(as_error)?;
         if owner == self.phy {
-            if let Some(run) = ready {
-                return self.publish_phy(run, &mut pending);
-            }
-            return self.advance_phy(&mut pending);
+            return self.poll_phy(&mut pending);
         }
+        let ready = pending.ready_run(phy, source).map_err(as_error)?;
 
         let current_summary = self
             .instance
@@ -281,6 +279,55 @@ impl EgoWorker {
             return self.advance_rel_recurring(owner, coverage.cut, &mut pending);
         }
         Ok(false)
+    }
+
+    fn poll_phy(&self, pending: &mut EgoPendingWork) -> Result<bool, String> {
+        let id = self.phy.0;
+        let available = self.shared_perception.as_ref().is_some_and(|perception| {
+            perception.shares_phy(self.phy, &self.phy_mount, self.routes.identity)
+        });
+        let open = pending.open_checkpoint_run(id, id).map_err(as_error)?;
+        if let Some(run) = open.filter(|run| {
+            matches!(
+                run.kind,
+                EgoRunKind::PhySharedBootstrap | EgoRunKind::PhySharedRefresh
+            )
+        }) {
+            let (tracked, closed) = self
+                .instance
+                .with_ego_phy_writer(self.phy, |phy| {
+                    phy_ego_status(phy, self.routes.identity, Some(run))
+                })
+                .map_err(as_error)?;
+            if closed {
+                pending.seal(run).map_err(as_error)?;
+                return Ok(true);
+            }
+            if !available || !tracked || run.route != self.routes.identity {
+                pending.discard_stale(run).map_err(as_error)?;
+                return Ok(true);
+            }
+        }
+        if let Some(run) = pending.ready_run(id, id).map_err(as_error)? {
+            return self.publish_phy(run, pending);
+        }
+        if available
+            && self
+                .instance
+                .with_ego_phy_writer(self.phy, |phy| {
+                    Ok(phy_ego_status(phy, self.routes.identity, None)?.0)
+                })
+                .map_err(as_error)?
+        {
+            if let Some(run) = open
+                .filter(|run| matches!(run.kind, EgoRunKind::PhyBootstrap | EgoRunKind::PhyRefresh))
+            {
+                pending.discard_stale(run).map_err(as_error)?;
+                return Ok(true);
+            }
+            return Ok(false);
+        }
+        self.advance_phy(pending)
     }
 
     fn new_run(

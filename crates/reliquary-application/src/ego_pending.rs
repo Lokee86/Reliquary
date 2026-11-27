@@ -22,6 +22,8 @@ pub enum EgoRunKind {
     RelIndependentRecurring,
     PhyBootstrap,
     PhyRefresh,
+    PhySharedBootstrap,
+    PhySharedRefresh,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -50,6 +52,8 @@ impl EgoRun {
             EgoRunKind::PhyRefresh => 3,
             EgoRunKind::RelSharedBootstrap => 4,
             EgoRunKind::RelIndependentRecurring => 5,
+            EgoRunKind::PhySharedBootstrap => 6,
+            EgoRunKind::PhySharedRefresh => 7,
         }]);
         hash.update(self.route);
         hash.update(self.contract.to_le_bytes());
@@ -383,7 +387,7 @@ fn ensure_run(connection: &Connection, run: EgoRun) -> Result<bool, EgoPendingEr
     let binding = serde_json::to_vec(&run).map_err(|_| EgoPendingError::Codec)?;
     let id = run.id();
     let initial = match run.kind {
-        EgoRunKind::RelBootstrap | EgoRunKind::PhyBootstrap => 2,
+        EgoRunKind::RelBootstrap | EgoRunKind::PhyBootstrap | EgoRunKind::PhySharedBootstrap => 2,
         EgoRunKind::RelSharedBootstrap => 1,
         EgoRunKind::RelIndependentRecurring => -1,
         _ => 0,

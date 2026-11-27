@@ -8,14 +8,15 @@ use reliquary_application::observation_drafts::{
     ScopedObservationRead, evaluate_proposal, evaluate_review,
 };
 use reliquary_application::perception_workflow::{
-    ContributionFailure, ContributionWork, Eligibility, ListResult, LookupError, LookupRequest,
-    audit_lookups, audit_owner_cut, capture_contribution, capture_discovery,
-    capture_duplicate_contribution, discover, evaluate_contribution, retain_current_ego_evidence,
+    ContributionEmbeddingCache, ContributionFailure, ContributionWork, Eligibility, ListResult,
+    LookupError, LookupRequest, ObservationProposal, OwnerCut, audit_lookups, audit_owner_cut,
+    capture_contribution, capture_discovery, capture_duplicate_contribution, discover,
+    evaluate_contribution, retain_current_ego_evidence,
 };
 use reliquary_application::{SwitchboardEmbeddingEndpoint, verify_compatibility_profile};
 use reliquary_owner_session::observation::{
-    ObservationAuditProgress, ObservationBatch, ObservationChange, ObservationOperation,
-    ObservationPendingReason, ObservationPolicy, ObservationStanding,
+    ObservationAuditProgress, ObservationBatch, ObservationChange, ObservationCitation,
+    ObservationOperation, ObservationPendingReason, ObservationPolicy, ObservationStanding,
 };
 use reliquary_owner_session::{
     PerceptionAuditAdvance, PerceptionAuditProgress, PerceptionSourceCut,
@@ -458,20 +459,45 @@ fn proposals(
     state: &mut WorkerState,
     cut: &PerceptionSourceCut,
     memory_profile: Option<CompatibilityProfileId>,
-    candidates: Vec<reliquary_application::perception_workflow::ObservationProposal>,
+    candidates: Vec<ObservationProposal>,
 ) -> Result<(Vec<PreparedObservation>, Vec<ObservationOperation>), GatewayError> {
     let routes = draft_routes(owner.routes, memory_profile);
-    let mut drafts = Vec::new();
+    let (drafts, duplicate_targets) =
+        prepare_candidates(owner, &routes, audit_owner_cut(cut), candidates)
+            .map_err(draft_error)?;
     let mut operations = Vec::new();
+    for ((target, revision), evidence) in duplicate_targets {
+        let evidence = evidence.into_iter().collect::<Vec<_>>();
+        let work = owner
+            .read(|rel| capture_duplicate_contribution(rel, target, revision, &evidence))??;
+        let Some(decisions) = process_contribution(owner, state, &work)? else {
+            return Err(workflow_wait(
+                "Perception contribution waits for changed evidence",
+            ));
+        };
+        operations.extend(decisions);
+    }
+    Ok((drafts, operations))
+}
+
+type DuplicateTargets = BTreeMap<(ObservationId, u64), BTreeSet<ObservationCitation>>;
+
+pub(super) fn prepare_candidates(
+    scope: &impl ScopedObservationRead,
+    routes: &ObservationDraftRoutes<'_>,
+    cut: OwnerCut,
+    candidates: Vec<ObservationProposal>,
+) -> Result<(Vec<PreparedObservation>, DuplicateTargets), ObservationWorkflowError> {
+    let mut drafts = Vec::new();
     let mut seen = BTreeSet::new();
-    let mut duplicate_targets = BTreeMap::<_, BTreeSet<_>>::new();
+    let mut duplicate_targets = DuplicateTargets::new();
     for candidate in candidates {
-        let evaluated = match evaluate_proposal(owner, &routes, audit_owner_cut(cut), &candidate) {
+        let evaluated = match evaluate_proposal(scope, routes, cut, &candidate) {
             Ok(value) => value,
             Err(
                 ObservationWorkflowError::InvalidDraft | ObservationWorkflowError::EvidenceLimit,
             ) => continue,
-            Err(error) => return Err(draft_error(error)),
+            Err(error) => return Err(error),
         };
         match evaluated {
             ProposalEvaluation::Abstained | ProposalEvaluation::Unresolved => {}
@@ -492,18 +518,7 @@ fn proposals(
             }
         }
     }
-    for ((target, revision), evidence) in duplicate_targets {
-        let evidence = evidence.into_iter().collect::<Vec<_>>();
-        let work = owner
-            .read(|rel| capture_duplicate_contribution(rel, target, revision, &evidence))??;
-        let Some(decisions) = process_contribution(owner, state, &work)? else {
-            return Err(workflow_wait(
-                "Perception contribution waits for changed evidence",
-            ));
-        };
-        operations.extend(decisions);
-    }
-    Ok((drafts, operations))
+    Ok((drafts, duplicate_targets))
 }
 
 fn process_contribution(
@@ -511,17 +526,31 @@ fn process_contribution(
     state: &mut WorkerState,
     work: &ContributionWork,
 ) -> Result<Option<Vec<ObservationOperation>>, GatewayError> {
+    evaluate_contribution_once(
+        owner.routes,
+        &mut state.contribution_vectors,
+        &mut state.malformed_contribution,
+        work,
+    )
+}
+
+pub(super) fn evaluate_contribution_once(
+    routes: &PerceptionRoutes,
+    embeddings: &mut ContributionEmbeddingCache,
+    malformed: &mut Option<[u8; 32]>,
+    work: &ContributionWork,
+) -> Result<Option<Vec<ObservationOperation>>, GatewayError> {
     let key = work.decision_key();
-    if key.is_some() && state.malformed_contribution == key {
+    if key.is_some() && *malformed == key {
         return Ok(None);
     }
-    match evaluate_contribution(work, owner.routes, &mut state.contribution_vectors) {
+    match evaluate_contribution(work, routes, embeddings) {
         Ok(operations) => {
-            state.malformed_contribution = None;
+            *malformed = None;
             Ok(Some(operations))
         }
         Err(ContributionFailure::MalformedReply) => {
-            state.malformed_contribution = key;
+            *malformed = key;
             Ok(None)
         }
         Err(ContributionFailure::Owner(error)) => Err(error.into()),

@@ -1,7 +1,9 @@
 //! Active owner admission and scheduling for PHY Perception.
 
 use super::*;
+use crate::ego_audit_handoff::PhyEgoTarget;
 use crate::owner_workers::{OwnerWorkerDriver, OwnerWorkerPoll};
+use reliquary_application::ego_pending::EgoRun;
 
 mod fence;
 mod poll;
@@ -43,6 +45,51 @@ impl Admission {
         }
         Ok(())
     }
+}
+
+impl PerceptionAvailability {
+    pub(crate) fn shares_phy(
+        &self,
+        owner: OwnerId,
+        mount: &Weak<MountedPhyWriter>,
+        identity: [u8; 32],
+    ) -> bool {
+        let Some(control) = self.0.upgrade() else {
+            return false;
+        };
+        if control.stopping.load(Ordering::Acquire)
+            || !control.routes.read().is_ok_and(|route| {
+                route
+                    .as_ref()
+                    .is_some_and(|route| route.identity == identity)
+            })
+        {
+            return false;
+        }
+        let admission = control
+            .active_phy
+            .lock()
+            .ok()
+            .and_then(|active| active.upgrade());
+        admission.is_some_and(|active| {
+            active.owner == owner && active.mount.ptr_eq(mount) && active.check_mount().is_ok()
+        })
+    }
+}
+
+pub(crate) fn phy_ego_status(
+    phy: &PhyWriter,
+    route: [u8; 32],
+    run: Option<EgoRun>,
+) -> Result<(bool, bool), OwnerSessionError> {
+    let Some(row) = phy.observation_progress() else {
+        return Ok((run.is_none(), false));
+    };
+    let progress = progress::Progress::decode(&row.bytes, phy.phy_observation_cut())?;
+    Ok(match run {
+        Some(run) => (progress.tracks_ego(run), progress.closed_ego(run)),
+        None => (progress.expects_ego(phy, route), false),
+    })
 }
 
 impl Gateway {
@@ -194,6 +241,15 @@ impl PhyWork<'_> {
             return Err(OwnerSessionError::ManagementStale.into());
         }
         Ok(routes)
+    }
+
+    fn ego_target(&self) -> Result<Option<PhyEgoTarget>, GatewayError> {
+        let _routes = self.route_guard()?;
+        self.control.ego_audit_registry.phy_target(
+            self.admission.owner,
+            &self.admission.mount,
+            self.routes.identity,
+        )
     }
 
     pub(super) fn read<T>(&self, action: impl FnOnce(&PhyWriter) -> T) -> Result<T, GatewayError> {

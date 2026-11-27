@@ -566,14 +566,14 @@ fn run(
         assert!(matches!(
             gateway
                 .ego_audit_registry
-                .admit(&instance, phy, &[owner], &pending),
+                .admit(&instance, phy, &[owner], &pending, [0; 32]),
             Err(GatewayError::UnauthorizedPhy { .. })
         ));
         instance = Arc::new(gateway.instance("alice", [owner], [phy]).unwrap());
         registration = Some(
             gateway
                 .ego_audit_registry
-                .admit(&instance, phy, &[owner], &pending)
+                .admit(&instance, phy, &[owner], &pending, [0; 32])
                 .unwrap(),
         );
     }

@@ -95,6 +95,17 @@ macro_rules! phy_audit_reads {
                 self.phy_audit_read(through)?.changes_since(previous, after)
             }
 
+            pub fn phy_audit_revision(
+                &self,
+                cut: PhyAuditCut,
+                id: MemoryId,
+            ) -> Result<Option<u64>, OwnerSessionError> {
+                Ok(self
+                    .phy_audit_read(cut)?
+                    .at_cut(cut, id)
+                    .map(|record| record.revision))
+            }
+
             pub fn phy_audit_evidence(
                 &self,
                 cut: PhyAuditCut,

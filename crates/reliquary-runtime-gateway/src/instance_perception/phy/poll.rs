@@ -4,16 +4,16 @@ use super::{
 };
 use crate::{GatewayError, RelSession};
 use reliquary_application::{
+    ego_pending::EgoBatchKey,
     observation_drafts::{
-        ObservationRead, ObservationWorkflowError, PreparedObservation, ProposalEvaluation,
-        ScopedObservationRead, evaluate_proposal, evaluate_review,
+        ObservationRead, ObservationWorkflowError, PreparedObservation, ScopedObservationRead,
+        evaluate_review,
     },
     perception_workflow::{
-        BatchLimits, ContributionEmbeddingCache, ContributionFailure, ContributionWork,
-        Eligibility, ListResult, LookupError, LookupRequest, PerceptionRoutes, audit_owner_cut,
-        capture_phy_contribution, capture_phy_duplicate_contribution,
-        capture_phy_perception_discovery, discover_phy_for_features, evaluate_contribution,
-        phy_audit_lookups,
+        BatchLimits, ContributionEmbeddingCache, Eligibility, ListResult, LookupError,
+        LookupRequest, PerceptionRoutes, audit_owner_cut, capture_phy_contribution,
+        capture_phy_duplicate_contribution, capture_phy_perception_discovery,
+        discover_phy_for_features, phy_audit_lookups,
     },
 };
 use reliquary_owner_session::{
@@ -24,9 +24,15 @@ use reliquary_owner_session::{
     },
 };
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    time::{Duration, Instant},
+};
 
-use super::super::poll::{claim_vectors::ClaimVectorIndex, draft_error, draft_routes};
+use super::super::poll::{
+    claim_vectors::ClaimVectorIndex, draft_error, draft_routes, evaluate_contribution_once,
+    prepare_candidates,
+};
 
 const REVIEW_SCAN_LIMIT: usize = 16;
 
@@ -39,6 +45,7 @@ pub(super) struct State {
     malformed_contribution: Option<[u8; 32]>,
     malformed_creation: Option<([u8; 32], u32)>,
     malformed_reviews: BTreeSet<ObservationId>,
+    review_deferred: BTreeMap<ObservationId, Instant>,
     claim_vectors: ClaimVectorIndex,
 }
 
@@ -86,7 +93,8 @@ fn tick_work(owner: &PhyWork<'_>, state: &mut State) -> Result<bool, GatewayErro
         return Ok(true);
     }
     let Some(page) = progress.page.take() else {
-        if owner.read(|writer| progress.schedule(writer))?? {
+        let ego_route = owner.ego_target()?.map(|_| owner.routes.identity);
+        if owner.read(|writer| progress.schedule(writer, ego_route))?? {
             publish(owner, previous, Some(progress), [], Vec::new())?;
             return Ok(true);
         }
@@ -112,13 +120,34 @@ fn run_review(
             state.review_exhausted = false;
             state.malformed_reviews.clear();
         }
+        state.review_deferred.retain(|id, _| {
+            writer.observation(*id).is_some_and(|head| {
+                matches!(
+                    head.standing,
+                    ObservationStanding::Pending(
+                        ObservationPendingReason::NewEvidence
+                            | ObservationPendingReason::ChangedSupport
+                    )
+                )
+            })
+        });
+        let now = Instant::now();
         if state.review_exhausted {
-            return None;
+            if !state.review_deferred.values().any(|retry| *retry <= now) {
+                return None;
+            }
+            state.review_after = None;
+            state.review_exhausted = false;
         }
         let page = writer.observations_after(state.review_after, REVIEW_SCAN_LIMIT);
         for head in &page {
             let id = head.revision.id;
+            state.review_after = Some(id);
             if !state.malformed_reviews.contains(&id)
+                && state
+                    .review_deferred
+                    .get(&id)
+                    .is_none_or(|retry| *retry <= now)
                 && matches!(
                     head.standing,
                     ObservationStanding::Pending(
@@ -129,7 +158,6 @@ fn run_review(
             {
                 return Some(Some(id));
             }
-            state.review_after = Some(id);
         }
         state.review_exhausted = page.len() < REVIEW_SCAN_LIMIT;
         (!state.review_exhausted).then_some(None)
@@ -139,16 +167,25 @@ fn run_review(
     };
     let Some(id) = target else { return Ok(true) };
     let routes = owner.fenced_routes();
-    let result = evaluate_review(owner, &draft_routes(&routes, None), id);
-    match result {
-        Ok(Some(prepared)) => publish(owner, previous, None, [prepared], Vec::new())?,
-        Ok(None) => {}
-        Err(error) if error.malformed_native_reply() => {
-            state.malformed_reviews.insert(id);
+    let result = (|| {
+        let profile = state.claim_vectors.phy_memory_profile(owner, &routes)?;
+        match evaluate_review(owner, &draft_routes(&routes, profile), id) {
+            Ok(Some(prepared)) => publish(owner, previous, None, [prepared], Vec::new()),
+            Ok(None) => Ok(()),
+            Err(error) if error.malformed_native_reply() => {
+                state.malformed_reviews.insert(id);
+                Ok(())
+            }
+            Err(error) => Err(draft_error(error)),
         }
-        Err(error) => return Err(draft_error(error)),
+    })();
+    if result.is_err() {
+        state
+            .review_deferred
+            .insert(id, Instant::now() + Duration::from_secs(10));
+    } else {
+        state.review_deferred.remove(&id);
     }
-    state.review_after = Some(id);
     Ok(true)
 }
 
@@ -175,7 +212,13 @@ fn contribution(
             profile,
         )
     })??;
-    let Some(operations) = evaluate(&routes, state, &work)? else {
+    let Some(operations) = evaluate_contribution_once(
+        &routes,
+        &mut state.contribution_vectors,
+        &mut state.malformed_contribution,
+        &work,
+    )?
+    else {
         return Ok(false);
     };
     page.contribution_cursor = work.next_source;
@@ -192,10 +235,40 @@ fn discovery(
     mut progress: Progress,
     mut page: Page,
 ) -> Result<bool, GatewayError> {
+    let mut shared = None;
+    if let Some(shared_page) = page.shared {
+        if shared_page.route == owner.routes.identity
+            && let Some(target) = owner.ego_target()?
+        {
+            let run = shared_page.window.run(shared_page.route);
+            let available = target.with_pending(|pending| {
+                if pending
+                    .checkpoint::<crate::ego_audit_handoff::SharedPhyAudit>(run)?
+                    .is_none()
+                {
+                    pending.save_checkpoint(run, &shared_page.window)?;
+                }
+                Ok(())
+            })?;
+            if available.is_some() {
+                shared = Some((target, run));
+            }
+        }
+        if shared.is_none() {
+            progress.abandon_ego(shared_page);
+            page.shared = None;
+        }
+    }
     if usize::from(page.cursor.source) >= page.sources.len() + page.derived.len() {
+        progress.finish_page(page.shared);
         publish(owner, previous, Some(progress), [], Vec::new())?;
         return Ok(true);
     }
+    let eligibility = if shared.is_some() {
+        Eligibility::BOTH
+    } else {
+        Eligibility::PERCEPTION
+    };
     let routes = owner.fenced_routes();
     let capture = owner.read(|phy| {
         capture_phy_perception_discovery(
@@ -206,7 +279,7 @@ fn discovery(
             page.cursor,
             routes.identity,
             BatchLimits::default(),
-            Eligibility::PERCEPTION,
+            eligibility,
         )
     })??;
     if page.capture != Some(capture.key) {
@@ -226,17 +299,39 @@ fn discovery(
         return Ok(true);
     }
     let key = (capture.key, page.batch);
-    if state.malformed_creation == Some(key) {
-        return Ok(false);
-    }
-    if let Some(proposals) = page.proposals.take() {
-        let (drafts, operations) = evaluate_proposals(owner, state, &routes, &page, proposals)?;
+    let batch = capture
+        .batch_features(page.batch as usize)
+        .ok_or(OwnerSessionError::ManagementStale)?;
+    let batch_key = EgoBatchKey {
+        capture: capture.key,
+        ordinal: page.batch,
+    };
+    let ego_pending = if batch.ego
+        && let Some((target, run)) = &shared
+    {
+        target
+            .with_pending(|pending| pending.accepted_batch(*run, batch_key))?
+            .flatten()
+            .is_none()
+    } else {
+        false
+    };
+    let perception_pending = batch.perception && page.proposals.is_none();
+    if !ego_pending && !perception_pending {
+        if state.malformed_creation == Some(key) {
+            return Ok(false);
+        }
+        let (drafts, operations) = if let Some(proposals) = page.proposals.take() {
+            evaluate_proposals(owner, state, &routes, &page, proposals)?
+        } else {
+            (Vec::new(), Vec::new())
+        };
         page.batch += 1;
         progress.page = Some(page);
         publish(owner, previous, Some(progress), drafts, operations)?;
         return Ok(true);
     }
-    let mut lookup = |_: _, request: LookupRequest<'_>| {
+    let mut lookup = |request: LookupRequest<'_>| {
         owner
             .read(|phy| phy_audit_lookups(phy, page.cut.audit, request))
             .map_err(|_| LookupError::Invalidated)?
@@ -245,17 +340,33 @@ fn discovery(
     let result = discover_phy_for_features(
         &capture,
         page.batch as usize,
-        Eligibility::PERCEPTION,
+        Eligibility {
+            ego: ego_pending,
+            perception: perception_pending,
+        },
         routes.general.as_ref(),
         &mut lookup,
     )
-    .map_err(|_| unavailable("PHY Perception discovery remains pending"))?;
-    match result.perception {
-        ListResult::Accepted { candidates, .. } => page.proposals = Some(candidates),
-        ListResult::Inactive => page.batch += 1,
-        ListResult::Incomplete(_) => {
-            return Err(unavailable("PHY Perception discovery list remains pending"));
+    .map_err(|_| unavailable("PHY audit discovery remains pending"))?;
+    let mut changed = false;
+    if let ListResult::Accepted { candidates, .. } = result.perception {
+        page.proposals = Some(candidates);
+        changed = true;
+    }
+    let ego_ack = if let (Some((target, run)), ListResult::Accepted { candidates, .. }) =
+        (&shared, result.ego)
+    {
+        target
+            .with_pending(|pending| pending.accept_batch(*run, batch_key, &candidates))
+            .map(|accepted| accepted.is_some())
+    } else {
+        Ok(false)
+    };
+    if !changed {
+        if ego_ack? {
+            return Ok(true);
         }
+        return Err(unavailable("PHY audit list remains pending"));
     }
     progress.page = Some(page);
     publish(owner, previous, Some(progress), [], Vec::new())?;
@@ -271,45 +382,30 @@ fn evaluate_proposals(
 ) -> Result<(Vec<PreparedObservation>, Vec<ObservationOperation>), GatewayError> {
     let profile = state.claim_vectors.phy_memory_profile(owner, routes)?;
     let draft_routes = draft_routes(routes, profile);
-    let mut drafts = Vec::new();
-    let mut seen = BTreeSet::new();
-    let mut duplicates = BTreeMap::<_, BTreeSet<_>>::new();
-    let cut = audit_owner_cut(&page.cut.into());
-    for proposal in proposals {
-        match evaluate_proposal(owner, &draft_routes, cut, &proposal) {
-            Ok(ProposalEvaluation::Ready(draft)) => {
-                let identity = match &draft.operation {
-                    ObservationOperation::Create { draft } => draft.claim_digest(),
-                    _ => draft.input_fingerprint,
-                };
-                if seen.insert(identity) {
-                    drafts.push(draft);
-                }
-            }
-            Ok(ProposalEvaluation::Duplicate { target, evidence }) => {
-                duplicates
-                    .entry((ObservationId(target.id), target.revision))
-                    .or_default()
-                    .extend(evidence);
-            }
-            Ok(ProposalEvaluation::Abstained | ProposalEvaluation::Unresolved)
-            | Err(
-                ObservationWorkflowError::InvalidDraft | ObservationWorkflowError::EvidenceLimit,
-            ) => {}
-            Err(error) => {
-                if error.malformed_native_reply() {
-                    state.malformed_creation = page.capture.map(|key| (key, page.batch));
-                }
-                return Err(draft_error(error));
-            }
+    let (drafts, duplicates) = prepare_candidates(
+        owner,
+        &draft_routes,
+        audit_owner_cut(&page.cut.into()),
+        proposals,
+    )
+    .map_err(|error| {
+        if error.malformed_native_reply() {
+            state.malformed_creation = page.capture.map(|key| (key, page.batch));
         }
-    }
+        draft_error(error)
+    })?;
     let mut operations = Vec::new();
     for ((id, revision), evidence) in duplicates {
         let selected = evidence.into_iter().collect::<Vec<_>>();
         let work = owner
             .read(|phy| capture_phy_duplicate_contribution(phy, id, revision, &selected))??;
-        let Some(decisions) = evaluate(routes, state, &work)? else {
+        let Some(decisions) = evaluate_contribution_once(
+            routes,
+            &mut state.contribution_vectors,
+            &mut state.malformed_contribution,
+            &work,
+        )?
+        else {
             return Err(unavailable(
                 "PHY Perception contribution waits for changed evidence",
             ));
@@ -317,28 +413,6 @@ fn evaluate_proposals(
         operations.extend(decisions);
     }
     Ok((drafts, operations))
-}
-
-fn evaluate(
-    routes: &PerceptionRoutes,
-    state: &mut State,
-    work: &ContributionWork,
-) -> Result<Option<Vec<ObservationOperation>>, GatewayError> {
-    let key = work.decision_key();
-    if key.is_some() && state.malformed_contribution == key {
-        return Ok(None);
-    }
-    match evaluate_contribution(work, routes, &mut state.contribution_vectors) {
-        Ok(operations) => {
-            state.malformed_contribution = None;
-            Ok(Some(operations))
-        }
-        Err(ContributionFailure::MalformedReply) => {
-            state.malformed_contribution = key;
-            Ok(None)
-        }
-        Err(ContributionFailure::Owner(error)) => Err(error.into()),
-    }
 }
 
 fn publish(

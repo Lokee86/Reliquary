@@ -6,7 +6,8 @@ use reliquary_application::ego_pending::{EgoBatchKey, EgoPendingWork, EgoRun, Eg
 use reliquary_application::perception_workflow::{
     AUDIT_CONTRACT_VERSION, EgoCandidate, audit_owner_cut,
 };
-use reliquary_owner_session::{PerceptionAuditProgress, PerceptionSourceCut};
+use reliquary_owner_session::{PerceptionAuditProgress, PerceptionSourceCut, PhyAuditCut};
+use serde::{Deserialize, Serialize};
 use std::{
     path::{Path, PathBuf},
     sync::Weak,
@@ -23,6 +24,7 @@ struct Admission {
     mount: Weak<MountedPhyWriter>,
     sources: BTreeSet<OwnerId>,
     path: PathBuf,
+    route: [u8; 32],
     active: AtomicBool,
 }
 
@@ -50,6 +52,7 @@ impl EgoAuditRegistry {
         phy: OwnerId,
         sources: &[OwnerId],
         pending_path: &Path,
+        route: [u8; 32],
     ) -> Result<EgoAuditRegistration, GatewayError> {
         instance.ensure_credential_active()?;
         authorize_phy(instance, phy)?;
@@ -79,6 +82,7 @@ impl EgoAuditRegistry {
             mount,
             sources: sources.iter().copied().collect(),
             path: pending_path.to_owned(),
+            route,
             active: AtomicBool::new(true),
         });
         self.admissions
@@ -90,6 +94,30 @@ impl EgoAuditRegistry {
             id,
             admission,
         })
+    }
+
+    pub(crate) fn phy_target(
+        &self,
+        owner: OwnerId,
+        mount: &Weak<MountedPhyWriter>,
+        route: [u8; 32],
+    ) -> Result<Option<PhyEgoTarget>, GatewayError> {
+        let admissions = self
+            .admissions
+            .lock()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        Ok(admissions
+            .values()
+            .find(|entry| {
+                entry.phy == owner
+                    && entry.route == route
+                    && entry.mount.ptr_eq(mount)
+                    && entry
+                        .instance
+                        .upgrade()
+                        .is_some_and(|instance| entry.is_authorized(&instance))
+            })
+            .map(|entry| PhyEgoTarget(entry.clone())))
     }
 
     pub(crate) fn targets<'a>(
@@ -275,4 +303,68 @@ pub(crate) fn shared_ego_run_closed(
         run.source.frontier,
         run.memory_version,
     ))
+}
+
+/// A matching Ego receiver may acknowledge its part of the active PHY audit.
+pub(crate) struct PhyEgoTarget(Arc<Admission>);
+
+impl PhyEgoTarget {
+    pub(crate) fn with_pending<T>(
+        &self,
+        action: impl FnOnce(
+            &mut EgoPendingWork,
+        ) -> Result<T, reliquary_application::ego_pending::EgoPendingError>,
+    ) -> Result<Option<T>, GatewayError> {
+        let entry = &self.0;
+        let Some(instance) = entry.instance.upgrade() else {
+            return Ok(None);
+        };
+        let _grants = instance
+            .credential_publication
+            .read()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        if !entry.is_authorized(&instance) || authorize_phy(&instance, entry.phy).is_err() {
+            return Ok(None);
+        }
+        let owners = instance
+            .owners
+            .read()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        if !matches!(owners.get(&entry.phy), Some(MountedOwner::PhyWriter(mount))
+            if entry.mount.ptr_eq(&Arc::downgrade(mount)))
+        {
+            return Ok(None);
+        }
+        let unavailable =
+            |_| GatewayError::RetrievalUnavailable("Ego pending-work database unavailable");
+        let mut db = EgoPendingWork::open(&entry.path).map_err(unavailable)?;
+        action(&mut db).map(Some).map_err(unavailable)
+    }
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize)]
+pub(crate) struct SharedPhyAudit {
+    pub(crate) cut: PhyAuditCut,
+    pub(crate) prior: Option<PhyAuditCut>,
+}
+
+impl SharedPhyAudit {
+    pub(crate) fn run(self, route: [u8; 32]) -> EgoRun {
+        EgoRun {
+            phy: self.cut.owner_id,
+            source: reliquary_application::perception_workflow::OwnerCut {
+                owner_id: self.cut.owner_id,
+                history_generation: self.cut.history_generation,
+                frontier: self.cut.settlements,
+            },
+            kind: if self.prior.is_some() {
+                EgoRunKind::PhySharedRefresh
+            } else {
+                EgoRunKind::PhySharedBootstrap
+            },
+            memory_version: self.cut.memory,
+            route,
+            contract: AUDIT_CONTRACT_VERSION,
+        }
+    }
 }

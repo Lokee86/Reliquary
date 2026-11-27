@@ -178,10 +178,43 @@ impl EgoWorker {
         if !self.accepted_run_current(self.phy, run, pending)? {
             return Ok(true);
         }
-        let walk: PhyDiscovery = pending
-            .checkpoint(run)
-            .map_err(as_error)?
-            .ok_or("Ego PHY run cut missing")?;
+        let shared = matches!(
+            run.kind,
+            EgoRunKind::PhySharedBootstrap | EgoRunKind::PhySharedRefresh
+        );
+        let (cut, changes) = if shared {
+            let window: crate::ego_audit_handoff::SharedPhyAudit = pending
+                .checkpoint(run)
+                .map_err(as_error)?
+                .ok_or("Ego shared PHY run cut missing")?;
+            let changes = self
+                .instance
+                .with_ego_phy_writer(self.phy, |phy| {
+                    let mut changes = BTreeMap::new();
+                    if let Some(prior) = window.prior {
+                        let mut cursor = prior.into();
+                        while cursor != window.cut.into() {
+                            let page = phy.phy_audit_changes_page(prior, window.cut, cursor)?;
+                            if page.next == cursor {
+                                return Err(OwnerSessionError::ManagementStale);
+                            }
+                            for change in page.changes {
+                                changes.insert(change.memory, change);
+                            }
+                            cursor = page.next;
+                        }
+                    }
+                    Ok(changes.into_values().collect())
+                })
+                .map_err(as_error)?;
+            (window.cut, changes)
+        } else {
+            let walk: PhyDiscovery = pending
+                .checkpoint(run)
+                .map_err(as_error)?
+                .ok_or("Ego PHY run cut missing")?;
+            (walk.cut, walk.changes)
+        };
         let batches = collect_batches(pending, run)?;
         let done = completion(run, &batches);
         let candidates = batches
@@ -194,10 +227,10 @@ impl EgoWorker {
             .with_ego_phy_writer(self.phy, |phy| {
                 Ok(capture_phy_summary(
                     phy,
-                    walk.cut,
+                    cut,
                     done,
                     &candidates,
-                    &walk.changes,
+                    &changes,
                     started_ns,
                 ))
             })
@@ -205,7 +238,7 @@ impl EgoWorker {
         let work = match capture {
             Ok(work) => work,
             Err(error) => {
-                if self.recapture_changed_phy(run, walk.cut, pending)? {
+                if self.recapture_changed_phy(run, cut, pending)? {
                     return Ok(true);
                 }
                 return Err(as_error(error));
@@ -221,7 +254,7 @@ impl EgoWorker {
         )
         .map_err(as_error)?
         else {
-            return self.recapture_changed_phy(run, walk.cut, pending);
+            return self.recapture_changed_phy(run, cut, pending);
         };
         if publication.replacement.as_ref().is_some_and(|text| {
             (self.routes.count_tokens)(&text.text) != u64::from(text.token_count)
@@ -240,7 +273,7 @@ impl EgoWorker {
             if matches!(
                 error,
                 GatewayError::OwnerSession(OwnerSessionError::ManagementStale)
-            ) && self.recapture_changed_phy(run, walk.cut, pending)?
+            ) && self.recapture_changed_phy(run, cut, pending)?
             {
                 return Ok(true);
             }
