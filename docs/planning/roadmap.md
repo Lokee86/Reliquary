@@ -55,9 +55,9 @@ Commit the finished summary and its source cut to the PHY before deleting that r
 
 ## Ego summary inspection and control
 
-Authorized inspection can show current and retained revisions and their provenance under the existing PHY and source access rules. Manual changes append revisions, and removals append tombstones. For a summary with sections and points, a topic tombstone takes the topic and its points out of the current summary. Inspection leaves Freshness unchanged.
+Authorized inspection can show current and retained revisions and their provenance under the existing PHY and source access rules. Manual changes append revisions, and removals append tombstones. A point replacement keeps the same point ID. For a summary with sections and points, a topic tombstone takes the topic and its points out of the current summary. Inspection leaves Freshness unchanged.
 
-By default, a later audit can propose an equivalent topic or point and publish a new entry when its sources support it. Preventing that return is a separate, opt-in suppression of the topic or point. The suppression and its withdrawal are append-only. The publication gate checks stable identities, exact scoped matches and equivalent paraphrases. [Topic and point suppression](ego-rel-summary-spec-2026-11-26.md#topic-and-point-suppression)
+By default, a later audit can propose an equivalent topic or point and publish a new entry when its sources support it. Opt-in suppression sets a flag on the item's tombstone. Future comparisons use the retained text, scope and vector. Lifting suppression appends a change to the flag. [Topic and point suppression](ego-rel-summary-spec-2026-11-26.md#topic-and-point-suppression)
 
 REL-backed points use current source Freshness for context selection. In V1, revived Memories can seed the next scheduled audit. An independent audit trigger for reawakened Memories remains a future option. [Audit cadence](memory-web-audit-spec-2026-11-24.md#automatic-audit-cadence-and-sampling)
 
