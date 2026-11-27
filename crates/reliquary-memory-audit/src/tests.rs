@@ -54,9 +54,9 @@ impl GeneralEndpoint for Endpoint {
         schema_name: &str,
         schema: &Value,
     ) -> Result<Value, GeneralEndpointError> {
-        assert_eq!(schema_name, "memory_web_audit_v2");
+        assert_eq!(schema_name, "memory_web_audit_v3");
         let request: Value = serde_json::from_str(user_payload).unwrap();
-        assert_eq!(request["contract"], 2);
+        assert_eq!(request["contract"], CONTRACT_VERSION);
         self.requests.lock().unwrap().push((
             system_prompt.len() + user_payload.len() + schema.to_string().len(),
             request,
@@ -338,4 +338,143 @@ fn derived_sources_never_earn_or_serve_ego_exposure() {
         accepted(result.perception).0[0].source,
         SourceId::Observation([2; 32])
     );
+}
+
+#[test]
+fn graph_follows_two_exact_slots_without_advancing_sibling_coverage() {
+    let work = [item(1, Grade::Fresh, Eligibility::BOTH, "Starting point.")];
+    let batches = plan(&work, BatchLimits::default());
+    let endpoint = Endpoint::new([
+        json!({
+            "ego": reply(json!([]), &["graph:0"]),
+            "perception": reply(json!([0, 1]), &[])
+        }),
+        json!({ "ego": reply(json!([]), &["graph:1"]) }),
+        json!({ "ego": reply(json!([2]), &[]) }),
+    ]);
+    let second = item(
+        2,
+        Grade::Fresh,
+        Eligibility::BOTH,
+        "Connected through a reference.",
+    )
+    .passage;
+    let third = item(
+        3,
+        Grade::Fresh,
+        Eligibility::BOTH,
+        "Connected through an older decision.",
+    )
+    .passage;
+    let mut anchors = Vec::new();
+    let mut lookup = |cut: &OwnerCut, feature, request| {
+        assert_eq!(*cut, CUT);
+        assert_eq!(feature, Feature::Ego);
+        let LookupRequest::Graph { anchor } = request else {
+            panic!("expected exact graph anchor");
+        };
+        anchors.push(anchor);
+        let passage = match anchor.source {
+            SourceId::Memory(id) if id == [1; 32] => second.clone(),
+            SourceId::Memory(id) if id == [2; 32] => third.clone(),
+            _ => panic!("unoffered anchor"),
+        };
+        Ok(vec![LookupPassage {
+            passage,
+            link: Some(GraphLink {
+                kind: "References".into(),
+                outgoing: true,
+            }),
+        }])
+    };
+    let result =
+        run_batch_with_lookup(&batches[0], &endpoint, &Contract, &Contract, &mut lookup).unwrap();
+    assert_eq!(anchors, [work[0].passage.citation, second.citation]);
+    let (ego, ego_exposure, _) = accepted(result.ego);
+    let (perception, perception_exposure, rejected) = accepted(result.perception);
+    assert_eq!(ego, [third.citation]);
+    assert_eq!(perception, [work[0].passage.citation]);
+    assert_eq!(rejected, 1);
+    assert_eq!(ego_exposure, perception_exposure);
+    let requests = endpoint.requests.lock().unwrap();
+    assert_eq!(requests[1].1["lookups_remaining"], 1);
+    assert_eq!(requests[2].1["lookups_remaining"], 0);
+    assert_eq!(
+        requests[2].1["links"][1],
+        json!({
+            "anchor_slot": 1, "target_slot": 2, "kind": "References", "outgoing": true
+        })
+    );
+}
+
+#[test]
+fn a_list_cannot_follow_an_ineligible_slot() {
+    let work = [
+        item(1, Grade::Fresh, Eligibility::BOTH, "Fresh source."),
+        item(
+            2,
+            Grade::Stale,
+            Eligibility::PERCEPTION,
+            "Perception sample.",
+        ),
+    ];
+    let batches = plan(&work, BatchLimits::default());
+    let endpoint = Endpoint::new([json!({
+        "ego": reply(json!([]), &["graph:1"]),
+        "perception": reply(json!([1]), &[])
+    })]);
+    let result = run_batch_with_lookup(
+        &batches[0],
+        &endpoint,
+        &Contract,
+        &Contract,
+        &mut |_: &OwnerCut, _, _: LookupRequest<'_>| panic!("ineligible anchor"),
+    )
+    .unwrap();
+    assert!(matches!(
+        result.ego,
+        ListResult::Incomplete(ListFailure::Malformed)
+    ));
+    assert_eq!(accepted(result.perception).0, [work[1].passage.citation]);
+}
+
+#[test]
+fn phy_settled_mode_accepts_only_ego_memory_evidence() {
+    let work = [item(
+        1,
+        Grade::Settled,
+        Eligibility::EGO,
+        "Private guidance.",
+    )];
+    assert!(matches!(
+        plan_batches(
+            CUT,
+            &work,
+            &[],
+            BatchLimits::default(),
+            &Contract,
+            &Contract
+        ),
+        Err(AuditError::InvalidInput)
+    ));
+    let batches = plan_batches_in_mode(
+        CUT,
+        AuditMode::PhySettled,
+        &work,
+        &[],
+        BatchLimits::default(),
+        &Contract,
+        &Contract,
+    )
+    .unwrap();
+    let endpoint = Endpoint::new([json!({
+        "ego": reply(json!([0]), &[]),
+        "perception": reply(json!([0]), &[])
+    })]);
+    let result = run_batch(&batches[0], &endpoint, &Contract, &Contract, &mut no_lookup).unwrap();
+    assert_eq!(accepted(result.ego).0, [work[0].passage.citation]);
+    assert!(matches!(result.perception, ListResult::Inactive));
+    let requests = endpoint.requests.lock().unwrap();
+    assert_eq!(requests[0].1["mode"], "phy_settled");
+    assert_eq!(requests[0].1["sources"][0]["grade"], "settled");
 }

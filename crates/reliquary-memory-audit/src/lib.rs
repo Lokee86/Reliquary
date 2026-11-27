@@ -1,4 +1,4 @@
-//! Bounded joint discovery over an authorized, immutable REL working set.
+//! Bounded joint discovery over an authorized, immutable working set.
 //! Application supplies the route, exact source slices and authorized lookups.
 
 mod batch;
@@ -7,13 +7,16 @@ mod discovery;
 #[cfg(test)]
 mod tests;
 
-pub use batch::{Batch, plan_batches};
-pub use discovery::{BatchResult, ListFailure, ListResult, LookupError, run_batch};
+pub use batch::{Batch, plan_batches, plan_batches_in_mode};
+pub use discovery::{
+    BatchResult, GraphLink, ListFailure, ListResult, LookupError, LookupPassage, LookupRequest,
+    run_batch, run_batch_with_lookup,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{fmt, time::Duration};
 
-pub const CONTRACT_VERSION: u32 = 2;
+pub const CONTRACT_VERSION: u32 = 3;
 pub const MAX_MEMORIES: usize = 125;
 pub const MAX_CANDIDATES_PER_LIST: usize = 4;
 pub const MAX_OPTIONAL_PASSAGE_BYTES: usize = 8 * 1024;
@@ -59,6 +62,27 @@ pub enum Grade {
     Fresh,
     Stale,
     Dormant,
+    Settled,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuditMode {
+    RelFresh,
+    PhySettled,
+}
+
+impl AuditMode {
+    fn accepts(self, passage: &Passage) -> bool {
+        match self {
+            Self::RelFresh => passage.grade != Grade::Settled,
+            Self::PhySettled => {
+                passage.grade == Grade::Settled
+                    && passage.eligible == Eligibility::EGO
+                    && matches!(passage.citation.source, SourceId::Memory(_))
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -129,7 +153,7 @@ impl Passage {
     fn effective_eligibility(&self) -> Eligibility {
         Eligibility {
             ego: self.eligible.ego
-                && self.grade == Grade::Fresh
+                && matches!(self.grade, Grade::Fresh | Grade::Settled)
                 && matches!(self.citation.source, SourceId::Memory(_)),
             perception: self.eligible.perception,
         }

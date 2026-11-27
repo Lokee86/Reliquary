@@ -1109,7 +1109,11 @@ pub use management_association::MemoryAssociationCut;
 #[path = "session/user_memory.rs"]
 mod user_memory;
 pub use user_memory::{UserMemoryCorrection, UserMemoryCorrectionResult};
+mod phy_audit;
 mod phy_memory_import;
+pub use phy_audit::{
+    PhyAuditChange, PhyAuditChangesPage, PhyAuditCursor, PhyAuditCut, PhyAuditInitialPage,
+};
 mod phy_writer;
 mod rel_dependencies;
 pub use rel_dependencies::{

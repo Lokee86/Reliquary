@@ -1,8 +1,8 @@
 use super::*;
 use reliquary_ego::{EgoCandidate, EgoContract};
 use reliquary_memory_audit::{
-    AuditError, Batch, BatchLimits, BatchResult, CONTRACT_VERSION, Participant, WorkItem,
-    plan_batches, run_batch,
+    AuditError, Batch, BatchLimits, BatchResult, CONTRACT_VERSION, GraphLink, LookupPassage,
+    Participant, WorkItem, plan_batches, run_batch_with_lookup,
 };
 use reliquary_owner_session::observation::ObservationStanding;
 use reliquary_owner_session::{
@@ -13,10 +13,10 @@ use std::collections::BTreeSet;
 
 // Leave room for schema, source coordinates, participant context and wire
 // encoding. The auditor enforces the actual serialized route limit.
-const MAX_CAPTURE_TEXT_BYTES: usize = 96 * 1024;
+pub(super) const MAX_CAPTURE_TEXT_BYTES: usize = 96 * 1024;
 const MAX_PARTICIPANT_SLOTS: usize = 16;
-const MAX_LOOKUP_INPUTS: usize = 32;
-const MAX_LOOKUP_PASSAGE_BYTES: usize = 2 * 1024;
+pub(super) const MAX_LOOKUP_INPUTS: usize = 32;
+pub(super) const MAX_LOOKUP_PASSAGE_BYTES: usize = 2 * 1024;
 const MAX_LOCAL_SOURCES: usize = 8;
 const MAX_LOCAL_PASSAGE_BYTES: usize = 1024;
 
@@ -70,7 +70,7 @@ pub fn capture_discovery(
                     &mut participant_ids,
                     &mut participants,
                 )?;
-                for neighbor in rel.perception_graph_neighbors(source.memory) {
+                for (neighbor, _) in rel.perception_graph_links(&page.cut, source.memory)? {
                     if local_sources.len() == MAX_LOCAL_SOURCES {
                         break;
                     }
@@ -244,7 +244,7 @@ fn take_participants(
     Ok(())
 }
 
-fn next_source(cursor: AuditDiscoveryCursor) -> AuditDiscoveryCursor {
+pub(super) fn next_source(cursor: AuditDiscoveryCursor) -> AuditDiscoveryCursor {
     AuditDiscoveryCursor {
         source: cursor.source + 1,
         field: MemoryTextField::Title,
@@ -252,7 +252,7 @@ fn next_source(cursor: AuditDiscoveryCursor) -> AuditDiscoveryCursor {
     }
 }
 
-fn capture_key(
+pub(super) fn capture_key(
     route: [u8; 32],
     source_removal: u64,
     work: &[WorkItem],
@@ -289,15 +289,15 @@ pub fn discover(
     capture: &AuditDiscovery,
     batch: usize,
     endpoint: &dyn GeneralEndpoint,
-    lookup: &mut impl FnMut(Feature, &str) -> Result<Vec<Passage>, LookupError>,
+    lookup: &mut impl FnMut(Feature, LookupRequest<'_>) -> Result<Vec<LookupPassage>, LookupError>,
 ) -> Result<AuditDiscoveryResult, AuditError> {
     let batch = capture.batches.get(batch).ok_or(AuditError::InvalidInput)?;
-    run_batch(
+    run_batch_with_lookup(
         batch,
         endpoint,
         &EgoContract,
         &capture.contract,
-        &mut |_: &OwnerCut, feature, query: &str| lookup(feature, query),
+        &mut |_: &OwnerCut, feature, request| lookup(feature, request),
     )
 }
 
@@ -305,21 +305,56 @@ pub fn audit_lookups(
     rel: &RelSession,
     cut: &PerceptionSourceCut,
     feature: Feature,
-    query: &str,
-) -> Result<Vec<Passage>, OwnerSessionError> {
+    request: LookupRequest<'_>,
+) -> Result<Vec<LookupPassage>, OwnerSessionError> {
     if cut.source_removal != rel.archive_source_removal_version() {
         return Err(OwnerSessionError::ManagementStale);
     }
-    let ids = rel.perception_lexical_candidates(query, MAX_LOOKUP_INPUTS);
-    let rows = rel.perception_source_metadata(cut, &ids)?;
-    let mut passages = Vec::new();
-    for row in rows {
-        if feature == Feature::Ego && row.grade != PerceptionSourceGrade::Fresh {
-            continue;
+    let hits: Vec<_> = match request {
+        LookupRequest::Lexical(query) => rel
+            .perception_lexical_candidates(query, MAX_LOOKUP_INPUTS)
+            .into_iter()
+            .map(|id| (id, None))
+            .collect(),
+        LookupRequest::Graph { anchor } => {
+            let SourceId::Memory(id) = anchor.source else {
+                return Err(OwnerSessionError::ManagementEvidence);
+            };
+            let source = MemoryId(id);
+            let rows = rel.perception_source_metadata(cut, &[source])?;
+            if !rows.iter().any(|row| {
+                eligible_lookup_grade(feature, row.grade)
+                    && row.source.revision == anchor.revision
+                    && row.source.body_id.0 == anchor.body_id
+            }) || rel
+                .observation_citation_text(&owner_citation(anchor))
+                .is_err()
+            {
+                return Err(OwnerSessionError::ManagementStale);
+            }
+            rel.perception_graph_links(cut, source)?
+                .into_iter()
+                .map(|(id, edge)| {
+                    (
+                        id,
+                        Some(GraphLink {
+                            kind: format!("{:?}", edge.kind),
+                            outgoing: edge.source
+                                == reliquary_owner_session::model::NodeRef::Memory(source.0),
+                        }),
+                    )
+                })
+                .collect()
         }
-        let Some(evidence) = rel.perception_memory_evidence(cut, &[row.source.id])?.pop() else {
+    };
+    let mut passages = Vec::new();
+    for (id, link) in hits {
+        let Some(evidence) = rel.perception_memory_evidence(cut, &[id])?.pop() else {
             continue;
         };
+        if !eligible_lookup_grade(feature, evidence.metadata.grade) {
+            continue;
+        }
         let passage = memory_passage(
             cut,
             &evidence,
@@ -331,13 +366,17 @@ pub fn audit_lookups(
             false,
         );
         if let Some(passage) = passage {
-            passages.push(passage);
+            passages.push(LookupPassage { passage, link });
             if passages.len() == reliquary_memory_audit::MAX_PASSAGES_PER_LOOKUP {
                 break;
             }
         }
     }
     Ok(passages)
+}
+
+fn eligible_lookup_grade(feature: Feature, grade: PerceptionSourceGrade) -> bool {
+    feature != Feature::Ego || grade == PerceptionSourceGrade::Fresh
 }
 
 /// Ego's handoff stays Fresh if an accepted turn changes a source grade

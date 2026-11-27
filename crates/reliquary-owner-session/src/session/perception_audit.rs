@@ -386,6 +386,21 @@ impl RelSession {
             .collect()
     }
 
+    /// Current incident Memory links whose active revision was visible at the audit cut.
+    pub fn perception_graph_links(
+        &self,
+        cut: &PerceptionSourceCut,
+        source: MemoryId,
+    ) -> Result<Vec<(MemoryId, Relation)>, OwnerSessionError> {
+        self.check_perception_source_cut(cut)?;
+        Ok(memory_graph_links(
+            &self.common.graph,
+            cut.graph,
+            source,
+            |edge, _| self.relation_source_eligible(edge),
+        ))
+    }
+
     pub fn perception_relationship_sources(&self, entity: EntityId) -> Vec<MemoryId> {
         let local = owner_hex(&self.owner_id);
         let mut seen = BTreeSet::new();
@@ -625,4 +640,32 @@ fn normalized_summary(value: &str) -> String {
         .map(str::to_lowercase)
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+/// Resolve current incident Memory links that were active at the captured cut.
+pub(super) fn memory_graph_links(
+    graph: &GraphStore,
+    cut: u64,
+    source: MemoryId,
+    eligible: impl Fn(&Relation, MemoryId) -> bool,
+) -> Vec<(MemoryId, Relation)> {
+    let anchor = NodeRef::Memory(source.0);
+    graph
+        .incident_relations(anchor)
+        .take(MAX_CAPTURE_PAGE)
+        .filter(|edge| edge.graph_version <= cut)
+        .filter_map(|edge| {
+            let other = if edge.source == anchor {
+                edge.target
+            } else {
+                edge.source
+            };
+            let NodeRef::Memory(id) = other else {
+                return None;
+            };
+            let id = MemoryId(id);
+            (id != source && eligible(edge, id)).then_some((id, *edge))
+        })
+        .take(MAX_NEIGHBORS)
+        .collect()
 }

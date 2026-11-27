@@ -276,9 +276,9 @@ fn audit_page(
     if creation_held && page.ego_accepted {
         return Ok(false);
     }
-    let mut lookup = |feature, query: &str| {
+    let mut lookup = |feature, request| {
         owner
-            .read(|rel| audit_lookups(rel, &page.cut, feature, query))
+            .read(|rel| audit_lookups(rel, &page.cut, feature, request))
             .map_err(|_| LookupError::Invalidated)?
             .map_err(|_| LookupError::Unavailable)
     };

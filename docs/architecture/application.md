@@ -38,6 +38,8 @@ For cross-REL Entity identity, Application exposes the Entity resolver’s owner
 
 Application captures audit work from one REL. It rechecks Fresh Memory references for Ego topics and hydrates selected sources and resolved Entities for Perception Synthesize. Synthesize returns a typed claim for receptor preparation, the evidence back-check and native Verify. A related evidence match enters batched contribution. Pending heads use the same draft verification pipeline and supply the typed prior claim when resynthesizing. Accepted drafts and progress go through the owner-session Observation writer. [Audit work](../../crates/reliquary-application/src/perception_workflow.rs) · [Draft and review](../../crates/reliquary-application/src/observation_drafts.rs)
 
+Application resolves graph slots through the scoped owner at the captured cut. PHY capture plans bounded Ego-only batches and resumes oversized source fields at their exact UTF-8 byte offsets. The PHY evidence reader returns exact text with the accepted revision's source time and temporal metadata for later stages. [PHY capture](../../crates/reliquary-application/src/perception_workflow/phy_discovery.rs)
+
 Context preparation prepends attributed dependency-synthesis messages before the primary request and counts them under its existing source and compaction budgets. The transcript and source view used for checkpointing contain the existing conversation evidence.
 
 ## Failure, recovery, and invariants

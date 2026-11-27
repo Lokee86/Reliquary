@@ -1,6 +1,7 @@
 //! Application composition for owner-local Observation discovery and routing.
 mod contribution;
 mod discovery;
+mod phy_discovery;
 
 pub use contribution::{
     ContributionEmbeddingCache, ContributionFailure, ContributionWork, capture_contribution,
@@ -9,6 +10,9 @@ pub use contribution::{
 pub use discovery::retain_current_ego_evidence;
 pub use discovery::{
     AuditDiscovery, AuditDiscoveryResult, audit_lookups, capture_discovery, discover,
+};
+pub use phy_discovery::{
+    PhyAuditDiscovery, capture_phy_discovery, discover_phy, phy_audit_citation, phy_audit_lookups,
 };
 use reliquary_memory_audit::{
     Eligibility, Grade, OwnerCut, Passage, SourceCitation, SourceId, TextField,
@@ -23,7 +27,7 @@ use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
 pub use reliquary_ego::EgoCandidate;
-pub use reliquary_memory_audit::{Feature, ListResult, LookupError};
+pub use reliquary_memory_audit::{Feature, ListResult, LookupError, LookupRequest};
 pub use reliquary_perception::ObservationProposal;
 
 /// Immutable, nonsecret binding supplied by the configured runtime.

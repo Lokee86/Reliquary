@@ -83,6 +83,10 @@ pub struct MemoryStore {
     state: State,
     pruned_bodies: BTreeSet<MemoryBodyId>,
     routing: BTreeMap<MemoryId, MemoryRoutingMetadata>,
+    // PHY admission always replays from the beginning. These clocks are
+    // derived from accepted creation envelopes and never enter REL checkpoints.
+    #[serde(skip)]
+    retained_phy_imports: BTreeSet<MemoryId>,
     initialized: bool,
     owner: Option<([u8; 16], ContainerIdentity)>,
     #[serde(skip)]
@@ -362,6 +366,13 @@ impl MemoryStore {
                     }
                     let offset = (payload.len() - envelope.body.len()) as u64;
                     store.replay_at(envelope.body, Some((object, offset)))?;
+                    if container.identity() == ContainerIdentity::phylactery()
+                        && envelope.body.starts_with(CREATION)
+                    {
+                        store
+                            .retained_phy_imports
+                            .insert(*store.state.changes.last().unwrap());
+                    }
                 }
                 continue;
             }
@@ -452,6 +463,10 @@ impl MemoryStore {
             store.validate_backed_records()?;
         }
         Ok(store)
+    }
+
+    pub fn has_retained_phy_import_birth(&self, memory_id: MemoryId) -> bool {
+        self.retained_phy_imports.contains(&memory_id)
     }
 
     pub fn routing_metadata(&self, memory_id: MemoryId) -> Option<&MemoryRoutingMetadata> {
@@ -937,6 +952,9 @@ impl MemoryStore {
         };
         if let Some(timestamp) = versioned_at {
             container.append_publication_envelope(&encoded, Some(timestamp))?;
+            if revision == 1 && container.identity() == ContainerIdentity::phylactery() {
+                self.retained_phy_imports.insert(target);
+            }
         } else {
             container.append(&encoded)?;
         }

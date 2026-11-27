@@ -73,6 +73,8 @@ The PHY owns named Ego Identity selection, REL-keyed verified point summaries, a
 
 Ego records keep the REL and PHY 2.1 headers and the existing ego history sequence. REL checkpoint suffix replay validates direct Ego carriers, and historical proofs include Identity selection and both summary forms. Exact same-owner copies retain the original records. Memory pruning refuses to remove a body cited by a retained PHY summary. Fresh-history rewrite refuses owners with Identity selection or verified summary records before staging a destination.
 
+The PHY audit binds initial pages and changes to the owner history generation and the captured Memory, Graph and Dream settlement clocks. A current, active Memory can supply evidence after its first Dream settlement or under its retained accepted PHY import authority. A changes page compares eligible revisions at the previous and captured cuts and includes withdrawals. Multiple changes to the same Memory within a page return one entry. [PHY capture reads](../../crates/reliquary-owner-session/src/session/phy_audit.rs)
+
 ## Failure, recovery, and invariants
 
 Important guarantees are owner/file-kind matching, no cross-owner write, deterministic retry identity, typed replay, and all-or-rejected grouped publication where the operation defines a group. An interrupted or uncertain publication is reconciled from owner records and stable operation ids; callers must not infer success from a prepared value alone. Verified copy/reconciliation APIs preserve source owners and reopen the result before reporting verification.

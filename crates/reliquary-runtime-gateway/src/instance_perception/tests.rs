@@ -5,7 +5,7 @@ use reliquary_container::{Container, ReliquaryScope};
 use reliquary_memory_core::MemoryDraft;
 use reliquary_owner_session::model::{
     EntityResolutionReason, MemoryEntityMentionKey, MemoryEntityResolutionStatus, MemoryRecord,
-    MemorySourceRef, MemoryTextField,
+    MemorySourceRef, MemoryTextField, NodeRef, RelationChange, RelationKind, RelationOrigin,
 };
 use reliquary_owner_session::observation::{
     ObservationAuditProgress, ObservationBatch, ObservationCitation, ObservationComparison,
@@ -13,7 +13,8 @@ use reliquary_owner_session::observation::{
     ObservationStanding,
 };
 use reliquary_owner_session::{
-    DreamMemoryCut, EntityMentionCommit, PerceptionAuditAdvance, PerceptionAuditProgress,
+    DreamMemoryCut, DreamRelationCut, EntityMentionCommit, PerceptionAuditAdvance,
+    PerceptionAuditProgress,
 };
 use reliquary_switchboard::{
     ConfiguredRoutes, DecisionConsumer, DecisionEndpoint, DecisionEndpointError, EmbeddingEndpoint,
@@ -45,6 +46,7 @@ const C_QUALIFIED: &str =
 enum Call {
     Discovered { proposals: usize, sampled: bool },
     CapturedMemoryTexts(Vec<String>),
+    GraphFollowUp,
     Synthesized(String),
     Receptors,
     Verified(String),
@@ -76,7 +78,7 @@ impl GeneralEndpoint for Script {
     ) -> Result<Value, GeneralEndpointError> {
         let input: Value = serde_json::from_str(payload).unwrap();
         Ok(match schema {
-            "memory_web_audit_v2" => {
+            "memory_web_audit_v3" => {
                 let sources = input["sources"].as_array().unwrap();
                 self.record(Call::CapturedMemoryTexts(
                     sources
@@ -91,6 +93,33 @@ impl GeneralEndpoint for Script {
                         .find(|row| row["kind"] == kind && row["text"] == text)
                         .map(|row| row["slot"].clone())
                 };
+                if self.phase == 6 {
+                    if input["phase"] == "initial" {
+                        let anchor = sources
+                            .iter()
+                            .find(|row| row["field"] == "title" && row["eligible"]["ego"] == true)
+                            .unwrap();
+                        return Ok(json!({
+                            "ego": {"candidates": [], "lookups": [format!("graph:{}", anchor["slot"])]},
+                            "perception": {"candidates": [], "lookups": []},
+                        }));
+                    }
+                    assert_eq!(input["active"], json!({"ego":true, "perception":false}));
+                    let links = input["links"].as_array().unwrap();
+                    assert_eq!(links.len(), 1);
+                    assert_eq!(links[0]["kind"], "Topical");
+                    let target = &links[0]["target_slot"];
+                    assert!(
+                        sources.iter().any(|row| {
+                            row["slot"] == *target && row["mandatory"]["ego"] == false
+                        })
+                    );
+                    self.record(Call::GraphFollowUp);
+                    return Ok(json!({
+                        "ego": {"candidates": [{"subject": "Connected note", "source_slots": [target]}], "lookups": []},
+                        "perception": {"candidates": [], "lookups": []},
+                    }));
+                }
                 let mut proposals = Vec::new();
                 let mut propose = |text, evidence, participants: Value| {
                     if let Some(slot) = evidence {
@@ -877,6 +906,29 @@ fn bootstrap_resumes_past_an_accepted_version_one_page() {
     memories.sort_by_key(|memory| memory.id);
 
     let mut writer = RelWriter::open_path_current(&fixture.path).unwrap();
+    let graph_version = writer.read_session().graph_version();
+    let source = &memories[125];
+    let target = &memories[0];
+    let dream_cut = |row: &MemoryRecord| DreamMemoryCut {
+        id: row.id,
+        revision: row.revision,
+        body_id: row.body_id,
+    };
+    writer
+        .commit_dream_grouped_relation(DreamRelationCut {
+            owner_id: OWNER,
+            graph_version,
+            source: dream_cut(source),
+            candidate: dream_cut(target),
+            change: RelationChange {
+                source: NodeRef::Memory(source.id.0),
+                target: NodeRef::Memory(target.id.0),
+                kind: RelationKind::Topical,
+                active: true,
+                origin: RelationOrigin::Dream,
+            },
+        })
+        .unwrap();
     let cut = writer.read_session().perception_source_cut();
     let mut progress = PerceptionAuditProgress::new(cut.clone());
     let publish_version_one = |writer: &mut RelWriter, progress: Value| {
@@ -922,7 +974,8 @@ fn bootstrap_resumes_past_an_accepted_version_one_page() {
     drop(writer);
 
     let calls = Arc::new(Mutex::new(Vec::new()));
-    run(&fixture, 0, 0, &calls, |_| true);
+    run(&fixture, 6, 0, &calls, |_| true);
+    assert!(calls.lock().unwrap().contains(&Call::GraphFollowUp));
     let captured = captured_audit_memory_texts(&calls);
     for (index, memory) in memories.iter().enumerate() {
         let title = memory.source_node_id.as_ref().unwrap();
