@@ -1,5 +1,7 @@
 //! Restart-safe handoff between the shared audit and the PHY publisher.
 
+mod rel_stage;
+
 use std::{path::Path, time::Duration};
 
 use reliquary_ego::EgoCandidate;
