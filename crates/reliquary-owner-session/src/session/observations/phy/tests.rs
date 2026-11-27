@@ -613,10 +613,10 @@ fn phy_observation_replay_uses_the_physical_dream_settlement_prefix() {
         body_id: record.body_id,
     };
     writer
-        .begin_initial_dream_pass("workshop-first".into(), source, 0)
+        .begin_initial_dream_pass("workshop-first".into(), source, 1)
         .unwrap();
     writer
-        .commit_empty_dream_pass("workshop-first", source, 0, 0)
+        .commit_empty_dream_pass("workshop-first", source, 0, 1)
         .unwrap();
     assert_eq!(writer.phy_observation_cut().audit.settlements, 1);
     assert!(matches!(
