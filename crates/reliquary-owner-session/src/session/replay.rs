@@ -244,7 +244,14 @@ pub(super) fn open_common_replaying(
     }
     let communities = CommunityStore::open(container, &graph)?;
     let ego = EgoStore::open(container)?;
-    super::ego::validate_phy_history(&ego, &memories, container)?;
+    let phy_summary_generation = if ego.phy_summary().is_some() {
+        Some(
+            owner_history_generation_from_container(container)
+                .map_err(OwnerSessionError::Record)?,
+        )
+    } else {
+        None
+    };
     let packed_vectors = if leased {
         PackedVectorStore::open_leased(container)?
     } else {
@@ -281,6 +288,7 @@ pub(super) fn open_common_replaying(
             &memories,
             &packed_vectors,
             identity_generation.map(|generation| (&perception, generation)),
+            phy_summary_generation,
             &pruned_bodies,
             observation_archive,
             &profiles,

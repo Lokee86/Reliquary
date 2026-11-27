@@ -38,6 +38,18 @@ fn graph_and_identity_prefix_frame(prefix: &[u8]) -> bool {
     graph_prefix_frame_with_identity(prefix, true)
 }
 
+fn graph_and_phy_summary_prefix_frame(prefix: &[u8]) -> bool {
+    if prefix.starts_with(b"RELEGO01") {
+        return true;
+    }
+    let body = match reliquary_container::decode_publication(prefix) {
+        Ok(Some(envelope)) => envelope.body,
+        Ok(None) => prefix,
+        Err(_) => return true,
+    };
+    body.starts_with(b"RELMBOD1") || graph_prefix_frame(prefix)
+}
+
 fn graph_prefix_frame_with_identity(prefix: &[u8], identity: bool) -> bool {
     if crate::records::import::is_import_epoch_marker(prefix) {
         return true;
@@ -92,6 +104,7 @@ pub(super) fn validate_graph_prefix(
     memory_store: &MemoryStore,
     packed_store: &PackedVectorStore,
     identity_context: Option<(&PerceptionStore, [u8; 32])>,
+    phy_summary_generation: Option<[u8; 32]>,
     pruned_bodies: &BTreeSet<MemoryBodyId>,
     observation_archive: Option<(&Archive, &BTreeMap<u64, (u64, u64)>)>,
     compatibility_profiles: &CompatibilityProfileStore,
@@ -124,6 +137,8 @@ pub(super) fn validate_graph_prefix(
     let mut packed_positions = packed_positions.into_iter().peekable();
     let select: fn(&[u8]) -> bool = if identity_context.is_some() {
         graph_and_identity_prefix_frame
+    } else if phy_summary_generation.is_some() {
+        graph_and_phy_summary_prefix_frame
     } else {
         graph_prefix_frame
     };
@@ -132,7 +147,7 @@ pub(super) fn validate_graph_prefix(
     while let Some(mut reader) = frames.next_frame()? {
         let object = reader.object();
         buffer.clear();
-        if identity_context.is_some() {
+        if identity_context.is_some() || phy_summary_generation.is_some() {
             // A timed envelope can occupy 25 bytes. The standalone Memory
             // body ID follows the eight-byte marker in the next 32 bytes.
             buffer.resize(object.length.min(65) as usize, 0);
@@ -168,6 +183,22 @@ pub(super) fn validate_graph_prefix(
                 native_births.clear();
                 native_receipt = None;
                 native_episodes.clear();
+            }
+            continue;
+        }
+        if let Some(generation) = phy_summary_generation
+            && frame.payload.starts_with(b"RELEGO01")
+        {
+            if let Some(publication) =
+                reliquary_ego_store::EgoStore::phy_publication_in_frame(frame.payload)?
+            {
+                super::ego::validate_phy_publication_at_prefix(
+                    &publication,
+                    generation,
+                    memory_store,
+                    memory_head,
+                    &observed_bodies,
+                )?;
             }
             continue;
         }

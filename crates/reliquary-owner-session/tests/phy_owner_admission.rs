@@ -570,4 +570,31 @@ fn ego_owner_publications_preserve_retained_citations_and_proofs_on_exact_copy()
     let copy = PhySession::open_path_current(&copy.0).unwrap();
     assert_eq!(copy.historical_proof(owner, cut).unwrap(), proof);
     assert_eq!(copy.ego_citation_text(&citation).unwrap(), "café");
+
+    // A structurally valid summary carrier placed before its evidence must
+    // fail admission even when the same file contains the cited revision.
+    let ahead = Temp::new();
+    drop(PhyWriter::create_path(&ahead.0, owner).unwrap());
+    let source = Container::open_read_only(&source.0).unwrap();
+    let mut candidates = source.scan_frames().unwrap();
+    let mut misplaced = Container::open_writer(&ahead.0).unwrap();
+    let mut evidence = Vec::new();
+    while let Some(frame) = candidates.next_frame().unwrap() {
+        let payload = frame.payload;
+        if payload.starts_with(b"RELEGO01") {
+            misplaced.append(payload).unwrap();
+        } else if payload.starts_with(b"RELMBOD1") || payload.starts_with(b"RELMCRT1") {
+            evidence.push(payload.to_vec());
+        }
+    }
+    assert_eq!(evidence.len(), 2);
+    for frame in evidence {
+        misplaced.append(&frame).unwrap();
+    }
+    misplaced.sync().unwrap();
+    drop(misplaced);
+    assert!(matches!(
+        PhySession::open_path_current(&ahead.0),
+        Err(OwnerSessionError::Record(message)) if message.contains("PHY summary source cut")
+    ));
 }

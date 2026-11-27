@@ -102,6 +102,16 @@ impl EgoStore {
             || !self.summaries.rel.is_empty()
     }
 
+    pub fn phy_publication_in_frame(payload: &[u8]) -> Result<Option<EgoPhyPublication>, EgoError> {
+        match EgoRecord::decode(payload)? {
+            Some(EgoRecord::Extended {
+                record: ExtendedRecord::Phy(publication),
+                ..
+            }) => Ok(Some(publication)),
+            _ => Ok(None),
+        }
+    }
+
     pub fn phy_publications(&self) -> impl Iterator<Item = &EgoPhyPublication> {
         self.records.iter().filter_map(|record| match record {
             EgoRecord::Extended {

@@ -188,44 +188,42 @@ fn citation_excerpt<'a>(
         .filter(|passage| !passage.trim().is_empty())
 }
 
-pub(super) fn validate_phy_history(
-    ego: &EgoStore,
+pub(super) fn validate_phy_publication_at_prefix(
+    publication: &EgoPhyPublication,
+    generation: [u8; 32],
     memories: &MemoryStore,
-    container: &Container,
+    memory_head: u64,
+    observed_bodies: &BTreeSet<MemoryBodyId>,
 ) -> Result<(), OwnerSessionError> {
-    let mut publications = ego.phy_publications().peekable();
-    if publications.peek().is_none() {
-        return Ok(());
+    let cut = publication.completion.cut;
+    if cut.history_generation != generation || cut.memory_version > memory_head {
+        return Err(OwnerSessionError::Record(
+            "PHY summary source cut is unavailable".into(),
+        ));
     }
-    let generation =
-        owner_history_generation_from_container(container).map_err(OwnerSessionError::Record)?;
-    for publication in publications {
-        let cut = publication.completion.cut;
-        if cut.history_generation != generation || cut.memory_version > memories.memory_version() {
-            return Err(OwnerSessionError::Record(
-                "PHY summary source cut is unavailable".into(),
-            ));
-        }
-        if let Some(text) = &publication.replacement {
-            for citation in text
-                .paragraphs
-                .iter()
-                .flat_map(|paragraph| &paragraph.citations)
-            {
-                let id = MemoryId(citation.memory_id);
-                let at_cut = memories
-                    .record_at_cut(id, cut.memory_version)
-                    .is_some_and(|record| record.revision == citation.revision);
-                let exact = memories
+    if let Some(text) = &publication.replacement {
+        for citation in text
+            .paragraphs
+            .iter()
+            .flat_map(|paragraph| &paragraph.citations)
+        {
+            let id = MemoryId(citation.memory_id);
+            let at_cut = memories
+                .record_at_cut(id, cut.memory_version)
+                .is_some_and(|record| record.revision == citation.revision);
+            let at_publication = memories
+                .record_at_cut(id, memory_head)
+                .is_some_and(|record| record.revision == citation.revision);
+            let exact = observed_bodies.contains(&MemoryBodyId(citation.body_id))
+                && memories
                     .revision_projection(id, Some(citation.revision))
                     .is_ok_and(|(record, body)| {
                         body.is_some_and(|body| citation_excerpt(citation, record, &body).is_some())
                     });
-                if !at_cut || !exact {
-                    return Err(OwnerSessionError::Record(
-                        "PHY summary citation is unavailable at its source cut".into(),
-                    ));
-                }
+            if !at_cut || !at_publication || !exact {
+                return Err(OwnerSessionError::Record(
+                    "PHY summary citation is unavailable at its source and publication cuts".into(),
+                ));
             }
         }
     }
@@ -361,7 +359,9 @@ impl PhyWriter {
                 Ok(value)
             }
             Err(error) => {
-                if matches!(error, EgoError::Container(_)) {
+                if matches!(error, EgoError::Container(_))
+                    || self.container.writer_lease_proof() != lease
+                {
                     self.poisoned = true;
                 }
                 Err(error.into())
@@ -388,7 +388,9 @@ impl RelWriter {
                 Ok(value)
             }
             Err(error) => {
-                if matches!(error, EgoError::Container(_)) {
+                if matches!(error, EgoError::Container(_))
+                    || self.container.writer_lease_proof() != lease
+                {
                     self.session.write_poisoned = true;
                 }
                 Err(error.into())
