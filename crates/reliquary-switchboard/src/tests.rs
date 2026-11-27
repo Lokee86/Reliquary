@@ -11,48 +11,65 @@ fn mock_server(
     headers: &str,
     body: &str,
 ) -> (String, std::thread::JoinHandle<Vec<u8>>) {
+    let (url, steps) = mock_steps(vec![(
+        status.to_owned(),
+        headers.to_owned(),
+        body.to_owned(),
+    )]);
+    (
+        url,
+        std::thread::spawn(move || steps.join().unwrap().pop().unwrap()),
+    )
+}
+
+fn mock_steps(
+    steps: Vec<(String, String, String)>,
+) -> (String, std::thread::JoinHandle<Vec<Vec<u8>>>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}/completion", listener.local_addr().unwrap());
-    let status = status.to_owned();
-    let headers = headers.to_owned();
-    let body = body.to_owned();
     let server = std::thread::spawn(move || {
-        let (mut stream, _) = listener.accept().unwrap();
-        stream
-            .set_read_timeout(Some(Duration::from_secs(3)))
-            .unwrap();
-        let mut request = Vec::new();
-        let header_end = loop {
-            let mut chunk = [0_u8; 2048];
-            let count = stream.read(&mut chunk).unwrap();
-            assert!(count > 0);
-            request.extend_from_slice(&chunk[..count]);
-            if let Some(index) = request.windows(4).position(|window| window == b"\r\n\r\n") {
-                break index + 4;
-            }
-        };
-        let header_text = String::from_utf8_lossy(&request[..header_end]);
-        let content_length = header_text
-            .lines()
-            .find_map(|line| {
-                line.to_ascii_lowercase()
-                    .strip_prefix("content-length:")
-                    .map(|value| value.trim().parse::<usize>().unwrap())
-            })
-            .unwrap();
-        while request.len() < header_end + content_length {
-            let mut chunk = [0_u8; 2048];
-            let count = stream.read(&mut chunk).unwrap();
-            assert!(count > 0);
-            request.extend_from_slice(&chunk[..count]);
-        }
-        write!(
+        steps
+            .into_iter()
+            .map(|(status, headers, body)| {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream
+                    .set_read_timeout(Some(Duration::from_secs(3)))
+                    .unwrap();
+                let mut request = Vec::new();
+                let header_end = loop {
+                    let mut chunk = [0_u8; 2048];
+                    let count = stream.read(&mut chunk).unwrap();
+                    assert!(count > 0);
+                    request.extend_from_slice(&chunk[..count]);
+                    if let Some(index) = request.windows(4).position(|window| window == b"\r\n\r\n")
+                    {
+                        break index + 4;
+                    }
+                };
+                let header_text = String::from_utf8_lossy(&request[..header_end]);
+                let content_length = header_text
+                    .lines()
+                    .find_map(|line| {
+                        line.to_ascii_lowercase()
+                            .strip_prefix("content-length:")
+                            .map(|value| value.trim().parse::<usize>().unwrap())
+                    })
+                    .unwrap();
+                while request.len() < header_end + content_length {
+                    let mut chunk = [0_u8; 2048];
+                    let count = stream.read(&mut chunk).unwrap();
+                    assert!(count > 0);
+                    request.extend_from_slice(&chunk[..count]);
+                }
+                write!(
             stream,
             "HTTP/1.1 {status}\r\n{headers}Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
             body.len()
         )
         .unwrap();
-        request
+                request
+            })
+            .collect()
     });
     (url, server)
 }
@@ -323,6 +340,72 @@ fn configured_general_http_sends_structured_request_with_api_key() {
 }
 
 #[test]
+fn configured_general_chat_continues_local_tokenizer_job_with_bound_call_id() {
+    let tool_call = json!({"choices":[{"message":{
+        "role":"assistant","content":null,"tool_calls":[
+            {"id":"call_1","type":"function","function":{"name":"measure_summary_tokens","arguments":"{\"text\":\"exact\"}"}}
+        ]
+    }}]});
+    let terminal = json!({"choices":[{"message":{"content":"{\"ok\":true}"}}]});
+    let (url, server) = mock_steps(
+        vec![tool_call, terminal]
+            .into_iter()
+            .map(|step| {
+                (
+                    "200 OK".into(),
+                    "Content-Type: application/json\r\n".into(),
+                    step.to_string(),
+                )
+            })
+            .collect(),
+    );
+    let route = GeneralModelEndpoint {
+        provider: ModelProvider::OpenAiReady,
+        model: "mock-model".into(),
+        url,
+        credential_id: CredentialId::new("general").unwrap(),
+    };
+    let endpoint =
+        ConfiguredGeneralEndpoint::from_route(&route, &credential_store("general", "scripted"))
+            .unwrap();
+    let schema = json!({"type":"object"});
+    let mut count = 0;
+    let actual = endpoint
+        .complete_json_with_tool(
+            "system",
+            "payload",
+            "answer",
+            &schema,
+            GeneralTool {
+                name: "measure_summary_tokens",
+                schema: &schema,
+                max_results: 1,
+                max_input_bytes: 4096,
+            },
+            &mut |arguments| {
+                count += 1;
+                assert_eq!(arguments, json!({"text":"exact"}));
+                Ok(json!({"tokens":1}))
+            },
+        )
+        .unwrap();
+    assert_eq!(actual, json!({"ok":true}));
+    assert_eq!(count, 1);
+    let requests = server.join().unwrap();
+    let request = String::from_utf8(requests[1].clone()).unwrap();
+    let body: Value = serde_json::from_str(request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+    assert_eq!(
+        body["tools"][0]["function"]["name"],
+        "measure_summary_tokens"
+    );
+    assert_eq!(body["messages"][2]["tool_calls"][0]["id"], "call_1");
+    assert_eq!(
+        body["messages"][3],
+        json!({"role":"tool","tool_call_id":"call_1","content":"{\"tokens\":1}"})
+    );
+}
+
+#[test]
 fn configured_decision_http_redacts_backpressure_body_and_keeps_retry_after() {
     let (url, server) = mock_server(
         "429 Too Many Requests",
@@ -507,4 +590,61 @@ fn codex_stream_rejects_failed_incomplete_and_truncated_responses() {
         }
         server.join().unwrap();
     }
+}
+
+#[test]
+fn configured_general_codex_continues_tool_job_with_response_items() {
+    let response = |items: Value| {
+        let event = json!({"type":"response.completed","response":{"output":items}});
+        (
+            "200 OK".into(),
+            "Content-Type: text/event-stream\r\n".into(),
+            format!("data: {event}\n\n"),
+        )
+    };
+    let tool = json!([{"type":"function_call","name":"measure_summary_tokens","arguments":"{\"text\":\"exact\"}","call_id":"call_1"}]);
+    let terminal =
+        json!([{"type":"message","content":[{"type":"output_text","text":"{\"ok\":true}"}]}]);
+    let (url, server) = mock_steps(vec![response(tool), response(terminal)]);
+    let id = CredentialId::new("codex-tool").unwrap();
+    let route = GeneralModelEndpoint {
+        provider: ModelProvider::OpenAiCodex,
+        model: "codex-model".into(),
+        url,
+        credential_id: id.clone(),
+    };
+    let mut credentials = CredentialsConfig::default();
+    credentials
+        .insert_codex_oauth(id, "scripted", "account-42")
+        .unwrap();
+    let endpoint = ConfiguredGeneralEndpoint::from_route(&route, &credentials).unwrap();
+    let schema = json!({"type":"object"});
+    let result = endpoint
+        .complete_json_with_tool(
+            "system",
+            "payload",
+            "answer",
+            &schema,
+            GeneralTool {
+                name: "measure_summary_tokens",
+                schema: &schema,
+                max_results: 1,
+                max_input_bytes: 4096,
+            },
+            &mut |args| {
+                assert_eq!(args, json!({"text":"exact"}));
+                Ok(json!({"tokens":1}))
+            },
+        )
+        .unwrap();
+    assert_eq!(result, json!({"ok":true}));
+    let requests = server.join().unwrap();
+    let request = String::from_utf8(requests[1].clone()).unwrap();
+    let body: Value = serde_json::from_str(request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+    assert_eq!(body["tools"][0]["name"], "measure_summary_tokens");
+    assert_eq!(body["input"][1]["call_id"], "call_1");
+    assert_eq!(
+        body["input"][2],
+        json!({"type":"function_call_output","call_id":"call_1","output":"{\"tokens\":1}"})
+    );
 }

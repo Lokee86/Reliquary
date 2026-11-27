@@ -30,6 +30,7 @@ mod dream_supersession_publication;
 mod dream_temporal;
 pub mod ego_context;
 pub mod ego_pending;
+pub mod ego_phy;
 pub mod ego_rel_workflow;
 mod temporal_query;
 mod temporal_search;

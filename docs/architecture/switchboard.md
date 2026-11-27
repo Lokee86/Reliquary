@@ -30,6 +30,8 @@ Credentials and their protected configuration are managed by Switchboard's prote
 
 Invalid/reserved keys, missing route adapters, failed authentication/device flow, endpoint status failures, invalid responses, and backpressure are explicit errors. Failure to resolve the configured adapter does not silently substitute an unrelated provider. Configuration reopening reconstructs typed route and credential state; a missing protected key or invalid credential state must be surfaced as an error rather than repaired by an endpoint consumer.
 
+The configured General route supports one named local tool in a bounded structured continuation. It validates the tool name and unique call ID, refuses parallel calls, checks the request limit on each turn and returns the terminal structured response. Application supplies the tokenizer callback and result limit for PHY compression. [General transport](../../crates/reliquary-switchboard/src/transport.rs) · [Loopback tests](../../crates/reliquary-switchboard/src/tests.rs)
+
 ## Code map and tests
 
 - Configuration and route policy: [`crates/reliquary-switchboard/src/lib.rs`](../../crates/reliquary-switchboard/src/lib.rs), [`model_config.rs`](../../crates/reliquary-switchboard/src/model_config.rs), [`configured.rs`](../../crates/reliquary-switchboard/src/configured.rs), and [`routes.rs`](../../crates/reliquary-switchboard/src/protected_config/routes.rs).
