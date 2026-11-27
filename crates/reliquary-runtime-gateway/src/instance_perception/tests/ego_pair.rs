@@ -209,6 +209,12 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
     }
     drop(pending);
     fs::remove_file(file).unwrap();
+    if let Some(destination) = std::env::var_os("RELIQUARY_EGO_CAPTURE_FIXTURE") {
+        let destination = PathBuf::from(destination);
+        fs::create_dir(&destination).unwrap();
+        fs::copy(&fixture.path, destination.join("atlas.rel")).unwrap();
+        fs::copy(&phy_path, destination.join("personal.phy")).unwrap();
+    }
 }
 
 fn assert_reopened_proof(
