@@ -114,6 +114,7 @@ fn rel_ego_reuses_accepted_stages_on_reopen_and_publishes_exact_quote() {
     pending.seal(run).unwrap();
     let evidence = RelEgoEvidence {
         run,
+        prior_revision: 0,
         current: BTreeMap::from([(cite, evidence(cite, 1, text.into()))]),
         historical: BTreeMap::new(),
     };
@@ -153,6 +154,17 @@ fn rel_ego_reuses_accepted_stages_on_reopen_and_publishes_exact_quote() {
         as_of: "2026-11-27",
         verified_at_ns: 12,
     };
+    assert!(matches!(
+        prepare_rel_ego_publication(
+            &routes,
+            RelEgoWork {
+                batches: &[],
+                ..work()
+            },
+            &mut pending
+        ),
+        Err(RelEgoError::Pending(EgoPendingError::InvalidBinding))
+    ));
     assert!(matches!(
         prepare_rel_ego_publication(&routes, work(), &mut pending),
         Err(RelEgoError::General(GeneralEndpointError::HttpStatus(503)))

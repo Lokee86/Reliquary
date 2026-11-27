@@ -40,6 +40,7 @@ pub struct RelEgoWork<'a> {
 
 pub struct RelEgoEvidence {
     run: EgoRun,
+    prior_revision: u64,
     current: BTreeMap<SourceCitation, MemoryEvidence>,
     historical: BTreeMap<SourceCitation, MemoryEvidence>,
 }
@@ -146,11 +147,8 @@ pub fn capture_rel_ego_evidence(
                 let reference = audit_citation(*citation);
                 if citation.history_generation != run.source.history_generation
                     || historical.contains_key(&reference)
+                    || current.contains_key(&reference)
                 {
-                    continue;
-                }
-                if let Some(captured) = current.get(&reference) {
-                    historical.insert(reference, captured.clone());
                     continue;
                 }
                 let Ok(text) = rel.historical_ego_citation_text(citation) else {
@@ -167,6 +165,7 @@ pub fn capture_rel_ego_evidence(
     }
     Ok(RelEgoEvidence {
         run,
+        prior_revision: prior.map_or(0, |summary| summary.revision),
         current,
         historical,
     })
@@ -224,6 +223,7 @@ pub fn prepare_rel_ego_publication(
     validate_run(work.run, work.batches)?;
     if routes.identity != work.run.route
         || work.evidence.run != work.run
+        || work.evidence.prior_revision != work.prior.map_or(0, |summary| summary.revision)
         || work.as_of.trim().is_empty()
     {
         return Err(RelEgoError::Binding);
@@ -572,7 +572,13 @@ impl RelPreparation<'_, '_> {
                 embedding: self.stored_embedding(&point.statement, point.embedding.as_ref()),
                 evidence: citations
                     .iter()
-                    .filter_map(|reference| evidence.historical.get(reference).cloned())
+                    .filter_map(|reference| {
+                        evidence
+                            .historical
+                            .get(reference)
+                            .or_else(|| evidence.current.get(reference))
+                            .cloned()
+                    })
                     .collect(),
                 citations,
             };
