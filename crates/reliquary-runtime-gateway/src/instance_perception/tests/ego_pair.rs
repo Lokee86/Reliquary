@@ -2,6 +2,7 @@ use super::*;
 use crate::EgoRoutes;
 #[cfg(test)]
 use reliquary_memory_core::MemoryStore;
+use reliquary_owner_session::{EgoCitation, EgoCompletion, EgoTextField};
 
 const PROFILE: &str = "Meetings use video.";
 
@@ -72,10 +73,10 @@ impl GeneralEndpoint for EgoScript {
 #[test]
 fn managed_ego_publishes_and_reopens_both_summary_forms() {
     let fixture = Fixture::new();
-    fixture.append(&[("Atlas".into(), BASE)], 0);
+    let project_source = fixture.append(&[("Atlas".into(), BASE)], 0).remove(0);
     let phy_path = fixture.path.with_extension("phy");
     drop(PhyWriter::create_path(&phy_path, AUDIT_PHY).unwrap());
-    {
+    let personal_source = {
         let mut container = Container::open_writer(&phy_path).unwrap();
         MemoryStore::open(&container)
             .unwrap()
@@ -108,8 +109,9 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
                 },
                 5,
             )
-            .unwrap();
-    }
+            .unwrap()
+            .record
+    };
     let profile_dir = fixture.path.with_extension("sqlite");
     fs::create_dir(&profile_dir).unwrap();
     let gateway = Gateway::new();
@@ -159,10 +161,25 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
     let reopened = PhySession::open_path_current(&phy_path).unwrap();
     let personal = reopened.ego_phy_summary().unwrap();
     let project = reopened.ego_rel_summary(rel.0).unwrap();
-    assert_eq!(personal.text.as_ref().unwrap().text, PROFILE);
-    assert_eq!(
-        project.points.values().next().unwrap().value.statement,
-        BASE
+    let personal_text = personal.text.as_ref().unwrap();
+    let point = &project.points.values().next().unwrap().value;
+    assert_eq!(personal_text.text, PROFILE);
+    assert_eq!(point.statement, BASE);
+    assert_reopened_proof(
+        &reopened,
+        &personal.completion,
+        phy,
+        &personal_text.paragraphs[0].citations,
+        &personal_source,
+        PROFILE,
+    );
+    assert_reopened_proof(
+        &reopened,
+        project.completion.as_ref().unwrap(),
+        rel,
+        &point.citations,
+        &project_source,
+        BASE,
     );
     let file = profile_dir.join("ego-pending.sqlite3");
     let pending = EgoPendingWork::open(&file).unwrap();
@@ -172,4 +189,33 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
     }
     drop(pending);
     fs::remove_file(file).unwrap();
+}
+
+fn assert_reopened_proof(
+    reopened: &PhySession,
+    completion: &EgoCompletion,
+    owner: OwnerId,
+    citations: &[EgoCitation],
+    source: &MemoryRecord,
+    text: &str,
+) {
+    assert_eq!(completion.cut.owner_id, owner.0);
+    assert_eq!(
+        citations,
+        [EgoCitation {
+            owner_id: owner.0,
+            history_generation: completion.cut.history_generation,
+            memory_id: source.id.0,
+            revision: source.revision,
+            body_id: source.body_id.0,
+            field: EgoTextField::Content,
+            start_byte: 0,
+            end_byte: text.len() as u32,
+        }]
+    );
+    assert_eq!(completion.batch_ids.len(), 1);
+    assert_eq!(
+        reopened.ego_completion_for_batch(completion.batch_ids[0]),
+        Some(completion)
+    );
 }
