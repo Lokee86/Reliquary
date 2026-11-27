@@ -5,6 +5,10 @@ use reliquary_memory_core::MemoryStore;
 use reliquary_owner_session::{EgoCitation, EgoCompletion, EgoTextField};
 
 const PROFILE: &str = "Meetings use video.";
+const PROFILE_EVIDENCE: &str = "I use video for meetings.";
+const PROJECT_EVIDENCE: &str = "Atlas reviews purchase requests before releasing payment.";
+const IDENTITY: &str = "Respond with practical precision.";
+const PIN: &str = "Always use metric units.";
 
 struct EgoScript;
 
@@ -24,15 +28,14 @@ impl GeneralEndpoint for EgoScript {
         let supported = json!({"judgment": "supported", "hold_reason": ""});
         Ok(match schema {
             "memory_web_audit_v3" => {
-                let source = payload["sources"]
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .find(|row| row["text"] == BASE || row["text"] == PROFILE);
+                let source =
+                    payload["sources"].as_array().unwrap().iter().find(|row| {
+                        row["text"] == PROJECT_EVIDENCE || row["text"] == PROFILE_EVIDENCE
+                    });
                 let candidates = source
                     .into_iter()
                     .map(|source| {
-                        let subject = if source["text"] == BASE {
+                        let subject = if source["text"] == PROJECT_EVIDENCE {
                             "Atlas payments"
                         } else {
                             "Meetings"
@@ -47,14 +50,14 @@ impl GeneralEndpoint for EgoScript {
             }
             "reliquary_ego_rel_synthesize" => json!({"points": [{
                 "statement": BASE, "status": "observed", "time_scope": "current",
-                "support": [{"slot": 0, "quote": BASE}],
+                "support": [{"slot": 0, "quote": PROJECT_EVIDENCE}],
             }]}),
             "reliquary_ego_rel_verify" => json!({"checks": [{
                 "point_id": 0, "meaning": "supported", "status": "supported",
                 "time_scope": "supported", "attribution": "supported", "hold_reason": "",
             }]}),
             "ego_phy_draft" => json!({"paragraphs": [{
-                "text": PROFILE, "support": [{"slot": 0, "quote": PROFILE}],
+                "text": PROFILE, "support": [{"slot": 0, "quote": PROFILE_EVIDENCE}],
             }]}),
             "ego_phy_verify" => json!({
                 "checks": [{"paragraph_id": 0, "meaning": "supported", "time": "supported",
@@ -73,7 +76,9 @@ impl GeneralEndpoint for EgoScript {
 #[test]
 fn managed_ego_publishes_and_reopens_both_summary_forms() {
     let fixture = Fixture::new();
-    let project_source = fixture.append(&[("Atlas".into(), BASE)], 0).remove(0);
+    let project_source = fixture
+        .append(&[("Atlas".into(), PROJECT_EVIDENCE)], 0)
+        .remove(0);
     let phy_path = fixture.path.with_extension("phy");
     drop(PhyWriter::create_path(&phy_path, AUDIT_PHY).unwrap());
     let personal_source = {
@@ -84,7 +89,7 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
                 &mut container,
                 MemoryDraft {
                     title: "Meetings".into(),
-                    content: PROFILE.into(),
+                    content: PROFILE_EVIDENCE.into(),
                     category: "preference".into(),
                     memory_type: "communication".into(),
                     authority_kind: "direct".into(),
@@ -122,6 +127,15 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
         .mount_writable_phylactery_current(&phy_path)
         .unwrap();
     let instance = Arc::new(gateway.instance("alice", [rel], [phy]).unwrap());
+    instance
+        .create_ego_pin(EgoScope::Phy(phy), PIN.into(), EgoAnchorPriority::High)
+        .unwrap();
+    let identity = instance
+        .create_ego_identity(phy, "Fixture Identity".into(), IDENTITY.into())
+        .unwrap();
+    instance
+        .select_ego_identity(phy, 0, Some((identity.id, identity.revision)))
+        .unwrap();
     let mut worker = gateway
         .start_ego_worker(
             instance.clone(),
@@ -142,12 +156,18 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(20);
     loop {
-        let assembled = instance
-            .ego_context(Some(rel), phy, "Atlas payment", None, 500, str::len)
-            .unwrap();
-        if assembled.standing_context.contains(BASE) && assembled.standing_context.contains(PROFILE)
-        {
-            break;
+        match instance.ego_context(Some(rel), phy, "Atlas payment", None, 500, str::len) {
+            Ok(assembled) => {
+                if assembled.standing_context.contains(BASE)
+                    && assembled.standing_context.contains(PROFILE)
+                {
+                    assert_eq!(assembled.identity.as_deref(), Some(IDENTITY));
+                    assert!(assembled.standing_context.contains(PIN));
+                    break;
+                }
+            }
+            Err(GatewayError::StaleRelContext) => {}
+            Err(error) => panic!("Ego context assembly failed: {error}"),
         }
         assert!(
             Instant::now() < deadline,
@@ -171,7 +191,7 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
         phy,
         &personal_text.paragraphs[0].citations,
         &personal_source,
-        PROFILE,
+        PROFILE_EVIDENCE,
     );
     assert_reopened_proof(
         &reopened,
@@ -179,7 +199,7 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
         rel,
         &point.citations,
         &project_source,
-        BASE,
+        PROJECT_EVIDENCE,
     );
     let file = profile_dir.join("ego-pending.sqlite3");
     let pending = EgoPendingWork::open(&file).unwrap();
