@@ -115,6 +115,7 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
                 5,
             )
             .unwrap()
+            .revision
             .record
     };
     let profile_dir = fixture.path.with_extension("sqlite");
