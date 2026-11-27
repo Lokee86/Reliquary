@@ -151,7 +151,7 @@ fn escaped_utf8_passages_preserve_exact_mandatory_ranges() {
     input.passage.citation.start_byte = 5;
     input.passage.citation.end_byte += 5;
     let limits = BatchLimits {
-        max_input_bytes: 1700,
+        max_input_bytes: 2300,
         ..BatchLimits::default()
     };
     let batches = plan(std::slice::from_ref(&input), limits);
