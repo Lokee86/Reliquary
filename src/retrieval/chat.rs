@@ -450,6 +450,7 @@ impl ChatRetrieval {
     }
 
     fn archive_cut(&self) -> Result<InspectionCut, ProductError> {
+        self.instance.validate_retrieval(&self.session)?;
         let owner = self.session.rel_owner().ok_or_else(stale_selection)?;
         self.instance
             .semantic_graph_inspection_cut(owner, OwnerKind::Rel)
