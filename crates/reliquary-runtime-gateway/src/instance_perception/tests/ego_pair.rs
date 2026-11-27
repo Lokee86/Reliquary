@@ -2,7 +2,7 @@ use super::*;
 use crate::EgoRoutes;
 #[cfg(test)]
 use reliquary_memory_core::MemoryStore;
-use reliquary_owner_session::{EgoCitation, EgoCompletion, EgoTextField};
+use reliquary_owner_session::{EgoCitation, EgoCompletion, EgoPhySummary, EgoTextField};
 
 const PROFILE: &str = "Meetings use video.";
 const PROFILE_EVIDENCE: &str = "I use video for meetings.";
@@ -83,40 +83,7 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
     drop(PhyWriter::create_path(&phy_path, AUDIT_PHY).unwrap());
     let personal_source = {
         let mut container = Container::open_writer(&phy_path).unwrap();
-        MemoryStore::open(&container)
-            .unwrap()
-            .publish_versioned_creation(
-                &mut container,
-                MemoryDraft {
-                    title: "Meetings".into(),
-                    content: PROFILE_EVIDENCE.into(),
-                    category: "preference".into(),
-                    memory_type: "communication".into(),
-                    authority_kind: "direct".into(),
-                    temporal_status: "current".into(),
-                    scope: "user".into(),
-                    lifecycle_state: "knowledge".into(),
-                    archived: false,
-                    parent_id: None,
-                    superseded_by: None,
-                    source_node_id: None,
-                    content_source_conversation_id: None,
-                    content_source_node_id: None,
-                    grounding_source_conversation_id: None,
-                    grounding_source_node_id: None,
-                    source_episode_id: None,
-                    source_ref: None,
-                    source_time_ns: Some(5),
-                    temporal_inference: None,
-                    mutation_id: "mounted-ego-accepted-phy".into(),
-                    created_at_ns: 5,
-                    updated_at_ns: 5,
-                },
-                5,
-            )
-            .unwrap()
-            .revision
-            .record
+        publish_accepted_phy_memory(&mut container, 0)
     };
     let profile_dir = fixture.path.with_extension("sqlite");
     fs::create_dir(&profile_dir).unwrap();
@@ -216,6 +183,156 @@ fn managed_ego_publishes_and_reopens_both_summary_forms() {
         fs::copy(&fixture.path, destination.join("atlas.rel")).unwrap();
         fs::copy(&phy_path, destination.join("personal.phy")).unwrap();
     }
+}
+
+#[test]
+fn mounted_ego_phy_refresh_waits_for_five_distinct_accepted_memories() {
+    let fixture = Fixture::new();
+    let phy_path = fixture.path.with_extension("phy");
+    drop(PhyWriter::create_path(&phy_path, AUDIT_PHY).unwrap());
+    {
+        let mut container = Container::open_writer(&phy_path).unwrap();
+        publish_accepted_phy_memory(&mut container, 0);
+    }
+    let profile_dir = fixture.path.with_extension("sqlite");
+    fs::create_dir(&profile_dir).unwrap();
+    let (gateway, instance, phy, mut worker) = start_mounted_phy_worker(&phy_path, &profile_dir);
+    wait_for_phy_revision(&instance, phy, 1);
+    worker.stop().unwrap();
+    drop(instance);
+    drop(gateway);
+
+    {
+        let mut container = Container::open_writer(&phy_path).unwrap();
+        for index in 1..=4 {
+            publish_accepted_phy_memory(&mut container, index);
+        }
+    }
+    let (gateway, instance, phy, mut worker) = start_mounted_phy_worker(&phy_path, &profile_dir);
+    wait_for_phy_waiting_checkpoint(&profile_dir, phy);
+    assert_eq!(
+        instance
+            .inspect_ego_phy_summary(phy, None)
+            .unwrap()
+            .unwrap()
+            .revision,
+        1
+    );
+    worker.stop().unwrap();
+    drop(instance);
+    drop(gateway);
+
+    {
+        let mut container = Container::open_writer(&phy_path).unwrap();
+        publish_accepted_phy_memory(&mut container, 5);
+    }
+    let (gateway, instance, phy, mut worker) = start_mounted_phy_worker(&phy_path, &profile_dir);
+    let summary = wait_for_phy_revision(&instance, phy, 2);
+    assert_eq!(summary.text.unwrap().text, PROFILE);
+    worker.stop().unwrap();
+    drop(instance);
+    drop(gateway);
+    fs::remove_file(profile_dir.join("ego-pending.sqlite3")).unwrap();
+}
+
+fn publish_accepted_phy_memory(container: &mut Container, index: u64) -> MemoryRecord {
+    MemoryStore::open(container)
+        .unwrap()
+        .publish_versioned_creation(
+            container,
+            MemoryDraft {
+                title: format!("Meetings evidence {index}"),
+                content: PROFILE_EVIDENCE.into(),
+                category: "preference".into(),
+                memory_type: "communication".into(),
+                authority_kind: "direct".into(),
+                temporal_status: "current".into(),
+                scope: "user".into(),
+                lifecycle_state: "knowledge".into(),
+                archived: false,
+                parent_id: None,
+                superseded_by: None,
+                source_node_id: None,
+                content_source_conversation_id: None,
+                content_source_node_id: None,
+                grounding_source_conversation_id: None,
+                grounding_source_node_id: None,
+                source_episode_id: None,
+                source_ref: None,
+                source_time_ns: Some(index as i64 + 5),
+                temporal_inference: None,
+                mutation_id: format!("mounted-ego-accepted-phy-{index}"),
+                created_at_ns: index as i64 + 5,
+                updated_at_ns: index as i64 + 5,
+            },
+            index as i64 + 5,
+        )
+        .unwrap()
+        .revision
+        .record
+}
+
+fn wait_for_phy_revision(instance: &Instance, phy: OwnerId, revision: u64) -> EgoPhySummary {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        if let Some(summary) = instance
+            .inspect_ego_phy_summary(phy, None)
+            .unwrap()
+            .filter(|summary| summary.revision == revision)
+        {
+            return summary;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "Ego PHY revision {revision} did not publish"
+        );
+        thread::sleep(Duration::from_millis(40));
+    }
+}
+
+fn wait_for_phy_waiting_checkpoint(profile_dir: &Path, phy: OwnerId) {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let pending = EgoPendingWork::open(&profile_dir.join("ego-pending.sqlite3")).unwrap();
+    loop {
+        let waiting = pending
+            .open_checkpoint_run(phy.0, phy.0)
+            .unwrap()
+            .and_then(|run| pending.checkpoint::<Value>(run).unwrap())
+            .is_some_and(|checkpoint| checkpoint["phase"] == "Waiting");
+        if waiting {
+            return;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "Ego PHY refresh did not reach its stored Waiting checkpoint"
+        );
+        thread::sleep(Duration::from_millis(40));
+    }
+}
+
+fn start_mounted_phy_worker(
+    phy_path: &Path,
+    profile_dir: &Path,
+) -> (Gateway, Arc<Instance>, OwnerId, EgoWorkerHandle) {
+    let gateway = Gateway::new();
+    let phy = gateway.mount_writable_phylactery_current(phy_path).unwrap();
+    let instance = Arc::new(gateway.instance("alice", [], [phy]).unwrap());
+    let worker = gateway
+        .start_ego_worker(
+            instance.clone(),
+            phy,
+            vec![],
+            profile_dir,
+            EgoRoutes {
+                general: Arc::new(EgoScript),
+                embedding: None,
+                identity: [4; 32],
+                embedding_profile: [5; 32],
+                count_tokens: Arc::new(|text| text.len() as u64),
+            },
+        )
+        .unwrap();
+    (gateway, instance, phy, worker)
 }
 
 fn assert_reopened_proof(
