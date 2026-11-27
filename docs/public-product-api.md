@@ -20,6 +20,8 @@ The current owner formats are REL 2.1 and PHY 2.1. `Rel` and `Phylactery` expose
 
 A trusted host can release a read-only PHY mount through `HostAdmissionControl::detach_read_only_phylactery(owner)` after draining its requests. The operation leaves other mounts available. Host credential revocation and owner selection remain explicit lifecycle steps.
 
+For an Ego PHY switch, the host stops the managed worker and calls `HostAdmissionControl::quiesce_writable_phylactery(instance, owner)`. The instance must come from the same admission and have `OperatePhylactery` for that owner. The Gateway checks that the writable mount has no active worker lease before releasing it.
+
 ## Getting started
 
 Prerequisites: depend on the workspace's `reliquary-memory` package and create a path for a new owner. In a trusted host, create and mount the owner, install a credential binding with only the required grants, then authenticate an `Instance`:

@@ -1,6 +1,6 @@
 use reliquary_memory::{
     EgoIdentityDraft, EgoPinPatch, EgoPinPriority, EgoScope, Gateway, HostCredentialBinding,
-    OwnerGrant, Phylactery, Rel, TrustedHostAdmission,
+    OwnerGrant, OwnerKind, Phylactery, Rel, TrustedHostAdmission,
 };
 use std::{fs, path::PathBuf};
 
@@ -29,11 +29,9 @@ fn mounted_controls_keep_pins_addressable_and_bind_approval_to_exact_identity() 
     let rel = gateway
         .mount_rel(&Rel::create(fixture.0.join("work.rel")).unwrap(), true)
         .unwrap();
+    let phy_path = fixture.0.join("person.phy");
     let phy = gateway
-        .mount_phylactery(
-            &Phylactery::create(fixture.0.join("person.phy")).unwrap(),
-            true,
-        )
+        .mount_phylactery(&Phylactery::create(&phy_path).unwrap(), true)
         .unwrap();
     const EDIT: &str = "ego-edit-fixture-local-authority-0001";
     const VIEW: &str = "ego-view-fixture-local-authority-0001";
@@ -132,6 +130,28 @@ fn mounted_controls_keep_pins_addressable_and_bind_approval_to_exact_identity() 
             .identity,
         Some(changed.text)
     );
+    assert!(control.quiesce_writable_phylactery(&viewer, phy).is_err());
+    let (other_admission, _) = TrustedHostAdmission::new([HostCredentialBinding::new(
+        "alternate editor",
+        "ego-edit-fixture-separate-authorization-0002",
+        [OwnerGrant::OperatePhylactery(phy)],
+    )])
+    .install(&gateway)
+    .unwrap();
+    let outsider = other_admission
+        .authenticate("ego-edit-fixture-separate-authorization-0002")
+        .unwrap();
+    assert!(control.quiesce_writable_phylactery(&outsider, phy).is_err());
+    control.quiesce_writable_phylactery(&editor, phy).unwrap();
+    assert_eq!(viewer.ego_pins(rel_scope).unwrap(), [edited]);
+    assert!(viewer.ego_pins(phy_scope).is_err());
+    assert_eq!(
+        gateway
+            .mount_owner_path(&phy_path, OwnerKind::Phylactery, true, Some(phy))
+            .unwrap(),
+        phy
+    );
+    assert_eq!(viewer.ego_pins(phy_scope).unwrap(), [higher]);
     control.revoke(VIEW).unwrap();
     assert!(
         viewer

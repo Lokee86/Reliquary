@@ -105,15 +105,17 @@ impl TrustedHostAdmission {
         }
         let (adapter, control) =
             runtime::TrustedHostAdmission::new(runtime_bindings).install(&gateway.inner)?;
+        let installation = Arc::new(());
         Ok((
             HostAdmissionAdapter {
                 inner: adapter,
-                installation: Arc::new(()),
+                installation: installation.clone(),
                 grants: product_grants,
                 gateway: gateway.clone(),
             },
             HostAdmissionControl {
                 inner: control,
+                installation,
                 gateway: gateway.clone(),
             },
         ))
@@ -122,6 +124,7 @@ impl TrustedHostAdmission {
 
 pub struct HostAdmissionControl {
     inner: runtime::HostAdmissionControl,
+    installation: Arc<()>,
     gateway: Gateway,
 }
 impl HostAdmissionControl {
@@ -133,6 +136,22 @@ impl HostAdmissionControl {
     /// The host controls admission and revocation separately.
     pub fn detach_read_only_phylactery(&self, owner: OwnerId) -> Result<(), ProductError> {
         self.gateway.detach_read_only_phylactery(owner)
+    }
+
+    /// Release the authorized writable PHY after stopping its managed workers.
+    pub fn quiesce_writable_phylactery(
+        &self,
+        instance: &Instance,
+        owner: OwnerId,
+    ) -> Result<(), ProductError> {
+        if !Arc::ptr_eq(&self.installation, &instance.installation) {
+            return Err(ProductError::new(
+                ProductErrorKind::Unauthorized,
+                "instance belongs to a different host admission",
+            ));
+        }
+        instance.require(OwnerGrant::OperatePhylactery(owner))?;
+        self.gateway.detach_writable_phylactery(owner)
     }
 }
 

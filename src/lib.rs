@@ -16,7 +16,7 @@ mod retrieval;
 
 pub use configuration::*;
 pub use reliquary_switchboard::{
-    HostedEmbeddingSettings, HostedModelRoute, HostedSwitchboardConfig,
+    GeneralTool, HostedEmbeddingSettings, HostedModelRoute, HostedSwitchboardConfig,
 };
 
 pub use configured_runtime::{

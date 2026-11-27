@@ -164,17 +164,21 @@ impl Gateway {
     }
 
     pub(crate) fn quiesce(&self, owner: OwnerId) -> Result<(), ProductError> {
-        self.quiesce_mount(owner, false)
+        self.quiesce_mount(owner, None)
     }
 
     pub(crate) fn detach_read_only_phylactery(&self, owner: OwnerId) -> Result<(), ProductError> {
-        self.quiesce_mount(owner, true)
+        self.quiesce_mount(owner, Some(false))
+    }
+
+    fn detach_writable_phylactery(&self, owner: OwnerId) -> Result<(), ProductError> {
+        self.quiesce_mount(owner, Some(true))
     }
 
     fn quiesce_mount(
         &self,
         owner: OwnerId,
-        require_read_only_phy: bool,
+        phy_writable: Option<bool>,
     ) -> Result<(), ProductError> {
         let mut mounted = self.mounted.lock().map_err(|_| {
             ProductError::new(
@@ -185,7 +189,15 @@ impl Gateway {
         let record = mounted.get_mut(&owner).ok_or_else(|| {
             ProductError::new(ProductErrorKind::Unavailable, "owner is not registered")
         })?;
-        if require_read_only_phy {
+        if phy_writable == Some(true)
+            && (record.kind != OwnerKind::Phylactery || !record.mounted || !record.writable)
+        {
+            return Err(ProductError::new(
+                ProductErrorKind::Conflict,
+                "owner must be a mounted writable PHY",
+            ));
+        }
+        if phy_writable == Some(false) {
             self.inner.detach_read_only_phylactery(owner.into())?;
         } else {
             self.inner.quiesce_owner(owner.into())?;
