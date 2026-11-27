@@ -5,8 +5,8 @@ use reliquary_perception_store::RetainedResolutionRecord;
 
 mod phy;
 mod reads;
-pub(super) use phy::PhyObservationHistory;
 pub use phy::{PhyObservationBatch, PhyObservationCut};
+pub(super) use phy::{PhyObservationHistory, PhyObservationPublicationProof};
 
 pub(super) const PHY_PREFIX: &[u8] = b"PHYOBS";
 pub(crate) use phy::PHY_MARKER;
@@ -144,18 +144,21 @@ pub(super) enum ObservationAuthority<'a> {
 #[derive(Clone, Copy)]
 pub(super) enum PhySettlements<'a> {
     Admitted(&'a DreamEvidenceStore, u64),
-    Physical(&'a BTreeSet<MemoryId>),
+    Physical(&'a BTreeMap<MemoryId, u64>),
 }
 
 impl PhySettlements<'_> {
-    fn allows(self, memories: &MemoryStore, id: MemoryId, cut: u64) -> bool {
-        memories.has_retained_phy_import_authority_at(id, cut)
-            || match self {
-                Self::Admitted(dreams, through) => dreams
-                    .settlement_position(id)
-                    .is_some_and(|position| position <= through),
-                Self::Physical(settled) => settled.contains(&id),
-            }
+    fn position(self, id: MemoryId) -> Option<u64> {
+        match self {
+            Self::Admitted(dreams, through) => dreams
+                .settlement_position(id)
+                .filter(|position| *position <= through),
+            Self::Physical(settled) => settled.get(&id).copied(),
+        }
+    }
+
+    pub(super) fn allows(self, memories: &MemoryStore, id: MemoryId, cut: u64) -> bool {
+        self.position(id).is_some() || memories.has_retained_phy_import_authority_at(id, cut)
     }
 }
 

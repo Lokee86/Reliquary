@@ -272,7 +272,7 @@ impl PhySession {
             return Err(HistoricalProofError::FutureCut("Observation"));
         }
         for (receipt, _) in observations {
-            let prefix = &history.cuts[&receipt.publication_version];
+            let prefix = &history.proofs[&receipt.publication_version].cut;
             if prefix.audit.memory > cut.memory_version
                 || prefix.audit.graph > cut.graph_version
                 || prefix.audit.settlements > cut.phy_settlement_version
@@ -293,7 +293,7 @@ impl PhySession {
             owner_id: self.owner_id,
             file_kind: FileKind::Phylactery,
             history_generation: self.history_generation,
-            digest: fingerprint::phy(self.owner_id, &common, cut, observations, &history.cuts),
+            digest: fingerprint::phy(self.owner_id, &common, cut, observations, &history.proofs),
             retained_records: retained,
             unavailable_payloads: common.unavailable_payloads,
         })

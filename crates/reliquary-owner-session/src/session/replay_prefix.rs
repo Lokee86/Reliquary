@@ -52,6 +52,7 @@ fn graph_and_phy_prefix_frame(prefix: &[u8]) -> bool {
     [
         b"RELMBOD1".as_slice(),
         b"RELETM01",
+        b"RELRLP01",
         super::observations::PHY_PREFIX,
     ]
     .iter()
@@ -98,7 +99,6 @@ fn graph_prefix_frame_with_identity(prefix: &[u8], identity: bool) -> bool {
         || (identity
             && [
                 super::observations::PREFIX,
-                super::observations::PHY_PREFIX,
                 super::identity_receipt::PREFIX,
                 super::identity_separation::PREFIX,
                 b"RELMBOD1",
@@ -131,7 +131,7 @@ pub(super) fn validate_graph_prefix(
 > {
     let mut observations = ObservationStore::default();
     let mut phy_observations = PhyObservationHistory::default();
-    let mut settled = BTreeSet::new();
+    let mut settled = BTreeMap::new();
     let mut receipts = IdentityHistory::default();
     let mut separations = SeparationHistory::default();
     let mut perception_cut = 0;
@@ -260,11 +260,6 @@ pub(super) fn validate_graph_prefix(
         if let Some((perception, history_generation)) = identity_context {
             let envelope = reliquary_container::decode_publication(frame.payload)?;
             let body = envelope.as_ref().map_or(frame.payload, |entry| entry.body);
-            if body.starts_with(super::observations::PHY_PREFIX) {
-                return Err(OwnerSessionError::Record(
-                    "PHY Observation on a REL owner".into(),
-                ));
-            }
             if body.starts_with(super::observations::PREFIX) {
                 let (archive, archive_cuts) = observation_archive.ok_or_else(|| {
                     OwnerSessionError::Record("Observation Archive replay context absent".into())
@@ -592,7 +587,10 @@ pub(super) fn validate_graph_prefix(
                     .map_err(OwnerSessionError::Record)?
             {
                 if phy_generation.is_some() {
-                    settled.insert(record.source);
+                    let position = settled.len() as u64 + 1;
+                    if settled.insert(record.source, position).is_some() {
+                        return Err(OwnerSessionError::StaleDreamCut);
+                    }
                 }
                 if let Some(delta) = record.memory_delta {
                     memory_head = reliquary_memory_core::history_change_in_frame(&delta)?

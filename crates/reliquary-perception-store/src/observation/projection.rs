@@ -288,27 +288,15 @@ impl ObservationStore {
 
     pub fn requires_memory_body(&self, bodies: &BTreeSet<[u8; 32]>) -> bool {
         self.records.iter().any(|(_, record)| {
-            record.batch.operations.iter().any(|operation| {
-                let includes = |cite: &ObservationCitation| {
+            record
+                .batch
+                .operations
+                .iter()
+                .flat_map(ObservationOperation::citations)
+                .any(|cite| {
                     matches!(cite.source, ObservationSource::Memory(_))
                         && bodies.contains(&cite.body_id)
-                };
-                match operation {
-                    ObservationOperation::Create { draft }
-                    | ObservationOperation::Successor { draft, .. } => {
-                        draft.citations.iter().chain(&draft.reviewed).any(includes)
-                    }
-                    ObservationOperation::Pending { evidence, .. } => evidence.iter().any(includes),
-                    ObservationOperation::Reaffirm { reviewed, .. }
-                    | ObservationOperation::Withdraw { reviewed, .. } => {
-                        reviewed.iter().any(includes)
-                    }
-                    ObservationOperation::Comparison { comparison } => {
-                        includes(&comparison.citation)
-                    }
-                    ObservationOperation::SemanticAward { evidence, .. } => includes(evidence),
-                }
-            })
+                })
         })
     }
 

@@ -177,15 +177,9 @@ impl PhyAuditRead<'_> {
 
     fn at_cut(&self, cut: PhyAuditCut, id: MemoryId) -> Option<&MemoryRecord> {
         let record = self.common.memories.record_at_cut(id, cut.memory)?;
-        let settled = self
-            .common
-            .dreams
-            .settlement_position(id)
-            .is_some_and(|position| position <= cut.settlements)
-            || self
-                .common
-                .memories
-                .has_retained_phy_import_authority_at(id, cut.memory);
+        let settled =
+            super::observations::PhySettlements::Admitted(&self.common.dreams, cut.settlements)
+                .allows(&self.common.memories, id, cut.memory);
         (settled
             && !record.archived
             && record.superseded_by.is_none()

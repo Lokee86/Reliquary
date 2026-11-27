@@ -198,11 +198,20 @@ macro_rules! phy_perception_reads {
                 let common = &self.common;
                 let limit = limit.clamp(1, MAX_CAPTURE_PAGE);
                 let mut memories = BTreeSet::new();
-                let graph = common
+                let mut graph_through = through.graph;
+                let mut last_graph_version = previous.graph;
+                for (index, edge) in common
                     .graph
-                    .relation_changes_after(previous.graph, through.graph, limit + 1)
-                    .collect::<Vec<_>>();
-                for edge in graph.iter().take(limit) {
+                    .relation_changes_after(previous.graph, through.graph, usize::MAX)
+                    .enumerate()
+                {
+                    // A clocked Graph publication is atomic. Include every
+                    // endpoint at its version before advancing the cursor.
+                    if index >= limit && edge.graph_version != last_graph_version {
+                        graph_through = last_graph_version;
+                        break;
+                    }
+                    last_graph_version = edge.graph_version;
                     for endpoint in [edge.source, edge.target] {
                         if let NodeRef::Memory(id) = endpoint {
                             memories.insert(MemoryId(id));
@@ -259,11 +268,7 @@ macro_rules! phy_perception_reads {
                     derived: derived.into_iter().collect(),
                     ego_memories: Vec::new(),
                     memory_through: through.memory,
-                    graph_through: if graph.len() > limit {
-                        graph[limit - 1].graph_version
-                    } else {
-                        through.graph
-                    },
+                    graph_through,
                     entity_through: if entity.len() > limit {
                         entity[limit - 1].0
                     } else {

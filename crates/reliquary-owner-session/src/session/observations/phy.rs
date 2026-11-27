@@ -44,7 +44,89 @@ struct PhyObservationRecord {
     cut: PhyObservationCut,
     batch: ObservationBatch,
     lineages: Vec<Vec<ObservationMemoryLineage>>,
+    source_availability: [u8; 32],
     claim_vectors: Option<ObservationClaimVectors>,
+}
+
+#[derive(serde::Serialize)]
+enum SourceAvailability {
+    RetainedImport,
+    Dream(u64),
+    Unavailable,
+}
+
+fn availability_proof(
+    prefix: ObservationPrefix<'_>,
+    store: &ObservationStore,
+    batch: &ObservationBatch,
+    vectors: Option<&ObservationClaimVectors>,
+) -> Result<[u8; 32], OwnerSessionError> {
+    let ObservationAuthority::Phy(settlements) = prefix.source_eligibility else {
+        return Err(invalid("PHY source proof is missing"));
+    };
+    let citations = batch
+        .operations
+        .iter()
+        .flat_map(ObservationOperation::citations)
+        .chain(
+            vectors
+                .into_iter()
+                .flat_map(|vectors| vectors.rows.iter().map(|row| &row.citation)),
+        );
+    let mut effective_memories = BTreeSet::new();
+    for citation in citations {
+        match citation.source {
+            ObservationSource::Memory(memory_id) => {
+                effective_memories.insert(ObservationMemoryLineage {
+                    memory_id,
+                    revision: citation.revision,
+                    body_id: citation.body_id,
+                });
+            }
+            ObservationSource::Observation(id) => {
+                if let Some(row) = store.revision(id, citation.revision) {
+                    effective_memories.extend(row.lineage.iter().copied());
+                }
+            }
+        }
+    }
+    let proof: Vec<_> = effective_memories
+        .into_iter()
+        .map(|source| {
+            let id = MemoryId(source.memory_id);
+            let available = prefix
+                .memories
+                .revision_record(id, Some(source.revision))
+                .is_ok_and(|record| {
+                    record.memory_version <= prefix.memory_cut
+                        && record.body_id.0 == source.body_id
+                        && prefix.allows_memory_source(record)
+                        && prefix.body_in_prefix(record.body_id)
+                        && prefix.memories.contains_body_payload(record.body_id)
+                });
+            // A review can retain a previous exact citation after source
+            // withdrawal. Its availability differs from newly grounded evidence.
+            let authority = if !available {
+                SourceAvailability::Unavailable
+            } else if let Some(position) = settlements.position(id) {
+                SourceAvailability::Dream(position)
+            } else if prefix
+                .memories
+                .has_retained_phy_import_authority_at(id, prefix.memory_cut)
+            {
+                SourceAvailability::RetainedImport
+            } else {
+                SourceAvailability::Unavailable
+            };
+            (source, authority)
+        })
+        .collect();
+    let bytes =
+        rmp_serde::to_vec_named(&proof).map_err(|_| invalid("PHY evidence proof encoding"))?;
+    let mut hash = Sha256::new();
+    hash.update(b"reliquary-phy-observation-source-availability-v1");
+    hash.update(bytes);
+    Ok(hash.finalize().into())
 }
 
 impl PhyObservationRecord {
@@ -115,6 +197,11 @@ impl PhyObservationRecord {
                 "PHY claim vector profile is inactive at publication",
             ));
         }
+        if self.source_availability
+            != availability_proof(prefix, store, &self.batch, self.claim_vectors.as_ref())?
+        {
+            return Err(invalid("PHY source availability proof differs"));
+        }
         let record = ObservationRecord {
             batch: self.batch,
             memory_cut: cut.audit.memory,
@@ -133,7 +220,13 @@ impl PhyObservationRecord {
 #[derive(Default)]
 pub(in crate::session) struct PhyObservationHistory {
     pub store: ObservationStore,
-    pub cuts: BTreeMap<u64, PhyObservationCut>,
+    pub proofs: BTreeMap<u64, PhyObservationPublicationProof>,
+}
+
+#[derive(serde::Serialize)]
+pub(in crate::session) struct PhyObservationPublicationProof {
+    pub cut: PhyObservationCut,
+    source_availability: [u8; 32],
 }
 
 impl PhyObservationHistory {
@@ -145,20 +238,28 @@ impl PhyObservationHistory {
         active_profiles: &BTreeSet<[u8; 32]>,
     ) -> Result<(), OwnerSessionError> {
         let (version, native) = PhyObservationRecord::decode(frame)?;
+        let source_availability = native.source_availability;
         let (record, receipt) = native.checked(&self.store, prefix, cut, version, |profile| {
             active_profiles.contains(&profile.0)
         })?;
-        self.apply(cut, record, receipt);
+        self.apply(cut, source_availability, record, receipt);
         Ok(())
     }
 
     fn apply(
         &mut self,
         cut: PhyObservationCut,
+        source_availability: [u8; 32],
         record: ObservationRecord,
         receipt: ObservationBatchReceipt,
     ) {
-        self.cuts.insert(receipt.publication_version, cut);
+        self.proofs.insert(
+            receipt.publication_version,
+            PhyObservationPublicationProof {
+                cut,
+                source_availability,
+            },
+        );
         self.store.apply(record, receipt);
     }
 }
@@ -267,7 +368,12 @@ impl PhyWriter {
         self.check_lifecycle_lease("Observation publication")?;
         let history = &self.common.phy_observations;
         if let Some(receipt) = history.store.lookup_receipt(&request.batch)? {
-            if history.cuts.get(&receipt.publication_version) != Some(&request.cut) {
+            if history
+                .proofs
+                .get(&receipt.publication_version)
+                .map(|proof| proof.cut)
+                != Some(request.cut)
+            {
                 return Err(invalid("PHY receipt retry differs from the accepted cut"));
             }
             return Ok(receipt.clone());
@@ -282,8 +388,15 @@ impl PhyWriter {
             .latest_version()
             .checked_add(1)
             .ok_or_else(|| invalid("publication version exhausted"))?;
+        let source_availability = availability_proof(
+            prefix,
+            &history.store,
+            &request.batch,
+            claim_vectors.as_ref(),
+        )?;
         let native = PhyObservationRecord {
             cut,
+            source_availability,
             lineages: prefix.lineages(&history.store, &request.batch)?,
             batch: request.batch,
             claim_vectors,
@@ -299,9 +412,12 @@ impl PhyWriter {
             .and_then(|(published, _)| self.container.sync().map(|()| published));
         match publication {
             Ok(published) if published == version => {
-                self.common
-                    .phy_observations
-                    .apply(cut, record, receipt.clone());
+                self.common.phy_observations.apply(
+                    cut,
+                    source_availability,
+                    record,
+                    receipt.clone(),
+                );
                 self.writer_lease_proof = self.container.writer_lease_proof();
                 Ok(receipt)
             }
@@ -316,3 +432,6 @@ impl PhyWriter {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

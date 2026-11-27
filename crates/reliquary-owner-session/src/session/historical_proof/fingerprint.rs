@@ -57,7 +57,7 @@ pub(super) fn phy(
         reliquary_perception_store::observation::ObservationBatchReceipt,
         reliquary_perception_store::observation::ObservationRecord,
     )],
-    prefixes: &BTreeMap<u64, PhyObservationCut>,
+    prefixes: &BTreeMap<u64, crate::session::observations::PhyObservationPublicationProof>,
 ) -> [u8; 32] {
     let mut value = json!({
         "schema": SCHEMA, "kind": "PHY", "owner": owner_id,
