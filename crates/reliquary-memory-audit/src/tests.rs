@@ -478,3 +478,38 @@ fn phy_settled_mode_accepts_only_ego_memory_evidence() {
     assert_eq!(requests[0].1["mode"], "phy_settled");
     assert_eq!(requests[0].1["sources"][0]["grade"], "settled");
 }
+
+#[test]
+fn both_lists_can_share_one_exact_optional_slot() {
+    let work = [item(1, Grade::Fresh, Eligibility::BOTH, "Original Memory.")];
+    let batch = plan(&work, BatchLimits::default());
+    let endpoint = Endpoint::new([
+        json!({
+            "ego": reply(json!([]), &["share"]),
+            "perception": reply(json!([]), &["share"])
+        }),
+        json!({
+            "ego": reply(json!([1]), &[]),
+            "perception": reply(json!([1]), &[])
+        }),
+    ]);
+    let hit = item(
+        2,
+        Grade::Fresh,
+        Eligibility::BOTH,
+        "Shared optional passage.",
+    )
+    .passage;
+    let result = run_batch(
+        &batch[0],
+        &endpoint,
+        &Contract,
+        &Contract,
+        &mut |_: &OwnerCut, _, _: &str| Ok(vec![hit.clone()]),
+    )
+    .unwrap();
+    assert_eq!(accepted(result.ego).0, [hit.citation]);
+    assert_eq!(accepted(result.perception).0, [hit.citation]);
+    let requests = endpoint.requests.lock().unwrap();
+    assert_eq!(requests[1].1["sources"].as_array().unwrap().len(), 2);
+}
