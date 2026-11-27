@@ -5,13 +5,13 @@ use reliquary_application::perception_workflow::{
     retain_current_ego_evidence,
 };
 use reliquary_owner_session::{
-    AUDIT_WORK_PAGE_SIZE, AuditDiscoveryCursor, AuditWorkSource, MemoryId, PerceptionAuditPage,
-    PerceptionSourceCut, PhyAuditChange, PhyAuditCursor, PhyAuditCut, model::MemoryTextField,
+    AUDIT_CADENCE, AUDIT_WORK_PAGE_SIZE, AuditDiscoveryCursor, AuditWorkSource, MemoryId,
+    PerceptionAuditPage, PerceptionSourceCut, PhyAuditChange, PhyAuditCursor, PhyAuditCut,
+    model::MemoryTextField,
 };
 use serde::{Deserialize, Serialize};
 
 const PHY_REFRESH_CHANGES: usize = 5;
-const REL_REFRESH_SETTLEMENTS: u64 = 25;
 
 #[derive(Deserialize, Serialize)]
 struct Page {
@@ -56,11 +56,15 @@ impl RelIncremental {
         prior.owner_id == current.owner_id
             && prior.history_generation == current.history_generation
             && prior.memory_version <= current.memory
-            && current.settlements.saturating_sub(prior.audit_frontier) >= REL_REFRESH_SETTLEMENTS
+            && current.settlements.saturating_sub(prior.audit_frontier) >= AUDIT_CADENCE as u64
     }
 
-    fn next_page(&mut self, rel: &RelSession, cut: &PerceptionSourceCut) -> Page {
-        let rows = if self.settlements < cut.settlements {
+    fn next_page(
+        &mut self,
+        rel: &RelSession,
+        cut: &PerceptionSourceCut,
+    ) -> Result<Page, OwnerSessionError> {
+        let mut sources = if self.settlements < cut.settlements {
             let rows = rel.perception_settlements_page(
                 self.settlements,
                 cut.settlements,
@@ -69,17 +73,20 @@ impl RelIncremental {
             self.settlements = rows
                 .last()
                 .map_or(cut.settlements, |(position, _)| *position);
-            rows
+            rows.into_iter().map(|(_, id)| id).collect()
         } else {
-            let rows =
-                rel.perception_memory_changes_page(self.memory, cut.memory, AUDIT_WORK_PAGE_SIZE);
-            self.memory = rows.last().map_or(cut.memory, |(position, _)| *position);
-            rows
+            let (next, sources) = rel.perception_recurring_changed_ids_page(
+                cut,
+                self.memory,
+                self.base.audit_frontier,
+                AUDIT_WORK_PAGE_SIZE,
+            )?;
+            self.memory = next;
+            sources
         };
-        let mut sources: Vec<_> = rows.into_iter().map(|(_, id)| id).collect();
         sources.sort_unstable();
         sources.dedup();
-        Page::new(sources, None)
+        Ok(Page::new(sources, None))
     }
 
     fn complete(&self, cut: &PerceptionSourceCut) -> bool {
@@ -213,8 +220,9 @@ impl EgoWorker {
                             rel.perception_source_ids_page(walk.after, AUDIT_WORK_PAGE_SIZE);
                         let next = (sources.len() == AUDIT_WORK_PAGE_SIZE)
                             .then(|| sources[AUDIT_WORK_PAGE_SIZE - 1]);
-                        Page::new(sources, next)
+                        Ok(Page::new(sources, next))
                     })
+                    .map_err(as_error)?
                     .map_err(as_error)?,
             );
             pending.save_checkpoint(run, &walk).map_err(as_error)?;

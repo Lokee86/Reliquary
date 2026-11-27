@@ -242,7 +242,7 @@ fn assert_reopened_proof(
 
 #[test]
 fn managed_ego_refreshes_read_only_rel_without_perception_routes() {
-    use reliquary_owner_session::{EgoCompletion, EgoRelPublication, EgoSourceCut};
+    use reliquary_owner_session::{AUDIT_CADENCE, EgoCompletion, EgoRelPublication, EgoSourceCut};
     let fixture = Fixture::new();
     fixture.append(&[("First Atlas evidence".into(), BASE)], 0);
     let prior = RelSession::open_path_current(&fixture.path)
@@ -268,10 +268,26 @@ fn managed_ego_refreshes_read_only_rel_without_perception_routes() {
         })
         .unwrap();
     }
-    let additional: Vec<_> = (0..25)
+    let additional: Vec<_> = (0..AUDIT_CADENCE)
         .map(|index| (format!("Later Atlas evidence {index:02}"), BASE))
         .collect();
     fixture.append(&additional, 0);
+    {
+        let source = RelSession::open_path_current(&fixture.path).unwrap();
+        let cut = source.perception_source_cut();
+        let mut after_memory = prior.memory;
+        while after_memory < cut.memory {
+            let (next, ids) = source
+                .perception_recurring_changed_ids_page(&cut, after_memory, prior.settlements, 1)
+                .unwrap();
+            assert!(ids.is_empty(), "newly settled sources were already paged");
+            assert!(
+                next > after_memory,
+                "skipped changes must still advance the cursor"
+            );
+            after_memory = next;
+        }
+    }
 
     let profile_dir = fixture.path.with_extension("sqlite");
     fs::create_dir(&profile_dir).unwrap();
@@ -329,7 +345,10 @@ fn managed_ego_refreshes_read_only_rel_without_perception_routes() {
         .completion
         .as_ref()
         .unwrap();
-    assert_eq!(done.cut.audit_frontier, prior.settlements + 25);
+    assert_eq!(
+        done.cut.audit_frontier,
+        prior.settlements + AUDIT_CADENCE as u64
+    );
     assert!(!done.batch_ids.is_empty());
     let source = RelSession::open_path_current(&fixture.path).unwrap();
     assert!(source.observation_progress().is_none());

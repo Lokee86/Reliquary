@@ -145,6 +145,43 @@ impl RelSession {
             .collect()
     }
 
+    /// Page distinct latest changed sources which were absent from the
+    /// recurring audit's first-settlement stream. Advance across all raw
+    /// changes, including superseded revisions and overlapping settlements.
+    pub fn perception_recurring_changed_ids_page(
+        &self,
+        cut: &PerceptionSourceCut,
+        after_memory: u64,
+        after_settlement: u64,
+        limit: usize,
+    ) -> Result<(u64, Vec<MemoryId>), OwnerSessionError> {
+        self.check_perception_source_cut(cut)?;
+        if after_memory > cut.memory || after_settlement > cut.settlements {
+            return Err(OwnerSessionError::ManagementStale);
+        }
+        let rows = self.perception_memory_changes_page(after_memory, cut.memory, limit.max(1));
+        let next = rows.last().map_or(cut.memory, |(position, _)| *position);
+        let ids = rows
+            .into_iter()
+            .filter_map(|(position, id)| {
+                let in_settlement_page =
+                    self.common
+                        .dreams
+                        .settlement_position(id)
+                        .is_some_and(|settled| {
+                            settled > after_settlement && settled <= cut.settlements
+                        });
+                let latest = self
+                    .common
+                    .memories
+                    .record_at_cut(id, cut.memory)
+                    .is_some_and(|record| record.memory_version == position);
+                (!in_settlement_page && latest).then_some(id)
+            })
+            .collect();
+        Ok((next, ids))
+    }
+
     pub fn perception_source_metadata(
         &self,
         cut: &PerceptionSourceCut,
