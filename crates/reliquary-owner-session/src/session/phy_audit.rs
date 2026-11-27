@@ -182,7 +182,10 @@ impl PhyAuditRead<'_> {
             .dreams
             .settlement_position(id)
             .is_some_and(|position| position <= cut.settlements)
-            || self.common.memories.has_retained_phy_import_birth(id);
+            || self
+                .common
+                .memories
+                .has_retained_phy_import_authority_at(id, cut.memory);
         (settled
             && !record.archived
             && record.superseded_by.is_none()
@@ -292,6 +295,28 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
+        let unsettled = source.phy_audit_cut();
+        let mut retained_delta = accepted.clone();
+        retained_delta.record.revision = 2;
+        retained_delta.record.memory_version = 2;
+        retained_delta.record.updated_at_ns = 4;
+        retained_delta.record.mutation_id = "accepted-phy-correction".into();
+        source.writer_lease_proof = source.container.writer_lease_proof();
+        source
+            .import_accepted_memory_revision(1, 4, &retained_delta)
+            .unwrap();
+        let page = source
+            .phy_audit_changes_page(unsettled, source.phy_audit_cut(), unsettled.into())
+            .unwrap();
+        assert_eq!(
+            page.changes,
+            [PhyAuditChange {
+                memory: id,
+                previous_revision: None,
+                current_revision: Some(2),
+            }]
+        );
+
         phy.import_accepted_memory_revision(1, 3, &accepted)
             .unwrap();
         let initial = phy.phy_audit_cut();
