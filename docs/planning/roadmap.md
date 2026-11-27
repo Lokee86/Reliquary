@@ -45,7 +45,7 @@ Every Memory category and type is eligible. The audit reads active, settled PHY 
 3. **Compress if over budget.** Give the full draft to one bounded compression job. The model rewrites for information density and can use a tokenizer tool to measure candidate text and refine it within the same job. Preserve as many distinct facts as possible, including dates, scope, conditions and exceptions that change their meaning. Use the same token counter for the tool and the final size check. [Token-counting interface](../../crates/reliquary-context-engine/src/compaction_budget.rs)
 4. **Verify the final text and save.** Verify the exact candidate against the captured sources. If compression ran, compare with the draft for material information lost or changed in the rewrite. Recheck the final size and source standing before publishing the whole replacement and its source cut. Publish only after those checks and verification pass. [Ego audit handoff and recovery](#ego-audit-handoff-and-recovery)
 
-Use 4,000 tokens as the proposed starting saved cap for calibration. Context Engine selects the routine profile under the shared Ego injection budget. [Ego injection budget](https://github.com/Lokee86/Reliquary/blob/2b5bd0ea/docs/ego-cross-chat-context-plan.md#L51-L69)
+Use 4,000 tokens as the proposed starting saved cap for calibration. Ego selects the routine profile within the package budget assigned by Context Engine. [Ego injection budget](https://github.com/Lokee86/Reliquary/blob/2b5bd0ea/docs/ego-cross-chat-context-plan.md#L51-L69)
 
 ## Ego audit handoff and recovery
 
@@ -71,7 +71,7 @@ The user invokes `/identity` to have the assistant draft a change to a selected 
 
 ## Ego Anchors
 
-Show Anchors as **Pinned context** in the Inspector. Authorized users can view, create, edit and remove pins directly. Show each pin's owner as the active PHY or the named REL. A PHY pin carries user-specific standing context. A REL pin carries standing context for work in that REL. A private preference about one REL can stay PHY-owned with its applicability stated in the text. Context Engine selects applicable authorized pins within the Ego budget. [Existing Anchor storage](../../crates/reliquary-ego-store/src/store.rs)
+Show Anchors as **Pinned context** in the Inspector. Authorized users can view, create, edit and remove pins directly. Show each pin's owner as the active PHY or the named REL. A PHY pin carries user-specific standing context. A REL pin carries standing context for work in that REL. A private preference about one REL can stay PHY-owned with its applicability stated in the text. Ego selects applicable authorized pins for its budgeted package. [Existing Anchor storage](../../crates/reliquary-ego-store/src/store.rs)
 
 | Assistant tool | When to use it |
 | --- | --- |
@@ -80,6 +80,16 @@ Show Anchors as **Pinned context** in the Inspector. Authorized users can view, 
 | `delete_anchor` | Remove an existing pin at the user's request. Supply the owner, Anchor ID and expected revision. |
 
 The assistant can recognize pin requests in ordinary language. A request to remember something ordinarily uses the Memory workflow. Resolve ambiguous scope with the user before pinning. The write path verifies write access to the selected owner and checks the named Anchor and revision on edits and removals. Inspector edits and assistant tool writes use the same owner checks. Edits append revisions and removals append tombstones.
+
+## Ego package in Hermes
+
+Ego builds an ordered package from the active Identity, applicable Pins, the routine PHY profile and relevant points from authorized REL summaries. It fits that package to the budget supplied by Context Engine. Context Engine owns the final request, including placement, the current conversation and any cross-chat context. [Ego budget](https://github.com/Lokee86/Reliquary/blob/2b5bd0ea/docs/ego-cross-chat-context-plan.md#L51-L69)
+
+Use the existing stock Hermes Context Engine plugin interface, selected per profile through `context.engine`. In `select_context()`, match the active profile's rendered `SOUL.md` block at the start of the system message. Swap that exact block for the approved Ego Identity and preserve the remainder of the prompt and request. Return the original request if the expected identity block cannot be matched. Hermes retains its current-chat compaction and transcript ownership. [Stock Hermes request hook](https://github.com/NousResearch/hermes-agent/blob/2bd378ed1b8d6bf2192cb26e0a55ff3091e6bd19/agent/turn_request_assembly.py#L141-L149)
+
+Set `memory.memory_enabled` and `memory.user_profile_enabled` to `false` for a participating profile. This disables Hermes' built-in `MEMORY.md` and `USER.md` stores while keeping the configured external Reliquary provider available. Pins and the routine PHY profile serve those roles in the Ego package. [Stock Hermes memory settings](https://github.com/NousResearch/hermes-agent/blob/v0.23.0/website/docs/user-guide/features/memory.md#L285-L307)
+
+The disposable probe on stock Hermes v0.23.0 (`2bd378ed1`) captured the ordinary Chat Completions request at a local stub. The identity substitution preserved 11,828 bytes of prompt suffix and all other request fields. A mismatching prefix left the request intact. Use that stock extension seam for this design. [Hermes Context Engine plugin interface](https://github.com/NousResearch/hermes-agent/blob/v0.23.0/website/docs/developer-guide/context-engine-plugin.md)
 
 ## Observation creation
 
