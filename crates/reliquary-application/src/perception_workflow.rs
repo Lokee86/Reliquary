@@ -14,9 +14,7 @@ pub use discovery::{
 pub use phy_discovery::{
     PhyAuditDiscovery, capture_phy_discovery, discover_phy, phy_audit_citation, phy_audit_lookups,
 };
-use reliquary_memory_audit::{
-    Eligibility, Grade, OwnerCut, Passage, SourceCitation, SourceId, TextField,
-};
+use reliquary_memory_audit::{Eligibility, Grade, Passage, SourceCitation, SourceId, TextField};
 use reliquary_owner_session::model::MemoryTextField;
 use reliquary_owner_session::observation::{ObservationCitation, ObservationId, ObservationSource};
 use reliquary_owner_session::{
@@ -27,7 +25,9 @@ use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
 pub use reliquary_ego::EgoCandidate;
-pub use reliquary_memory_audit::{Feature, ListResult, LookupError, LookupRequest};
+pub use reliquary_memory_audit::{
+    BatchLimits, CONTRACT_VERSION, Feature, ListResult, LookupError, LookupRequest, OwnerCut,
+};
 pub use reliquary_perception::ObservationProposal;
 
 /// Immutable, nonsecret binding supplied by the configured runtime.

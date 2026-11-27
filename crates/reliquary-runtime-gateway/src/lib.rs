@@ -441,6 +441,14 @@ mod insomnia_worker;
 mod instance_context;
 mod instance_conversation;
 mod instance_dream;
+mod instance_ego;
+pub use instance_ego::{
+    EgoContext, EgoContextBinding, EgoIdentityDraft, EgoPinPatch, EgoQueryVector, EgoScope,
+    PreparedEgoIdentity,
+};
+pub use reliquary_owner_session::{
+    EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoIdentity, EgoIdentityId, EgoIdentitySelection,
+};
 mod owner_workers;
 mod workflow_workers;
 pub use instance_context::{

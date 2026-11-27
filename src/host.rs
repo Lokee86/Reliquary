@@ -294,6 +294,8 @@ pub use entity_review::{EntityReviewAuthority, EntityReviewSession};
 
 #[path = "host_context.rs"]
 pub(crate) mod context;
+#[path = "host_ego.rs"]
+pub(crate) mod ego;
 #[path = "host_external_source.rs"]
 pub(crate) mod external_source;
 #[path = "host_project_source.rs"]

@@ -8,6 +8,10 @@ use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
+pub fn ego_as_of(started_ns: i64) -> String {
+    chrono::DateTime::<chrono::Utc>::from_timestamp_nanos(started_ns).to_rfc3339()
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum EgoRunKind {
     RelBootstrap,
@@ -123,6 +127,8 @@ impl EgoPendingWork {
                     source BLOB NOT NULL,
                     binding BLOB NOT NULL,
                     checkpoint BLOB,
+                    initial INTEGER NOT NULL,
+                    started_ns INTEGER NOT NULL,
                     sealed INTEGER NOT NULL DEFAULT 0
                  );
                  CREATE INDEX ego_run_pair ON ego_run (phy, source, sealed);
@@ -221,7 +227,7 @@ impl EgoPendingWork {
     ) -> Result<Option<EgoRun>, EgoPendingError> {
         self.run_by_query(
             "SELECT id, binding FROM ego_run
-                 WHERE phy = ?1 AND source = ?2 AND sealed = 1 ORDER BY rowid LIMIT 1",
+                 WHERE phy = ?1 AND source = ?2 AND sealed = 1 ORDER BY initial DESC, rowid LIMIT 1",
             phy,
             source,
         )
@@ -287,6 +293,14 @@ impl EgoPendingWork {
         encoded
             .map(|encoded| serde_json::from_slice(&encoded).map_err(|_| EgoPendingError::Codec))
             .transpose()
+    }
+
+    pub fn started_ns(&self, run: EgoRun) -> Result<i64, EgoPendingError> {
+        Ok(self.connection.query_row(
+            "SELECT started_ns FROM ego_run WHERE id = ?1",
+            [run.id().as_slice()],
+            |row| row.get(0),
+        )?)
     }
 
     pub fn save_checkpoint<T: Serialize>(
@@ -364,14 +378,25 @@ fn decode_run(
 fn ensure_run(connection: &Connection, run: EgoRun) -> Result<bool, EgoPendingError> {
     let binding = serde_json::to_vec(&run).map_err(|_| EgoPendingError::Codec)?;
     let id = run.id();
+    let initial = matches!(
+        run.kind,
+        EgoRunKind::RelBootstrap | EgoRunKind::RelSharedBootstrap | EgoRunKind::PhyBootstrap
+    );
+    let started_ns = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .and_then(|value| i64::try_from(value.as_nanos()).ok())
+        .ok_or(EgoPendingError::InvalidBinding)?;
     connection.execute(
-        "INSERT INTO ego_run (id, phy, source, binding) VALUES (?1, ?2, ?3, ?4)
+        "INSERT INTO ego_run (id, phy, source, binding, initial, started_ns) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
          ON CONFLICT(id) DO NOTHING",
         params![
             id.as_slice(),
             run.phy.as_slice(),
             run.source.owner_id.as_slice(),
             &binding,
+            initial,
+            started_ns,
         ],
     )?;
     let (stored, sealed): (Vec<u8>, bool) = connection.query_row(
