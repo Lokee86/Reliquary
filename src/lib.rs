@@ -29,7 +29,8 @@ pub use configured_runtime::{
 pub use error::{ProductError, ProductErrorKind};
 pub use host::{
     ConversationQueue, EntityReviewAuthority, EntityReviewSession, Gateway, HostAdmissionAdapter,
-    HostAdmissionControl, HostCredentialBinding, Instance, OwnerGrant, TrustedHostAdmission,
+    HostAdmissionControl, HostCredentialBinding, Instance, OwnerGrant, PhyPerceptionWorker,
+    TrustedHostAdmission,
 };
 pub use host::{context::*, ego::*, external_source::*, project_source::*};
 pub use maintenance::*;

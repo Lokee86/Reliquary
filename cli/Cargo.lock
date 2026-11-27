@@ -3438,6 +3438,7 @@ dependencies = [
  "reliquary-application",
  "reliquary-owner-session",
  "reliquary-switchboard",
+ "rmp-serde",
  "serde",
  "serde_json",
  "sha2",

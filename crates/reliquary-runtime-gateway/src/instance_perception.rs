@@ -1,4 +1,5 @@
 //! Managed Perception work on the same owner lease and mount fences as live work.
+mod phy;
 mod poll;
 #[cfg(test)]
 mod tests;
@@ -17,6 +18,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+pub use phy::PhyPerceptionWorker;
 pub use reliquary_application::perception_workflow::PerceptionRoutes;
 
 const POLL_INTERVAL: Duration = Duration::from_millis(250);
@@ -37,6 +39,7 @@ struct Control {
     ego_audit_registry: Arc<crate::ego_audit_handoff::EgoAuditRegistry>,
     routes: RwLock<Option<Arc<PerceptionRoutes>>>,
     admissions: Mutex<Vec<Admission>>,
+    active_phy: Mutex<Weak<phy::Admission>>,
     wake: Condvar,
     stopping: AtomicBool,
 }
@@ -55,6 +58,7 @@ impl Gateway {
                 ego_audit_registry: self.ego_audit_registry.clone(),
                 routes: RwLock::new(None),
                 admissions: Mutex::new(Vec::new()),
+                active_phy: Mutex::new(Weak::new()),
                 wake: Condvar::new(),
                 stopping: AtomicBool::new(false),
             }),

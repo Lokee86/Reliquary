@@ -528,7 +528,7 @@ fn process_contribution(
     }
 }
 
-fn draft_routes(
+pub(super) fn draft_routes(
     routes: &PerceptionRoutes,
     memory_vector_profile: Option<CompatibilityProfileId>,
 ) -> ObservationDraftRoutes<'_> {
@@ -668,7 +668,7 @@ fn credit_change(rel: &RelSession, operation: &mut ObservationOperation) {
         .map(|(_, _, activity)| activity);
 }
 
-fn draft_error(error: ObservationWorkflowError) -> GatewayError {
+pub(super) fn draft_error(error: ObservationWorkflowError) -> GatewayError {
     if error.malformed_native_reply() {
         workflow_wait(MALFORMED_NATIVE_DRAFT)
     } else {

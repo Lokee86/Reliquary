@@ -494,7 +494,7 @@ pub use instance_identity::{
 mod ego_audit_handoff;
 mod instance_perception;
 mod instance_perception_lifecycle;
-pub use instance_perception::{PerceptionLifecycle, PerceptionRoutes};
+pub use instance_perception::{PerceptionLifecycle, PerceptionRoutes, PhyPerceptionWorker};
 mod instance_vectors;
 pub use instance_vectors::{
     ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication,

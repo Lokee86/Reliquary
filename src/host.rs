@@ -87,7 +87,7 @@ impl Gateway {
         self.set_perception_runtime(runtime)
     }
 
-    /// Bind the same-REL Perception worker while leaving Entity routing independent.
+    /// Bind the managed Perception routes for authorized REL and active PHY work.
     pub fn set_perception_runtime(
         &self,
         runtime: Option<&crate::ConfiguredRuntime>,
@@ -299,6 +299,20 @@ pub use admission::{
 #[path = "host_instance.rs"]
 mod instance;
 pub use instance::{ConversationQueue, Instance};
+pub use runtime::PhyPerceptionWorker;
+
+impl Instance {
+    /// Admit the explicitly active PHY for local Perception on its writable mount.
+    /// Stop the handle before switching owners or detaching the mount.
+    pub fn start_phy_perception(&self, phy: OwnerId) -> Result<PhyPerceptionWorker, ProductError> {
+        self.require(OwnerGrant::OperatePhylactery(phy))?;
+        Ok(self.gateway.inner.start_phy_perception(
+            &self.gateway.perception,
+            self.inner.clone(),
+            phy.into(),
+        )?)
+    }
+}
 
 #[path = "host_entity_review.rs"]
 mod entity_review;
