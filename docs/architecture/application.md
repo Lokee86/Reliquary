@@ -40,6 +40,8 @@ Application captures audit work from one REL. It rechecks Fresh Memory reference
 
 Application resolves graph slots through the scoped owner at the captured cut. PHY capture plans bounded Ego-only batches and resumes oversized source fields at their exact UTF-8 byte offsets. The PHY evidence reader returns exact text with the accepted revision's source time and temporal metadata for later stages. [PHY capture](../../crates/reliquary-application/src/perception_workflow/phy_discovery.rs)
 
+REL Ego preparation projects Fresh discovery sources and retained predecessor passages through the mounted REL, then uses the captured values outside owner locks. It accepts the complete sealed batch set and compares exact Memory coverage with the destination PHY's saved topics. Configured General synthesis and verification produce point changes with expected revisions. Compatible embedding and validated structured stage results are saved in the protected pending-work database against the sealed run and exact request binding. A retry reuses those results, and clearing the completed run removes its stage rows. The mounted publisher rechecks source standing and grants before committing the proposal and completion together. [REL preparation](../../crates/reliquary-application/src/ego_rel_workflow.rs)
+
 Context preparation prepends attributed dependency-synthesis messages before the primary request and counts them under its existing source and compaction budgets. The transcript and source view used for checkpointing contain the existing conversation evidence.
 
 ## Failure, recovery, and invariants
