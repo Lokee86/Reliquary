@@ -67,6 +67,8 @@ The public `TrustedHostAdapter` contract supplies configured capabilities, authe
 
 Typed retrieval delivery distinguishes a newly completed exact operation from a replay. Observation-only delivery confirms consumption through the trusted host and advances the turn frontier without a Memory-use receipt. Mixed delivery records the selected Memory use once through the REL writer and retains the selected Observations in the same turn frontier.
 
+Scoped chat binds an optional REL and the trusted host's revocable active PHY to one turn. Gateway validates the credential, mounted owner and active binding before decision disclosure and before returning results. The shared ranking carries owner-qualified exact revisions in one ordered list. Before host handoff and checked acceptance, Gateway rechecks eligible Memory bodies and current Observation citations in each owner. The delivery manifest binds the PHY owner and history generation. Only selected REL Memories can earn a REL Freshness receipt. [Ordinary recall and inspection](../public-product-api.md#host-admitted-chat-retrieval)
+
 These are library integration contracts, not wire protocol/deployment documentation. Exact public signatures are re-exported through [`src/lib.rs`](../../src/lib.rs) and [`crates/reliquary-runtime-gateway/src/lib.rs`](../../crates/reliquary-runtime-gateway/src/lib.rs); the CLI and operator guides own user-facing invocation details.
 
 ## Failure, recovery, and invariants

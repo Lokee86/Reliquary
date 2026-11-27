@@ -108,7 +108,7 @@ impl Instance {
             |memory: &ManifestMemory| phy_owner_text.as_ref() == Some(&memory.owner_id);
         if manifest.phy_generation != phy.map(scoped::PhyRecallBinding::history_generation)
             || manifest.phy_owner_id != phy_owner_text
-            || (phy.is_none() && !manifest.ranked.is_empty())
+            || (phy.is_none() && (!manifest.ranked.is_empty() || manifest.phy_graph.is_some()))
             || manifest.memories.iter().any(|memory| {
                 !is_phy_memory(memory)
                     && (turn.mount.is_none() || memory.owner_id != manifest.owner_id)
@@ -179,10 +179,11 @@ impl Instance {
             .iter()
             .filter(|claim| Some(claim.citation.owner_id) != phy_owner)
             .collect::<Vec<_>>();
-        let sources = rel_memories
+        let mut sources = rel_memories
             .iter()
             .map(|(_, id)| FreshnessMemoryId(id.0))
             .collect::<Vec<_>>();
+        sources.sort_unstable();
         if phy.is_some() {
             if manifest.ranked.len() != ids.len() + observation_ids.len()
                 || manifest.ranked.len() > MAX_AGENTIC_OBSERVATIONS
@@ -200,7 +201,10 @@ impl Instance {
             )?;
         }
         if !sources.is_empty() && !can_record_rel {
-            return Err(GatewayError::WriterUnavailable);
+            return Err(GatewayError::UnauthorizedRel {
+                principal: self.principal.to_string(),
+                owner,
+            });
         }
         // Validate the retained frontier before publishing any receipt.
         for id in manifest.selected_ids.iter().chain(&manifest.searched_ids) {

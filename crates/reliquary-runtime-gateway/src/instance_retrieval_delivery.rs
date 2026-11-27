@@ -25,11 +25,12 @@ impl Instance {
             .delivery
             .try_lock()
             .map_err(|_| GatewayError::HostStatusUnknown)?;
-        let sources = prepared
+        let mut sources = prepared
             .body_bindings
             .iter()
             .map(|(id, _, _)| FreshnessMemoryId(id.0))
             .collect::<Vec<_>>();
+        sources.sort_unstable();
         if let Some(receipt) = if turn.phy.is_none() || !sources.is_empty() {
             self.accepted_use_receipt(prepared.owner, &prepared.use_id)?
         } else {
@@ -170,6 +171,7 @@ impl Instance {
         self.check_phy_delivery(
             turn,
             prepared.phy_generation,
+            prepared.phy_graph,
             &prepared.phy_memories,
             prepared
                 .preview

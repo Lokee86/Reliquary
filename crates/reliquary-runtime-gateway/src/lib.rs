@@ -515,7 +515,8 @@ pub use host_memory_delivery::{
 };
 pub use instance_external_source::{AuthorizedExternalLexicalIndex, ExternalHostSource};
 pub use instance_retrieval::{
-    ActivePhyRecall, MemoryRetrievalRoute, MemoryRetrievalTurn, PreparedMemoryDelivery,
-    RetrievalCut, RetrievalDeliveryOutcome, RetrievalMemory, RetrievalMemoryReference,
-    RetrievalMode, RetrievalOutcome, RetrievalPreview, RetrievalRankedHit, RetrievalSource,
+    ActivePhyRecall, MemoryQueryEmbedding, MemoryRetrievalRoute, MemoryRetrievalTurn,
+    PreparedMemoryDelivery, RetrievalCut, RetrievalDeliveryOutcome, RetrievalMemory,
+    RetrievalMemoryReference, RetrievalMode, RetrievalOutcome, RetrievalPreview,
+    RetrievalRankedHit, RetrievalSource,
 };

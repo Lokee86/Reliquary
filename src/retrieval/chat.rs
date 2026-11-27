@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 const ARCHIVE_RESULT_LIMIT: usize = 10;
 
-/// A read-only retrieval controller bound to the authenticated Instance and REL.
+/// A read-only retrieval controller bound to an authenticated Instance and owner scope.
 /// Hosts accept a result after their transcript disclosure checks succeed.
 pub struct ChatRetrieval {
     instance: Instance,
@@ -242,10 +242,34 @@ impl ChatRetrieval {
         query: &str,
         runtime: &ConfiguredRuntime,
     ) -> Result<ChatMemoryResult, ProductError> {
+        self.query(query, runtime, None)
+    }
+
+    /// Query the scoped ordinary population with one shared result limit.
+    pub fn query_memory_limited(
+        &mut self,
+        query: &str,
+        runtime: &ConfiguredRuntime,
+        limit: usize,
+    ) -> Result<ChatMemoryResult, ProductError> {
+        self.query(query, runtime, Some(limit))
+    }
+
+    fn query(
+        &mut self,
+        query: &str,
+        runtime: &ConfiguredRuntime,
+        limit: Option<usize>,
+    ) -> Result<ChatMemoryResult, ProductError> {
         self.returned = None;
         self.pending = None;
         let cut = self.cut()?;
-        let outcome = self.instance.memory_query(&self.session, query, runtime)?;
+        let outcome = if let Some(limit) = limit {
+            self.instance
+                .memory_query_limited(&self.session, query, runtime, limit)?
+        } else {
+            self.instance.memory_query(&self.session, query, runtime)?
+        };
         self.prepare(Uuid::new_v4().simple().to_string(), cut, outcome.preview)
     }
 

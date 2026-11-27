@@ -45,6 +45,7 @@ pub struct PreparedMemoryDelivery {
     pub(super) preview: RetrievalPreview,
     pub(super) removal_cut: u64,
     pub(super) phy_generation: Option<[u8; 32]>,
+    pub(super) phy_graph: Option<u64>,
     pub(super) phy_memories: Vec<RetrievalMemoryReference>,
     pub(super) body_bindings: Vec<(
         reliquary_owner_session::model::MemoryId,
@@ -95,8 +96,15 @@ pub struct RetrievalOutcome {
 }
 
 /// The composed MemoryRetrieval route. Resolution follows the existing
-/// dedicated ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ shared decision ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ adapted general ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ unavailable hierarchy.
+/// dedicated, shared decision, adapted general, then unavailable hierarchy.
 pub struct MemoryRetrievalRoute(Arc<dyn DecisionEndpoint>);
+
+/// The one query embedding with each owner's independently matched profile.
+pub struct MemoryQueryEmbedding {
+    pub rel_profile: Option<CompatibilityProfileId>,
+    pub phy_profile: Option<CompatibilityProfileId>,
+    pub vector: Vec<f32>,
+}
 impl MemoryRetrievalRoute {
     /// Bind the endpoint already resolved by the configured runtime.
     pub fn from_endpoint(endpoint: Arc<dyn DecisionEndpoint>) -> Self {
@@ -184,6 +192,8 @@ struct DeliveryPayload<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) phy_generation: Option<[u8; 32]>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) phy_graph: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) phy_owner_id: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub(super) ranked: Vec<RetrievalRankedHit>,
@@ -211,6 +221,8 @@ pub(super) struct DeliveryManifest {
     pub(super) observations: Vec<ObservationClaim>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) phy_generation: Option<[u8; 32]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) phy_graph: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) phy_owner_id: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

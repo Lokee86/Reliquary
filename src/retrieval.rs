@@ -4,7 +4,9 @@ use crate::{
     OwnerId, ProductError, ProductErrorKind, TemporalFilter,
 };
 use reliquary_application::RetrievalAction;
-use reliquary_runtime_gateway::{GatewayError, MemoryRetrievalRoute, MemoryRetrievalTurn};
+use reliquary_runtime_gateway::{
+    GatewayError, MemoryQueryEmbedding, MemoryRetrievalRoute, MemoryRetrievalTurn,
+};
 use reliquary_switchboard::DecisionConsumer;
 mod archive;
 mod archive_publication;
@@ -290,6 +292,35 @@ impl Instance {
         )
     }
 
+    /// Start a scoped ordinary query with a shared limit on returned hits.
+    pub fn memory_query_limited(
+        &self,
+        session: &RetrievalSession,
+        query: &str,
+        runtime: &ConfiguredRuntime,
+        limit: usize,
+    ) -> Result<RetrievalOutcome, ProductError> {
+        if session.phy.is_none() {
+            return Err(ProductError::invalid(
+                "a scoped query requires an active PHY",
+            ));
+        }
+        if !(1..=crate::MAX_MANAGEMENT_PAGE_ITEMS).contains(&limit) {
+            return Err(ProductError::invalid(
+                "retrieval limit must be between 1 and 128",
+            ));
+        }
+        let mut policy = runtime.retrieval;
+        policy.result_limit = policy.result_limit.min(limit);
+        self.memory_action_with_policy(
+            session,
+            RetrievalAction::Query(validate_text(query)?.into()),
+            runtime,
+            None,
+            policy,
+        )
+    }
+
     /// Start a new topical query with an explicit normalized time window.
     pub fn memory_query_temporal(
         &self,
@@ -439,6 +470,17 @@ impl Instance {
         runtime: &ConfiguredRuntime,
         filter: Option<TemporalFilter>,
     ) -> Result<RetrievalOutcome, ProductError> {
+        self.memory_action_with_policy(session, action, runtime, filter, runtime.retrieval)
+    }
+
+    fn memory_action_with_policy(
+        &self,
+        session: &RetrievalSession,
+        action: RetrievalAction,
+        runtime: &ConfiguredRuntime,
+        filter: Option<TemporalFilter>,
+        policy: reliquary_application::RetrievalConfig,
+    ) -> Result<RetrievalOutcome, ProductError> {
         self.validate_retrieval(session)?;
         let route = runtime
             .decision_endpoint_for(DecisionConsumer::MemoryRetrieval)
@@ -457,12 +499,12 @@ impl Instance {
             ));
         }
         self.inner
-            .evaluate_agentic_memory_with_policy(
+            .evaluate_agentic_memory_with_scope_policy(
                 &session.inner,
                 &route,
                 action,
                 filter,
-                runtime.retrieval,
+                policy,
                 || {
                     query
                         .zip(endpoint)
@@ -476,7 +518,13 @@ impl Instance {
                                     endpoint,
                                     EmbeddingScope::Memory,
                                 )
-                                .map(Some)
+                                .map(|(profile, vector)| {
+                                    Some(MemoryQueryEmbedding {
+                                        rel_profile: Some(profile),
+                                        phy_profile: None,
+                                        vector,
+                                    })
+                                })
                             }
                         })
                         .transpose()

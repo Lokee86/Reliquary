@@ -70,7 +70,10 @@ impl Instance {
         observation_version: u64,
         citations: &[ObservationCitation],
     ) -> Result<(), GatewayError> {
-        if turn.mode != RetrievalMode::Inspect || citations.len() > MAX_AGENTIC_OBSERVATIONS {
+        if turn.mode != RetrievalMode::Inspect
+            || turn.phy.is_some()
+            || citations.len() > MAX_AGENTIC_OBSERVATIONS
+        {
             return Err(GatewayError::InvalidPreparedRetrieval);
         }
         let _delivery = turn
@@ -156,6 +159,33 @@ impl Instance {
         policy: reliquary_application::RetrievalConfig,
         embed_query: impl FnOnce() -> Result<Option<(CompatibilityProfileId, Vec<f32>)>, GatewayError>,
     ) -> Result<RetrievalOutcome, GatewayError> {
+        self.evaluate_agentic_memory_with_scope_policy(
+            turn,
+            route,
+            action,
+            query_filter,
+            policy,
+            || {
+                embed_query().map(|embedding| {
+                    embedding.map(|(profile, vector)| MemoryQueryEmbedding {
+                        rel_profile: Some(profile),
+                        phy_profile: Some(profile),
+                        vector,
+                    })
+                })
+            },
+        )
+    }
+
+    pub fn evaluate_agentic_memory_with_scope_policy(
+        &self,
+        turn: &MemoryRetrievalTurn,
+        route: &MemoryRetrievalRoute,
+        action: RetrievalAction,
+        query_filter: Option<TemporalFilter>,
+        policy: reliquary_application::RetrievalConfig,
+        embed_query: impl FnOnce() -> Result<Option<MemoryQueryEmbedding>, GatewayError>,
+    ) -> Result<RetrievalOutcome, GatewayError> {
         if query_filter.is_some_and(|filter| {
             !matches!(&action, RetrievalAction::Query(_))
                 || filter.start_ns >= filter.end_exclusive_ns
@@ -180,12 +210,16 @@ impl Instance {
                 state.provided_observations.clone(),
             )
         };
-        let (profile, query_vector) = match &action {
+        let (profile, phy_profile, query_vector) = match &action {
             RetrievalAction::Query(_) => match embed_query()? {
-                Some((profile, vector)) => (Some(profile), Some(vector)),
-                None => (None, None),
+                Some(embedding) => (
+                    embedding.rel_profile,
+                    embedding.phy_profile,
+                    Some(embedding.vector),
+                ),
+                None => (None, None, None),
             },
-            _ => (prior_profile, None),
+            _ => (prior_profile, None, None),
         };
         validate_turn_binding(self, turn, owner, turn_id)?;
         let include_vectors = query_vector.is_some();
@@ -196,141 +230,150 @@ impl Instance {
             endpoint: route.0.as_ref(),
             current_cut: None,
         };
-        let (evaluation, preview, snapshot, removal_cut, phy_memories) = if turn.phy.is_some() {
-            let traverse = matches!(action, RetrievalAction::Traverse(_));
-            let captured = self.capture_scoped_recall(
-                turn,
-                profile,
-                include_vectors,
-                &provided_observations,
-                traverse,
-            )?;
-            if query_vector.is_some() && !captured.profile_has_vectors() {
-                return Err(GatewayError::RetrievalUnavailable(
-                    "no current Memory vectors for the embedding profile",
-                ));
-            }
-            let check_cut = || {
-                let current = self.capture_scoped_recall(
+        let (evaluation, preview, snapshot, removal_cut, phy_memories, phy_graph) =
+            if turn.phy.is_some() {
+                let traverse = matches!(action, RetrievalAction::Traverse(_));
+                let captured = self.capture_scoped_recall(
                     turn,
-                    profile,
+                    (profile, phy_profile),
                     include_vectors,
                     &provided_observations,
                     traverse,
                 )?;
-                (captured == current)
-                    .then_some(())
-                    .ok_or(GatewayError::StaleRetrieval)
-            };
-            let scoped_route = AuthorizedDecision {
-                current_cut: Some(&check_cut),
-                ..authorized_route
-            };
-            let evaluated = captured.evaluate(
-                &scoped_route,
-                &prior,
-                action,
-                query_vector.as_deref(),
-                query_filter,
-                policy,
-            );
-            scoped_route.check()?;
-            let evaluated = evaluated?;
-            (
-                evaluated.evaluation,
-                evaluated.preview,
-                evaluated.rel_memory,
-                evaluated.removal_cut,
-                evaluated.phy_memories,
-            )
-        } else {
-            let (snapshot, removal_cut, observation_cut, mut observation_candidates) = self
-                .with_reliquary(owner, |rel| -> Result<_, GatewayError> {
-                    let candidates = if matches!(action, RetrievalAction::Traverse(_)) {
-                        Default::default()
-                    } else {
-                        observation_retrieval_candidates(
-                            rel,
-                            profile.filter(|_| include_vectors),
-                            &provided_observations,
-                        )?
-                    };
-                    Ok((
-                        capture_memory_snapshot(rel, profile, include_vectors)?,
-                        rel.archive_source_removal_version(),
-                        ObservationReadCut::capture(rel),
-                        candidates,
-                    ))
-                })??;
-            if query_vector.is_some()
-                && snapshot.vectors.is_empty()
-                && observation_candidates
+                let available_vector = query_vector
+                    .as_deref()
+                    .filter(|_| captured.profile_has_vectors());
+                let check_cut = || {
+                    let current = self.capture_scoped_recall(
+                        turn,
+                        (profile, phy_profile),
+                        include_vectors,
+                        &provided_observations,
+                        traverse,
+                    )?;
+                    (captured == current)
+                        .then_some(())
+                        .ok_or(GatewayError::StaleRetrieval)
+                };
+                let scoped_route = AuthorizedDecision {
+                    current_cut: Some(&check_cut),
+                    ..authorized_route
+                };
+                let evaluated = captured.evaluate(
+                    &scoped_route,
+                    &prior,
+                    action,
+                    available_vector,
+                    query_filter,
+                    policy,
+                );
+                scoped_route.check()?;
+                let evaluated = evaluated?;
+                let phy_graph = if traverse {
+                    evaluated
+                        .preview
+                        .phy_cut
+                        .as_ref()
+                        .map(|cut| cut.graph_version)
+                } else {
+                    None
+                };
+                (
+                    evaluated.evaluation,
+                    evaluated.preview,
+                    evaluated.rel_memory,
+                    evaluated.removal_cut,
+                    evaluated.phy_memories,
+                    phy_graph,
+                )
+            } else {
+                let (snapshot, removal_cut, observation_cut, mut observation_candidates) =
+                    self.with_reliquary(owner, |rel| -> Result<_, GatewayError> {
+                        let candidates = if matches!(action, RetrievalAction::Traverse(_)) {
+                            Default::default()
+                        } else {
+                            observation_retrieval_candidates(
+                                rel,
+                                profile.filter(|_| include_vectors),
+                                &provided_observations,
+                            )?
+                        };
+                        Ok((
+                            capture_memory_snapshot(rel, profile, include_vectors)?,
+                            rel.archive_source_removal_version(),
+                            ObservationReadCut::capture(rel),
+                            candidates,
+                        ))
+                    })??;
+                if query_vector.is_some()
+                    && snapshot.vectors.is_empty()
+                    && observation_candidates
+                        .values()
+                        .all(|row| row.input.candidate.vector.is_none())
+                {
+                    return Err(GatewayError::RetrievalUnavailable(
+                        "no current Memory vectors for the embedding profile",
+                    ));
+                }
+                let observation_inputs = observation_candidates
                     .values()
-                    .all(|row| row.input.candidate.vector.is_none())
-            {
-                return Err(GatewayError::RetrievalUnavailable(
-                    "no current Memory vectors for the embedding profile",
-                ));
-            }
-            let observation_inputs = observation_candidates
-                .values()
-                .map(|row| row.input.clone())
-                .collect::<Vec<_>>();
-            let evaluation = evaluate_snapshot_retrieval_with_observations(
-                &authorized_route,
-                &prior,
-                &snapshot,
-                action,
-                query_vector.as_deref(),
-                query_filter,
-                &observation_inputs,
-            );
-            authorized_route.check()?;
-            let mut evaluation = evaluation.map_err(GatewayError::Retrieval)?;
-            self.with_reliquary(owner, |rel| {
-                let current =
-                    capture_memory_snapshot(rel, profile, include_vectors).map_err(|error| {
-                        match error {
+                    .map(|row| row.input.clone())
+                    .collect::<Vec<_>>();
+                let evaluation = evaluate_snapshot_retrieval_with_observations(
+                    &authorized_route,
+                    &prior,
+                    &snapshot,
+                    action,
+                    query_vector.as_deref(),
+                    query_filter,
+                    &observation_inputs,
+                );
+                authorized_route.check()?;
+                let mut evaluation = evaluation.map_err(GatewayError::Retrieval)?;
+                self.with_reliquary(owner, |rel| {
+                    let current = capture_memory_snapshot(rel, profile, include_vectors).map_err(
+                        |error| match error {
                             GatewayError::RetrievalUnavailable(_) => GatewayError::StaleRetrieval,
                             other => other,
-                        }
-                    })?;
-                let current_cut = ObservationReadCut::capture(rel);
-                if snapshot != current
-                    || rel.archive_source_removal_version() != removal_cut
-                    || (current_cut.publication.max(observation_cut.publication) > 0
-                        && observation_cut != current_cut)
-                {
-                    return Err(GatewayError::StaleRetrieval);
-                }
-                Ok(())
-            })??;
-            let mut observations = Vec::new();
-            let terms =
-                reliquary_application::lexical_terms(evaluation.next.query().unwrap_or_default());
-            evaluation.memories.retain(|row| {
-                if let Some(candidate) = observation_candidates.remove(&row.id) {
-                    let mut result = candidate.result;
-                    result.lexical_score =
-                        reliquary_application::lexical_score(&result.claim.proposition, &terms);
-                    observations.push(result);
-                    false
-                } else {
-                    true
-                }
-            });
-            evaluation
-                .already_provided
-                .retain(|id| !observation_candidates.contains_key(id));
-            let preview = RetrievalPreview::from_evaluation(
-                &snapshot,
-                profile,
-                &evaluation,
-                observation_cut.publication,
-                observations,
-            )?;
-            (evaluation, preview, snapshot, removal_cut, Vec::new())
-        };
+                        },
+                    )?;
+                    let current_cut = ObservationReadCut::capture(rel);
+                    if snapshot != current
+                        || rel.archive_source_removal_version() != removal_cut
+                        || (current_cut.publication.max(observation_cut.publication) > 0
+                            && observation_cut != current_cut)
+                    {
+                        return Err(GatewayError::StaleRetrieval);
+                    }
+                    Ok(())
+                })??;
+                let mut observations = Vec::new();
+                let terms = reliquary_application::lexical_terms(
+                    evaluation.next.query().unwrap_or_default(),
+                );
+                evaluation.memories.retain(|row| {
+                    if let Some(candidate) = observation_candidates.remove(&row.id) {
+                        let mut result = candidate.result;
+                        result.lexical_score =
+                            reliquary_application::lexical_score(&result.claim.proposition, &terms);
+                        observations.push(result);
+                        false
+                    } else {
+                        true
+                    }
+                });
+                evaluation
+                    .already_provided
+                    .retain(|id| !observation_candidates.contains_key(id));
+                let preview = RetrievalPreview::from_evaluation(
+                    &snapshot,
+                    profile,
+                    &evaluation,
+                    observation_cut.publication,
+                    observations,
+                )?;
+                (evaluation, preview, snapshot, removal_cut, Vec::new(), None)
+            };
         let _delivery = turn
             .delivery
             .try_lock()
@@ -404,6 +447,7 @@ impl Instance {
             selected_observations: provided_observations.into_iter().collect(),
             observations: preview.observations.iter().map(|hit| &hit.claim).collect(),
             phy_generation,
+            phy_graph,
             phy_owner_id: turn
                 .phy
                 .as_ref()
@@ -455,6 +499,7 @@ impl Instance {
                 body_bindings,
                 removal_cut,
                 phy_generation,
+                phy_graph,
                 phy_memories,
             }),
         })

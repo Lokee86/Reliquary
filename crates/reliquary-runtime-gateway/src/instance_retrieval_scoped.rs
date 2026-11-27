@@ -160,7 +160,10 @@ impl Instance {
     pub(super) fn capture_scoped_recall(
         &self,
         turn: &MemoryRetrievalTurn,
-        profile: Option<CompatibilityProfileId>,
+        profiles: (
+            Option<CompatibilityProfileId>,
+            Option<CompatibilityProfileId>,
+        ),
         include_vectors: bool,
         excluded: &BTreeSet<ObservationCitation>,
         traverse: bool,
@@ -172,7 +175,9 @@ impl Instance {
         self.validate_memory_retrieval(turn)?;
         let rel = if turn.mount.is_some() {
             Some(self.with_reliquary(turn.owner, |rel| {
-                let profile = profile.filter(|id| rel.active_compatibility_profile(*id).is_some());
+                let profile = profiles
+                    .0
+                    .filter(|id| rel.active_compatibility_profile(*id).is_some());
                 Ok::<_, GatewayError>(OwnerRecall {
                     snapshot: capture_memory_snapshot(rel, profile, include_vectors)?,
                     profile,
@@ -197,8 +202,9 @@ impl Instance {
             if phy_cut.history_generation != binding.history_generation {
                 return Err(GatewayError::StaleRetrieval);
             }
-            let profile =
-                profile.filter(|id| read_phy!(read, active_compatibility_profile(*id)).is_some());
+            let profile = profiles
+                .1
+                .filter(|id| read_phy!(read, active_compatibility_profile(*id)).is_some());
             let mut snapshot = RelRetrievalSnapshot {
                 owner_id: phy_cut.owner_id,
                 rel_turn: 0,
@@ -260,6 +266,7 @@ impl Instance {
         &self,
         turn: &MemoryRetrievalTurn,
         generation: Option<[u8; 32]>,
+        graph: Option<u64>,
         memories: &[RetrievalMemoryReference],
         observations: impl IntoIterator<Item = ObservationCitation>,
     ) -> Result<(), GatewayError> {
@@ -276,7 +283,9 @@ impl Instance {
         }
         self.with_observation_read(owner, true, |read| {
             let cut = read_phy!(read, phy_audit_cut());
-            if cut.history_generation != binding.history_generation {
+            if cut.history_generation != binding.history_generation
+                || graph.is_some_and(|graph| cut.graph != graph)
+            {
                 return Err(GatewayError::StaleRetrieval);
             }
             for memory in memories {
@@ -315,7 +324,9 @@ impl Instance {
             .ok_or(GatewayError::InvalidPreparedRetrieval)?;
         self.with_observation_read(binding.owner(), true, |read| {
             let cut = read_phy!(read, phy_audit_cut());
-            if Some(cut.history_generation) != manifest.phy_generation {
+            if Some(cut.history_generation) != manifest.phy_generation
+                || manifest.phy_graph.is_some_and(|graph| cut.graph != graph)
+            {
                 return Err(GatewayError::StaleRetrieval);
             }
             for memory in memories {
@@ -379,6 +390,7 @@ impl Instance {
         self.check_phy_delivery(
             turn,
             Some(binding.history_generation),
+            None,
             &phy,
             observations.iter().copied(),
         )?;
