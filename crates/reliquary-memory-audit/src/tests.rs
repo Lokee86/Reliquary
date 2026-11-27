@@ -439,13 +439,24 @@ fn a_list_cannot_follow_an_ineligible_slot() {
 }
 
 #[test]
-fn phy_settled_mode_accepts_only_ego_memory_evidence() {
-    let work = [item(
-        1,
+fn phy_settled_mode_shares_memory_and_reserves_derived_evidence_for_perception() {
+    let mut derived = item(
+        2,
         Grade::Settled,
-        Eligibility::EGO,
-        "Private guidance.",
-    )];
+        Eligibility::PERCEPTION,
+        "Verified claim.",
+    );
+    derived.passage.citation.source = SourceId::Observation([2; 32]);
+    let work = [
+        item(1, Grade::Settled, Eligibility::BOTH, "Private guidance."),
+        derived,
+    ];
+    let participant = Participant {
+        owner_id: CUT.owner_id,
+        entity_id: [3; 32],
+        revision: 1,
+        label: "Local Entity".into(),
+    };
     assert!(matches!(
         plan_batches(
             CUT,
@@ -461,22 +472,57 @@ fn phy_settled_mode_accepts_only_ego_memory_evidence() {
         CUT,
         AuditMode::PhySettled,
         &work,
-        &[],
+        std::slice::from_ref(&participant),
         BatchLimits::default(),
         &Contract,
         &Contract,
     )
     .unwrap();
     let endpoint = Endpoint::new([json!({
-        "ego": reply(json!([0]), &[]),
-        "perception": reply(json!([0]), &[])
+        "ego": reply(json!([0, 1]), &[]),
+        "perception": reply(json!([1]), &[])
     })]);
     let result = run_batch(&batches[0], &endpoint, &Contract, &Contract, &mut no_lookup).unwrap();
-    assert_eq!(accepted(result.ego).0, [work[0].passage.citation]);
-    assert!(matches!(result.perception, ListResult::Inactive));
+    let (ego, _, rejected) = accepted(result.ego);
+    assert_eq!(ego, [work[0].passage.citation]);
+    assert_eq!(rejected, 1);
+    assert_eq!(accepted(result.perception).0, [work[1].passage.citation]);
     let requests = endpoint.requests.lock().unwrap();
+    assert_eq!(requests.len(), 1);
     assert_eq!(requests[0].1["mode"], "phy_settled");
     assert_eq!(requests[0].1["sources"][0]["grade"], "settled");
+    assert_eq!(requests[0].1["participants"][0]["label"], participant.label);
+
+    let mut invalid = work;
+    invalid[1].passage.eligible = Eligibility::BOTH;
+    assert!(matches!(
+        plan_batches_in_mode(
+            CUT,
+            AuditMode::PhySettled,
+            &invalid,
+            &[],
+            BatchLimits::default(),
+            &Contract,
+            &Contract,
+        ),
+        Err(AuditError::InvalidInput)
+    ));
+    let foreign = Participant {
+        owner_id: [4; 16],
+        ..participant
+    };
+    assert!(matches!(
+        plan_batches_in_mode(
+            CUT,
+            AuditMode::PhySettled,
+            &invalid[..1],
+            &[foreign],
+            BatchLimits::default(),
+            &Contract,
+            &Contract,
+        ),
+        Err(AuditError::InvalidInput)
+    ));
 }
 
 #[test]

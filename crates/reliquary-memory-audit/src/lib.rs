@@ -78,8 +78,13 @@ impl AuditMode {
             Self::RelFresh => passage.grade != Grade::Settled,
             Self::PhySettled => {
                 passage.grade == Grade::Settled
-                    && passage.eligible == Eligibility::EGO
-                    && matches!(passage.citation.source, SourceId::Memory(_))
+                    && match passage.citation.source {
+                        SourceId::Memory(_) => passage.eligible != Eligibility::NONE,
+                        SourceId::Observation(_) => {
+                            passage.eligible == Eligibility::PERCEPTION
+                                && passage.citation.field == TextField::Content
+                        }
+                    }
             }
         }
     }
@@ -175,7 +180,8 @@ pub struct WorkItem {
     pub mandatory: Eligibility,
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Participant {
     pub owner_id: [u8; 16],
     pub entity_id: [u8; 32],

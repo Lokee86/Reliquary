@@ -8,7 +8,7 @@ const MAX_ROLE_BYTES: usize = 96;
 pub(crate) const MAX_CITATIONS: usize = 8;
 pub(crate) const MAX_PARTICIPANTS: usize = 4;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ObservationProfile {
     #[default]

@@ -4,11 +4,12 @@ use crate::claim::{
     participant_count, valid_source_references,
 };
 use reliquary_memory_audit::{CandidateContract, Participant, Slots, SourceCitation};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ObservationProposal {
     pub proposition: String,
     pub profile: ObservationProfile,
