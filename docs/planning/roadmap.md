@@ -61,7 +61,7 @@ Authorized inspection can show current and retained revisions and their provenan
 
 By default, a later audit can propose an equivalent topic or point and publish a new entry when its sources support it. Opt-in suppression sets a flag on the item's tombstone. Future comparisons use the retained text, scope and vector. Lifting suppression appends a change to the flag. [Topic and point suppression](ego-rel-summary-spec-2026-11-26.md#topic-and-point-suppression)
 
-REL-backed points use current source Freshness for context selection. In V1, revived Memories can seed the next scheduled audit. An independent audit trigger for reawakened Memories remains a future option. [Audit cadence](memory-web-audit-spec-2026-11-24.md#automatic-audit-cadence-and-sampling)
+For Freshness, a REL-backed point stays eligible while its average source score is Fresh. Under budget pressure, remove the points with the most Stale or Dormant supporting Memories first. See the [REL point selection rule](ego-implementation-spec-2026-11-27.md#shared-budget-and-host-assembly) for tie-breaks. In V1, revived Memories can seed the next scheduled audit. An independent audit trigger for reawakened Memories remains a future option. [Audit cadence](memory-web-audit-spec-2026-11-24.md#automatic-audit-cadence-and-sampling)
 
 ## Ego Identity
 
