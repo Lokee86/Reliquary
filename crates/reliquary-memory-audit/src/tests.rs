@@ -367,7 +367,7 @@ fn graph_follows_two_exact_slots_without_advancing_sibling_coverage() {
     )
     .passage;
     let mut anchors = Vec::new();
-    let mut lookup = |cut: &OwnerCut, feature, request| {
+    let mut lookup = |cut: &OwnerCut, feature, request: LookupRequest<'_>| {
         assert_eq!(*cut, CUT);
         assert_eq!(feature, Feature::Ego);
         let LookupRequest::Graph { anchor } = request else {

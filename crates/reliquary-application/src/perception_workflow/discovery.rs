@@ -297,7 +297,7 @@ pub fn discover(
         endpoint,
         &EgoContract,
         &capture.contract,
-        &mut |_: &OwnerCut, feature, request| lookup(feature, request),
+        &mut |_: &OwnerCut, feature, request: LookupRequest<'_>| lookup(feature, request),
     )
 }
 
@@ -347,14 +347,21 @@ pub fn audit_lookups(
                 .collect()
         }
     };
+    let hit_ids = hits.iter().map(|(id, _)| *id).collect::<Vec<_>>();
+    let eligible = rel
+        .perception_source_metadata(cut, &hit_ids)?
+        .into_iter()
+        .filter(|row| eligible_lookup_grade(feature, row.grade))
+        .map(|row| row.source.id)
+        .collect::<BTreeSet<_>>();
     let mut passages = Vec::new();
     for (id, link) in hits {
+        if !eligible.contains(&id) {
+            continue;
+        }
         let Some(evidence) = rel.perception_memory_evidence(cut, &[id])?.pop() else {
             continue;
         };
-        if !eligible_lookup_grade(feature, evidence.metadata.grade) {
-            continue;
-        }
         let passage = memory_passage(
             cut,
             &evidence,

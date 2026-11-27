@@ -471,8 +471,13 @@ impl<'a> LookupBudget<'a> {
             if existing.revision != incoming.revision || existing.body_id != incoming.body_id {
                 return;
             }
-            if existing == incoming && item.passage.allows(feature) {
-                existing_slot = Some(slot);
+            if existing == incoming {
+                if item.passage.text != passage.text || item.passage.grade != passage.grade {
+                    return;
+                }
+                if item.passage.allows(feature) || slot >= self.batch.sources.len() {
+                    existing_slot = Some(slot);
+                }
             }
         }
         let Ok(target_slot) = u16::try_from(existing_slot.unwrap_or(sources.len())) else {
@@ -492,18 +497,25 @@ impl<'a> LookupBudget<'a> {
                 }
             }
         }
+        let eligible = match feature {
+            Feature::Ego => Eligibility::EGO,
+            Feature::Perception => Eligibility::PERCEPTION,
+        };
         let mut bytes = 0;
-        if existing_slot.is_none() {
-            passage.eligible = match feature {
-                Feature::Ego => Eligibility::EGO,
-                Feature::Perception => Eligibility::PERCEPTION,
-            };
+        let prior_eligibility = if let Some(slot) = existing_slot {
+            let current = &mut sources[slot].passage.eligible;
+            let prior = *current;
+            *current = prior.union(eligible);
+            Some(prior)
+        } else {
+            passage.eligible = eligible;
             bytes = passage.text.len();
             sources.push(WorkItem {
                 passage,
                 mandatory: Eligibility::NONE,
             });
-        }
+            None
+        };
         if self
             .batch
             .fits_with_links(sources, self.batch.active_features(), links)
@@ -511,7 +523,9 @@ impl<'a> LookupBudget<'a> {
             self.passage_bytes -= bytes;
         } else {
             links.truncate(link_count);
-            if existing_slot.is_none() {
+            if let Some(prior) = prior_eligibility {
+                sources[usize::from(target_slot)].passage.eligible = prior;
+            } else {
                 sources.pop();
             }
         }

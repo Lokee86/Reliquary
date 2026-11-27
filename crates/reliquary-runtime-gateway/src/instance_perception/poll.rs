@@ -6,9 +6,9 @@ use reliquary_application::observation_drafts::{
     ScopedObservationRead, evaluate_proposal, evaluate_review,
 };
 use reliquary_application::perception_workflow::{
-    ContributionFailure, ContributionWork, ListResult, LookupError, audit_lookups, audit_owner_cut,
-    capture_contribution, capture_discovery, capture_duplicate_contribution, discover,
-    evaluate_contribution, retain_current_ego_evidence,
+    ContributionFailure, ContributionWork, ListResult, LookupError, LookupRequest, audit_lookups,
+    audit_owner_cut, capture_contribution, capture_discovery, capture_duplicate_contribution,
+    discover, evaluate_contribution, retain_current_ego_evidence,
 };
 use reliquary_application::{SwitchboardEmbeddingEndpoint, verify_compatibility_profile};
 use reliquary_owner_session::observation::{
@@ -276,7 +276,7 @@ fn audit_page(
     if creation_held && page.ego_accepted {
         return Ok(false);
     }
-    let mut lookup = |feature, request| {
+    let mut lookup = |feature, request: LookupRequest<'_>| {
         owner
             .read(|rel| audit_lookups(rel, &page.cut, feature, request))
             .map_err(|_| LookupError::Invalidated)?

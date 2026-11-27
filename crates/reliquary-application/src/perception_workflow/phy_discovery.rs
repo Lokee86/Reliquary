@@ -131,7 +131,7 @@ pub fn discover_phy(
         endpoint,
         &EgoContract,
         &INACTIVE_PERCEPTION,
-        &mut |_: &OwnerCut, _, request| lookup(request),
+        &mut |_: &OwnerCut, _, request: LookupRequest<'_>| lookup(request),
     )?;
     Ok(result.ego)
 }

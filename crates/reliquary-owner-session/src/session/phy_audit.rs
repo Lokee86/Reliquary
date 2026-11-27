@@ -40,7 +40,7 @@ impl From<PhyAuditCut> for PhyAuditCursor {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct PhyAuditChange {
     pub memory: MemoryId,
     pub previous_revision: Option<u64>,
