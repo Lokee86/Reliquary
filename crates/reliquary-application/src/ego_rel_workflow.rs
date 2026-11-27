@@ -194,7 +194,7 @@ fn validate_run(run: EgoRun, batches: &[AcceptedEgoBatch]) -> Result<(), RelEgoE
     if run.phy == run.source.owner_id
         || !matches!(
             run.kind,
-            EgoRunKind::RelBootstrap | EgoRunKind::RelRecurring
+            EgoRunKind::RelBootstrap | EgoRunKind::RelSharedBootstrap | EgoRunKind::RelRecurring
         )
         || batches.iter().any(|batch| !ids.insert(batch.id))
         || batches
@@ -388,6 +388,14 @@ pub fn prepare_rel_ego_publication(
 
         let mut updated = BTreeSet::new();
         for point in points {
+            if point.citations.is_empty()
+                || !point
+                    .citations
+                    .iter()
+                    .all(|citation| captured_citation(&evidence, citation))
+            {
+                return Err(RelEgoError::Binding);
+            }
             let id = EgoPointId(point.replacement.map_or_else(
                 || stable_id(work.run, b"point", &topic_id.0, &point.statement),
                 |target| target.id,
@@ -418,6 +426,28 @@ pub fn prepare_rel_ego_publication(
             batch_ids: work_batches.into_iter().map(|batch| batch.id).collect(),
         }),
         changes,
+    })
+}
+
+fn captured_citation(evidence: &[MemoryEvidence], citation: &SourceCitation) -> bool {
+    evidence.iter().any(|memory| {
+        let source = memory.citation;
+        let Some(start) = citation.start_byte.checked_sub(source.start_byte) else {
+            return false;
+        };
+        let Some(end) = citation.end_byte.checked_sub(source.start_byte) else {
+            return false;
+        };
+        source
+            == SourceCitation {
+                start_byte: source.start_byte,
+                end_byte: source.end_byte,
+                ..*citation
+            }
+            && memory
+                .text
+                .get(start as usize..end as usize)
+                .is_some_and(|text| !text.trim().is_empty())
     })
 }
 

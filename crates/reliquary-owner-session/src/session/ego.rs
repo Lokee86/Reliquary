@@ -83,11 +83,9 @@ macro_rules! private_ego_reads {
                     return Err(OwnerSessionError::ManagementEvidence);
                 }
                 let (record, body) = self
-                    .common
-                    .memories
-                    .revision_projection(MemoryId(citation.memory_id), None)?;
-                body.as_deref()
-                    .and_then(|body| citation_excerpt(citation, record, body))
+                    .phy_audit_evidence(self.phy_audit_cut(), MemoryId(citation.memory_id))?
+                    .ok_or(OwnerSessionError::ManagementEvidence)?;
+                citation_excerpt(citation, &record, &body)
                     .map(str::to_owned)
                     .ok_or(OwnerSessionError::ManagementEvidence)
             }

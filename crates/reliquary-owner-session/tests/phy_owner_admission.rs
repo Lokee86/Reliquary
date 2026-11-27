@@ -434,10 +434,8 @@ fn ego_owner_publications_preserve_retained_citations_and_proofs_on_exact_copy()
         let mut container = Container::open_writer(&source.0).unwrap();
         let mut memories = MemoryStore::open(&container).unwrap();
         let published = memories
-            .publish(
+            .publish_versioned_creation(
                 &mut container,
-                None,
-                0,
                 MemoryDraft {
                     title: "Writing preference".into(),
                     content: "Prefer café examples.".into(),
@@ -463,6 +461,7 @@ fn ego_owner_publications_preserve_retained_citations_and_proofs_on_exact_copy()
                     created_at_ns: 1,
                     updated_at_ns: 1,
                 },
+                1,
             )
             .unwrap();
         container.sync().unwrap();
@@ -583,7 +582,11 @@ fn ego_owner_publications_preserve_retained_citations_and_proofs_on_exact_copy()
         let payload = frame.payload;
         if payload.starts_with(b"RELEGO01") {
             misplaced.append(payload).unwrap();
-        } else if payload.starts_with(b"RELMBOD1") || payload.starts_with(b"RELMCRT1") {
+        } else if payload.starts_with(b"RELMBOD1")
+            || reliquary_container::decode_publication(payload)
+                .unwrap()
+                .is_some_and(|entry| entry.body.starts_with(b"RELMCRT1"))
+        {
             evidence.push(payload.to_vec());
         }
     }
