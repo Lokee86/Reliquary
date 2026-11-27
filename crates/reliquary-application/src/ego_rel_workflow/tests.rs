@@ -206,23 +206,17 @@ fn rel_ego_reuses_accepted_stages_on_reopen_and_publishes_exact_quote() {
             ..owner_citation(cite).unwrap()
         }]
     );
-    pending.clear_completed(run).unwrap();
-    assert!(
-        pending
-            .rel_stage(
-                run,
-                stage_key(
-                    routes.embedding_profile,
-                    "embed",
-                    &[],
-                    "",
-                    "[\"Examples\"]",
-                    ""
-                )
-            )
-            .unwrap()
-            .is_none()
+    let embedding_stage = stage_key(
+        routes.embedding_profile,
+        "embed",
+        &[],
+        "",
+        "[\"Examples\"]",
+        "",
     );
+    assert!(pending.stage(run, embedding_stage).unwrap().is_some());
+    pending.clear_completed(run).unwrap();
+    assert!(pending.stage(run, embedding_stage).unwrap().is_none());
     drop(pending);
     fs::remove_file(path).unwrap();
 }
