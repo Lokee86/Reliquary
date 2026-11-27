@@ -1,6 +1,6 @@
 use super::{
     PhyWork,
-    progress::{Page, Progress},
+    progress::{Page, PageKind, Progress},
 };
 use crate::{GatewayError, RelSession};
 use reliquary_application::{
@@ -43,10 +43,11 @@ pub(super) struct State {
     review_exhausted: bool,
     contribution_vectors: ContributionEmbeddingCache,
     malformed_contribution: Option<[u8; 32]>,
-    malformed_creation: Option<([u8; 32], u32)>,
     malformed_reviews: BTreeSet<ObservationId>,
     review_deferred: BTreeMap<ObservationId, Instant>,
     claim_vectors: ClaimVectorIndex,
+    incoming_first: bool,
+    page_retry: [Option<Instant>; 2],
 }
 
 impl ScopedObservationRead for PhyWork<'_> {
@@ -92,19 +93,44 @@ fn tick_work(owner: &PhyWork<'_>, state: &mut State) -> Result<bool, GatewayErro
     if run_review(owner, state, previous)? {
         return Ok(true);
     }
-    let Some(page) = progress.page.take() else {
-        let ego_route = owner.ego_target()?.map(|_| owner.routes.identity);
-        if owner.read(|writer| progress.schedule(writer, ego_route))?? {
+    let first = usize::from(state.incoming_first);
+    for lane in [first, 1 - first] {
+        if state.page_retry[lane].is_some_and(|retry| retry > Instant::now()) {
+            continue;
+        }
+        let page = if lane == 1 {
+            progress.incoming_page.take()
+        } else {
+            progress.page.take()
+        };
+        if let Some(page) = page {
+            state.incoming_first = lane == 0;
+            let result = if page.kind.discovery() {
+                discovery(owner, state, previous, progress, page)
+            } else {
+                contribution(owner, state, previous, progress, page)
+            };
+            if !matches!(result, Ok(true)) {
+                state.malformed_contribution = None;
+                state.page_retry[lane] = Some(Instant::now() + Duration::from_secs(10));
+            } else {
+                state.page_retry[lane] = None;
+            }
+            return result.or(Ok(true));
+        }
+        let planned = if lane == 1 {
+            owner.read(|writer| progress.plan_incoming(writer))??
+        } else {
+            let ego_route = owner.ego_target()?.map(|_| owner.routes.identity);
+            owner.read(|writer| progress.schedule(writer, ego_route))??
+        };
+        if planned {
+            state.incoming_first = lane == 0;
             publish(owner, previous, Some(progress), [], Vec::new())?;
             return Ok(true);
         }
-        return Ok(false);
-    };
-    if page.kind.discovery() {
-        discovery(owner, state, previous, progress, page)
-    } else {
-        contribution(owner, state, previous, progress, page)
     }
+    Ok(false)
 }
 
 fn run_review(
@@ -223,7 +249,11 @@ fn contribution(
     };
     page.contribution_cursor = work.next_source;
     page.target_after = work.next_target;
-    progress.page = Some(page);
+    if page.kind == PageKind::Incoming {
+        progress.incoming_page = Some(page);
+    } else {
+        progress.page = Some(page);
+    }
     publish(owner, previous, Some(progress), [], operations)?;
     Ok(true)
 }
@@ -241,17 +271,21 @@ fn discovery(
             && let Some(target) = owner.ego_target()?
         {
             let run = shared_page.window.run(shared_page.route);
-            let available = target.with_pending(|pending| {
-                if pending
-                    .checkpoint::<crate::ego_audit_handoff::SharedPhyAudit>(run)?
-                    .is_none()
-                {
-                    pending.save_checkpoint(run, &shared_page.window)?;
-                }
-                Ok(())
-            })?;
-            if available.is_some() {
+            if progress.closed_ego(run) {
                 shared = Some((target, run));
+            } else {
+                let available = target.with_pending(|pending| {
+                    if pending
+                        .checkpoint::<crate::ego_audit_handoff::SharedPhyAudit>(run)?
+                        .is_none()
+                    {
+                        pending.save_checkpoint(run, &shared_page.window)?;
+                    }
+                    Ok(())
+                })?;
+                if available.is_some() {
+                    shared = Some((target, run));
+                }
             }
         }
         if shared.is_none() {
@@ -298,7 +332,6 @@ fn discovery(
         publish(owner, previous, Some(progress), [], Vec::new())?;
         return Ok(true);
     }
-    let key = (capture.key, page.batch);
     let batch = capture
         .batch_features(page.batch as usize)
         .ok_or(OwnerSessionError::ManagementStale)?;
@@ -308,6 +341,7 @@ fn discovery(
     };
     let ego_pending = if batch.ego
         && let Some((target, run)) = &shared
+        && !progress.closed_ego(*run)
     {
         target
             .with_pending(|pending| pending.accepted_batch(*run, batch_key))?
@@ -317,10 +351,23 @@ fn discovery(
         false
     };
     let perception_pending = batch.perception && page.proposals.is_none();
+    if !ego_pending
+        && let Some((_, run)) = &shared
+        && page.shared.is_some_and(|shared| shared.last)
+        && usize::from(capture.next.source) == page.sources.len() + page.derived.len()
+        && ((page.batch as usize + 1)..capture.batch_count()).all(|ordinal| {
+            !capture
+                .batch_features(ordinal)
+                .is_some_and(|features| features.ego)
+        })
+        && !progress.closed_ego(*run)
+    {
+        progress.finish_page(page.shared);
+        progress.page = Some(page);
+        publish(owner, previous, Some(progress), [], Vec::new())?;
+        return Ok(true);
+    }
     if !ego_pending && !perception_pending {
-        if state.malformed_creation == Some(key) {
-            return Ok(false);
-        }
         let (drafts, operations) = if let Some(proposals) = page.proposals.take() {
             evaluate_proposals(owner, state, &routes, &page, proposals)?
         } else {
@@ -357,7 +404,12 @@ fn discovery(
         (&shared, result.ego)
     {
         target
-            .with_pending(|pending| pending.accept_batch(*run, batch_key, &candidates))
+            .with_pending(|pending| {
+                let _routes = owner.live_routes().map_err(|_| {
+                    reliquary_application::ego_pending::EgoPendingError::InvalidBinding
+                })?;
+                pending.accept_batch(*run, batch_key, &candidates)
+            })
             .map(|accepted| accepted.is_some())
     } else {
         Ok(false)
@@ -388,12 +440,7 @@ fn evaluate_proposals(
         audit_owner_cut(&page.cut.into()),
         proposals,
     )
-    .map_err(|error| {
-        if error.malformed_native_reply() {
-            state.malformed_creation = page.capture.map(|key| (key, page.batch));
-        }
-        draft_error(error)
-    })?;
+    .map_err(draft_error)?;
     let mut operations = Vec::new();
     for ((id, revision), evidence) in duplicates {
         let selected = evidence.into_iter().collect::<Vec<_>>();

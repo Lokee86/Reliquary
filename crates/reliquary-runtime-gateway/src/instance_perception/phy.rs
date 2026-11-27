@@ -228,6 +228,15 @@ impl PhyWork<'_> {
         &self,
     ) -> Result<std::sync::RwLockReadGuard<'_, Option<Arc<PerceptionRoutes>>>, GatewayError> {
         self.admission.check_mount()?;
+        self.live_routes()
+    }
+
+    fn live_routes(
+        &self,
+    ) -> Result<std::sync::RwLockReadGuard<'_, Option<Arc<PerceptionRoutes>>>, GatewayError> {
+        if !self.admission.active.load(Ordering::Acquire) {
+            return Err(OwnerSessionError::ManagementStale.into());
+        }
         let routes = self
             .control
             .routes

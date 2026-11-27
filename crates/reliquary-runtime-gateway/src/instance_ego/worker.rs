@@ -67,6 +67,7 @@ pub(super) struct EgoWorker {
     routes: EgoRoutes,
     ticket: AtomicUsize,
     retry: Mutex<BTreeMap<OwnerId, (usize, Instant)>>,
+    started: Instant,
 }
 
 impl Gateway {
@@ -120,6 +121,7 @@ impl Gateway {
             routes,
             ticket: AtomicUsize::new(0),
             retry: Mutex::new(BTreeMap::new()),
+            started: Instant::now(),
         });
         let registration =
             self.ego_audit_registry
@@ -303,10 +305,15 @@ impl EgoWorker {
                 pending.seal(run).map_err(as_error)?;
                 return Ok(true);
             }
-            if !available || !tracked || run.route != self.routes.identity {
-                pending.discard_stale(run).map_err(as_error)?;
-                return Ok(true);
+            if tracked && run.route == self.routes.identity {
+                // A restarting profile admits both workers before resuming an
+                // existing shared run. Keep accepted batches during that bind.
+                if available || self.started.elapsed() < Duration::from_secs(5) {
+                    return Ok(false);
+                }
             }
+            pending.discard_stale(run).map_err(as_error)?;
+            return Ok(true);
         }
         if let Some(run) = pending.ready_run(id, id).map_err(as_error)? {
             return self.publish_phy(run, pending);

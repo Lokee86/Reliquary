@@ -30,6 +30,8 @@ pub(super) struct Progress {
     lane: u8,
     pub(super) page: Option<Page>,
     #[serde(default)]
+    pub(super) incoming_page: Option<Page>,
+    #[serde(default)]
     closed_ego: Option<[u8; 32]>,
 }
 
@@ -82,7 +84,7 @@ impl PageKind {
 pub(super) struct SharedPage {
     pub(super) window: SharedPhyAudit,
     pub(super) route: [u8; 32],
-    last: bool,
+    pub(super) last: bool,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -148,6 +150,7 @@ impl Progress {
             sample_after: None,
             lane: 0,
             page: None,
+            incoming_page: None,
             closed_ego: None,
         }
     }
@@ -156,13 +159,13 @@ impl Progress {
         let value: Self = rmp_serde::from_slice(bytes)
             .map_err(|_| OwnerSessionError::Record("invalid PHY audit progress".into()))?;
         if value.format != FORMAT
-            || value.lane >= 4
+            || value.lane >= 3
             || !value.covered.audit.is_at_or_before(cut.audit)
             || !value.incoming_covered.audit.is_at_or_before(cut.audit)
-            || value
-                .page
-                .as_ref()
-                .is_some_and(|page| !page.cut.audit.is_at_or_before(cut.audit))
+            || [value.page.as_ref(), value.incoming_page.as_ref()]
+                .into_iter()
+                .flatten()
+                .any(|page| !page.cut.audit.is_at_or_before(cut.audit))
         {
             return Err(OwnerSessionError::ManagementStale);
         }
@@ -182,16 +185,15 @@ impl Progress {
         if self.page.is_some() {
             return Err(OwnerSessionError::ManagementStale);
         }
-        for offset in 0..4 {
-            let lane = (self.lane + offset) % 4;
+        for offset in 0..3 {
+            let lane = (self.lane + offset) % 3;
             let changed = match lane {
                 0 => self.plan_bootstrap(phy, ego_route)?,
-                1 => self.plan_incoming(phy)?,
-                2 => self.plan_routine(phy, ego_route)?,
+                1 => self.plan_routine(phy, ego_route)?,
                 _ => self.plan_structure(phy)?,
             };
             if changed {
-                self.lane = (lane + 1) % 4;
+                self.lane = (lane + 1) % 3;
                 return Ok(true);
             }
         }
@@ -300,7 +302,7 @@ impl Progress {
         Ok(true)
     }
 
-    fn plan_incoming(&mut self, phy: &PhyWriter) -> Result<bool, OwnerSessionError> {
+    pub(super) fn plan_incoming(&mut self, phy: &PhyWriter) -> Result<bool, OwnerSessionError> {
         let cut = phy.phy_observation_cut();
         if self.incoming.is_none() {
             if same_memory(&cut, &self.incoming_covered) {
@@ -317,7 +319,7 @@ impl Progress {
             PageKind::Incoming,
             self.incoming_covered,
             &mut self.incoming,
-            &mut self.page,
+            &mut self.incoming_page,
         )? {
             self.incoming_covered = done;
         }
