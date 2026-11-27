@@ -165,6 +165,9 @@ where
     let mut links = Vec::new();
     let mut budget = LookupBudget::new(batch);
     for _ in 0..MAX_LOOKUPS {
+        // Keep every previously offered slot's eligibility fixed. Both lists
+        // may share a slot assembled during this round before it is offered.
+        budget.round_start = sources.len();
         // Give each requesting list one turn before using any remaining slot.
         for index in 0..MAX_LOOKUPS {
             budget.search(
@@ -412,6 +415,7 @@ struct LookupBudget<'a> {
     batch: &'a Batch,
     searches: usize,
     passage_bytes: usize,
+    round_start: usize,
     seen: Vec<(Feature, String)>,
 }
 
@@ -421,6 +425,7 @@ impl<'a> LookupBudget<'a> {
             batch,
             searches: MAX_LOOKUPS,
             passage_bytes: MAX_OPTIONAL_PASSAGE_BYTES,
+            round_start: batch.sources.len(),
             seen: Vec::new(),
         }
     }
@@ -506,7 +511,7 @@ impl<'a> LookupBudget<'a> {
                 if item.passage.text != passage.text || item.passage.grade != passage.grade {
                     return;
                 }
-                if item.passage.allows(feature) || slot >= self.batch.sources.len() {
+                if item.passage.allows(feature) || slot >= self.round_start {
                     existing_slot = Some(slot);
                 }
             }
