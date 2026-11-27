@@ -83,7 +83,7 @@ Earlier held-out temporal checks kept ongoing rules separate from snapshots and 
 
 ## Open decisions
 
-The exact packing policy within the Ego package and Context Engine's final allocation and placement remain to be designed.
+The [Ego implementation specification](ego-implementation-spec-2026-11-27.md#shared-budget-and-host-assembly) defines V1 package selection, budget overflow and host placement.
 
 ## Related docs
 

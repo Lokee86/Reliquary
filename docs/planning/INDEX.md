@@ -18,6 +18,7 @@ Unresolved future corrections and their acceptance boundaries.
 - [cross-rel-entity-identity-spec-2026-11-23.md](cross-rel-entity-identity-spec-2026-11-23.md) - Cross-REL Entity evidence, decisions and reconsideration.
 - [cross-rel-entity-separation-confirmation-spec-2026-11-23.md](cross-rel-entity-separation-confirmation-spec-2026-11-23.md) - User confirmation and undo for a selected cross-REL Entity pair.
 - [cross-rel-entity-staged-evaluation-2026-11-23.md](cross-rel-entity-staged-evaluation-2026-11-23.md) - Three-call identity evaluation, pre-cutover trial and acceptance gates.
+- [ego-implementation-spec-2026-11-27.md](ego-implementation-spec-2026-11-27.md) - Complete Ego implementation, summary lifecycle, controls, context packing and host acceptance.
 - [ego-rel-summary-spec-2026-11-26.md](ego-rel-summary-spec-2026-11-26.md) - Two-call Ego REL summary synthesis, verification and publication sequence.
 - [leiden-community-recomputation-plan-2026-11-18.md](leiden-community-recomputation-plan-2026-11-18.md) - Leiden implementation order and copied-REL acceptance.
 - [leiden-community-recomputation-spec-2026-11-18.md](leiden-community-recomputation-spec-2026-11-18.md) - Leiden recomputation contract and compatibility.
