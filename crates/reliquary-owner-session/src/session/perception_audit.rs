@@ -12,6 +12,7 @@ use reliquary_perception_store::{EntityEvidenceChange, PRINCIPAL_ENTITY_KIND};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod phy;
 mod progress;
 pub use progress::*;
 
@@ -439,48 +440,21 @@ impl RelSession {
     }
 
     pub fn perception_relationship_sources(&self, entity: EntityId) -> Vec<MemoryId> {
-        let local = owner_hex(&self.owner_id);
-        let mut seen = BTreeSet::new();
-        self.common
-            .perception
-            .relationships_for_local_participant(entity)
-            .filter(|relationship| self.relationship_source_eligible(relationship))
-            .take(MAX_NEIGHBORS)
-            .flat_map(|relationship| &relationship.evidence)
-            .filter(|reference| reference.owner_id == local && seen.insert(reference.memory_id))
-            .map(|reference| MemoryId(reference.memory_id))
-            .take(MAX_NEIGHBORS)
-            .collect()
+        relationship_sources(
+            &self.common.perception,
+            self.owner_id,
+            entity,
+            |relationship| self.relationship_source_eligible(relationship),
+        )
     }
 
     pub fn has_equivalent_manual_relationship(&self, draft: &ObservationDraft) -> bool {
-        let participants = draft.profile.participants();
-        let Some(first) = participants.first() else {
-            return false;
-        };
-        let owner = owner_hex(&self.owner_id);
-        let proposition = normalized_summary(&draft.proposition);
-        self.common
-            .perception
-            .relationships_for_local_participant(first.entity_id)
-            .filter(|relationship| self.relationship_source_eligible(relationship))
-            .any(|row| {
-                row.participants.len() == participants.len()
-                    && normalized_summary(&row.summary) == proposition
-                    && row.participants.iter().all(|prior| {
-                        prior.entity.owner_id == owner
-                            && participants.iter().any(|current| {
-                                current.entity_id == prior.entity.entity_id
-                                    && prior
-                                        .role
-                                        .as_deref()
-                                        .zip(current.role.as_deref())
-                                        .is_none_or(|(a, b)| {
-                                            normalized_summary(a) == normalized_summary(b)
-                                        })
-                            })
-                    })
-            })
+        equivalent_manual_relationship(
+            &self.common.perception,
+            self.owner_id,
+            draft,
+            |relationship| self.relationship_source_eligible(relationship),
+        )
     }
 
     pub fn perception_source_activity(
@@ -645,6 +619,59 @@ impl RelSession {
             });
         (settled || retained).then_some(record)
     }
+}
+
+fn relationship_sources(
+    perception: &PerceptionStore,
+    owner: [u8; 16],
+    entity: EntityId,
+    eligible: impl Fn(&Relationship) -> bool,
+) -> Vec<MemoryId> {
+    let local = owner_hex(&owner);
+    let mut seen = BTreeSet::new();
+    perception
+        .relationships_for_local_participant(entity)
+        .filter(|relationship| eligible(relationship))
+        .take(MAX_NEIGHBORS)
+        .flat_map(|relationship| &relationship.evidence)
+        .filter(|reference| reference.owner_id == local && seen.insert(reference.memory_id))
+        .map(|reference| MemoryId(reference.memory_id))
+        .take(MAX_NEIGHBORS)
+        .collect()
+}
+
+fn equivalent_manual_relationship(
+    perception: &PerceptionStore,
+    owner: [u8; 16],
+    draft: &ObservationDraft,
+    eligible: impl Fn(&Relationship) -> bool,
+) -> bool {
+    let participants = draft.profile.participants();
+    let Some(first) = participants.first() else {
+        return false;
+    };
+    let owner = owner_hex(&owner);
+    let proposition = normalized_summary(&draft.proposition);
+    perception
+        .relationships_for_local_participant(first.entity_id)
+        .filter(|relationship| eligible(relationship))
+        .any(|row| {
+            row.participants.len() == participants.len()
+                && normalized_summary(&row.summary) == proposition
+                && row.participants.iter().all(|prior| {
+                    prior.entity.owner_id == owner
+                        && participants.iter().any(|current| {
+                            current.entity_id == prior.entity.entity_id
+                                && prior
+                                    .role
+                                    .as_deref()
+                                    .zip(current.role.as_deref())
+                                    .is_none_or(|(a, b)| {
+                                        normalized_summary(a) == normalized_summary(b)
+                                    })
+                        })
+                })
+        })
 }
 
 fn perception_lineage(record: &MemoryRecord) -> [u8; 32] {

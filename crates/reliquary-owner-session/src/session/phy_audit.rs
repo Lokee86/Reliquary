@@ -142,7 +142,7 @@ macro_rules! phy_audit_reads {
                 ))
             }
 
-            fn phy_audit_read(
+            pub(in crate::session) fn phy_audit_read(
                 &self,
                 cut: PhyAuditCut,
             ) -> Result<PhyAuditRead<'_>, OwnerSessionError> {
@@ -161,13 +161,13 @@ macro_rules! phy_audit_reads {
 phy_audit_reads!(PhySession);
 phy_audit_reads!(PhyWriter);
 
-struct PhyAuditRead<'a> {
+pub(in crate::session) struct PhyAuditRead<'a> {
     common: &'a CommonState,
     cut: PhyAuditCut,
 }
 
 impl PhyAuditRead<'_> {
-    fn current(&self, id: MemoryId) -> Option<&MemoryRecord> {
+    pub(in crate::session) fn current(&self, id: MemoryId) -> Option<&MemoryRecord> {
         let captured = self.at_cut(self.cut, id)?;
         let head = self.common.memories.revision_record(id, None).ok()?;
         (captured.revision == head.revision

@@ -128,7 +128,7 @@ impl RelWriter {
 }
 
 impl PhyWriter {
-    fn check_lifecycle_lease(
+    pub(in crate::session) fn check_lifecycle_lease(
         &self,
         label: &str,
     ) -> Result<Option<WriterLeaseProof>, OwnerSessionError> {

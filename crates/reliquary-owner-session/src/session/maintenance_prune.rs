@@ -109,7 +109,9 @@ fn transform_terminal_memory_copy(
         }
         FileKind::Phylactery => {
             let phy = PhySession::open(&source, graph_admission, []).map_err(|e| e.to_string())?;
-            (phy.common, None)
+            let mut common = phy.common;
+            let observations = std::mem::take(&mut common.phy_observations.store);
+            (common, Some(observations))
         }
     };
     let selected: BTreeSet<_> = selected_memory_ids.iter().copied().collect();

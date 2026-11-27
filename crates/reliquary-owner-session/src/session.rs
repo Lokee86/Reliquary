@@ -228,6 +228,8 @@ impl From<GenerationStoreError> for OwnerSessionError {
 /// Shared owner-local REL/PHY domains, kept private behind typed reads.
 #[derive(serde::Serialize, serde::Deserialize)]
 struct CommonState {
+    #[serde(skip)]
+    phy_observations: observations::PhyObservationHistory,
     user_memory_requests: BTreeMap<String, crate::records::user_memory::UserMemoryRecord>,
     memories: MemoryStore,
     perception: PerceptionStore,
@@ -1050,6 +1052,7 @@ pub(crate) mod identity_receipt;
 pub(crate) mod identity_separation;
 mod maintenance_prune;
 pub(crate) mod observations;
+pub use observations::{PhyObservationBatch, PhyObservationCut};
 pub(crate) mod perception_audit;
 mod perception_lifecycle;
 mod relationship_prune;

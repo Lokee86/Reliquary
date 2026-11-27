@@ -2,6 +2,14 @@ use super::perception_lifecycle::support::{has_direct_source, owner_hex, text_fi
 use super::source_eligibility::SourceEligibility;
 use super::*;
 use reliquary_perception_store::RetainedResolutionRecord;
+
+mod phy;
+mod reads;
+pub(super) use phy::PhyObservationHistory;
+pub use phy::{PhyObservationBatch, PhyObservationCut};
+
+pub(super) const PHY_PREFIX: &[u8] = b"PHYOBS";
+pub(crate) use phy::PHY_MARKER;
 use reliquary_perception_store::observation::*;
 use sha2::{Digest, Sha256};
 
@@ -124,7 +132,31 @@ pub(super) struct ObservationPrefix<'a> {
     pub retained_ordinal_cut: Option<u64>,
     pub observed_bodies: Option<&'a BTreeSet<MemoryBodyId>>,
     pub unobserved_suffix_bodies: Option<&'a BTreeSet<MemoryBodyId>>,
-    pub source_eligibility: SourceEligibility<'a>,
+    pub source_eligibility: ObservationAuthority<'a>,
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum ObservationAuthority<'a> {
+    Rel(SourceEligibility<'a>),
+    Phy(PhySettlements<'a>),
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum PhySettlements<'a> {
+    Admitted(&'a DreamEvidenceStore, u64),
+    Physical(&'a BTreeSet<MemoryId>),
+}
+
+impl PhySettlements<'_> {
+    fn allows(self, memories: &MemoryStore, id: MemoryId, cut: u64) -> bool {
+        memories.has_retained_phy_import_authority_at(id, cut)
+            || match self {
+                Self::Admitted(dreams, through) => dreams
+                    .settlement_position(id)
+                    .is_some_and(|position| position <= through),
+                Self::Physical(settled) => settled.contains(&id),
+            }
+    }
 }
 
 impl ObservationPrefix<'_> {
@@ -147,20 +179,46 @@ impl ObservationPrefix<'_> {
                 .is_none_or(|bodies| !bodies.contains(&id))
     }
 
+    fn allows_memory_source(&self, record: &reliquary_memory_core::MemoryRecord) -> bool {
+        match self.source_eligibility {
+            ObservationAuthority::Rel(eligibility) => eligibility.allows(record),
+            ObservationAuthority::Phy(_) => self
+                .memories
+                .terminal_at_cut(record.id, self.memory_cut)
+                .is_none(),
+        }
+    }
+
+    fn allows_entity_source(&self, entity: &Entity) -> bool {
+        match self.source_eligibility {
+            ObservationAuthority::Rel(eligibility) => {
+                eligibility.allows_entity(entity, self.memories, self.memory_cut)
+            }
+            ObservationAuthority::Phy(_) => true,
+        }
+    }
+
     fn eligible_memory(&self, id: [u8; 32]) -> Option<&reliquary_memory_core::MemoryRecord> {
         self.memories
             .record_at_cut(MemoryId(id), self.memory_cut)
             .filter(|record| {
                 !record.archived
-                    && self.source_eligibility.allows(record)
+                    && self.allows_memory_source(record)
                     && record.superseded_by.is_none()
-                    && has_direct_source(record)
-                    && record
-                        .source_ref
-                        .as_ref()
-                        .is_some_and(|source| source.owner_id == owner_hex(&self.owner))
                     && matches!(record.lifecycle_state.as_str(), "knowledge" | "canonical")
                     && self.body_in_prefix(record.body_id)
+                    && match self.source_eligibility {
+                        ObservationAuthority::Rel(_) => {
+                            has_direct_source(record)
+                                && record
+                                    .source_ref
+                                    .as_ref()
+                                    .is_some_and(|source| source.owner_id == owner_hex(&self.owner))
+                        }
+                        ObservationAuthority::Phy(settled) => {
+                            settled.allows(self.memories, record.id, self.memory_cut)
+                        }
+                    }
             })
     }
 
@@ -185,7 +243,7 @@ impl ObservationPrefix<'_> {
         let record = self
             .memories
             .revision_record(MemoryId(id), Some(cite.revision))?;
-        if !self.source_eligibility.allows(record) {
+        if !self.allows_memory_source(record) {
             return Err(invalid("citation Memory source was removed"));
         }
         let (record, body) = self
@@ -195,7 +253,8 @@ impl ObservationPrefix<'_> {
             .filter(|_| {
                 record.memory_version <= self.memory_cut
                     && record.body_id.0 == cite.body_id
-                    && has_direct_source(record)
+                    && (matches!(self.source_eligibility, ObservationAuthority::Phy(_))
+                        || has_direct_source(record))
                     && self.body_in_prefix(record.body_id)
             })
             .ok_or_else(|| invalid("citation body revision unavailable"))?;
@@ -228,9 +287,7 @@ impl ObservationPrefix<'_> {
                 entity.revision == participant.revision
                     && entity.kind != reliquary_perception_store::PRINCIPAL_ENTITY_KIND
                     && !entity.kind.eq_ignore_ascii_case("generic")
-                    && self
-                        .source_eligibility
-                        .allows_entity(entity, self.memories, self.memory_cut)
+                    && self.allows_entity_source(entity)
             })
             .ok_or_else(|| invalid("participant Entity changed or is ineligible"))?;
         if !super::identity_evidence::quote_names_entity(
@@ -281,7 +338,9 @@ impl ObservationPrefix<'_> {
         {
             return Err(invalid("record differs from owner physical prefix"));
         }
-        if let Some(progress) = &record.batch.progress {
+        if let Some(progress) = &record.batch.progress
+            && let ObservationAuthority::Rel(eligibility) = self.source_eligibility
+        {
             super::perception_audit::PerceptionAuditProgress::verify_prefix(
                 &progress.bytes,
                 self.owner,
@@ -290,7 +349,7 @@ impl ObservationPrefix<'_> {
                 self.perception_cut,
                 store.frontier(),
                 record.rel_turn,
-                self.source_eligibility.cut(),
+                eligibility.cut(),
             )?;
         }
         let mut checker = StandingCheck::new(*self, store);
@@ -688,6 +747,10 @@ fn invalid(reason: &str) -> OwnerSessionError {
 }
 
 impl RelSession {
+    fn observation_store(&self) -> &ObservationStore {
+        &self.observations
+    }
+
     fn observation_prefix(&self) -> ObservationPrefix<'_> {
         ObservationPrefix {
             owner: self.owner_id,
@@ -700,267 +763,8 @@ impl RelSession {
             retained_ordinal_cut: self.common.perception.retained_resolution_ordinal(),
             observed_bodies: None,
             unobserved_suffix_bodies: None,
-            source_eligibility: self.source_eligibility(),
+            source_eligibility: ObservationAuthority::Rel(self.source_eligibility()),
         }
-    }
-
-    pub fn observation_claim_index_profiles(
-        &self,
-    ) -> Vec<reliquary_vector_store::CompatibilityProfile> {
-        let active = || {
-            self.common
-                .profiles
-                .iter()
-                .filter(|profile| !self.common.profiles.is_retired(profile.id))
-        };
-        let memory_profiles: Vec<_> = active()
-            .filter(|profile| self.common.memory_vectors.binding_count(profile.id) != 0)
-            .cloned()
-            .collect();
-        if memory_profiles.is_empty() {
-            active().cloned().collect()
-        } else {
-            memory_profiles
-        }
-    }
-
-    pub fn observation_claim_profiles(&self) -> impl Iterator<Item = CompatibilityProfileId> + '_ {
-        self.observations
-            .claim_vector_profiles()
-            .map(CompatibilityProfileId)
-            .filter(|id| self.active_compatibility_profile(*id).is_some())
-    }
-
-    pub fn observation_claim_vector(
-        &self,
-        profile: CompatibilityProfileId,
-        revision: &ObservationRevision,
-    ) -> Result<Option<Vec<f32>>, OwnerSessionError> {
-        if self.active_compatibility_profile(profile).is_none() {
-            return Err(invalid("claim vector profile is unavailable"));
-        }
-        let citation = revision.full_citation();
-        let Some(vector) = self.observations.claim_vector(profile.0, &citation) else {
-            return Ok(None);
-        };
-        Ok(self
-            .observation(revision.id)
-            .filter(|head| {
-                head.standing == ObservationStanding::Current
-                    && head.revision.full_citation() == citation
-            })
-            .map(|_| vector.to_vec()))
-    }
-
-    pub fn observation_progress(&self) -> Option<&ObservationAuditProgress> {
-        self.observations.progress()
-    }
-
-    pub fn observation_publication_version(&self) -> u64 {
-        self.observations.frontier()
-    }
-
-    pub fn observation(&self, id: ObservationId) -> Option<ObservationInspection<'_>> {
-        self.observation_page_for_ids([id]).pop()
-    }
-
-    pub fn observations_after(
-        &self,
-        after: Option<ObservationId>,
-        limit: usize,
-    ) -> Vec<ObservationInspection<'_>> {
-        self.observation_page_for_ids(self.observations.heads_after(after, limit.min(MAX_PAGE)))
-    }
-
-    fn observation_page_for_ids(
-        &self,
-        ids: impl IntoIterator<Item = ObservationId>,
-    ) -> Vec<ObservationInspection<'_>> {
-        let mut checker = StandingCheck::new(self.observation_prefix(), &self.observations);
-        ids.into_iter()
-            .filter_map(|id| {
-                let revision = self.observations.head(id)?;
-                Some(ObservationInspection {
-                    revision,
-                    standing: checker.standing(id),
-                    triggering_evidence: self
-                        .observations
-                        .pending(id)
-                        .map(|(_, evidence)| evidence)
-                        .unwrap_or_default(),
-                })
-            })
-            .collect()
-    }
-
-    pub fn observation_revision(
-        &self,
-        id: ObservationId,
-        revision: u64,
-    ) -> Option<ObservationInspection<'_>> {
-        let row = self.observations.revision(id, revision)?;
-        let head = self.observations.head(id)?;
-        if head.revision == revision {
-            self.observation(id)
-        } else {
-            Some(ObservationInspection {
-                revision: row,
-                standing: ObservationStanding::Superseded,
-                triggering_evidence: Vec::new(),
-            })
-        }
-    }
-
-    pub fn observation_revisions_after(
-        &self,
-        id: ObservationId,
-        after: u64,
-        limit: usize,
-    ) -> Vec<ObservationInspection<'_>> {
-        self.observations
-            .revision_page(id, after, limit.min(MAX_PAGE))
-            .filter_map(|row| self.observation_revision(id, row.revision))
-            .collect()
-    }
-
-    pub fn matching_observation(&self, draft: &ObservationDraft) -> Option<ObservationId> {
-        self.observations.matching_claim(draft)
-    }
-
-    pub fn observation_comparison(
-        &self,
-        comparison: &ObservationComparison,
-    ) -> Option<ObservationComparisonOutcome> {
-        self.observations.comparison(comparison)
-    }
-
-    pub fn observation_comparison_at_policy(
-        &self,
-        comparison: &ObservationComparison,
-        policy: u32,
-    ) -> Option<ObservationComparisonOutcome> {
-        self.observations.comparison_at_policy(comparison, policy)
-    }
-
-    pub fn observation_pending_after(
-        &self,
-        after: Option<ObservationId>,
-        limit: usize,
-    ) -> Vec<ObservationInspection<'_>> {
-        self.observation_page_for_ids(
-            self.observations
-                .explicitly_pending_after(after, limit.min(MAX_PAGE)),
-        )
-    }
-
-    pub fn observation_dependents_after(
-        &self,
-        source: ObservationSource,
-        after: Option<ObservationId>,
-        limit: usize,
-    ) -> Vec<ObservationId> {
-        self.observations
-            .source_dependents_after(source, after, limit.min(MAX_PAGE))
-            .collect()
-    }
-
-    pub fn observation_participant_dependents_after(
-        &self,
-        entity: EntityId,
-        after: Option<ObservationId>,
-        limit: usize,
-    ) -> Vec<ObservationId> {
-        self.observations
-            .participant_dependents_after(entity, after, limit.min(MAX_PAGE))
-            .collect()
-    }
-
-    pub fn observation_dependents(&self, source: ObservationSource) -> Vec<ObservationId> {
-        self.observations
-            .source_dependents(source)
-            .take(MAX_PAGE)
-            .collect()
-    }
-
-    pub fn observation_participant_dependents(&self, entity: EntityId) -> Vec<ObservationId> {
-        self.observations
-            .participant_dependents(entity)
-            .take(MAX_PAGE)
-            .collect()
-    }
-
-    pub fn observation_citation_text(
-        &self,
-        cite: &ObservationCitation,
-    ) -> Result<String, OwnerSessionError> {
-        let prefix = self.observation_prefix();
-        let mut checker = StandingCheck::new(prefix, &self.observations);
-        checker.current_lineage(cite)?;
-        self.historical_observation_citation_text(cite)
-    }
-
-    pub fn historical_observation_citation_text(
-        &self,
-        cite: &ObservationCitation,
-    ) -> Result<String, OwnerSessionError> {
-        let prefix = self.observation_prefix();
-        prefix.check_owner(cite)?;
-        match cite.source {
-            ObservationSource::Memory(id) => prefix.memory_text(cite, id),
-            ObservationSource::Observation(id) => self
-                .observations
-                .revision(id, cite.revision)
-                .filter(|row| self.observation_source_eligible(row))
-                .ok_or_else(|| invalid("unknown Observation revision"))
-                .and_then(|revision| observation_text(revision, cite))
-                .map(str::to_owned),
-        }
-    }
-
-    /// Historical revisions retain their citation coordinates. An exact
-    /// revision is eligible to disclose only while all its pinned source
-    /// Memories (including upstream Observation lineage) remain eligible.
-    pub fn observation_revision_source_eligible(&self, id: ObservationId, revision: u64) -> bool {
-        self.observations
-            .revision(id, revision)
-            .is_some_and(|row| self.observation_source_eligible(row))
-    }
-
-    fn observation_source_eligible(&self, row: &ObservationRevision) -> bool {
-        if self.archive_source_removal_version() == 0 {
-            return true;
-        }
-        if row.lineage.iter().any(|source| {
-            !self.memory_revision_source_eligible(MemoryId(source.memory_id), source.revision)
-        }) {
-            return false;
-        }
-        let mut remaining = vec![row];
-        let mut visited = BTreeSet::new();
-        while let Some(row) = remaining.pop() {
-            if !visited.insert((row.id, row.revision)) {
-                continue;
-            }
-            if visited.len() > MAX_STANDING_CHECK
-                || row.draft.profile.participants().iter().any(|participant| {
-                    self.common
-                        .perception
-                        .entity_revision(participant.entity_id, participant.revision)
-                        .is_none_or(|entity| !self.entity_revision_source_eligible(entity))
-                })
-            {
-                return false;
-            }
-            for cite in &row.draft.citations {
-                if let ObservationSource::Observation(id) = cite.source {
-                    let Some(parent) = self.observations.revision(id, cite.revision) else {
-                        return false;
-                    };
-                    remaining.push(parent);
-                }
-            }
-        }
-        true
     }
 }
 
@@ -978,60 +782,17 @@ impl RelWriter {
         mut rows: Vec<ObservationClaimVector>,
     ) -> Result<(), OwnerSessionError> {
         self.ensure_write_ready()?;
-        if rows.is_empty()
-            || rows.len() > MAX_OBSERVATION_CLAIM_VECTOR_ROWS
-            || self.session.active_compatibility_profile(profile).is_none()
-        {
-            return Err(invalid("claim vector batch or profile is unavailable"));
-        }
-        rows.sort_by_key(|row| row.citation);
-        if rows
-            .windows(2)
-            .any(|pair| pair[0].citation == pair[1].citation)
-        {
-            return Err(invalid("claim vector batch repeats a citation"));
-        }
         let rel = &self.session;
-        rows.retain(|row| {
-            rel.observations
-                .claim_vector(profile.0, &row.citation)
-                .is_none()
-        });
-        let Some(first) = rows.first() else {
-            return Ok(());
-        };
-        let ObservationSource::Observation(id) = first.citation.source else {
-            return Err(invalid("claim vector source is not an Observation"));
-        };
-        let policy = rel
-            .observations
-            .head(id)
-            .ok_or_else(|| invalid("claim vector source is missing"))?
-            .policy;
-        let mut fingerprint = Sha256::new();
-        fingerprint.update(b"reliquary-observation-claim-vector-batch-v1");
-        fingerprint.update(profile.0);
-        for row in &rows {
-            fingerprint.update(
-                rmp_serde::to_vec_named(&row.citation)
-                    .map_err(|_| invalid("claim vector citation encoding"))?,
-            );
+        if let Some((batch, vectors)) = prepare_claim_vectors(
+            &rel.observations,
+            rel.active_compatibility_profile(profile).is_some(),
+            rel.owner_id,
+            rel.history_generation,
+            profile,
+            &mut rows,
+        )? {
+            self.publish_observation_record(batch, Some(vectors))?;
         }
-        let batch = ObservationBatch {
-            owner_id: rel.owner_id,
-            history_generation: rel.history_generation,
-            input_fingerprint: fingerprint.finalize().into(),
-            policy,
-            operations: Vec::new(),
-            progress: None,
-        };
-        self.publish_observation_record(
-            batch,
-            Some(ObservationClaimVectors {
-                profile: profile.0,
-                rows,
-            }),
-        )?;
         Ok(())
     }
 
@@ -1088,6 +849,61 @@ impl RelWriter {
             }
         }
     }
+}
+
+fn prepare_claim_vectors(
+    store: &ObservationStore,
+    active_profile: bool,
+    owner_id: [u8; 16],
+    history_generation: [u8; 32],
+    profile: CompatibilityProfileId,
+    rows: &mut Vec<ObservationClaimVector>,
+) -> Result<Option<(ObservationBatch, ObservationClaimVectors)>, OwnerSessionError> {
+    if rows.is_empty() || rows.len() > MAX_OBSERVATION_CLAIM_VECTOR_ROWS || !active_profile {
+        return Err(invalid("claim vector batch or profile is unavailable"));
+    }
+    rows.sort_by_key(|row| row.citation);
+    if rows
+        .windows(2)
+        .any(|pair| pair[0].citation == pair[1].citation)
+    {
+        return Err(invalid("claim vector batch repeats a citation"));
+    }
+    rows.retain(|row| store.claim_vector(profile.0, &row.citation).is_none());
+    let Some(first) = rows.first() else {
+        return Ok(None);
+    };
+    let ObservationSource::Observation(id) = first.citation.source else {
+        return Err(invalid("claim vector source is not an Observation"));
+    };
+    let policy = store
+        .head(id)
+        .ok_or_else(|| invalid("claim vector source is missing"))?
+        .policy;
+    let mut fingerprint = Sha256::new();
+    fingerprint.update(b"reliquary-observation-claim-vector-batch-v1");
+    fingerprint.update(profile.0);
+    for row in rows.iter() {
+        fingerprint.update(
+            rmp_serde::to_vec_named(&row.citation)
+                .map_err(|_| invalid("claim vector citation encoding"))?,
+        );
+    }
+    let batch = ObservationBatch {
+        owner_id,
+        history_generation,
+        input_fingerprint: fingerprint.finalize().into(),
+        policy,
+        operations: Vec::new(),
+        progress: None,
+    };
+    Ok(Some((
+        batch,
+        ObservationClaimVectors {
+            profile: profile.0,
+            rows: std::mem::take(rows),
+        },
+    )))
 }
 
 impl RelSession {

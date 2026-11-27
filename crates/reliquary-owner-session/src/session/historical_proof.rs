@@ -22,6 +22,8 @@ pub struct HistoricalOwnerCut {
     pub graph_version: u64,
     pub ego_version: u64,
     pub vector_version: u64,
+    pub phy_observation_version: u64,
+    pub phy_settlement_version: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -97,6 +99,8 @@ impl RelSession {
                 graph_version: self.common.graph.graph_version(),
                 ego_version: self.common.ego.version(),
                 vector_version: self.generations.vector_version(),
+                phy_observation_version: 0,
+                phy_settlement_version: 0,
             },
             archive_version: self.archive.archive_version(),
             identity_version: self.identity_history.frontier(),
@@ -237,6 +241,8 @@ impl PhySession {
             graph_version: self.common.graph.graph_version(),
             ego_version: self.common.ego.version(),
             vector_version: 0,
+            phy_observation_version: self.observation_publication_version(),
+            phy_settlement_version: self.common.dreams.settlement_count(),
         }
     }
 
@@ -249,7 +255,37 @@ impl PhySession {
             return Err(HistoricalProofError::WrongOwner);
         }
         let common = common_history(&self.common, None, cut)?;
-        let retained = common_count(&common);
+        if cut.phy_settlement_version > self.common.dreams.settlement_count() {
+            return Err(HistoricalProofError::FutureCut("PHY settlement"));
+        }
+        let history = &self.common.phy_observations;
+        let records = history.store.records();
+        let count = records.partition_point(|(receipt, _)| {
+            receipt.publication_version <= cut.phy_observation_version
+        });
+        let observations = &records[..count];
+        if observations
+            .last()
+            .map_or(0, |(receipt, _)| receipt.publication_version)
+            != cut.phy_observation_version
+        {
+            return Err(HistoricalProofError::FutureCut("Observation"));
+        }
+        for (receipt, _) in observations {
+            let prefix = &history.cuts[&receipt.publication_version];
+            if prefix.audit.memory > cut.memory_version
+                || prefix.audit.graph > cut.graph_version
+                || prefix.audit.settlements > cut.phy_settlement_version
+                || prefix.entity > cut.perception_version
+            {
+                return Err(HistoricalProofError::InconsistentCut(
+                    "PHY Observation exceeds its Memory, Graph, settlement or Perception cut",
+                ));
+            }
+        }
+        let retained = common_count(&common)
+            .checked_add(observations.len())
+            .ok_or(HistoricalProofError::LimitExceeded)?;
         if retained > MAX_PROOF_RECORDS {
             return Err(HistoricalProofError::LimitExceeded);
         }
@@ -257,7 +293,7 @@ impl PhySession {
             owner_id: self.owner_id,
             file_kind: FileKind::Phylactery,
             history_generation: self.history_generation,
-            digest: fingerprint::phy(self.owner_id, &common, cut),
+            digest: fingerprint::phy(self.owner_id, &common, cut, observations, &history.cuts),
             retained_records: retained,
             unavailable_payloads: common.unavailable_payloads,
         })

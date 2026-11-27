@@ -244,7 +244,7 @@ pub(super) fn open_common_replaying(
     }
     let communities = CommunityStore::open(container, &graph)?;
     let ego = EgoStore::open(container)?;
-    let phy_summary_generation = if ego.phy_summary().is_some() {
+    let phy_generation = if container.identity().file_kind == FileKind::Phylactery {
         Some(
             owner_history_generation_from_container(container)
                 .map_err(OwnerSessionError::Record)?,
@@ -282,13 +282,13 @@ pub(super) fn open_common_replaying(
         infer_explicit_populations: dream_archive.is_some() && dream_admissions.peek().is_none(),
         ..Default::default()
     };
-    let (identity_history, identity_separation_history, observations) =
+    let (identity_history, identity_separation_history, observations, phy_observations) =
         super::replay_prefix::validate_graph_prefix(
             container,
             &memories,
             &packed_vectors,
             identity_generation.map(|generation| (&perception, generation)),
-            phy_summary_generation,
+            phy_generation.map(|generation| (&perception, generation)),
             &pruned_bodies,
             observation_archive,
             &profiles,
@@ -437,6 +437,7 @@ pub(super) fn open_common_replaying(
         &memory_vectors,
     )?;
     let common = CommonState {
+        phy_observations,
         user_memory_requests,
         memories,
         perception,

@@ -149,6 +149,11 @@ pub fn rewrite_memory_history_copy(
         FileKind::Phylactery => {
             let session = PhySession::open(&source, graph_admission, [])
                 .map_err(|error| error.to_string())?;
+            if session.observation_publication_version() != 0 {
+                return Err(
+                    "fresh-history rewrite cannot preserve Observation publications".into(),
+                );
+            }
             (session.common, RelDependencyDeclaration::default())
         }
     };

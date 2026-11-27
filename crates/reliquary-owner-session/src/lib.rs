@@ -52,6 +52,7 @@ pub use session::{
 pub use session::{
     ManagementRead, RelConversationSummary, RelImportedSource, RelSourceTurn, RelTranscriptTurn,
 };
+pub use session::{PhyObservationBatch, PhyObservationCut};
 pub use session::{
     RelHistoryComparison, RelHistoryRelation, RelReconciliationError, RelReconciliationReport,
     compare_rel_histories, reconcile_divergent_rel_copy,
