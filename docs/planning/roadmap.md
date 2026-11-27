@@ -91,6 +91,14 @@ Set `memory.memory_enabled` and `memory.user_profile_enabled` to `false` for a p
 
 The disposable probe on stock Hermes v0.23.0 (`2bd378ed1`) captured the ordinary Chat Completions request at a local stub. The identity substitution preserved 11,828 bytes of prompt suffix and all other request fields. A mismatching prefix left the request intact. Use that stock extension seam for this design. [Hermes Context Engine plugin interface](https://github.com/NousResearch/hermes-agent/blob/v0.23.0/website/docs/developer-guide/context-engine-plugin.md)
 
+## Ego package in Mercury
+
+Mercury uses the same budgeted Ego package and selection rules as Hermes. In a participating profile, the native Reliquary integration supplies the package to Mercury's request builder. The builder renders the approved Ego Identity where it currently renders `SOUL.md` and places the rest of the package in the system prompt. If no approved Identity is available, use the existing `SOUL.md` path. Preserve Mercury's other prompt blocks, current-chat compaction, and transcript ownership. [Mercury request assembly](https://github.com/itsflownium/hermes-rust-rewrite/blob/89413282c1a0c496d259dbddbaf7cf97d4632eb8/crates/engine/src/lib.rs#L295-L339)
+
+Use Mercury's existing native Reliquary provider selection for participating profiles. That selection already disables the built-in `MEMORY.md` and `USER.md` notes layers. Ego Pins and the routine PHY summary supply that standing context. [Mercury profile memory settings](https://github.com/itsflownium/hermes-rust-rewrite/blob/89413282c1a0c496d259dbddbaf7cf97d4632eb8/crates/engine/src/settings.rs#L245-L253)
+
+Verify on a disposable Mercury profile by capturing the outgoing request. Check that the Ego Identity occupies the persona slot, the rest of the budgeted package appears once, the two legacy notes blocks are absent, and the other prompt blocks and conversation messages are preserved.
+
 ## Observation creation
 
 Perception synthesizes the proposed claim and its citations, generates draft receptors, back-checks the REL, verifies the exact draft in one Jev request, and finalizes through the owner writer. The live verification contract passed the publication decision on 24 fresh authored drafts. [Creation specification and implementation plan](observation-creation-spec-2026-11-24.md)
