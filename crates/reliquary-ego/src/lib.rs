@@ -1,8 +1,10 @@
 //! Topics and exact Memory references for downstream Ego extraction.
 
 use reliquary_memory_audit::{CandidateContract, Feature, Slots, SourceCitation};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+
+pub mod package;
 
 const MAX_SUBJECT_BYTES: usize = 160;
 const MAX_SOURCE_SLOTS: usize = 6;
@@ -10,7 +12,7 @@ const MAX_SOURCE_SLOTS: usize = 6;
 #[derive(Clone, Copy, Default)]
 pub struct EgoContract;
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct EgoCandidate {
     pub subject: String,
     pub sources: Vec<SourceCitation>,

@@ -28,6 +28,8 @@ mod dream_empty_publication;
 mod dream_publication;
 mod dream_supersession_publication;
 mod dream_temporal;
+pub mod ego_context;
+pub mod ego_pending;
 mod temporal_query;
 mod temporal_search;
 pub use reliquary_retrieval::{TemporalBasis, TemporalEvidence, TemporalFilter};

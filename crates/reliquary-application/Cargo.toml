@@ -25,6 +25,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 chrono-tz = "0.10"
 chrono = "0.4"
+rusqlite = { version = "0.37", features = ["bundled"] }
 
 [dev-dependencies]
 lore = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }
