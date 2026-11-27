@@ -158,6 +158,9 @@ pub fn rewrite_memory_history_copy(
     {
         return Err("PHY rewrite cannot acquire REL Archive or Freshness state".into());
     }
+    if source_common.ego.has_extended_records() {
+        return Err("fresh-history rewrite cannot preserve verified Ego history".into());
+    }
     if !source_common.maintenance.is_empty() {
         return Err("fresh-history source has prior destructive maintenance state".into());
     }

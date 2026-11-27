@@ -6,9 +6,12 @@ use reliquary_container::{Container, ContainerError, ContainerIdentity, FileKind
 use std::collections::BTreeMap;
 
 mod history;
+mod summary;
 use std::fmt;
+use summary::{ExtendedRecord, SummaryProjection};
 
 const RECORD_MAGIC: &[u8; 8] = b"RELEGO01";
+const EXTENDED_SCHEMA_VERSION: u8 = 1;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum EgoOwnerKind {
@@ -106,6 +109,10 @@ enum EgoRecord {
         source_memory_version: u64,
         text: String,
     },
+    Extended {
+        version: u64,
+        record: ExtendedRecord,
+    },
 }
 
 impl EgoRecord {
@@ -114,7 +121,8 @@ impl EgoRecord {
             Self::Identity { version, .. }
             | Self::Personality { version, .. }
             | Self::Anchor { version, .. }
-            | Self::Synthesis { version, .. } => *version,
+            | Self::Synthesis { version, .. }
+            | Self::Extended { version, .. } => *version,
         }
     }
 
@@ -122,6 +130,7 @@ impl EgoRecord {
         match self {
             Self::Identity { .. } => Some("Identity"),
             Self::Personality { .. } => Some("Personality"),
+            Self::Extended { .. } => Some("Identity selection or verified summary"),
             Self::Synthesis { .. } => None,
             Self::Anchor { .. } => None,
         }
@@ -190,6 +199,15 @@ impl EgoRecord {
                 put_u64(&mut out, *source_memory_version);
                 put_string(&mut out, text)?;
             }
+            Self::Extended { version, record } => {
+                out.push(5);
+                put_u64(&mut out, *version);
+                out.push(EXTENDED_SCHEMA_VERSION);
+                let payload = rmp_serde::to_vec_named(record).map_err(|_| {
+                    EgoError::InvalidRecord("failed to encode Ego extension payload")
+                })?;
+                out.extend_from_slice(&payload);
+            }
         }
         Ok(out)
     }
@@ -250,6 +268,19 @@ impl EgoRecord {
                 source_memory_version: get_u64(bytes, &mut at)?,
                 text: get_string(bytes, &mut at)?,
             },
+            5 => {
+                let version = get_u64(bytes, &mut at)?;
+                if get_u8(bytes, &mut at)? != EXTENDED_SCHEMA_VERSION {
+                    return Err(EgoError::InvalidRecord(
+                        "unknown Ego extension schema version",
+                    ));
+                }
+                let mut payload = std::io::Cursor::new(&bytes[at..]);
+                let record = rmp_serde::from_read(&mut payload)
+                    .map_err(|_| EgoError::InvalidRecord("invalid Ego extension payload"))?;
+                at += payload.position() as usize;
+                Self::Extended { version, record }
+            }
             _ => return Err(EgoError::InvalidRecord("unknown record kind")),
         };
         if at != bytes.len() {
@@ -280,6 +311,8 @@ pub struct EgoStore {
     anchor_history: BTreeMap<(EgoAnchorId, u64), EgoAnchor>,
     anchor_tombstones: BTreeMap<EgoAnchorId, u64>,
     records: Vec<EgoRecord>,
+    #[serde(default)]
+    summaries: SummaryProjection,
 }
 
 impl EgoStore {
@@ -297,6 +330,15 @@ impl EgoStore {
             store.apply_replayed(record)?;
         }
         Ok(store)
+    }
+
+    /// Accept a direct Ego carrier in a previously verified owner suffix.
+    pub fn replay_frame(&mut self, payload: &[u8]) -> Result<bool, EgoError> {
+        let Some(record) = EgoRecord::decode(payload)? else {
+            return Ok(false);
+        };
+        self.apply_replayed(record)?;
+        Ok(true)
     }
 
     pub fn empty_for(file_kind: FileKind) -> Self {
@@ -320,6 +362,7 @@ impl EgoStore {
             anchor_history: BTreeMap::new(),
             anchor_tombstones: BTreeMap::new(),
             records: Vec::new(),
+            summaries: SummaryProjection::default(),
         }
     }
 
@@ -831,6 +874,7 @@ impl EgoStore {
                     self.anchors.insert(id, value);
                 }
             }
+            EgoRecord::Extended { version, record } => self.apply_extended(version, &record)?,
         }
         if replay || version == self.next_version()? {
             self.version = version;

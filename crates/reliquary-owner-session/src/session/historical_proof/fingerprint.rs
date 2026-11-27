@@ -397,6 +397,24 @@ fn ego_record_value(value: &reliquary_ego_store::EgoHistoryRecord) -> Value {
             "kind": "synthesis", "ego_version": ego_version, "revision": revision,
             "source_memory_version": source_memory_version, "text": text,
         }),
+        IdentitySelection {
+            ego_version,
+            selection,
+        } => json!({
+            "kind": "identity_selection", "ego_version": ego_version, "selection": selection,
+        }),
+        RelSummary {
+            ego_version,
+            publication,
+        } => json!({
+            "kind": "rel_summary", "ego_version": ego_version, "publication": publication,
+        }),
+        PhySummary {
+            ego_version,
+            publication,
+        } => json!({
+            "kind": "phy_summary", "ego_version": ego_version, "publication": publication,
+        }),
     }
 }
 

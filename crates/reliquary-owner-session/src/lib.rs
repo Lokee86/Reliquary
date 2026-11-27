@@ -4,6 +4,13 @@
 //! accepted Episodes are derived from durable owners; Dream first-cycle
 //! populations still require externally supplied admission evidence.
 
+pub use reliquary_ego_store::{
+    EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoCitation, EgoCompletion, EgoEmbedding,
+    EgoIdentity, EgoIdentityId, EgoIdentitySelection, EgoItemChange, EgoParagraph,
+    EgoPhyPublication, EgoPhySummary, EgoPhyText, EgoPoint, EgoPointId, EgoPointStatus,
+    EgoRelChange, EgoRelPublication, EgoRelSummary, EgoSourceCut, EgoSummaryItem, EgoTextField,
+    EgoTimeScope, EgoTombstone, EgoTopic, EgoTopicId, MAX_EGO_PHY_SUMMARY_TOKENS,
+};
 pub use reliquary_graph::CommunityId;
 
 pub use reliquary_graph::GraphAdmission;

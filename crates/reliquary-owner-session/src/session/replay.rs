@@ -244,6 +244,7 @@ pub(super) fn open_common_replaying(
     }
     let communities = CommunityStore::open(container, &graph)?;
     let ego = EgoStore::open(container)?;
+    super::ego::validate_phy_history(&ego, &memories, container)?;
     let packed_vectors = if leased {
         PackedVectorStore::open_leased(container)?
     } else {

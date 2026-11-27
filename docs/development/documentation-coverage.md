@@ -24,7 +24,7 @@ Paths below are relative to the repository root. A focused owner serves several 
 | `reliquary-graph` | [Storage / Graph](../architecture/storage.md) | crate `src/lib.rs`, `dream_batch.rs`, `association.rs`, `community_names.rs`, and scan-and-merge tests |
 | `reliquary-memory-audit`, `reliquary-ego`, `reliquary-perception` | [Observation inference](../architecture/semantic-processing.md#observation-inference) | Combined discovery validation, snapshot-bound synthesis and receptors, and the two native Jev contracts |
 | `reliquary-perception-store` | [Storage / Perception](../architecture/storage.md) | crate history and relationship replay/codec tests |
-| `reliquary-ego-store` | [Storage / Ego](../architecture/storage.md) | crate `src/` tests and owner-session PHY replay |
+| `reliquary-ego-store` | [Storage / Ego](../architecture/storage.md), [Owner-session](../architecture/owner-session.md) | `src/tests/summary.rs` covers verified summary revisions, atomic completion, suppression, and Identity selection. Owner-session covers PHY replay and exact copy. |
 | `reliquary-freshness-store` | [Storage / Freshness](../architecture/storage.md) | crate `src/` tests and Freshness workflow reopen tests |
 | `reliquary-vector-store` | [Storage / Vectors](../architecture/storage.md) | crate `src/tests.rs`, generation/rebuild tests |
 | `reliquary-insomnia-store` | [Storage / Insomnia](../architecture/storage.md) | crate `src/tests.rs`; claim/completion replay |

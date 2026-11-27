@@ -170,6 +170,16 @@ fn transform_terminal_memory_copy(
     }) {
         return Err("selected Memory body is required by retained Observation evidence".into());
     }
+    if source_state
+        .ego
+        .phy_publications()
+        .filter_map(|publication| publication.replacement.as_ref())
+        .flat_map(|text| &text.paragraphs)
+        .flat_map(|paragraph| &paragraph.citations)
+        .any(|citation| bodies.contains(&MemoryBodyId(citation.body_id)))
+    {
+        return Err("selected Memory body is required by a retained PHY summary".into());
+    }
     descriptors.sort_by(|a, b| a.target.cmp(&b.target));
     let manifest = HistoryPruneManifest {
         owner_uuid: source.owner_id(),

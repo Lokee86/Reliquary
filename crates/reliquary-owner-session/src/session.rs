@@ -831,6 +831,12 @@ macro_rules! common_reads {
             pub fn ego_anchor(&self, id: EgoAnchorId) -> Option<&EgoAnchor> {
                 self.$field.ego.anchor(id)
             }
+            pub fn ego_anchors(&self) -> impl Iterator<Item = &EgoAnchor> {
+                self.$field.ego.anchors()
+            }
+            pub fn ego_anchor_revision(&self, id: EgoAnchorId, revision: u64) -> Option<&EgoAnchor> {
+                self.$field.ego.anchor_revision(id, revision)
+            }
             pub fn retention_manifest(&self, digest: &[u8; 32]) -> Option<&HistoryPruneManifest> {
                 self.$field.maintenance.get(digest)
             }
@@ -1029,6 +1035,7 @@ mod checkpoint;
 mod create;
 pub(crate) mod dream_pairs;
 pub(crate) mod dream_prefix;
+mod ego;
 mod entity_prune;
 mod external_memory;
 mod external_reference;

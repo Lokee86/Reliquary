@@ -52,6 +52,9 @@ pub(super) fn replay(
         if payload.starts_with(b"RELVERS1") || payload.starts_with(b"RELVERS2") {
             continue; // Already accepted by the physical clock.
         }
+        if session.common.ego.replay_frame(payload)? {
+            continue;
+        }
         if payload.starts_with(REL_DEPENDENCY_MAGIC) {
             session.rel_dependencies.replay(session.owner_id, payload)?;
             continue;

@@ -333,3 +333,5 @@ fn ego_rejects_same_owner_id_with_different_rel_scope() {
     ));
     assert!(other.read_frames().unwrap().is_empty());
 }
+
+mod summary;

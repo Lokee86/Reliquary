@@ -546,6 +546,7 @@ name = "reliquary-ego-store"
 version = "0.1.0"
 dependencies = [
  "reliquary-container",
+ "rmp-serde",
  "serde",
 ]
 

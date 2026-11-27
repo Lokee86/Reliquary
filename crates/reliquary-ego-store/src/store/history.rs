@@ -75,6 +75,22 @@ impl EgoStore {
                         source_memory_version: *source_memory_version,
                         text: text.clone(),
                     },
+                    EgoRecord::Extended { version, record } => match record {
+                        ExtendedRecord::IdentitySelection(selection) => {
+                            crate::EgoHistoryRecord::IdentitySelection {
+                                ego_version: *version,
+                                selection: *selection,
+                            }
+                        }
+                        ExtendedRecord::Rel(publication) => crate::EgoHistoryRecord::RelSummary {
+                            ego_version: *version,
+                            publication: publication.clone(),
+                        },
+                        ExtendedRecord::Phy(publication) => crate::EgoHistoryRecord::PhySummary {
+                            ego_version: *version,
+                            publication: publication.clone(),
+                        },
+                    },
                 })
                 .collect(),
             identities: projected.identities.into_values().collect(),
