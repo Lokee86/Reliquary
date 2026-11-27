@@ -847,6 +847,45 @@ fn ordinary_scoped_recall_ranks_both_owners_and_fences_phy_disclosure() {
         Some(private_text)
     );
 
+    let endpoint = crate::g4_retrieval_acceptance::Embed {
+        calls: Default::default(),
+        dimensions: 2,
+    };
+    let profile = instance.publish_embedding_profile(phy, &endpoint).unwrap();
+    instance
+        .with_entity_phy_writer(phy, |writer| {
+            writer.publish_observation_claim_vectors(
+                profile,
+                vec![ObservationClaimVector {
+                    citation: claim.citation,
+                    vector: vec![1.0, 0.0],
+                }],
+            )
+        })
+        .unwrap()
+        .unwrap();
+    // Release both writable leases before copying native bytes, then bind
+    // retrieval to the reopened mounts. Windows locks owners while writable.
+    fixture.gateway.quiesce_owner(fixture.owner).unwrap();
+    fixture.gateway.quiesce_owner(phy).unwrap();
+    let verified_phy = std::fs::read(&phy_path).unwrap();
+    export_scoped_fixture(&fixture.path, "mixed.rel");
+    export_scoped_fixture(&phy_path, "current.phy");
+    assert_eq!(
+        fixture
+            .gateway
+            .mount_writable_reliquary_current(&fixture.path)
+            .unwrap(),
+        fixture.owner
+    );
+    assert_eq!(
+        fixture
+            .gateway
+            .mount_writable_phylactery_current(&phy_path)
+            .unwrap(),
+        phy
+    );
+
     let active = ActivePhyRecall::new(phy);
     let inspect = instance
         .begin_scoped_memory_retrieval(
@@ -896,23 +935,6 @@ fn ordinary_scoped_recall_ranks_both_owners_and_fences_phy_disclosure() {
         .unwrap();
     assert_eq!(limited.ranked, preview.ranked[..2]);
 
-    let endpoint = crate::g4_retrieval_acceptance::Embed {
-        calls: Default::default(),
-        dimensions: 2,
-    };
-    let profile = instance.publish_embedding_profile(phy, &endpoint).unwrap();
-    instance
-        .with_entity_phy_writer(phy, |writer| {
-            writer.publish_observation_claim_vectors(
-                profile,
-                vec![ObservationClaimVector {
-                    citation: claim.citation,
-                    vector: vec![1.0, 0.0],
-                }],
-            )
-        })
-        .unwrap()
-        .unwrap();
     let paraphrase = instance
         .evaluate_agentic_memory_with_policy(
             &inspect,
@@ -936,9 +958,6 @@ fn ordinary_scoped_recall_ranks_both_owners_and_fences_phy_disclosure() {
     );
     assert_eq!(paraphrase.observations[0].semantic_score, Some(1.0));
     assert_eq!(paraphrase.observations[0].lexical_score, 0.0);
-
-    export_scoped_fixture(&fixture.path, "mixed.rel");
-    export_scoped_fixture(&phy_path, "current.phy");
 
     let deliver = instance
         .begin_scoped_memory_retrieval(
@@ -999,7 +1018,6 @@ fn ordinary_scoped_recall_ranks_both_owners_and_fences_phy_disclosure() {
     );
     assert_eq!(payload["phy_owner_id"], hex(&phy_id));
 
-    let verified_phy = std::fs::read(&phy_path).unwrap();
     let stale_turn = instance
         .begin_scoped_memory_retrieval(
             None,
@@ -1038,7 +1056,6 @@ fn ordinary_scoped_recall_ranks_both_owners_and_fences_phy_disclosure() {
         instance.preview_agentic_memory_delivery(&stale_turn, &stale),
         Err(GatewayError::StaleRetrieval)
     ));
-    export_scoped_fixture(&phy_path, "pending.phy");
     let historical = instance
         .observation_history(phy, observation_id, None, 8)
         .unwrap();
@@ -1087,6 +1104,7 @@ fn ordinary_scoped_recall_ranks_both_owners_and_fences_phy_disclosure() {
     assert_eq!(host.calls.load(Ordering::Relaxed), 1);
 
     fixture.gateway.quiesce_owner(phy).unwrap();
+    export_scoped_fixture(&phy_path, "pending.phy");
     let read_only_path = phy_path.with_extension("read-only.phy");
     std::fs::write(&read_only_path, verified_phy).unwrap();
     assert_eq!(
