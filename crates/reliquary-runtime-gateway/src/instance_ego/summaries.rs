@@ -73,14 +73,20 @@ impl Instance {
                     Some(revision) => owner.ego_phy_summary_revision(revision),
                     None => owner.ego_phy_summary(),
                 },
-                |citation| owner.ego_citation_current(citation),
+                |citation| match revision {
+                    Some(_) => owner.historical_ego_citation_text(citation).is_ok(),
+                    None => owner.ego_citation_current(citation),
+                },
             ),
             EgoPhyRead::Writer(owner) => redact_phy(
                 match revision {
                     Some(revision) => owner.ego_phy_summary_revision(revision),
                     None => owner.ego_phy_summary(),
                 },
-                |citation| owner.ego_citation_current(citation),
+                |citation| match revision {
+                    Some(_) => owner.historical_ego_citation_text(citation).is_ok(),
+                    None => owner.ego_citation_current(citation),
+                },
             ),
         })
     }

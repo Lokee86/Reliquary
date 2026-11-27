@@ -230,7 +230,11 @@ impl EgoWorker {
             .as_ref()
             .is_some_and(|complete| complete.cut.history_generation == history);
         let ready_initial = ready.is_some_and(|run| run.kind == EgoRunKind::RelBootstrap);
-        if !has_coverage && !ready_initial {
+        let resuming_bootstrap = pending
+            .open_checkpoint_run(phy, source)
+            .map_err(as_error)?
+            .is_some();
+        if resuming_bootstrap || (!has_coverage && !ready_initial) {
             return self.advance_rel_bootstrap(owner, &mut pending);
         }
         if let Some(run) = ready {

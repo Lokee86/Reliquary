@@ -6,7 +6,7 @@ use reliquary_application::{
         RelEgoRoutes, RelEgoWork, capture_rel_ego_evidence, prepare_rel_ego_publication,
     },
 };
-use reliquary_owner_session::{EgoItemChange, EgoRelChange};
+use reliquary_owner_session::{EgoItemChange, EgoRelChange, PhyAuditCut};
 
 impl EgoWorker {
     pub(super) fn publish_rel(
@@ -94,18 +94,34 @@ impl EgoWorker {
                     return Err(GatewayError::StaleRelContext);
                 }
                 for change in &publication.changes {
-                    if let EgoRelChange::Point {
-                        change: EgoItemChange::Put(point),
-                        ..
-                    } = change
+                    let (citations, retained): (&[_], &[_]) = match change {
+                        EgoRelChange::Point {
+                            change: EgoItemChange::Put(point),
+                            ..
+                        } => (&point.citations, &[]),
+                        EgoRelChange::Topic {
+                            id,
+                            change: EgoItemChange::Put(topic),
+                            ..
+                        } => {
+                            let covered = prior
+                                .as_ref()
+                                .and_then(|summary| summary.topics.get(id))
+                                .map(|item| item.value.references.as_slice())
+                                .unwrap_or_default();
+                            (&topic.references, covered)
+                        }
+                        _ => continue,
+                    };
+                    for citation in citations
+                        .iter()
+                        .filter(|citation| !retained.contains(citation))
                     {
-                        for citation in &point.citations {
-                            if rel
-                                .ego_citation_score(citation)?
-                                .is_none_or(|score| score < 1)
-                            {
-                                return Err(GatewayError::StaleRelContext);
-                            }
+                        if rel
+                            .ego_citation_score(citation)?
+                            .is_none_or(|score| score < 1)
+                        {
+                            return Err(GatewayError::StaleRelContext);
                         }
                     }
                 }
@@ -152,7 +168,7 @@ impl EgoWorker {
             .flat_map(|batch| batch.candidates)
             .collect::<Vec<_>>();
         let started_ns = pending.started_ns(run).map_err(as_error)?;
-        let work = self
+        let capture = self
             .instance
             .with_ego_phy_writer(self.phy, |phy| {
                 Ok(capture_phy_summary(
@@ -164,8 +180,16 @@ impl EgoWorker {
                     started_ns,
                 ))
             })
-            .map_err(as_error)?
             .map_err(as_error)?;
+        let work = match capture {
+            Ok(work) => work,
+            Err(error) => {
+                if self.recapture_changed_phy(run, walk.cut, pending)? {
+                    return Ok(true);
+                }
+                return Err(as_error(error));
+            }
+        };
         let Some(publication) = prepare_pending_phy_publication(
             &work,
             run,
@@ -176,15 +200,7 @@ impl EgoWorker {
         )
         .map_err(as_error)?
         else {
-            let cut = self
-                .instance
-                .with_ego_phy_writer(self.phy, |phy| Ok(phy.phy_audit_cut()))
-                .map_err(as_error)?;
-            if cut.memory != walk.cut.memory || cut.settlements != walk.cut.settlements {
-                pending.discard_stale(run).map_err(as_error)?;
-                return Ok(true);
-            }
-            return Ok(false);
+            return self.recapture_changed_phy(run, walk.cut, pending);
         };
         if publication.replacement.as_ref().is_some_and(|text| {
             (self.routes.count_tokens)(&text.text) != u64::from(text.token_count)
@@ -192,18 +208,45 @@ impl EgoWorker {
             return Err("Ego PHY summary token count changed before publication".into());
         }
         self.still_authorized(self.phy).map_err(as_error)?;
-        self.instance
-            .with_ego_phy_writer(self.phy, |phy| {
-                if !self.running.load(Ordering::Acquire) {
-                    return Err(OwnerSessionError::ManagementStale);
-                }
-                revalidate_phy_summary(phy, &work)
-                    .map_err(|_| OwnerSessionError::ManagementStale)?;
-                phy.publish_ego_phy_summary(publication)
-            })
-            .map_err(as_error)?;
+        let committed = self.instance.with_ego_phy_writer(self.phy, |phy| {
+            if !self.running.load(Ordering::Acquire) {
+                return Err(OwnerSessionError::ManagementStale);
+            }
+            revalidate_phy_summary(phy, &work).map_err(|_| OwnerSessionError::ManagementStale)?;
+            phy.publish_ego_phy_summary(publication)
+        });
+        if let Err(error) = committed {
+            if matches!(
+                error,
+                GatewayError::OwnerSession(OwnerSessionError::ManagementStale)
+            ) && self.recapture_changed_phy(run, walk.cut, pending)?
+            {
+                return Ok(true);
+            }
+            return Err(as_error(error));
+        }
         pending.clear_completed(run).map_err(as_error)?;
         Ok(true)
+    }
+
+    fn recapture_changed_phy(
+        &self,
+        run: EgoRun,
+        captured: PhyAuditCut,
+        pending: &mut EgoPendingWork,
+    ) -> Result<bool, String> {
+        let current = self
+            .instance
+            .with_ego_phy_writer(self.phy, |phy| Ok(phy.phy_audit_cut()))
+            .map_err(as_error)?;
+        if current.memory != captured.memory
+            || current.settlements != captured.settlements
+            || current.history_generation != captured.history_generation
+        {
+            pending.discard_stale(run).map_err(as_error)?;
+            return Ok(true);
+        }
+        Ok(false)
     }
 
     fn accepted_run_current(
@@ -225,7 +268,14 @@ impl EgoWorker {
             pending.discard_stale(run).map_err(as_error)?;
             return Ok(false);
         }
-        if run.route != self.routes.identity || run.contract != CONTRACT_VERSION {
+        if run.contract != CONTRACT_VERSION {
+            pending.discard_stale(run).map_err(as_error)?;
+            if owner != self.phy {
+                self.advance_rel_bootstrap(owner, pending)?;
+            }
+            return Ok(false);
+        }
+        if run.route != self.routes.identity {
             let batches = collect_batches(pending, run)?;
             let rebound = EgoRun {
                 route: self.routes.identity,
