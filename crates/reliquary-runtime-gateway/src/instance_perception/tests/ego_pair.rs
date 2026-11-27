@@ -244,7 +244,7 @@ fn assert_reopened_proof(
 fn managed_ego_refreshes_read_only_rel_without_perception_routes() {
     use reliquary_owner_session::{AUDIT_CADENCE, EgoCompletion, EgoRelPublication, EgoSourceCut};
     let fixture = Fixture::new();
-    fixture.append(&[("First Atlas evidence".into(), BASE)], 0);
+    fixture.append(&[("First Atlas evidence".into(), PROJECT_EVIDENCE)], 0);
     let prior = RelSession::open_path_current(&fixture.path)
         .unwrap()
         .perception_source_cut();
@@ -269,7 +269,7 @@ fn managed_ego_refreshes_read_only_rel_without_perception_routes() {
         .unwrap();
     }
     let additional: Vec<_> = (0..AUDIT_CADENCE)
-        .map(|index| (format!("Later Atlas evidence {index:02}"), BASE))
+        .map(|index| (format!("Later Atlas evidence {index:02}"), PROJECT_EVIDENCE))
         .collect();
     fixture.append(&additional, 0);
     {
