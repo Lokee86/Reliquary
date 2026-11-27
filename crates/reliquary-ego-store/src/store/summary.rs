@@ -362,6 +362,11 @@ impl EgoRelSummary {
         check_revision(publication.expected_revision, self.revision)?;
         let mut topics = BTreeSet::new();
         let mut points = BTreeSet::new();
+        let generation = publication
+            .completion
+            .as_ref()
+            .or(self.completion.as_ref())
+            .map(|completion| completion.cut.history_generation);
         for change in &publication.changes {
             match change {
                 EgoRelChange::Topic {
@@ -375,6 +380,13 @@ impl EgoRelSummary {
                     if let EgoItemChange::Put(value) = change {
                         validate_text(&value.title, "Topic")?;
                         validate_embedding(value.embedding.as_ref())?;
+                        if !value.references.is_empty() {
+                            validate_citations(
+                                &value.references,
+                                publication.source_owner_id,
+                                generation,
+                            )?;
+                        }
                     }
                     let item = change_item(self.topics.get(id), *expected_revision, change)?;
                     self.topics.insert(*id, item);
@@ -412,15 +424,10 @@ impl EgoRelSummary {
                         }
                         validate_text(&value.statement, "Point")?;
                         validate_embedding(value.embedding.as_ref())?;
-                        let cut = publication
-                            .completion
-                            .as_ref()
-                            .or(self.completion.as_ref())
-                            .map(|completion| completion.cut);
                         validate_citations(
                             &value.citations,
                             publication.source_owner_id,
-                            cut.map(|cut| cut.history_generation),
+                            generation,
                         )?;
                     }
                     let item = change_item(previous, *expected_revision, change)?;

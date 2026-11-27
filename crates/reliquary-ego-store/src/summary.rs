@@ -91,6 +91,10 @@ pub enum EgoTimeScope {
 pub struct EgoTopic {
     pub title: String,
     pub embedding: Option<EgoEmbedding>,
+    /// Exact evidence revisions already processed for this topic. They may
+    /// produce zero verified points and still count toward topic coverage.
+    #[serde(default)]
+    pub references: Vec<EgoCitation>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

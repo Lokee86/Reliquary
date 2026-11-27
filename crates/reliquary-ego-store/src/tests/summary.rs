@@ -76,6 +76,7 @@ fn retains_rel_points_and_applies_completion_and_suppression_once() {
                 change: EgoItemChange::Put(EgoTopic {
                     title: "Editing preferences".into(),
                     embedding: None,
+                    references: vec![citation(REL, 1)],
                 }),
             },
             point(1, "Include an example."),
@@ -325,4 +326,43 @@ fn unknown_ego_extension_schema_fails_closed() {
             "unknown Ego extension schema version"
         ))
     ));
+}
+
+#[test]
+fn completes_zero_point_topic_with_retained_coverage() {
+    let path = TempFile::new();
+    let mut container = create(FileKind::Phylactery, path.path());
+    let mut store = EgoStore::open(&container).unwrap();
+    let completion = completion(REL, 1);
+    let publication = EgoRelPublication {
+        source_owner_id: REL,
+        expected_revision: 0,
+        completion: Some(completion.clone()),
+        changes: vec![EgoRelChange::Topic {
+            id: TOPIC,
+            expected_revision: 0,
+            change: EgoItemChange::Put(EgoTopic {
+                title: "Editing preferences".into(),
+                embedding: None,
+                references: vec![citation(REL, 1)],
+            }),
+        }],
+    };
+    assert_eq!(
+        store
+            .publish_rel_summary(&mut container, publication)
+            .unwrap(),
+        1
+    );
+    drop(container);
+
+    let container = Container::open_read_only(path.path()).unwrap();
+    let store = EgoStore::open(&container).unwrap();
+    let summary = store.rel_summary(REL).unwrap();
+    assert_eq!(
+        summary.topics[&TOPIC].value.references,
+        vec![citation(REL, 1)]
+    );
+    assert!(summary.points.is_empty());
+    assert_eq!(summary.completion, Some(completion));
 }
