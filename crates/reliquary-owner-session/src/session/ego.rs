@@ -89,6 +89,26 @@ macro_rules! private_ego_reads {
                     .map(str::to_owned)
                     .ok_or(OwnerSessionError::ManagementEvidence)
             }
+
+            /// Resolve an exact retained witness for authorized history inspection.
+            pub fn historical_ego_citation_text(
+                &self,
+                citation: &EgoCitation,
+            ) -> Result<String, OwnerSessionError> {
+                if citation.owner_id != self.owner_id
+                    || citation.history_generation != self.history_generation
+                {
+                    return Err(OwnerSessionError::ManagementEvidence);
+                }
+                let (record, body) = self
+                    .common
+                    .memories
+                    .revision_projection(MemoryId(citation.memory_id), Some(citation.revision))?;
+                body.as_deref()
+                    .and_then(|body| citation_excerpt(citation, record, body))
+                    .map(str::to_owned)
+                    .ok_or(OwnerSessionError::ManagementEvidence)
+            }
         }
     };
 }

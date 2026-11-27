@@ -566,9 +566,30 @@ fn ego_owner_publications_preserve_retained_citations_and_proofs_on_exact_copy()
         .unwrap()
         .copy_to(&source.0, &copy.0)
         .unwrap();
-    let copy = PhySession::open_path_current(&copy.0).unwrap();
-    assert_eq!(copy.historical_proof(owner, cut).unwrap(), proof);
-    assert_eq!(copy.ego_citation_text(&citation).unwrap(), "café");
+    let copy_session = PhySession::open_path_current(&copy.0).unwrap();
+    assert_eq!(copy_session.historical_proof(owner, cut).unwrap(), proof);
+    assert_eq!(copy_session.ego_citation_text(&citation).unwrap(), "café");
+    drop(copy_session);
+    {
+        let mut target = Container::open_writer(&copy.0).unwrap();
+        let mut memories = MemoryStore::open(&target).unwrap();
+        memories
+            .tombstone(&mut target, record.id, record.revision)
+            .unwrap();
+        target.sync().unwrap();
+    }
+    let historical = PhySession::open_path_current(&copy.0).unwrap();
+    assert!(!historical.ego_citation_current(&citation));
+    assert_eq!(
+        historical.historical_ego_citation_text(&citation).unwrap(),
+        "café"
+    );
+    assert_eq!(historical.historical_proof(owner, cut).unwrap(), proof);
+    let foreign = EgoCitation {
+        owner_id: [0; 16],
+        ..citation
+    };
+    assert!(historical.historical_ego_citation_text(&foreign).is_err());
 
     // A structurally valid summary carrier placed before its evidence must
     // fail admission even when the same file contains the cited revision.
