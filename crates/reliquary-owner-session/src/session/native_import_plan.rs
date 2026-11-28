@@ -122,11 +122,12 @@ impl RelWriter {
 impl RelSession {
     /// Copied sources can only use the PHY recorded in their Archive receipt.
     /// Native file imports retain their existing operator-selected destination.
+    /// Returns true when an automatic copied-source PHY is bound.
     pub fn validate_copied_import_destination(
         &self,
         import_id: &str,
         destination: Option<[u8; 16]>,
-    ) -> Result<(), OwnerSessionError> {
+    ) -> Result<bool, OwnerSessionError> {
         let Some(ImportEpochStatus::Open(start) | ImportEpochStatus::Completed { start, .. }) =
             self.import_status(import_id)
         else {
@@ -142,8 +143,9 @@ impl RelSession {
             if destination != expected {
                 return Err(OwnerSessionError::ManagementConflict);
             }
+            return Ok(expected.is_some());
         }
-        Ok(())
+        Ok(false)
     }
 
     /// Read the active profile pinned to the import, including after settlement.

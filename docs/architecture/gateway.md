@@ -38,7 +38,7 @@ Archive vector search captures the mounted REL's active generation, packed matri
 
 Agentic temporal search binds its window to the query generation and includes it in the prepared delivery manifest. Recovery restores it with the associated frontier. If a newer query is active, recovery reconciles confirmed delivery IDs into that query and preserves its current window.
 
-Gateway stages a live copied-source PHY binding only through an Instance with operating grants for both owners. Processing checks the destination against the Archive receipt before claiming work and again under the routed publication boundary. It synchronizes the final publication with credential revocation. The provider's independent read grant supports recall from the PHY.
+Gateway stages a live copied-source PHY binding only through an Instance with operating grants for both owners. Processing checks the destination against the Archive receipt before claiming work and again under the routed publication boundary. It synchronizes the final publication and PHY Dream settlement with credential revocation. Automatic processing completes only after each accepted PHY Memory has completed its first Dream pass. The provider's independent read grant supports recall from the PHY.
 
 For a copied Hermes range, Gateway checks the authenticated REL grant and the copy's principal before reading source receipts, Archive rows and attached Echo. The read uses the requested Archive version and exact ancestry. The Root chat controller also checks the current inspection cut and records which references the host disclosed in the turn.
 

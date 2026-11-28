@@ -4,9 +4,10 @@ use crate::{
     insomnia_worker::{SharedEndpoint, now_ns},
 };
 use reliquary_application::{
-    DreamClassifier, DreamVerificationPolicy, DreamVerifier, SwitchboardEmbeddingEndpoint,
-    VectorWorkflowError,
+    DreamClassifier, DreamOwnerWriter, DreamVerificationPolicy, DreamVerifier, DreamWorkflowError,
+    SwitchboardEmbeddingEndpoint, VectorWorkflowError,
     import_entity_work::accepted_import_entity_work,
+    live_processing::{commit_live_dream, prepare_live_dream},
     native_import_workflow::{NativeImportDreamCandidates, NativeImportPostprocessingPlan},
     prepare_compatibility_profile,
     processing_plan::{
@@ -14,7 +15,10 @@ use reliquary_application::{
     },
     verify_compatibility_profile,
 };
-use reliquary_owner_session::{InsomniaWorkState, model::MemoryId};
+use reliquary_owner_session::{
+    InsomniaWorkState, PhyWriter,
+    model::{CompatibilityProfileId, MemoryId},
+};
 use reliquary_switchboard::{EmbeddingEndpoint, GeneralEndpoint};
 use std::{
     collections::BTreeSet,
@@ -30,6 +34,7 @@ pub(crate) struct ImportProcessingRoutes {
     pub dream: Option<Arc<dyn GeneralEndpoint>>,
     pub entity: Option<Arc<dyn GeneralEndpoint>>,
     pub embedding: Option<Arc<dyn EmbeddingEndpoint>>,
+    pub dream_policy: [u8; 32],
 }
 
 pub(crate) fn run_import_stages(
@@ -45,9 +50,11 @@ pub(crate) fn run_import_stages(
     if stopped() {
         return Ok(ProcessingState::Stopped);
     }
-    let recovering_seal = instance.with_writable_reliquary(owner, |session| {
-        session.native_import_settlement(import_id).is_some()
-    })?;
+    let (recovering_seal, copied_phy) = instance.with_writable_reliquary(owner, |session| {
+        let bound =
+            session.validate_copied_import_destination(import_id, phy.map(OwnerId::as_bytes))?;
+        Ok::<_, OwnerSessionError>((session.native_import_settlement(import_id).is_some(), bound))
+    })??;
     let Some(embedding) = routes.embedding else {
         report(ImportStage::Vectors, StageState::NotConfigured, 0);
         return Ok(ProcessingState::Incomplete);
@@ -175,7 +182,8 @@ pub(crate) fn run_import_stages(
                         )
                     })?;
                     let memories = instance.native_import_memory_ids(owner, import_id)?;
-                    if memories.is_empty() {
+                    let destination = phy.filter(|_| copied_phy && !routed.is_empty());
+                    if memories.is_empty() && destination.is_none() {
                         return Ok(Some(0));
                     }
                     let endpoint = dream.as_ref().ok_or(GatewayError::RetrievalUnavailable(
@@ -204,7 +212,28 @@ pub(crate) fn run_import_stages(
                             return Ok(None);
                         }
                     }
-                    Ok(Some(memories.len()))
+                    let mut count = memories.len();
+                    if let Some(destination) = destination {
+                        for &source in &routed {
+                            if stopped() {
+                                break;
+                            }
+                            if !settle_copied_phy_memory(
+                                instance,
+                                (owner, destination),
+                                import_id,
+                                source,
+                                profile,
+                                routes.dream_policy,
+                                endpoint,
+                                stop,
+                            )? {
+                                return Ok(None);
+                            }
+                            count += 1;
+                        }
+                    }
+                    Ok(Some(count))
                 })()
                 .and_then(|result| result.ok_or(GatewayError::HostStatusUnknown)),
                 ImportStage::HistoricalFreshness => instance
@@ -227,6 +256,75 @@ pub(crate) fn run_import_stages(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
+fn settle_copied_phy_memory(
+    instance: &Instance,
+    (owner, phy): (OwnerId, OwnerId),
+    import_id: &str,
+    memory: MemoryId,
+    profile: CompatibilityProfileId,
+    policy: [u8; 32],
+    endpoint: &SharedEndpoint,
+    stop: &AtomicBool,
+) -> Result<bool, GatewayError> {
+    let prepared = with_copied_phy_writer(instance, owner, phy, import_id, |writer| {
+        prepare_live_dream(
+            &mut DreamOwnerWriter::Phy(writer),
+            memory,
+            profile,
+            endpoint.model(),
+            policy,
+        )
+    })?;
+    let Some(prepared) = prepared else {
+        return Ok(true);
+    };
+    if stop.load(Ordering::Acquire) {
+        return Ok(false);
+    }
+    let evaluated = prepared
+        .evaluate(endpoint.clone())
+        .map_err(copied_dream_error)?;
+    if stop.load(Ordering::Acquire) {
+        return Ok(false);
+    }
+    with_copied_phy_writer(instance, owner, phy, import_id, |writer| {
+        commit_live_dream(&mut DreamOwnerWriter::Phy(writer), &evaluated, now_ns())
+    })?;
+    Ok(true)
+}
+
+fn with_copied_phy_writer<T>(
+    instance: &Instance,
+    owner: OwnerId,
+    phy: OwnerId,
+    import_id: &str,
+    operation: impl FnOnce(&mut PhyWriter) -> Result<T, DreamWorkflowError>,
+) -> Result<T, GatewayError> {
+    instance.with_rel_writer(owner, |rel| {
+        rel.validate_native_import_postprocessing(import_id)?;
+        rel.read_session()
+            .validate_copied_import_destination(import_id, Some(phy.as_bytes()))?;
+        instance.with_entity_phy_writer(phy, |writer| {
+            let _publication = instance
+                .credential_publication
+                .read()
+                .map_err(|_| GatewayError::RegistryPoisoned)?;
+            instance.authorize_routed_owners(owner, phy)?;
+            operation(writer).map_err(copied_dream_error)
+        })?
+    })?
+}
+
+fn copied_dream_error(error: DreamWorkflowError) -> GatewayError {
+    match error {
+        DreamWorkflowError::IncompleteFrontier | DreamWorkflowError::StaleSnapshot => {
+            GatewayError::HostStatusUnknown
+        }
+        other => OwnerSessionError::Record(other.to_string()).into(),
+    }
+}
+
 pub(crate) fn verify_import_seal(
     instance: &Instance,
     owner: OwnerId,
@@ -237,8 +335,10 @@ pub(crate) fn verify_import_seal(
 ) -> Result<ProcessingState, GatewayError> {
     let bounded = embedding.supports_bounded_embedding();
     let endpoint = SwitchboardEmbeddingEndpoint::new(embedding);
-    let accepted = instance.with_writable_reliquary(owner, |session| {
-        session.native_import_processing_profile(import_id)
+    let (accepted, copied_phy) = instance.with_writable_reliquary(owner, |session| {
+        let bound =
+            session.validate_copied_import_destination(import_id, phy.map(OwnerId::as_bytes))?;
+        Ok::<_, OwnerSessionError>((session.native_import_processing_profile(import_id)?, bound))
     })??;
     let probe_failed =
         || GatewayError::RetrievalUnavailable("configured embedding profile could not be verified");
@@ -267,16 +367,28 @@ pub(crate) fn verify_import_seal(
     if let Some(phy) = phy {
         let routed = instance.native_import_routed_memory_ids(owner, import_id, phy)?;
         for ids in routed.chunks(VECTOR_BATCH) {
-            let has_coverage = instance.with_entity_phy_writer(phy, |writer| {
-                writer
+            instance.with_entity_phy_writer(phy, |writer| {
+                let has_vectors = writer
                     .memory_vector_input(profile, ids)
-                    .map(|input| input.existing().iter().all(Option::is_some))
+                    .map(|input| input.existing().iter().all(Option::is_some))?;
+                if !has_vectors {
+                    return Err(GatewayError::RetrievalUnavailable(
+                        "sealed PHY vector coverage is incomplete",
+                    ));
+                }
+                if copied_phy {
+                    let read = writer.management_read()?;
+                    if !ids.iter().all(|id| {
+                        read.first_dream_pass(*id)
+                            .is_some_and(|(_, settled)| settled)
+                    }) {
+                        return Err(GatewayError::RetrievalUnavailable(
+                            "sealed PHY Dream coverage is incomplete",
+                        ));
+                    }
+                }
+                Ok(())
             })??;
-            if !has_coverage {
-                return Err(GatewayError::RetrievalUnavailable(
-                    "sealed PHY vector coverage is incomplete",
-                ));
-            }
         }
     }
     let complete = instance.with_rel_writer(owner, |writer| {
