@@ -132,7 +132,8 @@ jobs:
 
   rust-and-consumers:
     runs-on: windows-latest
-    timeout-minutes: 60
+    # Cold locked builds can reach source acceptance after the 60-minute mark.
+    timeout-minutes: 90
     defaults:
       run:
         shell: pwsh
