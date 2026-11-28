@@ -14,6 +14,8 @@ No arguments, exactly `--help`/`-h`, and exactly `--version`/`-V` are special in
 
 `rel verify` and `phy verify` use ordinary 2.1 admission for files produced by the [offline history migration](../planning/owner-history-migration-plan-2026-11-18.md). Original FRS07 inputs produce a format error.
 
+Use a CLI built against a Core revision with live copied-source binding support to verify RELs containing those receipts. Native file import retains its explicit destination options.
+
 ## Command families
 
 | Family / syntax | Options and defaults | Contract and common diagnostics |
