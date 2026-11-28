@@ -29,6 +29,7 @@ impl Fence {
             .read()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
         if control.stopping.load(Ordering::Acquire)
+            || !control.allows_owner(self.admission.owner)
             || routes
                 .as_ref()
                 .is_none_or(|live| !self.routes.ptr_eq(&Arc::downgrade(live)))

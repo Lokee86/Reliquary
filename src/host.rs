@@ -108,6 +108,18 @@ impl Gateway {
         Ok(())
     }
 
+    /// Require optional host evidence for each admitted Perception owner.
+    /// This policy survives runtime suspension and replacement. Ordinary Core
+    /// consumers retain their existing behavior without installing a guard.
+    pub fn set_perception_owner_guard(
+        &self,
+        guard: Arc<dyn Fn(OwnerId) -> bool + Send + Sync>,
+    ) -> Result<(), ProductError> {
+        Ok(self
+            .perception
+            .set_owner_guard(Arc::new(move |owner| guard(owner.into())))?)
+    }
+
     pub(crate) fn admit_perception(
         &self,
         instance: &Arc<runtime::Instance>,

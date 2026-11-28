@@ -553,7 +553,7 @@ pub use device_auth::{CodexDeviceCode, DeviceAuthError};
 pub use hosted_config::{HostedEmbeddingSettings, HostedModelRoute, HostedSwitchboardConfig};
 pub use model_config::{GeneralRoute, ModelRoute, ModelSlot};
 pub use protected_config::master_key::MasterKeyError;
-pub use protected_config::{ConfigFile, CredentialKind};
+pub use protected_config::{ConfigFile, CredentialKind, ResolvedEmbeddingRoute};
 
 #[cfg(any(test, feature = "test-support"))]
 #[doc(hidden)]

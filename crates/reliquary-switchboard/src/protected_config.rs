@@ -10,12 +10,49 @@ use crate::{
     CodexDeviceCode, ConfiguredRoutes, ConfiguredRuntimeError, Credential, CredentialId,
     CredentialsConfig, DeviceAuthError, ModelRoute, ModelSlot, SecretString,
 };
+use crate::{ConfiguredEmbeddingEndpoint, EmbeddingEndpoint, HostedEmbeddingInputSemantics};
 use credentials::PREFIX;
 use master_key::MasterKey;
 use std::collections::BTreeSet;
 use std::fmt;
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+/// One explicit Switchboard embedding route with its nonsecret provider identity.
+pub struct ResolvedEmbeddingRoute {
+    pub endpoint: Arc<dyn EmbeddingEndpoint>,
+    pub provider: String,
+    pub input_semantics: HostedEmbeddingInputSemantics,
+}
+
+impl ResolvedEmbeddingRoute {
+    /// Resolve only the embedding slot and its credential. No provider request is made.
+    pub fn from_path(path: &Path) -> Result<Option<Self>, ConfiguredRuntimeError> {
+        let path = path
+            .canonicalize()
+            .map_err(|error| ConfiguredRuntimeError::Io(error.kind()))?;
+        let mut document = ConfigDocument::read(&path)?;
+        let Some(ModelRoute::Embedding(route)) = routes::get(&document, ModelSlot::Embedding)?
+        else {
+            return Ok(None);
+        };
+        let credential = format!("{PREFIX}{}", route.credential_id);
+        document.0.retain(|name, _| name == &credential);
+        if document.0.is_empty() {
+            return Err(credential_error("embedding credential is missing"));
+        }
+        let (_, credentials) = key_lifecycle::open_credentials(&path, &document)?;
+        let endpoint = ConfiguredEmbeddingEndpoint::from_route(&route, &credentials)
+            .map_err(|_| ConfiguredRuntimeError::Setup { route: "embedding" })?;
+        let provider = endpoint.provider_identity();
+        Ok(Some(Self {
+            endpoint: Arc::new(endpoint),
+            provider,
+            input_semantics: HostedEmbeddingInputSemantics::SearchQueryDocument,
+        }))
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CredentialKind {

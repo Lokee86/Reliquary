@@ -20,6 +20,8 @@ The same runtime binding starts Perception for authenticated `ManageRel` session
 
 Supply a stable nonsecret route identity of up to 256 bytes. Change it when the selected native route changes. It affects only the Perception work-attempt identity. Hosts using an HTTP decisions endpoint can build the bounded transport with `ConfiguredDecisionEndpoint::native(url, "typesafe/jev-1.13", api_key)` and pass it as an `Arc<dyn DecisionEndpoint>`. The key stays in memory in the client and belongs in the host's credential store. Offline construction validates the route, and `online_probe_route("native-perception-decision")` is the explicit synthetic probe for this binding.
 
+Hosts combining their own completion transports with a protected Switchboard embedding route can load `ResolvedEmbeddingRoute::from_path(path)` from the protected CVCFG. It returns the embedding endpoint, an endpoint-scoped provider ID and `SearchQueryDocument` semantics for `HostedInferenceIdentity`. The loader reads the explicit embedding slot and opens only its credential. Resolution is offline and returns `None` for an absent embedding slot. Requests distinguish `search_query` and `search_document`, use batches of up to 16 inputs and have a 60-second overall deadline.
+
 ```rust
 let identity = HostedInferenceIdentity::new(
     "host-runtime", "general-model", "host-runtime", "embedding-model", 1024,

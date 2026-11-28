@@ -62,6 +62,7 @@ impl PerceptionAvailability {
                 route
                     .as_ref()
                     .is_some_and(|route| route.identity == identity)
+                    && control.allows_owner(owner)
             })
         {
             return false;
@@ -182,6 +183,10 @@ impl OwnerWorkerDriver for Driver {
             .state
             .lock()
             .map_err(|_| "Perception work is unavailable")?;
+        if !control.allows_owner(self.admission.owner) {
+            *state = DriverState::default();
+            return Ok(OwnerWorkerPoll::Idle);
+        }
         let route = Arc::downgrade(&routes);
         if !state.route.ptr_eq(&route) {
             *state = DriverState {
@@ -243,6 +248,7 @@ impl PhyWork<'_> {
             .read()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
         if self.control.stopping.load(Ordering::Acquire)
+            || !self.control.allows_owner(self.admission.owner)
             || routes
                 .as_ref()
                 .is_none_or(|live| !Arc::ptr_eq(live, self.routes))

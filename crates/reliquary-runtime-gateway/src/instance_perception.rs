@@ -34,11 +34,14 @@ struct Admission {
     managed: Vec<OwnerId>,
 }
 
+type OwnerGuard = Arc<dyn Fn(OwnerId) -> bool + Send + Sync>;
+
 struct Control {
     topology: Weak<RwLock<HashMap<OwnerId, MountedOwner>>>,
     leases: Arc<Mutex<BTreeSet<(OwnerId, u8)>>>,
     ego_audit_registry: Arc<crate::ego_audit_handoff::EgoAuditRegistry>,
     routes: RwLock<Option<Arc<PerceptionRoutes>>>,
+    owner_guard: RwLock<Option<OwnerGuard>>,
     admissions: Mutex<Vec<Admission>>,
     active_phy: Mutex<Weak<phy::Admission>>,
     wake: Condvar,
@@ -58,6 +61,7 @@ impl Gateway {
                 leases: self.owner_worker_leases.clone(),
                 ego_audit_registry: self.ego_audit_registry.clone(),
                 routes: RwLock::new(None),
+                owner_guard: RwLock::new(None),
                 admissions: Mutex::new(Vec::new()),
                 active_phy: Mutex::new(Weak::new()),
                 wake: Condvar::new(),
@@ -94,6 +98,7 @@ impl PerceptionAvailability {
         let available = routes
             .as_ref()
             .is_some_and(|current| current.identity == route)
+            && control.allows_owner(owner)
             && admissions.iter().any(|admission| {
                 admission.managed.contains(&owner)
                     && admission.instance.upgrade().is_some_and(|instance| {
@@ -107,6 +112,23 @@ impl PerceptionAvailability {
 }
 
 impl PerceptionLifecycle {
+    /// Opt-in host evidence, retained independently of route replacement.
+    pub fn set_owner_guard(&self, guard: OwnerGuard) -> Result<(), GatewayError> {
+        // Fence live publication while replacing the policy.
+        let _routes = self
+            .control
+            .routes
+            .write()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
+        *self
+            .control
+            .owner_guard
+            .write()
+            .map_err(|_| GatewayError::RegistryPoisoned)? = Some(guard);
+        self.control.wake.notify_one();
+        Ok(())
+    }
+
     pub(crate) fn availability(&self) -> PerceptionAvailability {
         PerceptionAvailability(Arc::downgrade(&self.control))
     }
@@ -228,6 +250,10 @@ fn run(control: &Arc<Control>) {
                 let Ok(mount @ RelMount::Write(_)) = RelMount::capture(&instance, id) else {
                     continue;
                 };
+                if !control.allows_owner(id) {
+                    states.remove(&id);
+                    continue;
+                }
                 let state = states.entry(id).or_default();
                 if Some(&mount) != state.mount.as_ref()
                     || !state
@@ -292,6 +318,44 @@ fn collect_admissions(control: &Control) -> BTreeMap<OwnerId, Vec<Weak<Instance>
     by_owner
 }
 
+impl Control {
+    fn allows_owner(&self, owner: OwnerId) -> bool {
+        self.owner_guard
+            .read()
+            .is_ok_and(|guard| guard.as_ref().is_none_or(|guard| guard(owner)))
+    }
+}
+
+#[cfg(test)]
+mod owner_guard_tests {
+    use super::*;
+
+    #[test]
+    fn optional_guard_is_dynamic_owner_scoped_and_retained_without_routes() {
+        let gateway = Gateway::new();
+        let lifecycle = gateway.perception_lifecycle();
+        let owner = OwnerId::from_bytes([1; 16]);
+        let other = OwnerId::from_bytes([2; 16]);
+        assert!(lifecycle.control.allows_owner(owner));
+        let eligible = Arc::new(AtomicBool::new(false));
+        let current = Arc::clone(&eligible);
+        lifecycle
+            .set_owner_guard(Arc::new(move |id| {
+                id == owner && current.load(Ordering::Acquire)
+            }))
+            .unwrap();
+        assert!(!lifecycle.control.allows_owner(owner));
+        eligible.store(true, Ordering::Release);
+        assert!(lifecycle.control.allows_owner(owner));
+        assert!(!lifecycle.control.allows_owner(other));
+        lifecycle.set_routes(None).unwrap();
+        assert!(lifecycle.control.allows_owner(owner));
+        assert!(!lifecycle.control.allows_owner(other));
+        eligible.store(false, Ordering::Release);
+        assert!(!lifecycle.control.allows_owner(owner));
+    }
+}
+
 struct WorkLease<'a> {
     leases: &'a Mutex<BTreeSet<(OwnerId, u8)>>,
     key: (OwnerId, u8),
@@ -352,6 +416,7 @@ impl OwnerWork<'_> {
                 .read()
                 .map_err(|_| GatewayError::RegistryPoisoned)?;
             if self.control.stopping.load(Ordering::Acquire)
+                || !self.control.allows_owner(self.id)
                 || live
                     .as_ref()
                     .is_none_or(|current| !Arc::ptr_eq(current, self.routes))

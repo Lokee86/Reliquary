@@ -79,6 +79,45 @@ fn encrypted(name: &str, nonce_id: u8, mut plaintext: Vec<u8>) -> Vec<u8> {
 }
 
 #[test]
+fn resolves_only_the_explicit_embedding_route_and_its_credential() {
+    let keys = mock_master_key_store();
+    let fixture = Fixture::new(&[
+        ("models.general", 99, 0, vec![0]),
+        ("credential.unrelated", 99, 0, vec![0]),
+        (
+            "models.embedding",
+            2,
+            0,
+            fields(&[2, 1, 0, 0, 3, 0, 0, 0], &["vectors", URL, "api"]),
+        ),
+        (
+            "credential.api",
+            1,
+            1,
+            encrypted("credential.api", 3, fields(&[1, 0, 0, 0], &[API_KEY])),
+        ),
+    ]);
+    keys.replace(&fixture.config, KEY.to_vec());
+    let route = super::ResolvedEmbeddingRoute::from_path(&fixture.config)
+        .unwrap()
+        .unwrap();
+    assert_eq!(route.endpoint.model(), Some("vectors"));
+    assert_eq!(route.endpoint.dimensions(), 3);
+    assert_eq!(route.endpoint.normalization(), EmbeddingNormalization::L2);
+    assert_eq!(route.input_semantics.as_str(), "search_query_document");
+    assert!(route.provider.starts_with("openai_ready@"));
+    assert!(!route.provider.contains(URL));
+    assert!(!route.provider.contains(API_KEY));
+
+    let no_embedding = Fixture::new(&[("models.general", 99, 0, vec![0])]);
+    assert!(
+        super::ResolvedEmbeddingRoute::from_path(&no_embedding.config)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
 fn loads_selected_oauth_api_key_and_embedding_routes_offline() {
     let keys = mock_master_key_store();
     let oauth = fields(

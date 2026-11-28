@@ -52,11 +52,19 @@ impl ConfiguredEmbeddingEndpoint {
         })
     }
 
+    pub(super) fn provider_identity(&self) -> String {
+        // OpenAI-compatible endpoints can expose different spaces under the same model name.
+        // The protected API key and its credential ID are independent of this URL.
+        let digest = ring::digest::digest(&ring::digest::SHA256, self.url.as_str().as_bytes());
+        format!("openai_ready@{}", hex::encode(digest.as_ref()))
+    }
+
     fn request(
         &self,
         mode: EmbeddingMode,
         inputs: &[String],
         limit: usize,
+        timeout: Duration,
     ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
         if inputs.is_empty() || inputs.len() > 16 || limit == 0 {
             return Err(EmbeddingEndpointError::InvalidConfiguration(
@@ -66,6 +74,7 @@ impl ConfiguredEmbeddingEndpoint {
         let auth = SecretString::new(format!("Bearer {}", self.api_key.0))
             .expect("API key was validated as non-empty");
         let response = self.client.post(self.url.clone())
+            .timeout(timeout)
             .header(reqwest::header::AUTHORIZATION, auth.0.as_str())
             .json(&json!({"model": self.model, "input": inputs, "dimensions": self.dimensions,
                 "encoding_format": "float", "input_type": match mode { EmbeddingMode::Query => "search_query", EmbeddingMode::Document => "search_document" }}))
@@ -113,7 +122,7 @@ impl EmbeddingEndpoint for ConfiguredEmbeddingEndpoint {
         inputs: &[String],
         max_response_bytes: usize,
     ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
-        self.request(mode, inputs, max_response_bytes)
+        self.request(mode, inputs, max_response_bytes, REQUEST_TIMEOUT)
     }
     fn embed(
         &self,
@@ -123,9 +132,19 @@ impl EmbeddingEndpoint for ConfiguredEmbeddingEndpoint {
         if inputs.is_empty() {
             return Ok(Vec::new());
         }
+        let deadline = std::time::Instant::now() + Duration::from_secs(60);
         let mut result = Vec::with_capacity(inputs.len());
         for batch in inputs.chunks(16) {
-            result.extend(self.request(mode, batch, MAX_RESPONSE_BYTES)?);
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            if remaining.is_zero() {
+                return Err(EmbeddingEndpointError::Failure("embedding timeout".into()));
+            }
+            result.extend(self.request(
+                mode,
+                batch,
+                MAX_RESPONSE_BYTES,
+                remaining.min(REQUEST_TIMEOUT),
+            )?);
         }
         Ok(result)
     }
