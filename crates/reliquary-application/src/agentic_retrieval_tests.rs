@@ -665,6 +665,7 @@ fn temporal_window_limits_query_refinement_and_traversal_offers() {
             action,
             None,
             Some(&temporal),
+            None,
         )
     };
     let query = run(

@@ -1,6 +1,6 @@
 # Ego specification and implementation plan
 
-Parent index [Planning](./INDEX.md)
+Parent index: [Planning](./INDEX.md)
 
 ## Purpose
 

@@ -1,6 +1,6 @@
 # Perception Observations and Relationships in the active PHY
 
-Parent index: [Planning](INDEX.md)
+Parent index: [Planning](./INDEX.md)
 
 ## Purpose
 
