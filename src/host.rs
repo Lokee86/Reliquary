@@ -47,7 +47,7 @@ struct MountedOwnerRecord {
 pub struct Gateway {
     pub(crate) inner: runtime::Gateway,
     pub(crate) identity: Arc<runtime::IdentityLifecycle>,
-    perception: Arc<runtime::PerceptionLifecycle>,
+    pub(crate) perception: Arc<runtime::PerceptionLifecycle>,
     mounted: Arc<Mutex<BTreeMap<OwnerId, MountedOwnerRecord>>>,
 }
 
@@ -87,7 +87,7 @@ impl Gateway {
         self.set_perception_runtime(runtime)
     }
 
-    /// Bind the same-REL Perception worker while leaving Entity routing independent.
+    /// Bind the managed Perception routes for authorized REL and active PHY work.
     pub fn set_perception_runtime(
         &self,
         runtime: Option<&crate::ConfiguredRuntime>,
@@ -106,6 +106,18 @@ impl Gateway {
             })
         }))?;
         Ok(())
+    }
+
+    /// Require optional host evidence for each admitted Perception owner.
+    /// This policy survives runtime suspension and replacement. Ordinary Core
+    /// consumers retain their existing behavior without installing a guard.
+    pub fn set_perception_owner_guard(
+        &self,
+        guard: Arc<dyn Fn(OwnerId) -> bool + Send + Sync>,
+    ) -> Result<(), ProductError> {
+        Ok(self
+            .perception
+            .set_owner_guard(Arc::new(move |owner| guard(owner.into())))?)
     }
 
     pub(crate) fn admit_perception(
@@ -164,17 +176,21 @@ impl Gateway {
     }
 
     pub(crate) fn quiesce(&self, owner: OwnerId) -> Result<(), ProductError> {
-        self.quiesce_mount(owner, false)
+        self.quiesce_mount(owner, None)
     }
 
     pub(crate) fn detach_read_only_phylactery(&self, owner: OwnerId) -> Result<(), ProductError> {
-        self.quiesce_mount(owner, true)
+        self.quiesce_mount(owner, Some(false))
+    }
+
+    fn detach_writable_phylactery(&self, owner: OwnerId) -> Result<(), ProductError> {
+        self.quiesce_mount(owner, Some(true))
     }
 
     fn quiesce_mount(
         &self,
         owner: OwnerId,
-        require_read_only_phy: bool,
+        phy_writable: Option<bool>,
     ) -> Result<(), ProductError> {
         let mut mounted = self.mounted.lock().map_err(|_| {
             ProductError::new(
@@ -185,7 +201,15 @@ impl Gateway {
         let record = mounted.get_mut(&owner).ok_or_else(|| {
             ProductError::new(ProductErrorKind::Unavailable, "owner is not registered")
         })?;
-        if require_read_only_phy {
+        if phy_writable == Some(true)
+            && (record.kind != OwnerKind::Phylactery || !record.mounted || !record.writable)
+        {
+            return Err(ProductError::new(
+                ProductErrorKind::Conflict,
+                "owner must be a mounted writable PHY",
+            ));
+        }
+        if phy_writable == Some(false) {
             self.inner.detach_read_only_phylactery(owner.into())?;
         } else {
             self.inner.quiesce_owner(owner.into())?;
@@ -287,6 +311,20 @@ pub use admission::{
 #[path = "host_instance.rs"]
 mod instance;
 pub use instance::{ConversationQueue, Instance};
+pub use runtime::PhyPerceptionWorker;
+
+impl Instance {
+    /// Admit the explicitly active PHY for local Perception on its writable mount.
+    /// Stop the handle before switching owners or detaching the mount.
+    pub fn start_phy_perception(&self, phy: OwnerId) -> Result<PhyPerceptionWorker, ProductError> {
+        self.require(OwnerGrant::OperatePhylactery(phy))?;
+        Ok(self.gateway.inner.start_phy_perception(
+            &self.gateway.perception,
+            self.inner.clone(),
+            phy.into(),
+        )?)
+    }
+}
 
 #[path = "host_entity_review.rs"]
 mod entity_review;
@@ -294,6 +332,8 @@ pub use entity_review::{EntityReviewAuthority, EntityReviewSession};
 
 #[path = "host_context.rs"]
 pub(crate) mod context;
+#[path = "host_ego.rs"]
+pub(crate) mod ego;
 #[path = "host_external_source.rs"]
 pub(crate) mod external_source;
 #[path = "host_project_source.rs"]

@@ -66,25 +66,8 @@ impl Instance {
                 Err(error) => Err(error),
             }
         } else if self.phy_grants.contains(&owner) {
-            let has_vectors = |phy: &PhySession| {
-                phy.memory_vector_infos().into_iter().any(|info| {
-                    phy.active_compatibility_profile(info.compatibility_profile_id)
-                        .is_some()
-                })
-            };
-            match self.phylactery(owner) {
-                Ok(phy) => Ok(has_vectors(&phy)),
-                Err(GatewayError::WriterUnavailable) => {
-                    self.with_entity_phy_writer(owner, |writer| {
-                        writer.memory_vector_infos().into_iter().any(|info| {
-                            writer
-                                .active_compatibility_profile(info.compatibility_profile_id)
-                                .is_some()
-                        })
-                    })
-                }
-                Err(error) => Err(error),
-            }
+            self.phy_retrieval_embedding_profiles(owner)
+                .map(|profiles| !profiles.is_empty())
         } else {
             self.reliquary(owner).map(|_| false)
         }
@@ -114,6 +97,22 @@ impl Instance {
         &self,
         owner: OwnerId,
     ) -> Result<Vec<CompatibilityProfile>, GatewayError> {
+        self.rel_retrieval_profiles(owner, false)
+    }
+
+    /// All active Memory and Observation profiles for owner-scoped ranking.
+    pub fn scoped_rel_embedding_profiles(
+        &self,
+        owner: OwnerId,
+    ) -> Result<Vec<CompatibilityProfile>, GatewayError> {
+        self.rel_retrieval_profiles(owner, true)
+    }
+
+    fn rel_retrieval_profiles(
+        &self,
+        owner: OwnerId,
+        include_observation_profiles: bool,
+    ) -> Result<Vec<CompatibilityProfile>, GatewayError> {
         self.with_reliquary(owner, |rel| {
             let mut profiles = rel
                 .memory_vector_infos()
@@ -121,7 +120,7 @@ impl Instance {
                 .map(|info| info.compatibility_profile_id)
                 .filter(|id| rel.active_compatibility_profile(*id).is_some())
                 .collect::<BTreeSet<_>>();
-            if profiles.is_empty() {
+            if include_observation_profiles || profiles.is_empty() {
                 profiles.extend(rel.observation_claim_profiles());
             }
             profiles

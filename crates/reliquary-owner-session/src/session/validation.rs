@@ -73,6 +73,7 @@ fn rel_admission_frame(prefix: &[u8]) -> bool {
     [
         super::identity_receipt::PREFIX,
         super::identity_separation::PREFIX,
+        super::observations::PHY_PREFIX,
         ARCHIVE_LEXICAL_INDEX_MAGIC,
         REL_DEPENDENCY_MAGIC,
         b"RELRELM",
@@ -106,6 +107,11 @@ pub(super) fn validate_rel_replay_admission(
         let body = envelope
             .as_ref()
             .map_or(payload.as_slice(), |value| value.body);
+        if body.starts_with(super::observations::PHY_PREFIX) {
+            return Err(OwnerSessionError::Record(
+                "PHY Observation on a REL owner".into(),
+            ));
+        }
         if body.starts_with(super::identity_receipt::PREFIX)
             || body.starts_with(super::identity_separation::PREFIX)
         {

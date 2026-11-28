@@ -416,3 +416,209 @@ fn rel_source_proof_checks_archive_evidence_and_phy_returns_durable_receipt() {
     changed.title.push_str(" (changed)");
     assert!(!receipt.matches_draft(&changed));
 }
+
+#[test]
+fn ego_owner_publications_preserve_retained_citations_and_proofs_on_exact_copy() {
+    use reliquary_memory_core::MemoryStore;
+    use reliquary_owner_session::{
+        EgoAnchorId, EgoAnchorPriority, EgoCitation, EgoCompletion, EgoIdentityId, EgoParagraph,
+        EgoPhyPublication, EgoPhyText, EgoSourceCut, EgoTextField, VerifiedOwnerCopyPlan,
+        owner_history_generation,
+    };
+    let source = Temp::new();
+    let copy = Temp::new();
+    let owner = [0x19; 16];
+    drop(PhyWriter::create_path(&source.0, owner).unwrap());
+
+    let record = {
+        let mut container = Container::open_writer(&source.0).unwrap();
+        let mut memories = MemoryStore::open(&container).unwrap();
+        let published = memories
+            .publish_versioned_creation(
+                &mut container,
+                MemoryDraft {
+                    title: "Writing preference".into(),
+                    content: "Prefer café examples.".into(),
+                    category: "fact".into(),
+                    memory_type: "semantic".into(),
+                    authority_kind: "user".into(),
+                    temporal_status: "current".into(),
+                    scope: "user".into(),
+                    lifecycle_state: "knowledge".into(),
+                    archived: false,
+                    parent_id: None,
+                    superseded_by: None,
+                    source_node_id: None,
+                    source_episode_id: None,
+                    content_source_conversation_id: None,
+                    content_source_node_id: None,
+                    grounding_source_conversation_id: None,
+                    grounding_source_node_id: None,
+                    source_ref: None,
+                    source_time_ns: None,
+                    temporal_inference: None,
+                    mutation_id: "fixture-ego-memory".into(),
+                    created_at_ns: 1,
+                    updated_at_ns: 1,
+                },
+                1,
+            )
+            .unwrap();
+        container.sync().unwrap();
+        published.revision.record
+    };
+    let generation = owner_history_generation(&source.0).unwrap();
+    let mut writer = PhyWriter::open_path_current(&source.0).unwrap();
+    let identity = EgoIdentityId([2; 16]);
+    writer
+        .create_ego_identity(identity, "Default".into(), "Use clear language.".into())
+        .unwrap();
+    writer.select_ego_identity(0, Some((identity, 1))).unwrap();
+    let anchor = EgoAnchorId([3; 16]);
+    writer
+        .create_ego_anchor(anchor, EgoAnchorPriority::Normal, "Prefer examples.".into())
+        .unwrap();
+    writer
+        .update_ego_anchor(
+            anchor,
+            1,
+            EgoAnchorPriority::High,
+            "Prefer examples.".into(),
+        )
+        .unwrap();
+    assert!(matches!(
+        writer.delete_ego_anchor(anchor, 1),
+        Err(OwnerSessionError::Ego(_))
+    ));
+
+    let mut citation = EgoCitation {
+        owner_id: owner,
+        history_generation: generation,
+        memory_id: record.id.0,
+        revision: record.revision,
+        body_id: record.body_id.0,
+        field: EgoTextField::Content,
+        start_byte: 7,
+        end_byte: 12,
+    };
+    assert_eq!(writer.ego_citation_text(&citation).unwrap(), "café");
+    let completion = EgoCompletion {
+        id: [4; 32],
+        cut: EgoSourceCut {
+            owner_id: owner,
+            history_generation: generation,
+            memory_version: writer.memory_version(),
+            audit_frontier: 1,
+        },
+        batch_ids: vec![[5; 32]],
+    };
+    let publication = |citation| EgoPhyPublication {
+        expected_revision: 0,
+        completion: completion.clone(),
+        replacement: Some(EgoPhyText {
+            text: "Prefer café examples.".into(),
+            paragraphs: vec![EgoParagraph {
+                start_byte: 0,
+                end_byte: 22,
+                citations: vec![citation],
+            }],
+            token_count: 5,
+        }),
+    };
+    citation.end_byte = 11;
+    let before = fs::metadata(&source.0).unwrap().len();
+    assert!(matches!(
+        writer.publish_ego_phy_summary(publication(citation)),
+        Err(OwnerSessionError::ManagementEvidence)
+    ));
+    assert_eq!(fs::metadata(&source.0).unwrap().len(), before);
+    citation.end_byte = 12;
+    assert_eq!(
+        writer
+            .publish_ego_phy_summary(publication(citation))
+            .unwrap(),
+        1
+    );
+    drop(writer);
+
+    let reopened = PhySession::open_path_current(&source.0).unwrap();
+    assert_eq!(reopened.ego_active_identity().unwrap().id, identity);
+    assert_eq!(
+        reopened.ego_anchor(anchor).unwrap().priority,
+        EgoAnchorPriority::High
+    );
+    assert_eq!(
+        reopened.ego_anchor_revision(anchor, 1).unwrap().priority,
+        EgoAnchorPriority::Normal
+    );
+    assert_eq!(
+        reopened.ego_completion_for_batch([5; 32]),
+        Some(&completion)
+    );
+    assert_eq!(
+        reopened.ego_phy_summary().unwrap().text,
+        publication(citation).replacement
+    );
+    let cut = reopened.current_historical_cut();
+    let proof = reopened.historical_proof(owner, cut).unwrap();
+
+    VerifiedOwnerCopyPlan::prepare(&source.0)
+        .unwrap()
+        .copy_to(&source.0, &copy.0)
+        .unwrap();
+    let copy_session = PhySession::open_path_current(&copy.0).unwrap();
+    assert_eq!(copy_session.historical_proof(owner, cut).unwrap(), proof);
+    assert_eq!(copy_session.ego_citation_text(&citation).unwrap(), "café");
+    drop(copy_session);
+    {
+        let mut target = Container::open_writer(&copy.0).unwrap();
+        let mut memories = MemoryStore::open(&target).unwrap();
+        memories
+            .tombstone(&mut target, record.id, record.revision)
+            .unwrap();
+        target.sync().unwrap();
+    }
+    let historical = PhySession::open_path_current(&copy.0).unwrap();
+    assert!(!historical.ego_citation_current(&citation));
+    assert_eq!(
+        historical.historical_ego_citation_text(&citation).unwrap(),
+        "café"
+    );
+    assert_eq!(historical.historical_proof(owner, cut).unwrap(), proof);
+    let foreign = EgoCitation {
+        owner_id: [0; 16],
+        ..citation
+    };
+    assert!(historical.historical_ego_citation_text(&foreign).is_err());
+
+    // A structurally valid summary carrier placed before its evidence must
+    // fail admission even when the same file contains the cited revision.
+    let ahead = Temp::new();
+    drop(PhyWriter::create_path(&ahead.0, owner).unwrap());
+    let source = Container::open_read_only(&source.0).unwrap();
+    let mut candidates = source.scan_frames().unwrap();
+    let mut misplaced = Container::open_writer(&ahead.0).unwrap();
+    let mut evidence = Vec::new();
+    while let Some(frame) = candidates.next_frame().unwrap() {
+        let payload = frame.payload;
+        if payload.starts_with(b"RELEGO01") {
+            misplaced.append(payload).unwrap();
+        } else if payload.starts_with(b"RELMBOD1")
+            || reliquary_container::decode_publication(payload)
+                .unwrap()
+                .is_some_and(|entry| entry.body.starts_with(b"RELMCRT1"))
+        {
+            evidence.push(payload.to_vec());
+        }
+    }
+    assert_eq!(evidence.len(), 2);
+    for frame in evidence {
+        misplaced.append(&frame).unwrap();
+    }
+    misplaced.sync().unwrap();
+    drop(misplaced);
+    assert!(matches!(
+        PhySession::open_path_current(&ahead.0),
+        Err(OwnerSessionError::Record(message)) if message.contains("PHY summary source cut")
+    ));
+}

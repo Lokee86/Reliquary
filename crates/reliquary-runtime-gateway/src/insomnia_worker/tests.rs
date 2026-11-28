@@ -329,3 +329,247 @@ fn native_mixed_route_reopens_and_reuses_phy_write_after_interruption() {
     std::fs::remove_file(rel_path).unwrap();
     std::fs::remove_file(phy_path).unwrap();
 }
+
+struct CopiedEndpoint {
+    extract: bool,
+}
+
+impl GeneralEndpoint for CopiedEndpoint {
+    fn model(&self) -> &str {
+        Endpoint.model()
+    }
+
+    fn complete_json(
+        &self,
+        prompt: &str,
+        payload: &str,
+        schema_name: &str,
+        schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        assert!(self.extract, "resume must use the durable extraction");
+        let mut answer = Endpoint.complete_json(prompt, payload, schema_name, schema)?;
+        match schema_name {
+            "insomnia_authority_disposition_ledger" => {
+                assert!(payload.contains(r#""principal_id":"alice""#));
+                answer["evidence_requests"] = json!([]);
+            }
+            "insomnia_memory_wording" => answer["candidates"][1]["grounding_source"] = Value::Null,
+            _ => {}
+        }
+        Ok(answer)
+    }
+}
+
+#[test]
+fn copied_mixed_route_reopens_after_phy_write_and_requires_the_admitted_owner() {
+    use crate::{HostCredentialBinding, InsomniaRunOptions, TrustedHostAdmission};
+    use reliquary_application::native_import_source::{
+        HermesCopiedAuthor, HermesCopiedMessage, HermesCopiedRole, HermesCopiedSnapshot,
+        HermesCopyScope, NativeImportPlan,
+    };
+    use std::sync::atomic::AtomicBool;
+
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(".test-tmp")
+        .join(uuid::Uuid::new_v4().to_string());
+    std::fs::create_dir_all(&root).unwrap();
+    let rel_path = root.join("shared.rel");
+    let alice_path = root.join("alice.phy");
+    let bob_path = root.join("bob.phy");
+    let rel_id = [83; 16];
+    let alice_id = [84; 16];
+    let bob_id = [85; 16];
+    drop(RelWriter::create_path(&rel_path, ReliquaryScope::Project, rel_id).unwrap());
+    drop(PhyWriter::create_path(&alice_path, alice_id).unwrap());
+    drop(PhyWriter::create_path(&bob_path, bob_id).unwrap());
+    let mount = || {
+        let gateway = Gateway::new();
+        let owner = gateway
+            .mount_writable_reliquary(
+                &rel_path,
+                &GraphAdmission::for_replay(rel_id, [], [], [], [], []),
+                [],
+                [],
+            )
+            .unwrap();
+        let alice = gateway
+            .mount_writable_phylactery(
+                &alice_path,
+                &GraphAdmission::for_replay(alice_id, [], [], [], [], []),
+                [],
+            )
+            .unwrap();
+        let bob = gateway
+            .mount_writable_phylactery(
+                &bob_path,
+                &GraphAdmission::for_replay(bob_id, [], [], [], [], []),
+                [],
+            )
+            .unwrap();
+        (gateway, owner, alice, bob)
+    };
+
+    let scope = HermesCopyScope::new("profile-alice".into(), "chat".into()).unwrap();
+    let plan = || {
+        NativeImportPlan::from_hermes_copy(HermesCopiedSnapshot {
+            scope: scope.clone(),
+            branch_id: None,
+            source_revision: None,
+            messages: vec![HermesCopiedMessage {
+                message_uid: "accepted".into(),
+                role: HermesCopiedRole::User,
+                timestamp_ns: 20,
+                content: "I prefer concise answers. Keep those project notes private.".into(),
+                author: Some(HermesCopiedAuthor {
+                    id: Some("alice".into()),
+                    is_bot: Some(false),
+                }),
+            }],
+        })
+        .unwrap()
+        .bind_hermes_live_source(alice_id, Some("accepted".into()))
+        .unwrap()
+    };
+
+    let (gateway, owner, alice, bob) = mount();
+    let hold_view_only = gateway.instance("alice", [owner], []).unwrap();
+    assert!(matches!(
+        hold_view_only.stage_native_import(owner, plan()),
+        Err(GatewayError::UnauthorizedPhy { .. })
+    ));
+    drop(hold_view_only);
+    let token = "copied-automatic-phy-test-worker";
+    let (admission, control) =
+        TrustedHostAdmission::new([HostCredentialBinding::new("alice", token, [owner], [alice])])
+            .install(&gateway)
+            .unwrap();
+    let actor = admission.authenticate(token).unwrap();
+    let staged = actor.stage_native_import(owner, plan()).unwrap();
+    let id = staged.import_id.as_str();
+    let episode = reliquary_owner_session::model::EpisodeId(staged.episode_ids[0]);
+    let claim = actor
+        .with_rel_writer(owner, |writer| {
+            writer.claim_native_import_episode(id, episode, "interrupted", 30, 100)
+        })
+        .unwrap()
+        .unwrap();
+    assert_eq!(claim.turns[0].principal_id.as_deref(), Some("alice"));
+
+    let extraction = extract_native_insomnia(
+        SharedEndpoint(Arc::new(CopiedEndpoint { extract: true })),
+        &claim,
+        Some(alice_id),
+        |_| panic!("the copied fixture requires no extra evidence"),
+    )
+    .unwrap();
+    let checkpoint = extraction.checkpoint(&claim).unwrap();
+    let prepared = actor
+        .with_writable_reliquary(owner, |rel| extraction.prepare(rel, &claim))
+        .unwrap()
+        .unwrap();
+    let mut claim = claim;
+    claim.work = actor
+        .with_rel_writer(owner, |writer| {
+            writer.checkpoint_native_import_claim(id, &claim, 31, checkpoint)
+        })
+        .unwrap()
+        .unwrap();
+
+    control.revoke(token).unwrap();
+    assert!(matches!(
+        actor.commit_scoped_routed_insomnia_claim(
+            owner,
+            alice,
+            &claim,
+            &prepared,
+            Endpoint.model(),
+            "v3-4",
+            || 32,
+            Some(id),
+        ),
+        Err(GatewayError::CredentialRevoked)
+    ));
+    let alice_actor = gateway.instance("alice", [owner], [alice]).unwrap();
+    let memory = alice_actor
+        .with_entity_phy_writer(alice, |phy| {
+            let mut proofs = alice_actor
+                .with_writable_reliquary(owner, |rel| {
+                    prepare_routed_user_proofs(rel, phy, &prepared, "alice")
+                })
+                .unwrap()
+                .unwrap();
+            phy.publish_routed_user_memory(proofs.pop().unwrap())
+                .unwrap()
+                .0
+                .record
+                .id
+        })
+        .unwrap();
+    drop(alice_actor);
+    drop(actor);
+    drop(admission);
+    drop(gateway);
+
+    let (gateway, owner, alice, bob_after_restart) = mount();
+    assert_eq!(bob, bob_after_restart);
+    let other = gateway.instance("bob", [owner], [bob]).unwrap();
+    let endpoint = Arc::new(CopiedEndpoint { extract: false });
+    let options = |destination| InsomniaRunOptions {
+        import_id: Some(id.to_owned()),
+        destination,
+        max_episodes: 1,
+        lease_duration_ns: 120_000_000_000,
+        live_selection: Default::default(),
+    };
+    let stop = AtomicBool::new(false);
+    assert!(
+        other
+            .drain_insomnia(owner, endpoint.clone(), None, &options(Some(bob)), &stop)
+            .is_err()
+    );
+    assert!(
+        other
+            .drain_insomnia(owner, endpoint.clone(), None, &options(None), &stop)
+            .is_err()
+    );
+    let actor = gateway.instance("alice", [owner], [alice]).unwrap();
+    let progress = actor
+        .drain_insomnia(owner, endpoint, None, &options(Some(alice)), &stop)
+        .unwrap();
+    assert_eq!(
+        (
+            progress.complete,
+            progress.rel_memories,
+            progress.phy_memories
+        ),
+        (1, 1, 1)
+    );
+    drop(actor);
+    drop(other);
+    drop(gateway);
+    let alice = PhySession::open_path(
+        &alice_path,
+        &GraphAdmission::for_replay(alice_id, [], [], [], [], []),
+        [],
+    )
+    .unwrap();
+    let bob = PhySession::open_path(
+        &bob_path,
+        &GraphAdmission::for_replay(bob_id, [], [], [], [], []),
+        [],
+    )
+    .unwrap();
+    let routed = alice.memory_history(memory).unwrap().unwrap();
+    assert_eq!(routed.revisions.len(), 1);
+    assert_eq!(
+        routed.revisions[0]
+            .record
+            .source_ref
+            .as_ref()
+            .unwrap()
+            .principal_id
+            .as_deref(),
+        Some("alice")
+    );
+    assert!(bob.memory_history(memory).unwrap().is_none());
+}

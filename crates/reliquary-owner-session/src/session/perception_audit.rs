@@ -12,6 +12,7 @@ use reliquary_perception_store::{EntityEvidenceChange, PRINCIPAL_ENTITY_KIND};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod phy;
 mod progress;
 pub use progress::*;
 
@@ -143,6 +144,43 @@ impl RelSession {
             .memories
             .changes_after(after, through, limit.min(MAX_CAPTURE_PAGE))
             .collect()
+    }
+
+    /// Page distinct latest changed sources which were absent from the
+    /// recurring audit's first-settlement stream. Advance across all raw
+    /// changes, including superseded revisions and overlapping settlements.
+    pub fn perception_recurring_changed_ids_page(
+        &self,
+        cut: &PerceptionSourceCut,
+        after_memory: u64,
+        after_settlement: u64,
+        limit: usize,
+    ) -> Result<(u64, Vec<MemoryId>), OwnerSessionError> {
+        self.check_perception_source_cut(cut)?;
+        if after_memory > cut.memory || after_settlement > cut.settlements {
+            return Err(OwnerSessionError::ManagementStale);
+        }
+        let rows = self.perception_memory_changes_page(after_memory, cut.memory, limit.max(1));
+        let next = rows.last().map_or(cut.memory, |(position, _)| *position);
+        let ids = rows
+            .into_iter()
+            .filter_map(|(position, id)| {
+                let in_settlement_page =
+                    self.common
+                        .dreams
+                        .settlement_position(id)
+                        .is_some_and(|settled| {
+                            settled > after_settlement && settled <= cut.settlements
+                        });
+                let latest = self
+                    .common
+                    .memories
+                    .record_at_cut(id, cut.memory)
+                    .is_some_and(|record| record.memory_version == position);
+                (!in_settlement_page && latest).then_some(id)
+            })
+            .collect();
+        Ok((next, ids))
     }
 
     pub fn perception_source_metadata(
@@ -386,49 +424,37 @@ impl RelSession {
             .collect()
     }
 
+    /// Current incident Memory links whose active revision was visible at the audit cut.
+    pub fn perception_graph_links(
+        &self,
+        cut: &PerceptionSourceCut,
+        source: MemoryId,
+    ) -> Result<Vec<(MemoryId, Relation)>, OwnerSessionError> {
+        self.check_perception_source_cut(cut)?;
+        Ok(memory_graph_links(
+            &self.common.graph,
+            cut.graph,
+            source,
+            |edge, _| self.relation_source_eligible(edge),
+        ))
+    }
+
     pub fn perception_relationship_sources(&self, entity: EntityId) -> Vec<MemoryId> {
-        let local = owner_hex(&self.owner_id);
-        let mut seen = BTreeSet::new();
-        self.common
-            .perception
-            .relationships_for_local_participant(entity)
-            .filter(|relationship| self.relationship_source_eligible(relationship))
-            .take(MAX_NEIGHBORS)
-            .flat_map(|relationship| &relationship.evidence)
-            .filter(|reference| reference.owner_id == local && seen.insert(reference.memory_id))
-            .map(|reference| MemoryId(reference.memory_id))
-            .take(MAX_NEIGHBORS)
-            .collect()
+        relationship_sources(
+            &self.common.perception,
+            self.owner_id,
+            entity,
+            |relationship| self.relationship_source_eligible(relationship),
+        )
     }
 
     pub fn has_equivalent_manual_relationship(&self, draft: &ObservationDraft) -> bool {
-        let participants = draft.profile.participants();
-        let Some(first) = participants.first() else {
-            return false;
-        };
-        let owner = owner_hex(&self.owner_id);
-        let proposition = normalized_summary(&draft.proposition);
-        self.common
-            .perception
-            .relationships_for_local_participant(first.entity_id)
-            .filter(|relationship| self.relationship_source_eligible(relationship))
-            .any(|row| {
-                row.participants.len() == participants.len()
-                    && normalized_summary(&row.summary) == proposition
-                    && row.participants.iter().all(|prior| {
-                        prior.entity.owner_id == owner
-                            && participants.iter().any(|current| {
-                                current.entity_id == prior.entity.entity_id
-                                    && prior
-                                        .role
-                                        .as_deref()
-                                        .zip(current.role.as_deref())
-                                        .is_none_or(|(a, b)| {
-                                            normalized_summary(a) == normalized_summary(b)
-                                        })
-                            })
-                    })
-            })
+        equivalent_manual_relationship(
+            &self.common.perception,
+            self.owner_id,
+            draft,
+            |relationship| self.relationship_source_eligible(relationship),
+        )
     }
 
     pub fn perception_source_activity(
@@ -595,6 +621,59 @@ impl RelSession {
     }
 }
 
+fn relationship_sources(
+    perception: &PerceptionStore,
+    owner: [u8; 16],
+    entity: EntityId,
+    eligible: impl Fn(&Relationship) -> bool,
+) -> Vec<MemoryId> {
+    let local = owner_hex(&owner);
+    let mut seen = BTreeSet::new();
+    perception
+        .relationships_for_local_participant(entity)
+        .filter(|relationship| eligible(relationship))
+        .take(MAX_NEIGHBORS)
+        .flat_map(|relationship| &relationship.evidence)
+        .filter(|reference| reference.owner_id == local && seen.insert(reference.memory_id))
+        .map(|reference| MemoryId(reference.memory_id))
+        .take(MAX_NEIGHBORS)
+        .collect()
+}
+
+fn equivalent_manual_relationship(
+    perception: &PerceptionStore,
+    owner: [u8; 16],
+    draft: &ObservationDraft,
+    eligible: impl Fn(&Relationship) -> bool,
+) -> bool {
+    let participants = draft.profile.participants();
+    let Some(first) = participants.first() else {
+        return false;
+    };
+    let owner = owner_hex(&owner);
+    let proposition = normalized_summary(&draft.proposition);
+    perception
+        .relationships_for_local_participant(first.entity_id)
+        .filter(|relationship| eligible(relationship))
+        .any(|row| {
+            row.participants.len() == participants.len()
+                && normalized_summary(&row.summary) == proposition
+                && row.participants.iter().all(|prior| {
+                    prior.entity.owner_id == owner
+                        && participants.iter().any(|current| {
+                            current.entity_id == prior.entity.entity_id
+                                && prior
+                                    .role
+                                    .as_deref()
+                                    .zip(current.role.as_deref())
+                                    .is_none_or(|(a, b)| {
+                                        normalized_summary(a) == normalized_summary(b)
+                                    })
+                        })
+                })
+        })
+}
+
 fn perception_lineage(record: &MemoryRecord) -> [u8; 32] {
     let Some(source) = &record.source_ref else {
         return record.id.0;
@@ -625,4 +704,32 @@ fn normalized_summary(value: &str) -> String {
         .map(str::to_lowercase)
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+/// Resolve current incident Memory links that were active at the captured cut.
+pub(super) fn memory_graph_links(
+    graph: &GraphStore,
+    cut: u64,
+    source: MemoryId,
+    eligible: impl Fn(&Relation, MemoryId) -> bool,
+) -> Vec<(MemoryId, Relation)> {
+    let anchor = NodeRef::Memory(source.0);
+    graph
+        .incident_relations(anchor)
+        .take(MAX_CAPTURE_PAGE)
+        .filter(|edge| edge.graph_version <= cut)
+        .filter_map(|edge| {
+            let other = if edge.source == anchor {
+                edge.target
+            } else {
+                edge.source
+            };
+            let NodeRef::Memory(id) = other else {
+                return None;
+            };
+            let id = MemoryId(id);
+            (id != source && eligible(edge, id)).then_some((id, *edge))
+        })
+        .take(MAX_NEIGHBORS)
+        .collect()
 }

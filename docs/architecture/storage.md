@@ -20,7 +20,7 @@ The eight durable domain owners are `reliquary-archive`, `reliquary-memory-core`
 - **Memory core** owns memory records, payload state, and memory identity. Leased replay retains verified ranges for standalone and grouped bodies. Historical projection reads the selected body from its owner file. Detached snapshots retain their payloads in memory.
 - **Graph** owns relation/community state and graph history; it does not own memory payloads.
 - **Perception store** owns Entity descriptions, mentions, manual Relationship history and the typed Observation projection. Cross-REL discovery pages through the existing ordered map of current Entities by seeking past the last Entity ID. Historical and retired descriptions live in separate projections. The candidate keys are derived in memory, and the recording REL persists each judgment in its existing identity receipt history.
-- **Ego store** owns owner identity/profile state.
+- **Ego store** owns named PHY Identity revisions and selection, REL and PHY Pins, and PHY-owned verified summaries. A versioned extension of the Ego append record stores REL topic and point changes or complete PHY text with paragraph provenance. The same record binds audit completion IDs and cut. Exact source Memory bodies stay in their owning files. Existing Identity, Personality, Anchor, and singleton synthesis records retain their 2.1 replay format.
 - **Freshness store** owns freshness policy, scores/projections, and historical snapshots.
 - **Insomnia store** owns accepted episode order and Insomnia progression/settlement records.
 - **Vector store** owns compatibility profiles, packed vectors, archive/memory mappings, and generation records. It owns durable vectors; `reliquary-vectors` only evaluates compatibility and batches.
@@ -52,6 +52,8 @@ A REL records a cross-REL Entity identity comparison in a clocked `RELIDR01` rec
 A committed copied-source change has one `RELCSR01` body in a clocked Archive publication. Whole deletion applies the existing terminal conversation projection. A rewind seals the exact accepted head, the surviving message or empty start, and the resulting source head. Replay resolves the removed suffix against the Archive ancestry and preserves nodes still used by another active branch. The original import receipts remain available for historical verification. Readers need `RELCSR01` support after the first such publication. Existing REL 2.1 headers and terminal tombstones retain their formats.
 
 Full replay validates the completed import or preceding rewind head at the publication's physical position. A verified checkpoint restores removal state and can replay a supported suffix containing copied-source changes. Verified copies retain the publications. Divergent reconciliation and fresh-history rewrite refuse source histories with these records before creating a destination.
+
+Live Hermes copied receipts optionally carry the source-time PHY owner ID. The same receipt identifies the exact source message, and the Archive turn carries the verified principal. Older receipts decode without a destination and retain their original digest. Reading the new attributed receipts requires a Core revision that supports this field.
 
 An open native import fences new copied-source change publication. A fully staged import can finish from its durable REL data using the import ID. Interrupted partial staging must resume with the same copied source input and Echo before completing. The reporting host retains its pending change until publication succeeds.
 

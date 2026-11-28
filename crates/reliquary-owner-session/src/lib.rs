@@ -4,6 +4,13 @@
 //! accepted Episodes are derived from durable owners; Dream first-cycle
 //! populations still require externally supplied admission evidence.
 
+pub use reliquary_ego_store::{
+    EgoAnchor, EgoAnchorId, EgoAnchorPriority, EgoCitation, EgoCompletion, EgoEmbedding,
+    EgoIdentity, EgoIdentityId, EgoIdentitySelection, EgoItemChange, EgoParagraph,
+    EgoPhyPublication, EgoPhySummary, EgoPhyText, EgoPoint, EgoPointId, EgoPointStatus,
+    EgoRelChange, EgoRelPublication, EgoRelSummary, EgoSourceCut, EgoSummaryItem, EgoTextField,
+    EgoTimeScope, EgoTombstone, EgoTopic, EgoTopicId, MAX_EGO_PHY_SUMMARY_TOKENS,
+};
 pub use reliquary_graph::CommunityId;
 
 pub use reliquary_graph::GraphAdmission;
@@ -45,6 +52,7 @@ pub use session::{
 pub use session::{
     ManagementRead, RelConversationSummary, RelImportedSource, RelSourceTurn, RelTranscriptTurn,
 };
+pub use session::{PhyObservationBatch, PhyObservationCut};
 pub use session::{
     RelHistoryComparison, RelHistoryRelation, RelReconciliationError, RelReconciliationReport,
     compare_rel_histories, reconcile_divergent_rel_copy,
@@ -76,6 +84,9 @@ pub use session::{
 pub use session::{EntityPruneReport, prune_terminal_entity_descriptions_copy};
 pub use session::{MAX_REL_DEPENDENCIES, RelDependencyDeclaration, canonical_rel_dependency_ids};
 pub use session::{MemoryVectorInput, MemoryVectorRow};
+pub use session::{
+    PhyAuditChange, PhyAuditChangesPage, PhyAuditCursor, PhyAuditCut, PhyAuditInitialPage,
+};
 pub use session::{
     ProfileRepairError, ProfileRepairPlan, ProfileRepairReport, execute_profile_repair,
     plan_profile_repair,

@@ -12,13 +12,13 @@ Keep one structured discovery call for the shared REL audit, with separate Ego a
 
 | Consumer | Discovery item | Next stage |
 | --- | --- | --- |
-| Ego | Suggested topic (`subject`) and one to six Memory slots (`source_slots`). | Summary Extraction reads the selected Memories and determines the details and qualifiers for the summary. |
+| Ego | Suggested topic (`subject`) and one to six Memory slots (`source_slots`). | [Ego REL summary](ego-rel-summary-spec-2026-11-26.md) consolidates the topic, drafts points from selected Memories, and verifies the exact draft before publication. |
 | Perception | Proposed Observation (`proposition`), one to eight source slots (`source_slots`), and an empty `participant_slots` list for ordinary Observations. A Relationship uses two to four distinct resolved Entity slots in that list. | Synthesize reads the selected sources and decides the exact wording, status, time scope, participant roles and final citations. It may abstain. |
 
 ## Source binding and eligibility
 
 - Use the existing `SourceCitation` for the bound references. It identifies the owner, history generation, Memory or Observation revision, body and selected passage. The consumer can reopen the exact source through its authorized read path. Deduplicate repeated Ego references while keeping distinct selected passages, and retain the existing Perception check for distinct citations. A proposal requires at least one eligible source. [Shared slot binding](../../crates/reliquary-memory-audit/src/lib.rs)
-- The REL Ego list uses Fresh Memory sources. Keep the runtime recheck of current revision, body, passage availability and Freshness before handing references forward. Retain the eligible references if one drops out and discard the topic if its list becomes empty. The same topic and Memory reference shape is usable by the planned PHY audit with its active, settled Memory eligibility policy. [Current recheck](../../crates/reliquary-application/src/perception_workflow/discovery.rs)
+- The REL Ego list uses Fresh Memory sources. Keep the runtime recheck of current revision, body, passage availability and Freshness before handing references forward. Retain the eligible references if one drops out and discard the topic if its list becomes empty. The [PHY summary](roadmap.md#phy-summary) can reuse the shared reader and audit machinery with its own eligibility and whole-text synthesis contract. [Current recheck](../../crates/reliquary-application/src/perception_workflow/discovery.rs) · [Ego summary contracts](roadmap.md#ego-summary-contracts)
 - Perception can select eligible settled Memories of any grade and current verified Observation Memories where the existing rules permit them. A Relationship requires grounded resolved participants and supporting Memory passages. Reuse the owner checks for those anchors before synthesis and when binding the final draft. References selected by an optional lookup follow the same eligibility and exact-source rules. [Perception input capture](../../crates/reliquary-application/src/observation_drafts.rs)
 
 ## Implementation order
@@ -53,6 +53,7 @@ Run the normal formatting and locked workspace compile check at integration. Com
 ## Related docs
 
 - [Shared audit and scheduling](memory-web-audit-spec-2026-11-24.md)
+- [Ego audit handoff and recovery](roadmap.md#ego-audit-handoff-and-recovery)
 - [Observation creation](observation-creation-spec-2026-11-24.md)
 - [Original Ego stages](https://github.com/Lokee86/Reliquary/blob/2b5bd0ea/docs/ego-web-synthesis-plan.md#L29-L39)
 

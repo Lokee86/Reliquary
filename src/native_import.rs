@@ -80,6 +80,20 @@ impl NativeImportPlan {
         ))
     }
 
+    /// Bind a trusted host's copied turn to its registered PHY at source admission.
+    /// The optional UID names the exact user message verified by that host.
+    /// Staging also requires operating grants for both owners.
+    pub fn bind_hermes_live_source(
+        self,
+        phy: OwnerId,
+        verified_message_uid: Option<String>,
+    ) -> Result<Self, ProductError> {
+        Ok(Self(self.0.bind_hermes_live_source(
+            phy.as_bytes(),
+            verified_message_uid,
+        )?))
+    }
+
     pub fn coverage(&self) -> &NativeImportCoverage {
         self.0.coverage()
     }

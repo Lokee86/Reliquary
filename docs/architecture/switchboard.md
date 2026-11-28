@@ -20,6 +20,8 @@ Root also exposes a hosted construction path for host-owned general and embeddin
 
 For hosts that use Switchboard's route selection while retaining host-owned transports, `HostedSwitchboardConfig` stores credential-free endpoint references in typed `models.<slot>` objects. `ConfiguredRuntime::hosted_switchboard` resolves these references through caller-supplied, side-effect-free adapters, then applies the same decision fallback selector as standalone configuration. Hosted route objects use their own schema and cannot contain Switchboard credentials; opening a file with credential objects or standalone route records fails clearly. Saving merges pending hosted edits under the existing path lock, preserves unrelated objects, and atomically replaces the CVCFG document. Processing identity includes effective endpoint references and resolved adapter identity; the migration-compatible legacy hash is limited to the prior `chat`/`chat` hosted route shape without processing overrides.
 
+A host can resolve a standalone protected embedding slot independently of completion. Switchboard opens the selected credential and supplies endpoint-scoped provider identity and query/document semantics for a hosted binding. See the [configuration reference](../configured-runtime.md).
+
 A cross-REL Entity receipt binds the selected Entity route by a digest of its provider, model, endpoint URL and reasoning effort. A hosted runtime binds the host's general provider and model. Changing an unrelated embedding route leaves the Entity comparison eligible for reuse.
 
 Perception binds the configured general, native decision and embedding choices to each work attempt. Its receptor vectors use an independent embedding route identity. The Contribution and Verify consumers share a native transport. Hosted runtimes add that transport and its nonsecret identity with `with_native_perception_decision`. Saved hosted route references retain their existing schema and fallback behavior. Perception owns both versioned question templates and their acceptance rules. [Perception semantics](semantic-processing.md#observation-inference)
@@ -29,6 +31,8 @@ Credentials and their protected configuration are managed by Switchboard's prote
 ## Failure and recovery
 
 Invalid/reserved keys, missing route adapters, failed authentication/device flow, endpoint status failures, invalid responses, and backpressure are explicit errors. Failure to resolve the configured adapter does not silently substitute an unrelated provider. Configuration reopening reconstructs typed route and credential state; a missing protected key or invalid credential state must be surfaced as an error rather than repaired by an endpoint consumer.
+
+The configured General route supports one named local tool in a bounded structured continuation. It validates the tool name and unique call ID, refuses parallel calls, checks the request limit on each turn and returns the terminal structured response. Application supplies the tokenizer callback and result limit for PHY compression. [General transport](../../crates/reliquary-switchboard/src/transport.rs) · [Loopback tests](../../crates/reliquary-switchboard/src/tests.rs)
 
 ## Code map and tests
 

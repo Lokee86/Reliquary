@@ -18,6 +18,8 @@ Unresolved future corrections and their acceptance boundaries.
 - [cross-rel-entity-identity-spec-2026-11-23.md](cross-rel-entity-identity-spec-2026-11-23.md) - Cross-REL Entity evidence, decisions and reconsideration.
 - [cross-rel-entity-separation-confirmation-spec-2026-11-23.md](cross-rel-entity-separation-confirmation-spec-2026-11-23.md) - User confirmation and undo for a selected cross-REL Entity pair.
 - [cross-rel-entity-staged-evaluation-2026-11-23.md](cross-rel-entity-staged-evaluation-2026-11-23.md) - Three-call identity evaluation, pre-cutover trial and acceptance gates.
+- [ego-implementation-spec-2026-11-27.md](ego-implementation-spec-2026-11-27.md) - Complete Ego implementation, summary lifecycle, controls, context packing and host acceptance.
+- [ego-rel-summary-spec-2026-11-26.md](ego-rel-summary-spec-2026-11-26.md) - Two-call Ego REL summary synthesis, verification and publication sequence.
 - [leiden-community-recomputation-plan-2026-11-18.md](leiden-community-recomputation-plan-2026-11-18.md) - Leiden implementation order and copied-REL acceptance.
 - [leiden-community-recomputation-spec-2026-11-18.md](leiden-community-recomputation-spec-2026-11-18.md) - Leiden recomputation contract and compatibility.
 - [memory-web-audit-call-trial-2026-11-24.md](memory-web-audit-call-trial-2026-11-24.md) - Paired inference trial and manual ranking for Ego and Perception extraction.
@@ -30,6 +32,7 @@ Unresolved future corrections and their acceptance boundaries.
 - [owner-history-migration-spec-2026-11-18.md](owner-history-migration-spec-2026-11-18.md) - Offline history migration and independent verification for native 2.1 owners.
 - [perception-host-integration-spec-2026-11-24.md](perception-host-integration-spec-2026-11-24.md) - Shared Core compatibility, Hermes and Mercury runtime binding, and typed Observation recall.
 - [perception-implementation-plan-2026-11-24.md](perception-implementation-plan-2026-11-24.md) - Integrated same-REL Perception implementation order and release gate.
+- [phy-perception-spec-2026-11-27.md](phy-perception-spec-2026-11-27.md) - Private PHY Observations and Relationships, owner boundaries and focused acceptance.
 - [rel-checkpoint-open-plan-2026-11-20.md](rel-checkpoint-open-plan-2026-11-20.md) - REL checkpoint and Hermes mount implementation order and acceptance.
 - [rel-checkpoint-open-spec-2026-11-20.md](rel-checkpoint-open-spec-2026-11-20.md) - Verified REL checkpoints, suffix replay, on-demand history, and one admission per Hermes mount.
 - [rel-dependency-port-plan-2026-11-18.md](rel-dependency-port-plan-2026-11-18.md) - REL dependency port implementation order and verification.

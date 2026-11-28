@@ -43,6 +43,7 @@ impl Drop for Temp {
 }
 fn batch(owner: [u8; 16]) -> NativeImportBatch {
     let source = ImportReceipt {
+        copied_source_phy: None,
         schema_version: 1,
         owner_uuid: owner,
         import_key: [0x3a; 32],

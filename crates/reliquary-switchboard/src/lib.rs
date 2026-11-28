@@ -456,6 +456,14 @@ impl fmt::Display for GeneralEndpointError {
 }
 impl std::error::Error for GeneralEndpointError {}
 
+/// One local function available to one bounded structured completion job.
+pub struct GeneralTool<'a> {
+    pub name: &'a str,
+    pub schema: &'a Value,
+    pub max_results: usize,
+    pub max_input_bytes: usize,
+}
+
 pub trait GeneralEndpoint: Send + Sync {
     fn model(&self) -> &str;
 
@@ -466,6 +474,20 @@ pub trait GeneralEndpoint: Send + Sync {
         schema_name: &str,
         schema: &Value,
     ) -> Result<Value, GeneralEndpointError>;
+
+    fn complete_json_with_tool(
+        &self,
+        _system_prompt: &str,
+        _user_payload: &str,
+        _schema_name: &str,
+        _schema: &Value,
+        _tool: GeneralTool<'_>,
+        _run: &mut dyn FnMut(Value) -> Result<Value, GeneralEndpointError>,
+    ) -> Result<Value, GeneralEndpointError> {
+        Err(GeneralEndpointError::InvalidConfiguration(
+            "general endpoint has no bounded tool continuation",
+        ))
+    }
 }
 
 #[derive(Debug)]
@@ -531,7 +553,7 @@ pub use device_auth::{CodexDeviceCode, DeviceAuthError};
 pub use hosted_config::{HostedEmbeddingSettings, HostedModelRoute, HostedSwitchboardConfig};
 pub use model_config::{GeneralRoute, ModelRoute, ModelSlot};
 pub use protected_config::master_key::MasterKeyError;
-pub use protected_config::{ConfigFile, CredentialKind};
+pub use protected_config::{ConfigFile, CredentialKind, ResolvedEmbeddingRoute};
 
 #[cfg(any(test, feature = "test-support"))]
 #[doc(hidden)]

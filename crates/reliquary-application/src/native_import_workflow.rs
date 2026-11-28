@@ -144,6 +144,7 @@ fn confirm_staged_retry(
     if receipt.conversations != batch.source.conversations
         || receipt.source_namespace != batch.source.source_namespace
         || receipt.source_format != batch.source.source_format
+        || receipt.copied_source_phy != batch.source.copied_source_phy
     {
         return Err(OwnerSessionError::Record(
             "import retry source mapping changed".into(),

@@ -132,7 +132,12 @@ pub struct InsomniaProgress {
     pub rejected: u64,
     pub incomplete_ids: Vec<String>,
     pub import_complete: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub personal_attribution_held: bool,
 }
+
+pub const PERSONAL_ATTRIBUTION_REQUIRED: &str =
+    "Insomnia personal Memory lacks verified source user attribution";
 
 impl InsomniaProgress {
     pub fn unfinished(&self) -> usize {
@@ -165,7 +170,11 @@ pub fn inspect_insomnia_work(
         match episode.state {
             InsomniaWorkState::Pending => progress.pending += 1,
             InsomniaWorkState::Processing => progress.processing += 1,
-            InsomniaWorkState::Held => progress.held += 1,
+            InsomniaWorkState::Held => {
+                progress.held += 1;
+                progress.personal_attribution_held |=
+                    episode.last_error.as_deref() == Some(PERSONAL_ATTRIBUTION_REQUIRED);
+            }
             InsomniaWorkState::Failed | InsomniaWorkState::Terminal => progress.failed += 1,
             InsomniaWorkState::Complete => progress.complete += 1,
         }

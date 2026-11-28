@@ -25,6 +25,10 @@ impl<'a> SourceEligibility<'a> {
         self.cut
     }
 
+    pub(super) fn has_removals(self) -> bool {
+        self.archive.source_removal_version() != 0
+    }
+
     pub(super) fn allows(self, record: &MemoryRecord) -> bool {
         if self.cut == 0 || self.archive.source_removal_version() == 0 {
             return true;

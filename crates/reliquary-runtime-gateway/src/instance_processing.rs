@@ -259,6 +259,7 @@ impl Gateway {
                                     dream,
                                     entity,
                                     embedding,
+                                    dream_policy: route_identity.live_dream,
                                 },
                                 &thread_stop,
                                 |name, state, completed| {
@@ -305,10 +306,10 @@ impl Gateway {
                                     dream,
                                     entity,
                                     embedding,
+                                    dream_policy: route_identity.live_dream,
                                 },
                                 options.live_selection,
                                 options.max_episodes,
-                                route_identity.live_dream,
                                 &thread_stop,
                                 |progress| {
                                     if let Ok(mut report) = thread_report.lock() {

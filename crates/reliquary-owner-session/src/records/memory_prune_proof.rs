@@ -305,6 +305,9 @@ pub(crate) fn safe_memory_only_frames(
                 && !envelope
                     .body
                     .starts_with(crate::session::observations::MARKER)
+                && !envelope
+                    .body
+                    .starts_with(crate::session::observations::PHY_MARKER)
                 && !memory_history_record(envelope.body)
                 && !reliquary_archive::is_archive_publication_body(envelope.body)
                     .map_err(|e| e.to_string())?
@@ -358,6 +361,7 @@ pub(crate) fn pointer_free_frame(magic: &[u8]) -> bool {
             | b"RELMTMB1"
             | b"RELMCOR1"
             | b"RELMRET1"
+            | b"RELEGO01"
             | b"RELPVFM1"
             | b"RELMVFM1"
             | b"RELCPFM1"

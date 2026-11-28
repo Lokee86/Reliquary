@@ -53,11 +53,32 @@ pub(super) fn phy(
     owner_id: [u8; 16],
     history: &CommonHistory,
     cut: HistoricalOwnerCut,
+    observations: &[(
+        reliquary_perception_store::observation::ObservationBatchReceipt,
+        reliquary_perception_store::observation::ObservationRecord,
+    )],
+    prefixes: &BTreeMap<u64, crate::session::observations::PhyObservationPublicationProof>,
 ) -> [u8; 32] {
-    canonical_hash(json!({
+    let mut value = json!({
         "schema": SCHEMA, "kind": "PHY", "owner": owner_id,
         "cut": owner_cut_value(cut), "common": common_value(history),
-    }))
+    });
+    if !observations.is_empty() {
+        value["observation_records"] = json!(
+            observations
+                .iter()
+                .map(|row| {
+                    let prefix = &prefixes[&row.0.publication_version];
+                    let bytes = rmp_serde::to_vec_named(&(prefix, row))
+                        .expect("validated PHY Observation record");
+                    <[u8; 32]>::from(Sha256::digest(bytes))
+                })
+                .collect::<Vec<_>>()
+        );
+        value["cut"]["observation_version"] = json!(cut.phy_observation_version);
+        value["cut"]["settlements"] = json!(cut.phy_settlement_version);
+    }
+    canonical_hash(value)
 }
 
 fn canonical_hash(value: Value) -> [u8; 32] {
@@ -396,6 +417,24 @@ fn ego_record_value(value: &reliquary_ego_store::EgoHistoryRecord) -> Value {
         } => json!({
             "kind": "synthesis", "ego_version": ego_version, "revision": revision,
             "source_memory_version": source_memory_version, "text": text,
+        }),
+        IdentitySelection {
+            ego_version,
+            selection,
+        } => json!({
+            "kind": "identity_selection", "ego_version": ego_version, "selection": selection,
+        }),
+        RelSummary {
+            ego_version,
+            publication,
+        } => json!({
+            "kind": "rel_summary", "ego_version": ego_version, "publication": publication,
+        }),
+        PhySummary {
+            ego_version,
+            publication,
+        } => json!({
+            "kind": "phy_summary", "ego_version": ego_version, "publication": publication,
         }),
     }
 }

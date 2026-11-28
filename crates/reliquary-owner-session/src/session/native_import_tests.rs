@@ -328,6 +328,7 @@ fn import_receipt_cannot_be_substituted_from_another_epoch() {
         .map(|frame| frame.payload)
         .collect::<Vec<_>>();
     let receipt = reliquary_archive::ImportReceipt {
+        copied_source_phy: None,
         schema_version: 1,
         owner_uuid: owner,
         import_key: [0x22; 32],
@@ -365,6 +366,7 @@ fn reopen_rejects_archive_import_receipt_without_an_epoch() {
         .put_import_receipt(
             &mut writer.container,
             reliquary_archive::ImportReceipt {
+                copied_source_phy: None,
                 schema_version: 1,
                 owner_uuid: owner,
                 import_key: [1; 32],
@@ -450,6 +452,7 @@ fn reopen_checks_each_raw_import_receipt_position() {
         .commit_native_import_receipt(
             &start.import_id,
             reliquary_archive::ImportReceipt {
+                copied_source_phy: None,
                 schema_version: 1,
                 owner_uuid: owner,
                 import_key: [2; 32],

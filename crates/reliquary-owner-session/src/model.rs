@@ -18,7 +18,7 @@ pub use reliquary_freshness_store::FRESHNESS_POLICY_VERSION;
 pub use reliquary_graph::{
     CommunityId, CommunityRename, CommunityRenameReceipt, validate_community_name,
 };
-pub use reliquary_graph::{NodeRef, Relation, RelationKind, RelationOrigin};
+pub use reliquary_graph::{NodeRef, Relation, RelationChange, RelationKind, RelationOrigin};
 pub use reliquary_insomnia_store::{EpisodeId as InsomniaEpisodeId, InsomniaWork};
 pub use reliquary_memory_core::{
     MemoryBody, MemoryBodyId, MemoryDraft, MemoryError, MemoryHistory, MemoryId, MemoryRecord,

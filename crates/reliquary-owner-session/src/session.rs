@@ -228,6 +228,8 @@ impl From<GenerationStoreError> for OwnerSessionError {
 /// Shared owner-local REL/PHY domains, kept private behind typed reads.
 #[derive(serde::Serialize, serde::Deserialize)]
 struct CommonState {
+    #[serde(skip)]
+    phy_observations: observations::PhyObservationHistory,
     user_memory_requests: BTreeMap<String, crate::records::user_memory::UserMemoryRecord>,
     memories: MemoryStore,
     perception: PerceptionStore,
@@ -831,6 +833,12 @@ macro_rules! common_reads {
             pub fn ego_anchor(&self, id: EgoAnchorId) -> Option<&EgoAnchor> {
                 self.$field.ego.anchor(id)
             }
+            pub fn ego_anchors(&self) -> impl Iterator<Item = &EgoAnchor> {
+                self.$field.ego.anchors()
+            }
+            pub fn ego_anchor_revision(&self, id: EgoAnchorId, revision: u64) -> Option<&EgoAnchor> {
+                self.$field.ego.anchor_revision(id, revision)
+            }
             pub fn retention_manifest(&self, digest: &[u8; 32]) -> Option<&HistoryPruneManifest> {
                 self.$field.maintenance.get(digest)
             }
@@ -1029,6 +1037,7 @@ mod checkpoint;
 mod create;
 pub(crate) mod dream_pairs;
 pub(crate) mod dream_prefix;
+mod ego;
 mod entity_prune;
 mod external_memory;
 mod external_reference;
@@ -1043,6 +1052,7 @@ pub(crate) mod identity_receipt;
 pub(crate) mod identity_separation;
 mod maintenance_prune;
 pub(crate) mod observations;
+pub use observations::{PhyObservationBatch, PhyObservationCut};
 pub(crate) mod perception_audit;
 mod perception_lifecycle;
 mod relationship_prune;
@@ -1102,7 +1112,11 @@ pub use management_association::MemoryAssociationCut;
 #[path = "session/user_memory.rs"]
 mod user_memory;
 pub use user_memory::{UserMemoryCorrection, UserMemoryCorrectionResult};
+mod phy_audit;
 mod phy_memory_import;
+pub use phy_audit::{
+    PhyAuditChange, PhyAuditChangesPage, PhyAuditCursor, PhyAuditCut, PhyAuditInitialPage,
+};
 mod phy_writer;
 mod rel_dependencies;
 pub use rel_dependencies::{

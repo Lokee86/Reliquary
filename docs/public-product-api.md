@@ -20,6 +20,8 @@ The current owner formats are REL 2.1 and PHY 2.1. `Rel` and `Phylactery` expose
 
 A trusted host can release a read-only PHY mount through `HostAdmissionControl::detach_read_only_phylactery(owner)` after draining its requests. The operation leaves other mounts available. Host credential revocation and owner selection remain explicit lifecycle steps.
 
+For an Ego PHY switch, the host stops the managed worker and calls `HostAdmissionControl::quiesce_writable_phylactery(instance, owner)`. The instance must come from the same admission and have `OperatePhylactery` for that owner. The Gateway checks that the writable mount has no active worker lease before releasing it.
+
 ## Getting started
 
 Prerequisites: depend on the workspace's `reliquary-memory` package and create a path for a new owner. In a trusted host, create and mount the owner, install a credential binding with only the required grants, then authenticate an `Instance`:
@@ -92,6 +94,10 @@ Source time refers to the accepted source timestamp. Mentioned time refers to th
 
 `ChatRetrieval::accept_typed_memory_result` accepts the Memory IDs and exact Observation citations returned from one pending result. Core rechecks the Observation cut and current standing at disclosure and excludes confirmed Observation revisions from subsequent refinement in the turn. Memory-only callers can continue using `accept_memory_result`. Graph traversal still takes disclosed Memory IDs. Inspect-mode acceptance keeps turn-local authorization and leaves durable Freshness receipts to the trusted delivery path.
 
+For a turn with active private recall, the trusted host creates an `ActivePhyRecall` for the profile's current PHY and uses `Instance::begin_scoped_chat_retrieval` or `Instance::begin_scoped_retrieval`. Pass the REL in scope when there is one. Core requires read grants on each owner. Before switching the active PHY, call `invalidate` on the previous binding and start new turns with the replacement. Every clone of the previous binding becomes stale.
+
+Scoped ordinary recall ranks settled PHY Memories, current verified PHY Observations, and eligible REL results in one hybrid list. The limited query methods cap that list before host selection and exact delivery. The `ranked` references identify exact Memory revisions and bodies or Observation citations in result order. Use each Memory's `owner_id` for source checks. A scoped chat host uses `accept_scoped_memory_result` with the exact disclosed references and `validate_scoped_memory_result` when rechecking disclosure. Scoped refinement and traversal take previously disclosed Memory IDs in `owner_id:memory_id` form. Archive reads use the turn's REL. Only confirmed selected REL Memories are eligible for a durable Freshness receipt. A PHY-only selection can be delivered from an authorized read-only mount.
+
 ## Checked user-origin Memory mutations
 
 These mutations require a mounted REL `Instance` with `ManageRel`. The caller first obtains an `InspectionCut`; a cut binds the owner and history generation plus the current Archive, Memory, Perception, Relationship, Graph, and Community versions. A new request must match the current cut at publication. Request identity is derived from the operation, authenticated principal, and caller request ID; its receipt is recorded in the specific owner history. Exact retries replay where the operation supports replay. Reusing an ID with changed evidence or a stale cut is rejected according to that operation's contract.
@@ -113,6 +119,10 @@ These mutations require a mounted REL `Instance` with `ManageRel`. The caller fi
 ## Native and copied-source import contracts
 
 `NativeImportPlan::from_path` prepares a bounded ChatGPT export or normalized manifest, optionally selected by a half-open RFC3339 window. `NativeImportPlan::from_hermes_copy` accepts a trusted host's already privacy-filtered text snapshot, including original profile/session scope, optional known branch/revision, ordered source message IDs, roles, timestamps, text, and provenance-only author metadata. Copy bytes and message sizes are bounded. The resulting receipt preserves the source digest and identity; a local Archive branch describes only the accepted copied view. Unknown source branch or parent identity is not asserted, and author metadata grants no PHY access.
+
+For live automatic processing, the trusted source adapter calls `NativeImportPlan::bind_hermes_live_source` with the PHY recorded at session admission and the original UID of a user message it verified, if available. Staging requires independent operating grants for both the source REL and that PHY. Raw copied author labels remain provenance. Gateway records an authenticated Archive principal only for the exact attested user row, after checking the non-bot author ID against the Instance principal.
+
+Process a bound copied import with its original destination in `ProcessOptions`. The Archive receipt seals that destination before extraction. A missing or different destination fails admission. Insomnia holds a personal proposal without a verified source user and exposes `personal_attribution_held` in authorized processing status. Before the import completes, the same owner-local Dream workflow used by live processing settles the accepted PHY Memories for ordinary recall. Existing copied imports without this binding remain unbound. Native file imports retain their existing destination selection and processing stages.
 
 A trusted host can use `from_hermes_copy_with_echo` or `from_hermes_copy_extension_with_echo` to add model-round markers, provider summaries, and tool calls and outcomes with redacted model-visible text. Archive retains user, commentary, and final messages in copied-source order. Each Echo event has a stable sequence within its source message, and each result links to a preceding call on the same source and round. The host redacts private data before creating the copy. Core caps the copy at 128 messages, 1,024 Echo events, 16 KiB per Echo text field, and 256 KiB of serialized source and evidence. An empty Echo projection preserves the original copy identity.
 
@@ -153,6 +163,8 @@ Use `WorkspaceManagement::list_observations`, `inspect_observation`, `observatio
 
 `Instance::deliver_retrieval_confirmed` confirms the exact prepared selection through the trusted host. `RetrievalDeliveryOutcome::Confirmed { recorded_memory_use }` reports a newly completed delivery. The flag is false for an Observation-only selection, which earns no Memory Freshness credit. `RetrievalDeliveryOutcome::Replay` reports an exact operation that already completed. The existing `deliver_retrieval` method returns whether it added a durable Memory-use receipt.
 
+For an authorized PHY, use the same Observation inspection operations directly on `Instance` with the PHY owner and `OwnerKind::Phylactery`. The paged heads, retained revision history, and exact evidence reads use that owner's local proof. Ordinary recall withholds pending or withdrawn claims. [Active-PHY Perception](planning/phy-perception-spec-2026-11-27.md)
+
 Observation claims and manual Relationships have distinct identities and histories. A relational Observation publishes through the same native Perception writer as an ordinary Observation. Existing 2.1 owners can open with an empty Observation history. Owner files with Observation publications require a reader that supports the new carrier. [Owner replay and maintenance](architecture/owner-session.md)
 
 ## Cross-REL Entity identity
@@ -182,6 +194,14 @@ Later edits to the reviewed Entities preserve the confirmation when both histori
 `WorkspaceManagement::rel_dependencies()` reads the local direct declaration and its generation. `replace_rel_dependencies(expected_generation, dependency_ids)` replaces it with `ManageRel` and a writable source. Direct targets must be mounted RELs the caller can read. The proposed reachable graph must resolve and be acyclic. An unchanged declaration reuses its generation. An empty replacement clears it. Existing files open at generation zero with no dependencies.
 
 `resolve_rel_dependencies()` returns the ordered, granted closure, ending with the source REL. A denied branch contributes no owners through that path. A granted dependency that is unavailable prevents a partial resolution. `Instance::prepare_context_workflow` renders current stored Ego syntheses from the resolved dependencies ahead of the primary request as budgeted evidence. Caller token estimates cover the base request. Requests, plans and finalization recheck the resolved mounts, declarations and synthesis cuts. Compaction uses its original transcript sources.
+
+## Ego
+
+`Instance::start_ego_worker` binds the explicitly selected writable PHY, readable source RELs, configured routes and a profile-local pending directory. The host retains the worker handle while that admission is current and drains it before changing the profile's routes or mounts. Ordinary chat read credentials can call `ego_context` at request assembly with active owner IDs, query and host token budget.
+
+`ego_pins` gives the Inspector and assistant the same scoped lookup. `pin_anchor`, `modify_anchor` and `delete_anchor` require the owning write grant and an exact Pin revision for edits and removal. Priority-only patches preserve the text. Named PHY Identities have separate revision and selection controls. The trusted host presents the immutable `prepare_ego_identity` draft and uses `approve_ego_identity` after user approval. The approval is bound to the owner, mounted writer, originating Instance and exact revision.
+
+Authorized summary inspection returns current or retained revisions with exact source coordinates. REL summary edits append changes on the same topic or point ID and require an expected summary and item revision. The package ranks and packs from current authorized evidence without changing source Freshness. [Ego design](planning/ego-implementation-spec-2026-11-27.md) · [Product controls test](../tests/ego_controls.rs)
 
 ## Maintenance and reconciliation boundaries
 

@@ -68,7 +68,6 @@ pub(crate) fn run_live_stages(
     routes: ImportProcessingRoutes,
     selection: LiveProcessingSelection,
     limit: usize,
-    route_policy: [u8; 32],
     stop: &AtomicBool,
     mut report: impl FnMut(LiveStageProgress),
 ) -> Result<ProcessingState, GatewayError> {
@@ -186,7 +185,7 @@ pub(crate) fn run_live_stages(
                                 target,
                                 memory,
                                 profile,
-                                route_policy,
+                                routes.dream_policy,
                                 endpoint.clone(),
                                 stop,
                             )? {

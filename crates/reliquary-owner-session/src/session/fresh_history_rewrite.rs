@@ -149,6 +149,11 @@ pub fn rewrite_memory_history_copy(
         FileKind::Phylactery => {
             let session = PhySession::open(&source, graph_admission, [])
                 .map_err(|error| error.to_string())?;
+            if session.observation_publication_version() != 0 {
+                return Err(
+                    "fresh-history rewrite cannot preserve Observation publications".into(),
+                );
+            }
             (session.common, RelDependencyDeclaration::default())
         }
     };
@@ -157,6 +162,9 @@ pub fn rewrite_memory_history_copy(
             || request.freshness != FreshHistoryFreshness::Reset)
     {
         return Err("PHY rewrite cannot acquire REL Archive or Freshness state".into());
+    }
+    if source_common.ego.has_extended_records() {
+        return Err("fresh-history rewrite cannot preserve verified Ego history".into());
     }
     if !source_common.maintenance.is_empty() {
         return Err("fresh-history source has prior destructive maintenance state".into());

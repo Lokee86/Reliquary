@@ -1,11 +1,11 @@
 use crate::{
     AuditError, Batch, CandidateContract, Eligibility, Feature, MAX_CANDIDATES_PER_LIST,
     MAX_LOOKUPS, MAX_OPTIONAL_PASSAGE_BYTES, MAX_PASSAGES_PER_LOOKUP, OwnerCut, Passage, Slots,
-    SourceCitation, WorkItem,
-    batch::{MAX_QUERY_BYTES, RequestContract, SCHEMA_NAME, encode_request},
+    SourceCitation, SourceId, WorkItem,
+    batch::{MAX_QUERY_BYTES, OfferedLink, RequestContract, SCHEMA_NAME, encode_request},
 };
 use reliquary_switchboard::{GeneralEndpoint, GeneralEndpointError};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::io::{self, Write};
 
@@ -37,8 +37,24 @@ pub struct BatchResult<E, P> {
     pub perception: ListResult<P>,
 }
 
-/// The callback must verify the grant and the returned body identities at the captured cut.
-/// Pass only current, authorized lexical passages with their requesting-list eligibility.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LookupRequest<'a> {
+    Lexical(&'a str),
+    Graph { anchor: SourceCitation },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct GraphLink {
+    pub kind: String,
+    pub outgoing: bool,
+}
+
+pub struct LookupPassage {
+    pub passage: Passage,
+    pub link: Option<GraphLink>,
+}
+
+/// Run discovery with a lexical-only resolver.
 pub fn run_batch<E, P, L>(
     batch: &Batch,
     endpoint: &dyn GeneralEndpoint,
@@ -51,21 +67,120 @@ where
     P: CandidateContract,
     L: FnMut(&OwnerCut, Feature, &str) -> Result<Vec<Passage>, LookupError> + ?Sized,
 {
+    run_batch_with_lookup(
+        batch,
+        endpoint,
+        ego,
+        perception,
+        &mut |cut: &OwnerCut, feature, request| {
+            let LookupRequest::Lexical(query) = request else {
+                return Err(LookupError::Unavailable);
+            };
+            Ok(lookup(cut, feature, query)?
+                .into_iter()
+                .map(|passage| LookupPassage {
+                    passage,
+                    link: None,
+                })
+                .collect())
+        },
+    )
+}
+
+/// The resolver rechecks grants and exact source standing at the captured cut.
+/// Both lists spend from one lookup allowance and bind citations only to slots offered to them.
+pub fn run_batch_with_lookup<E, P, L>(
+    batch: &Batch,
+    endpoint: &dyn GeneralEndpoint,
+    ego: &E,
+    perception: &P,
+    lookup: &mut L,
+) -> Result<BatchResult<E::Candidate, P::Candidate>, AuditError>
+where
+    E: CandidateContract,
+    P: CandidateContract,
+    L: FnMut(&OwnerCut, Feature, LookupRequest<'_>) -> Result<Vec<LookupPassage>, LookupError>
+        + ?Sized,
+{
+    run_batch_for_features(
+        batch,
+        endpoint,
+        ego,
+        perception,
+        batch.active_features(),
+        lookup,
+    )
+}
+
+/// Evaluate only the lists still awaiting acknowledgment on this capture.
+pub fn run_batch_for_features<E, P, L>(
+    batch: &Batch,
+    endpoint: &dyn GeneralEndpoint,
+    ego: &E,
+    perception: &P,
+    requested: Eligibility,
+    lookup: &mut L,
+) -> Result<BatchResult<E::Candidate, P::Candidate>, AuditError>
+where
+    E: CandidateContract,
+    P: CandidateContract,
+    L: FnMut(&OwnerCut, Feature, LookupRequest<'_>) -> Result<Vec<LookupPassage>, LookupError>
+        + ?Sized,
+{
     if *batch.contract != RequestContract::new(ego, perception) {
         return Err(AuditError::ContractChanged);
     }
-    let active = batch.active_features();
-    let mut response = dispatch(batch, endpoint, &batch.sources, active, false)?;
-    let mut ego_reply = ListReply::extract(&mut response, Feature::Ego, active);
-    let mut perception_reply = ListReply::extract(&mut response, Feature::Perception, active);
-    if ego_reply.wants_lookup() || perception_reply.wants_lookup() {
-        let mut sources = batch.sources.clone();
-        let mut budget = LookupBudget::new(batch);
-        // Give each requesting list one turn before using any remaining search slot.
+    let active = batch.active_features().intersect(requested);
+    if active == Eligibility::NONE {
+        return Ok(BatchResult {
+            ego: ListResult::Inactive,
+            perception: ListResult::Inactive,
+        });
+    }
+    let mut response = dispatch(
+        batch,
+        endpoint,
+        &batch.sources,
+        active,
+        &[],
+        false,
+        MAX_LOOKUPS,
+    )?;
+    let initial_slots = batch.sources.len();
+    let mut ego_reply = ListReply::extract(&mut response, Feature::Ego, active, initial_slots);
+    let mut perception_reply =
+        ListReply::extract(&mut response, Feature::Perception, active, initial_slots);
+    if !ego_reply.wants_lookup() && !perception_reply.wants_lookup() {
+        return Ok(results(
+            batch,
+            &batch.sources,
+            ego_reply,
+            perception_reply,
+            ego,
+            perception,
+        ));
+    }
+
+    let mut sources = batch.sources.clone();
+    let mut links = Vec::new();
+    let mut budget = LookupBudget::new(batch);
+    for _ in 0..MAX_LOOKUPS {
+        // Keep every previously offered slot's eligibility fixed. Both lists
+        // may share a slot assembled during this round before it is offered.
+        budget.round_start = sources.len();
+        // Give each requesting list one turn before using any remaining slot.
         for index in 0..MAX_LOOKUPS {
-            budget.search(&mut sources, &mut ego_reply, Feature::Ego, index, lookup);
             budget.search(
                 &mut sources,
+                &mut links,
+                &mut ego_reply,
+                Feature::Ego,
+                index,
+                lookup,
+            );
+            budget.search(
+                &mut sources,
+                &mut links,
                 &mut perception_reply,
                 Feature::Perception,
                 index,
@@ -76,30 +191,45 @@ where
             ego: ego_reply.wants_lookup(),
             perception: perception_reply.wants_lookup(),
         };
-        if follow_up != Eligibility::NONE {
-            match dispatch(batch, endpoint, &sources, follow_up, true) {
-                Ok(mut response) => {
-                    ego_reply.update(&mut response, Feature::Ego, follow_up);
-                    perception_reply.update(&mut response, Feature::Perception, follow_up);
-                }
-                Err(error) => {
-                    ego_reply.fail_follow_up(error);
-                    perception_reply.fail_follow_up(error);
-                }
+        if follow_up == Eligibility::NONE {
+            break;
+        }
+        let remaining = if budget.passage_bytes == 0 {
+            0
+        } else {
+            budget.searches
+        };
+        match dispatch(
+            batch, endpoint, &sources, follow_up, &links, true, remaining,
+        ) {
+            Ok(mut response) => {
+                ego_reply.update(
+                    &mut response,
+                    Feature::Ego,
+                    follow_up,
+                    sources.len(),
+                    remaining,
+                );
+                perception_reply.update(
+                    &mut response,
+                    Feature::Perception,
+                    follow_up,
+                    sources.len(),
+                    remaining,
+                );
+            }
+            Err(error) => {
+                ego_reply.fail_follow_up(error);
+                perception_reply.fail_follow_up(error);
+                break;
             }
         }
-        return Ok(results(
-            batch,
-            &sources,
-            ego_reply,
-            perception_reply,
-            ego,
-            perception,
-        ));
     }
+    ego_reply.reject_pending_lookup();
+    perception_reply.reject_pending_lookup();
     Ok(results(
         batch,
-        &batch.sources,
+        &sources,
         ego_reply,
         perception_reply,
         ego,
@@ -126,12 +256,14 @@ fn dispatch(
     endpoint: &dyn GeneralEndpoint,
     sources: &[WorkItem],
     active: Eligibility,
+    links: &[OfferedLink],
     follow_up: bool,
+    remaining: usize,
 ) -> Result<Map<String, Value>, AuditError> {
-    if !batch.fits(sources, active) {
+    if !batch.fits_with_links(sources, active, links) {
         return Err(AuditError::InputLimit);
     }
-    let packet = encode_request(sources, &batch.participants, active, follow_up);
+    let packet = encode_request(batch, sources, active, links, follow_up, remaining);
     let response = endpoint
         .complete_json(
             &batch.contract.prompt,
@@ -180,11 +312,16 @@ struct ReplyFields {
 enum ListReply {
     Inactive,
     Failed(ListFailure),
-    Present(ReplyFields),
+    Present { fields: ReplyFields, offered: usize },
 }
 
 impl ListReply {
-    fn extract(response: &mut Map<String, Value>, feature: Feature, active: Eligibility) -> Self {
+    fn extract(
+        response: &mut Map<String, Value>,
+        feature: Feature,
+        active: Eligibility,
+        offered: usize,
+    ) -> Self {
         if !active.allows(feature) {
             return Self::Inactive;
         }
@@ -204,14 +341,14 @@ impl ListReply {
                         .iter()
                         .all(|term| term.len() <= MAX_QUERY_BYTES && !term.trim().is_empty()) =>
             {
-                Self::Present(fields)
+                Self::Present { fields, offered }
             }
             _ => Self::Failed(ListFailure::Malformed),
         }
     }
 
     fn wants_lookup(&self) -> bool {
-        matches!(self, Self::Present(fields) if !fields.lookups.is_empty())
+        matches!(self, Self::Present { fields, .. } if !fields.lookups.is_empty())
     }
 
     fn fail_follow_up(&mut self, error: AuditError) {
@@ -220,12 +357,25 @@ impl ListReply {
         }
     }
 
-    fn update(&mut self, response: &mut Map<String, Value>, feature: Feature, active: Eligibility) {
+    fn update(
+        &mut self,
+        response: &mut Map<String, Value>,
+        feature: Feature,
+        active: Eligibility,
+        offered: usize,
+        remaining: usize,
+    ) {
         if self.wants_lookup() {
-            *self = Self::extract(response, feature, active);
-            if self.wants_lookup() {
-                *self = Self::Failed(ListFailure::Malformed);
+            *self = Self::extract(response, feature, active, offered);
+            if remaining == 0 {
+                self.reject_pending_lookup();
             }
+        }
+    }
+
+    fn reject_pending_lookup(&mut self) {
+        if self.wants_lookup() {
+            *self = Self::Failed(ListFailure::Malformed);
         }
     }
 
@@ -239,9 +389,9 @@ impl ListReply {
         match self {
             Self::Inactive => ListResult::Inactive,
             Self::Failed(reason) => ListResult::Incomplete(reason),
-            Self::Present(fields) => {
+            Self::Present { fields, offered } => {
                 let slots = Slots {
-                    sources,
+                    sources: &sources[..offered],
                     participants: &batch.participants,
                     feature,
                 };
@@ -265,6 +415,8 @@ struct LookupBudget<'a> {
     batch: &'a Batch,
     searches: usize,
     passage_bytes: usize,
+    round_start: usize,
+    seen: Vec<(Feature, String)>,
 }
 
 impl<'a> LookupBudget<'a> {
@@ -273,61 +425,142 @@ impl<'a> LookupBudget<'a> {
             batch,
             searches: MAX_LOOKUPS,
             passage_bytes: MAX_OPTIONAL_PASSAGE_BYTES,
+            round_start: batch.sources.len(),
+            seen: Vec::new(),
         }
     }
 
     fn search<L>(
         &mut self,
         sources: &mut Vec<WorkItem>,
+        links: &mut Vec<OfferedLink>,
         reply: &mut ListReply,
         feature: Feature,
         index: usize,
         lookup: &mut L,
     ) where
-        L: FnMut(&OwnerCut, Feature, &str) -> Result<Vec<Passage>, LookupError> + ?Sized,
+        L: FnMut(&OwnerCut, Feature, LookupRequest<'_>) -> Result<Vec<LookupPassage>, LookupError>
+            + ?Sized,
     {
         if self.searches == 0 || self.passage_bytes == 0 {
             return;
         }
-        let ListReply::Present(fields) = reply else {
+        let ListReply::Present { fields, offered } = reply else {
             return;
         };
-        let Some(query) = fields.lookups.get(index) else {
+        let Some(query) = fields.lookups.get(index).map(|query| query.trim()) else {
             return;
         };
-        if fields.lookups[..index]
+        if self
+            .seen
             .iter()
-            .any(|prior| prior.trim() == query.trim())
+            .any(|(list, prior)| *list == feature && prior == query)
         {
             return;
         }
+        let (request, anchor_slot) = if let Some(slot) = query.strip_prefix("graph:") {
+            let Some((slot, anchor)) = graph_anchor(&sources[..*offered], feature, slot) else {
+                *reply = ListReply::Failed(ListFailure::Malformed);
+                return;
+            };
+            (LookupRequest::Graph { anchor }, Some(slot))
+        } else {
+            (LookupRequest::Lexical(query), None)
+        };
         self.searches -= 1;
-        let passages = match lookup(&self.batch.cut, feature, query.trim()) {
+        self.seen.push((feature, query.to_owned()));
+        let passages = match lookup(&self.batch.cut, feature, request) {
             Ok(passages) => passages,
             Err(error) => {
                 *reply = ListReply::Failed(ListFailure::Lookup(error));
                 return;
             }
         };
-        for mut passage in passages.into_iter().take(MAX_PASSAGES_PER_LOOKUP) {
-            if !passage.valid_at(self.batch.cut)
-                || !passage.allows(feature)
-                || passage.text.len() > self.passage_bytes
-                || already_offered(sources, &passage, feature)
-            {
+        for hit in passages.into_iter().take(MAX_PASSAGES_PER_LOOKUP) {
+            self.offer(sources, links, feature, anchor_slot, hit);
+        }
+    }
+
+    fn offer(
+        &mut self,
+        sources: &mut Vec<WorkItem>,
+        links: &mut Vec<OfferedLink>,
+        feature: Feature,
+        anchor_slot: Option<u16>,
+        hit: LookupPassage,
+    ) {
+        let LookupPassage { mut passage, link } = hit;
+        if !passage.valid_at(self.batch.cut)
+            || !self.batch.mode.accepts(&passage)
+            || !passage.allows(feature)
+            || passage.text.len() > self.passage_bytes
+        {
+            return;
+        }
+        let incoming = passage.citation;
+        let mut existing_slot = None;
+        for (slot, item) in sources.iter().enumerate() {
+            let existing = item.passage.citation;
+            if existing.source != incoming.source {
                 continue;
             }
-            passage.eligible = match feature {
-                Feature::Ego => Eligibility::EGO,
-                Feature::Perception => Eligibility::PERCEPTION,
-            };
-            let bytes = passage.text.len();
+            if existing.revision != incoming.revision || existing.body_id != incoming.body_id {
+                return;
+            }
+            if existing == incoming {
+                if item.passage.text != passage.text || item.passage.grade != passage.grade {
+                    return;
+                }
+                if item.passage.allows(feature) || slot >= self.round_start {
+                    existing_slot = Some(slot);
+                }
+            }
+        }
+        let Ok(target_slot) = u16::try_from(existing_slot.unwrap_or(sources.len())) else {
+            return;
+        };
+        let link_count = links.len();
+        if let (Some(anchor_slot), Some(link)) = (anchor_slot, link) {
+            if anchor_slot != target_slot {
+                let offered = OfferedLink {
+                    anchor_slot,
+                    target_slot,
+                    link,
+                    feature,
+                };
+                if !links.contains(&offered) {
+                    links.push(offered);
+                }
+            }
+        }
+        let eligible = match feature {
+            Feature::Ego => Eligibility::EGO,
+            Feature::Perception => Eligibility::PERCEPTION,
+        };
+        let mut bytes = 0;
+        let prior_eligibility = if let Some(slot) = existing_slot {
+            let current = &mut sources[slot].passage.eligible;
+            let prior = *current;
+            *current = prior.union(eligible);
+            Some(prior)
+        } else {
+            passage.eligible = eligible;
+            bytes = passage.text.len();
             sources.push(WorkItem {
                 passage,
                 mandatory: Eligibility::NONE,
             });
-            if self.batch.fits(sources, self.batch.active_features()) {
-                self.passage_bytes -= bytes;
+            None
+        };
+        if self
+            .batch
+            .fits_with_links(sources, self.batch.active_features(), links)
+        {
+            self.passage_bytes -= bytes;
+        } else {
+            links.truncate(link_count);
+            if let Some(prior) = prior_eligibility {
+                sources[usize::from(target_slot)].passage.eligible = prior;
             } else {
                 sources.pop();
             }
@@ -335,13 +568,16 @@ impl<'a> LookupBudget<'a> {
     }
 }
 
-fn already_offered(sources: &[WorkItem], passage: &Passage, feature: Feature) -> bool {
-    sources.iter().any(|item| {
-        let existing = item.passage.citation;
-        let incoming = passage.citation;
-        existing.source == incoming.source
-            && (existing.revision != incoming.revision
-                || existing.body_id != incoming.body_id
-                || (existing == incoming && item.passage.allows(feature)))
-    })
+fn graph_anchor(
+    sources: &[WorkItem],
+    feature: Feature,
+    slot: &str,
+) -> Option<(u16, SourceCitation)> {
+    if slot.is_empty() || !slot.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    let slot = slot.parse::<u16>().ok()?;
+    let passage = &sources.get(usize::from(slot))?.passage;
+    (passage.allows(feature) && matches!(passage.citation.source, SourceId::Memory(_)))
+        .then_some((slot, passage.citation))
 }

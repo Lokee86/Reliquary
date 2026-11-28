@@ -15,6 +15,7 @@ Dated measurements and review reports. These records are evidence for their stat
 
 - [copied-source-deletion-cascade-2026-11-24.md](copied-source-deletion-cascade-2026-11-24.md) - Committed copied-source removal, recovery, and host verification.
 - [cross-rel-entity-identity-2026-11-23.md](cross-rel-entity-identity-2026-11-23.md) - Evidence changes, receipt history and authorization across two RELs.
+- [ego-host-integration-2026-11-27.md](ego-host-integration-2026-11-27.md) - Mounted Ego publication and ordinary Hermes and Mercury request evidence.
 - [es01-initial-audit-2026-11-11.md](es01-initial-audit-2026-11-11.md) - Es01 Initial Audit 2026 11 11 documentation.
 - [es04-architecture-audit-2026-11-11.md](es04-architecture-audit-2026-11-11.md) - Es04 Architecture Audit 2026 11 11 documentation.
 - [es06-local-verification-2026-11-11.md](es06-local-verification-2026-11-11.md) - Es06 Local Verification 2026 11 11 documentation.

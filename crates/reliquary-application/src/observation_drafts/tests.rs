@@ -1,18 +1,22 @@
 use super::*;
+use crate::perception_workflow::{
+    ContributionEmbeddingCache, PerceptionRoutes, capture_phy_duplicate_contribution,
+    evaluate_contribution,
+};
 use reliquary_container::ReliquaryScope;
 use reliquary_owner_session::model::{MemoryId, MemoryTextField};
 use reliquary_owner_session::observation::{
     ObservationBatch, ObservationChange, ObservationPendingReason, ObservationSource,
     ObservationWithdrawalReason,
 };
-use reliquary_owner_session::{DreamMemoryCut, RelWriter};
+use reliquary_owner_session::{DreamMemoryCut, PhyObservationBatch, PhyWriter, RelWriter};
 use reliquary_perception::NATIVE_DECISION_MODEL;
 use reliquary_switchboard::{
     DecisionEndpointError, EmbeddingEndpointError, EmbeddingNormalization, GeneralEndpointError,
 };
 use std::path::PathBuf;
 use std::sync::{
-    Mutex,
+    Arc, Mutex,
     atomic::{AtomicBool, AtomicU64, Ordering},
 };
 
@@ -52,6 +56,20 @@ impl ScopedObservationRead for Read<'_> {
     fn read<T>(&self, capture: impl FnOnce(&RelSession) -> Result<T>) -> Result<T> {
         assert!(!self.held.swap(true, Ordering::SeqCst));
         let result = capture(self.writer.read_session());
+        self.held.store(false, Ordering::SeqCst);
+        result
+    }
+}
+
+struct PhyRead<'a> {
+    writer: &'a PhyWriter,
+    held: &'a AtomicBool,
+}
+
+impl ScopedObservationRead for PhyRead<'_> {
+    fn read_owner<T>(&self, capture: impl FnOnce(ObservationRead<'_>) -> Result<T>) -> Result<T> {
+        assert!(!self.held.swap(true, Ordering::SeqCst));
+        let result = capture(ObservationRead::Phy(self.writer));
         self.held.store(false, Ordering::SeqCst);
         result
     }
@@ -129,6 +147,15 @@ impl DecisionEndpoint for Script<'_> {
         assert!(!self.held.load(Ordering::SeqCst));
         let mut calls = self.decisions.lock().unwrap();
         calls.push(state.clone());
+        if state.get("evidence_hits").is_some() {
+            assert_eq!(state["evidence_hits"], json!({"p0":EXCEPTION}));
+            assert_eq!(questions.as_object().unwrap().len(), 3);
+            return Ok(json!({"answers": {
+                "p0": {"type":"choice", "choice":"material_qualification"},
+                "p0-time": {"type":"choice", "choice":"change_to_ongoing_claim"},
+                "p0-scope": {"type":"choice", "choice":"overlapping_scope"},
+            }}));
+        }
         let revising = calls.len() == 2;
         let mut answers = serde_json::Map::new();
         for id in questions.as_object().unwrap().keys() {
@@ -448,6 +475,162 @@ fn prepares_and_rechecks_a_verified_successor_outside_owner_read_closures() {
     let calls = script.decisions.lock().unwrap();
     assert_eq!(calls.len(), 4);
     assert_eq!(calls[3]["backcheck_hits"].as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn settled_phy_support_uses_native_verify_and_reconsiders_the_exact_local_claim() {
+    let rel_path = Path::new();
+    let mut rel = RelWriter::create_path(&rel_path.0, ReliquaryScope::Project, [13; 16]).unwrap();
+    let content = format!("{CLAIM}\n{EXCEPTION}");
+    crate::create_direct_memory(
+        &mut rel,
+        "fixture",
+        "Gallery policy".into(),
+        content.clone(),
+        "access".into(),
+        "policy".into(),
+        0,
+    )
+    .unwrap();
+    let memory = rel.read_session().perception_source_ids_page(None, 1)[0];
+    let source = rel.read_session().current_memory(memory).unwrap();
+    let mut phy_path = Path::new();
+    phy_path.0.set_extension("phy");
+    let mut phy = PhyWriter::create_path(&phy_path.0, [17; 16]).unwrap();
+    phy.import_accepted_memory_revision(1, 0, &source).unwrap();
+
+    let cut = crate::perception_workflow::audit_owner_cut(&phy.phy_observation_cut().into());
+    let cite = ObservationCitation {
+        owner_id: cut.owner_id,
+        history_generation: cut.history_generation,
+        source: ObservationSource::Memory(memory.0),
+        revision: source.record.revision,
+        body_id: source.record.body_id.0,
+        field: MemoryTextField::Content,
+        start_byte: 0,
+        end_byte: CLAIM.len() as u32,
+    };
+    let mut proposal = ObservationProposal {
+        proposition: CLAIM.into(),
+        profile: reliquary_perception::ObservationProfile::Ordinary,
+        sources: vec![audit_citation(ObservationCitation {
+            owner_id: rel.owner_id(),
+            ..cite
+        })],
+        participants: Vec::new(),
+    };
+    let held = AtomicBool::new(false);
+    let script = Script {
+        held: &held,
+        decisions: Mutex::default(),
+        embeddings: Mutex::default(),
+        replacement_support: None,
+    };
+    let routes = ObservationDraftRoutes {
+        general: &script,
+        verification: &script,
+        embedding: &script,
+        route_identity: [3; 32],
+        embedding_profile: [5; 32],
+        memory_vector_profile: None,
+    };
+    let read = PhyRead {
+        writer: &phy,
+        held: &held,
+    };
+    assert!(matches!(
+        evaluate_proposal(&read, &routes, cut, &proposal),
+        Err(Error::Stale)
+    ));
+    proposal.sources[0] = audit_citation(cite);
+    let ProposalEvaluation::Ready(prepared) =
+        evaluate_proposal(&read, &routes, cut, &proposal).unwrap()
+    else {
+        panic!("expected a verified PHY draft");
+    };
+    prepared
+        .revalidate_owner(ObservationRead::Phy(&phy), routes.route_identity)
+        .unwrap();
+    let publish = |phy: &mut PhyWriter, input_fingerprint, operations| {
+        phy.publish_observation_batch(PhyObservationBatch {
+            cut: phy.phy_observation_cut(),
+            batch: ObservationBatch {
+                owner_id: cut.owner_id,
+                history_generation: cut.history_generation,
+                input_fingerprint,
+                policy: prepared.policy,
+                operations,
+                progress: None,
+            },
+        })
+        .unwrap()
+    };
+    let (id, revision) = publish(
+        &mut phy,
+        prepared.input_fingerprint,
+        vec![prepared.operation],
+    )
+    .revisions[0];
+    let incoming = ObservationCitation {
+        start_byte: (CLAIM.len() + 1) as u32,
+        end_byte: content.len() as u32,
+        ..cite
+    };
+    static CONTRIBUTION_HELD: AtomicBool = AtomicBool::new(false);
+    let contribution = Arc::new(Script {
+        held: &CONTRIBUTION_HELD,
+        decisions: Mutex::default(),
+        embeddings: Mutex::default(),
+        replacement_support: None,
+    });
+    let contribution_routes = PerceptionRoutes {
+        general: contribution.clone(),
+        verification: contribution.clone(),
+        contribution: contribution.clone(),
+        embedding: contribution.clone(),
+        identity: routes.route_identity,
+        embedding_identity: [6; 32],
+    };
+    let match_work = capture_phy_duplicate_contribution(&phy, id, revision, &[incoming]).unwrap();
+    let Ok(operations) = evaluate_contribution(
+        &match_work,
+        &contribution_routes,
+        &mut ContributionEmbeddingCache::default(),
+    ) else {
+        panic!("expected a native Contribution judgment");
+    };
+    assert!(matches!(
+        operations.as_slice(),
+        [
+            ObservationOperation::Comparison { .. },
+            ObservationOperation::Pending { .. }
+        ]
+    ));
+    assert!(contribution.embeddings.lock().unwrap().is_empty());
+    assert_eq!(contribution.decisions.lock().unwrap().len(), 1);
+    publish(&mut phy, [22; 32], operations);
+    let review = evaluate_review(
+        &PhyRead {
+            writer: &phy,
+            held: &held,
+        },
+        &routes,
+        id,
+    )
+    .unwrap()
+    .unwrap();
+    review
+        .revalidate_owner(ObservationRead::Phy(&phy), routes.route_identity)
+        .unwrap();
+    assert_eq!(
+        publish(&mut phy, review.input_fingerprint, vec![review.operation]).revisions,
+        [(id, revision + 1)]
+    );
+    let head = phy.observation(id).unwrap();
+    assert_eq!(head.standing, ObservationStanding::Current);
+    assert_eq!(head.revision.draft.proposition, NARROWED);
+    assert_eq!(head.revision.draft.citations, [cite, incoming]);
+    assert_eq!(script.decisions.lock().unwrap().len(), 3);
 }
 
 #[test]

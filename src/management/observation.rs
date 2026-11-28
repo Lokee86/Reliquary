@@ -1,5 +1,5 @@
 use super::WorkspaceManagement;
-use crate::ProductError;
+use crate::{Instance, OwnerId, OwnerKind, ProductError};
 
 pub use reliquary_owner_session::observation::{
     ObservationCitation, ObservationId, ObservationMemoryLineage, ObservationMention,
@@ -18,11 +18,8 @@ impl WorkspaceManagement {
         id: ObservationId,
         revision: Option<u64>,
     ) -> Result<Option<InspectedObservation>, ProductError> {
-        self.instance.require_rel_read(self.owner)?;
-        Ok(self
-            .instance
-            .inner
-            .inspect_observation(self.owner.into(), id, revision)?)
+        self.instance
+            .inspect_observation(self.owner, OwnerKind::Rel, id, revision)
     }
 
     /// List Observation heads, including pending and withdrawn claims, at one owner cut.
@@ -31,11 +28,8 @@ impl WorkspaceManagement {
         cursor: Option<&ObservationCursor<ObservationId>>,
         limit: usize,
     ) -> Result<ObservationPage<ObservationId>, ProductError> {
-        self.instance.require_rel_read(self.owner)?;
-        Ok(self
-            .instance
-            .inner
-            .list_observations(self.owner.into(), cursor, limit)?)
+        self.instance
+            .list_observations(self.owner, OwnerKind::Rel, cursor, limit)
     }
 
     /// Page retained revisions of one Observation in revision order.
@@ -45,11 +39,8 @@ impl WorkspaceManagement {
         cursor: Option<&ObservationCursor<(ObservationId, u64)>>,
         limit: usize,
     ) -> Result<ObservationPage<(ObservationId, u64)>, ProductError> {
-        self.instance.require_rel_read(self.owner)?;
-        Ok(self
-            .instance
-            .inner
-            .observation_history(self.owner.into(), id, cursor, limit)?)
+        self.instance
+            .observation_history(self.owner, OwnerKind::Rel, id, cursor, limit)
     }
 
     /// Resolve a retained citation attached to the inspected revision if its text is readable.
@@ -59,12 +50,79 @@ impl WorkspaceManagement {
         revision: u64,
         citation: ObservationCitation,
     ) -> Result<Option<String>, ProductError> {
-        self.instance.require_rel_read(self.owner)?;
-        Ok(self.instance.inner.inspect_observation_evidence(
-            self.owner.into(),
+        self.instance.inspect_observation_evidence(
+            self.owner,
+            OwnerKind::Rel,
             id,
             revision,
             citation,
-        )?)
+        )
+    }
+}
+
+impl Instance {
+    /// Inspect the current head or a retained revision in an authorized owner.
+    pub fn inspect_observation(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        id: ObservationId,
+        revision: Option<u64>,
+    ) -> Result<Option<InspectedObservation>, ProductError> {
+        self.require_observation_read(owner, kind)?;
+        Ok(self.inner.inspect_observation(owner.into(), id, revision)?)
+    }
+
+    /// List Observation heads at one owner cut.
+    pub fn list_observations(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        cursor: Option<&ObservationCursor<ObservationId>>,
+        limit: usize,
+    ) -> Result<ObservationPage<ObservationId>, ProductError> {
+        self.require_observation_read(owner, kind)?;
+        Ok(self.inner.list_observations(owner.into(), cursor, limit)?)
+    }
+
+    /// Page retained revisions of one Observation in revision order.
+    pub fn observation_history(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        id: ObservationId,
+        cursor: Option<&ObservationCursor<(ObservationId, u64)>>,
+        limit: usize,
+    ) -> Result<ObservationPage<(ObservationId, u64)>, ProductError> {
+        self.require_observation_read(owner, kind)?;
+        Ok(self
+            .inner
+            .observation_history(owner.into(), id, cursor, limit)?)
+    }
+
+    /// Resolve a readable passage attached to this exact retained revision.
+    pub fn inspect_observation_evidence(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+        id: ObservationId,
+        revision: u64,
+        citation: ObservationCitation,
+    ) -> Result<Option<String>, ProductError> {
+        self.require_observation_read(owner, kind)?;
+        Ok(self
+            .inner
+            .inspect_observation_evidence(owner.into(), id, revision, citation)?)
+    }
+
+    fn require_observation_read(
+        &self,
+        owner: OwnerId,
+        kind: OwnerKind,
+    ) -> Result<(), ProductError> {
+        match kind {
+            OwnerKind::Rel => self.require_rel_read(owner),
+            OwnerKind::Phylactery => self.require_phy_read(owner),
+        }
     }
 }

@@ -52,11 +52,19 @@ impl ConfiguredEmbeddingEndpoint {
         })
     }
 
+    pub(super) fn provider_identity(&self) -> String {
+        // OpenAI-compatible endpoints can expose different spaces under the same model name.
+        // The protected API key and its credential ID are independent of this URL.
+        let digest = ring::digest::digest(&ring::digest::SHA256, self.url.as_str().as_bytes());
+        format!("openai_ready@{}", hex::encode(digest.as_ref()))
+    }
+
     fn request(
         &self,
         mode: EmbeddingMode,
         inputs: &[String],
         limit: usize,
+        timeout: Duration,
     ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
         if inputs.is_empty() || inputs.len() > 16 || limit == 0 {
             return Err(EmbeddingEndpointError::InvalidConfiguration(
@@ -66,6 +74,7 @@ impl ConfiguredEmbeddingEndpoint {
         let auth = SecretString::new(format!("Bearer {}", self.api_key.0))
             .expect("API key was validated as non-empty");
         let response = self.client.post(self.url.clone())
+            .timeout(timeout)
             .header(reqwest::header::AUTHORIZATION, auth.0.as_str())
             .json(&json!({"model": self.model, "input": inputs, "dimensions": self.dimensions,
                 "encoding_format": "float", "input_type": match mode { EmbeddingMode::Query => "search_query", EmbeddingMode::Document => "search_document" }}))
@@ -113,7 +122,7 @@ impl EmbeddingEndpoint for ConfiguredEmbeddingEndpoint {
         inputs: &[String],
         max_response_bytes: usize,
     ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
-        self.request(mode, inputs, max_response_bytes)
+        self.request(mode, inputs, max_response_bytes, REQUEST_TIMEOUT)
     }
     fn embed(
         &self,
@@ -123,9 +132,19 @@ impl EmbeddingEndpoint for ConfiguredEmbeddingEndpoint {
         if inputs.is_empty() {
             return Ok(Vec::new());
         }
+        let deadline = std::time::Instant::now() + Duration::from_secs(60);
         let mut result = Vec::with_capacity(inputs.len());
         for batch in inputs.chunks(16) {
-            result.extend(self.request(mode, batch, MAX_RESPONSE_BYTES)?);
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            if remaining.is_zero() {
+                return Err(EmbeddingEndpointError::Failure("embedding timeout".into()));
+            }
+            result.extend(self.request(
+                mode,
+                batch,
+                MAX_RESPONSE_BYTES,
+                remaining.min(REQUEST_TIMEOUT),
+            )?);
         }
         Ok(result)
     }
@@ -263,9 +282,15 @@ fn retry_after(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
 }
 
 fn parse_codex_stream(stream: &str) -> Result<Value, GeneralEndpointError> {
+    let (text, _) = parse_codex_turn(stream)?;
+    parse_terminal(&text)
+}
+
+fn parse_codex_turn(stream: &str) -> Result<(String, Vec<Value>), GeneralEndpointError> {
     let mut event_data = String::new();
     let mut output = String::new();
     let mut completed = false;
+    let mut items = Vec::new();
     for line in stream.lines().chain(std::iter::once("")) {
         let line = line.trim_end_matches('\r');
         if line.is_empty() {
@@ -283,7 +308,19 @@ fn parse_codex_stream(stream: &str) -> Result<Value, GeneralEndpointError> {
                             output.push_str(delta);
                         }
                     }
-                    Some("response.completed") => completed = true,
+                    Some("response.output_item.done") => {
+                        if let Some(item) = event.get("item") {
+                            items.push(item.clone());
+                        }
+                    }
+                    Some("response.completed") => {
+                        completed = true;
+                        if let Some(output) =
+                            event.pointer("/response/output").and_then(Value::as_array)
+                        {
+                            items.clone_from(output);
+                        }
+                    }
                     Some("response.failed" | "response.incomplete") => {
                         return Err(GeneralEndpointError::Failure(
                             "provider stream did not complete successfully".into(),
@@ -307,7 +344,11 @@ fn parse_codex_stream(stream: &str) -> Result<Value, GeneralEndpointError> {
             "provider stream ended before completion",
         ));
     }
-    serde_json::from_str(output.trim())
+    Ok((output, items))
+}
+
+fn parse_terminal(text: &str) -> Result<Value, GeneralEndpointError> {
+    serde_json::from_str(text.trim())
         .map_err(|_| GeneralEndpointError::InvalidResponse("provider structured output is invalid"))
 }
 
@@ -368,18 +409,14 @@ impl ConfiguredGeneralEndpoint {
     }
 }
 
-impl GeneralEndpoint for ConfiguredGeneralEndpoint {
-    fn model(&self) -> &str {
-        &self.model
-    }
-
-    fn complete_json(
+impl ConfiguredGeneralEndpoint {
+    fn structured_body(
         &self,
         system_prompt: &str,
         user_payload: &str,
         schema_name: &str,
         schema: &Value,
-    ) -> Result<Value, GeneralEndpointError> {
+    ) -> Result<(Value, bool), GeneralEndpointError> {
         let (mut body, codex) = match self.provider {
             ModelProvider::OpenAiReady => (
                 json!({
@@ -433,6 +470,12 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
             body["service_tier"] = json!("priority");
             body["reasoning"]["context"] = json!("all_turns");
         }
+        Ok((body, codex))
+    }
+
+    fn request_body(&self, body: &Value, codex: bool) -> Result<Vec<u8>, GeneralEndpointError> {
+        let responses_lite =
+            codex && (self.model.starts_with("gpt-5.6-") || self.model.starts_with("gpt-6-"));
         let auth = SecretString::new(format!("Bearer {}", self.api_key.0))
             .expect("API key was validated as non-empty");
         let response = self
@@ -467,7 +510,7 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
             request = request.header("x-openai-internal-codex-responses-lite", "true");
         }
         let response = request
-            .json(&body)
+            .json(body)
             .send()
             .map_err(|_error| GeneralEndpointError::Failure("provider request failed".into()))?;
         let status = response.status();
@@ -481,23 +524,178 @@ impl GeneralEndpoint for ConfiguredGeneralEndpoint {
         if !status.is_success() {
             return Err(GeneralEndpointError::HttpStatus(status.as_u16()));
         }
-        let bytes = response_bytes(response).map_err(GeneralEndpointError::Failure)?;
+        response_bytes(response).map_err(GeneralEndpointError::Failure)
+    }
+}
+
+impl GeneralEndpoint for ConfiguredGeneralEndpoint {
+    fn model(&self) -> &str {
+        &self.model
+    }
+
+    fn complete_json(
+        &self,
+        system_prompt: &str,
+        user_payload: &str,
+        schema_name: &str,
+        schema: &Value,
+    ) -> Result<Value, GeneralEndpointError> {
+        let (body, codex) =
+            self.structured_body(system_prompt, user_payload, schema_name, schema)?;
+        let bytes = self.request_body(&body, codex)?;
         if codex {
             parse_codex_stream(&String::from_utf8_lossy(&bytes))
         } else {
-            let envelope: Value = serde_json::from_slice(&bytes).map_err(|_| {
-                GeneralEndpointError::InvalidResponse("provider response is not JSON")
-            })?;
-            let content = envelope
-                .pointer("/choices/0/message/content")
-                .and_then(Value::as_str)
-                .ok_or(GeneralEndpointError::InvalidResponse(
+            let message = chat_message(&bytes)?;
+            parse_terminal(message.get("content").and_then(Value::as_str).ok_or(
+                GeneralEndpointError::InvalidResponse(
                     "provider response is missing structured content",
-                ))?;
-            serde_json::from_str(content).map_err(|_| {
-                GeneralEndpointError::InvalidResponse("structured content is not JSON")
-            })
+                ),
+            )?)
         }
+    }
+
+    fn complete_json_with_tool(
+        &self,
+        system_prompt: &str,
+        user_payload: &str,
+        schema_name: &str,
+        schema: &Value,
+        tool: GeneralTool<'_>,
+        run: &mut dyn FnMut(Value) -> Result<Value, GeneralEndpointError>,
+    ) -> Result<Value, GeneralEndpointError> {
+        if tool.name.is_empty() || tool.max_results == 0 || tool.max_input_bytes == 0 {
+            return Err(GeneralEndpointError::InvalidConfiguration(
+                "invalid structured tool bounds",
+            ));
+        }
+        let (mut body, codex) =
+            self.structured_body(system_prompt, user_payload, schema_name, schema)?;
+        let function = json!({
+            "name": tool.name,
+            "description": "Measure the supplied candidate text with the fixed local tokenizer.",
+            "strict": true,
+            "parameters": tool.schema
+        });
+        body["parallel_tool_calls"] = json!(false);
+        if codex {
+            let mut function = function;
+            function["type"] = json!("function");
+            body["tools"] = json!([function]);
+            body["include"] = json!(["reasoning.encrypted_content"]);
+        } else {
+            body["tools"] = json!([{"type": "function", "function": function}]);
+        }
+        let mut seen = std::collections::BTreeSet::new();
+        for completed in 0..=tool.max_results {
+            if body.to_string().len() > tool.max_input_bytes {
+                return Err(GeneralEndpointError::InvalidConfiguration(
+                    "structured tool input exceeded the byte limit",
+                ));
+            }
+            let bytes = self.request_body(&body, codex)?;
+            let (text, turn, call) = if codex {
+                let (text, items) = parse_codex_turn(&String::from_utf8_lossy(&bytes))?;
+                let call = one_call(items.iter().filter(|item| item["type"] == "function_call"))?
+                    .map(|item| parse_tool_call(&item["call_id"], item, tool.name))
+                    .transpose()?;
+                let text = if text.is_empty() {
+                    items
+                        .iter()
+                        .filter_map(|item| item["content"].as_array())
+                        .flatten()
+                        .filter(|item| item["type"] == "output_text")
+                        .filter_map(|item| item["text"].as_str())
+                        .collect()
+                } else {
+                    text
+                };
+                (text, items, call)
+            } else {
+                let message = chat_message(&bytes)?;
+                let calls = message.get("tool_calls").and_then(Value::as_array);
+                let call = one_call(calls.into_iter().flatten())?
+                    .map(|item| parse_tool_call(&item["id"], &item["function"], tool.name))
+                    .transpose()?;
+                let text = message
+                    .get("content")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_owned();
+                let assistant = json!({
+                    "role": "assistant", "content": message["content"], "tool_calls": message["tool_calls"]
+                });
+                (text, vec![assistant], call)
+            };
+            let Some((id, arguments)) = call else {
+                return parse_terminal(&text);
+            };
+            if completed == tool.max_results || !seen.insert(id.clone()) || !text.trim().is_empty()
+            {
+                return Err(GeneralEndpointError::InvalidResponse(
+                    "invalid structured tool continuation",
+                ));
+            }
+            let result = run(arguments)?.to_string();
+            if codex {
+                let input = body["input"]
+                    .as_array_mut()
+                    .expect("structured Responses input");
+                input.extend(turn);
+                input
+                    .push(json!({"type": "function_call_output", "call_id": id, "output": result}));
+            } else {
+                let messages = body["messages"]
+                    .as_array_mut()
+                    .expect("structured Chat input");
+                messages.extend(turn);
+                messages.push(json!({"role": "tool", "tool_call_id": id, "content": result}));
+            }
+        }
+        unreachable!("the last turn cannot request another tool result")
+    }
+}
+
+fn chat_message(bytes: &[u8]) -> Result<Value, GeneralEndpointError> {
+    let envelope: Value = serde_json::from_slice(bytes)
+        .map_err(|_| GeneralEndpointError::InvalidResponse("provider response is not JSON"))?;
+    envelope
+        .pointer("/choices/0/message")
+        .filter(|message| message.is_object())
+        .cloned()
+        .ok_or(GeneralEndpointError::InvalidResponse(
+            "provider response is missing structured content",
+        ))
+}
+
+fn one_call<'a>(
+    mut calls: impl Iterator<Item = &'a Value>,
+) -> Result<Option<&'a Value>, GeneralEndpointError> {
+    let first = calls.next();
+    if calls.next().is_some() {
+        return Err(GeneralEndpointError::InvalidResponse(
+            "unexpected parallel tool calls",
+        ));
+    }
+    Ok(first)
+}
+
+fn parse_tool_call(
+    id: &Value,
+    function: &Value,
+    tool_name: &str,
+) -> Result<(String, Value), GeneralEndpointError> {
+    let id = id.as_str().filter(|id| !id.is_empty());
+    let arguments = function["arguments"]
+        .as_str()
+        .and_then(|input| serde_json::from_str(input).ok());
+    match (id, arguments) {
+        (Some(id), Some(arguments)) if function["name"] == tool_name => {
+            Ok((id.to_owned(), arguments))
+        }
+        _ => Err(GeneralEndpointError::InvalidResponse(
+            "unexpected structured tool call",
+        )),
     }
 }
 

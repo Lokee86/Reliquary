@@ -173,6 +173,7 @@ enum NativeSource {
         scope: HermesCopyScope,
         predecessor: Option<[u8; 32]>,
         echo: Vec<reliquary_owner_session::model::EchoEvent>,
+        live: Option<hermes::LiveHermesCopy>,
     },
 }
 

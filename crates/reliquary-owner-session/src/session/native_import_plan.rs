@@ -12,19 +12,8 @@ impl RelWriter {
         initial_policy: [u8; 32],
         destination: Option<[u8; 16]>,
     ) -> Result<(), OwnerSessionError> {
-        if destination.is_some()
-            && self
-                .session
-                .import_status(import_id)
-                .is_some_and(|status| match status {
-                    ImportEpochStatus::Open(start) | ImportEpochStatus::Completed { start, .. } => {
-                        start.source_format == reliquary_archive::HERMES_COPIED_SOURCE_FORMAT
-                    }
-                })
-        {
-            // Copied author metadata carries no authority to publish into a PHY.
-            return Err(OwnerSessionError::ManagementConflict);
-        }
+        self.session
+            .validate_copied_import_destination(import_id, destination)?;
         if let Some(previous) = self.session.imports.processing_binding(import_id) {
             if previous.destination == destination {
                 return Ok(());
@@ -131,6 +120,34 @@ impl RelWriter {
 }
 
 impl RelSession {
+    /// Copied sources can only use the PHY recorded in their Archive receipt.
+    /// Native file imports retain their existing operator-selected destination.
+    /// Returns true when an automatic copied-source PHY is bound.
+    pub fn validate_copied_import_destination(
+        &self,
+        import_id: &str,
+        destination: Option<[u8; 16]>,
+    ) -> Result<bool, OwnerSessionError> {
+        let Some(ImportEpochStatus::Open(start) | ImportEpochStatus::Completed { start, .. }) =
+            self.import_status(import_id)
+        else {
+            return Err(OwnerSessionError::ManagementMissing);
+        };
+        if start.source_format == reliquary_archive::HERMES_COPIED_SOURCE_FORMAT {
+            let key = super::decode_import_key(&start.import_key)
+                .ok_or(OwnerSessionError::ManagementConflict)?;
+            let expected = self
+                .native_import_receipt(&key)?
+                .ok_or(OwnerSessionError::ManagementConflict)?
+                .copied_source_phy;
+            if destination != expected {
+                return Err(OwnerSessionError::ManagementConflict);
+            }
+            return Ok(expected.is_some());
+        }
+        Ok(false)
+    }
+
     /// Read the active profile pinned to the import, including after settlement.
     pub fn native_import_processing_profile(
         &self,

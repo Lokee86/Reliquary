@@ -52,6 +52,8 @@ pub struct EvidenceTurn {
     pub conversation_id: String,
     pub node_id: String,
     pub role: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub principal_id: Option<String>,
     pub timestamp_ns: i64,
     pub content: String,
 }
@@ -762,6 +764,7 @@ mod tests {
             conversation_id: "c".into(),
             node_id: "n2".into(),
             role: "assistant".into(),
+            principal_id: None,
             timestamp_ns: 2,
             content: "I will keep answers concise.".into(),
         };
@@ -816,6 +819,7 @@ mod tests {
             conversation_id: "conversation".into(),
             node_id: "assistant-1".into(),
             role: "assistant".into(),
+            principal_id: None,
             timestamp_ns: 7,
             content: "Use concise wording.".into(),
         };

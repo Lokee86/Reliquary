@@ -1,6 +1,9 @@
 //! Shared result authorization for one host-admitted assistant turn.
 
-use super::{ArchiveSearchOptions, RetrievalMode, RetrievalPreview, RetrievalSession};
+use super::{
+    ActivePhyRecall, ArchiveSearchOptions, RetrievalMemoryReference, RetrievalMode,
+    RetrievalPreview, RetrievalSession,
+};
 use crate::{
     ConfiguredRuntime, HermesCopiedSourceTurn, InspectionCut, Instance, MemoryId,
     ObservationCitation, OwnerId, OwnerKind, ProductError, ProductErrorKind, TemporalBasis,
@@ -11,7 +14,7 @@ use uuid::Uuid;
 
 const ARCHIVE_RESULT_LIMIT: usize = 10;
 
-/// A read-only retrieval controller bound to the authenticated Instance and REL.
+/// A read-only retrieval controller bound to an authenticated Instance and owner scope.
 /// Hosts accept a result after their transcript disclosure checks succeed.
 pub struct ChatRetrieval {
     instance: Instance,
@@ -45,10 +48,17 @@ pub struct ChatArchiveHit {
 struct Selection {
     search_id: String,
     result_id: String,
-    cut: InspectionCut,
+    cut: MemoryInspectionCut,
     ids: BTreeSet<String>,
+    memories: BTreeSet<RetrievalMemoryReference>,
     observations: BTreeSet<ObservationCitation>,
     observation_version: Option<u64>,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+struct MemoryInspectionCut {
+    rel: Option<InspectionCut>,
+    phy: Option<InspectionCut>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -64,14 +74,29 @@ impl Instance {
         owner: OwnerId,
         turn_id: &str,
     ) -> Result<ChatRetrieval, ProductError> {
-        Ok(ChatRetrieval {
+        let session = self.begin_retrieval(owner, turn_id, RetrievalMode::Inspect)?;
+        Ok(self.chat_retrieval(session))
+    }
+
+    pub fn begin_scoped_chat_retrieval(
+        &self,
+        rel: Option<OwnerId>,
+        phy: ActivePhyRecall,
+        turn_id: &str,
+    ) -> Result<ChatRetrieval, ProductError> {
+        let session = self.begin_scoped_retrieval(rel, phy, turn_id, RetrievalMode::Inspect)?;
+        Ok(self.chat_retrieval(session))
+    }
+
+    fn chat_retrieval(&self, session: RetrievalSession) -> ChatRetrieval {
+        ChatRetrieval {
             instance: self.clone(),
-            session: self.begin_retrieval(owner, turn_id, RetrievalMode::Inspect)?,
+            session,
             returned: None,
             pending: None,
             archive: BTreeMap::new(),
             pending_archive: BTreeMap::new(),
-        })
+        }
     }
 }
 
@@ -85,7 +110,7 @@ impl ChatRetrieval {
         calendar_zone: &str,
         runtime: &ConfiguredRuntime,
     ) -> Result<ChatArchiveResult, ProductError> {
-        let cut = self.cut()?;
+        let cut = self.archive_cut()?;
         self.pending_archive.clear();
         let result = self.instance.search_archive_for_query(
             self.session.owner(),
@@ -99,7 +124,7 @@ impl ChatRetrieval {
             request_time_ns,
             calendar_zone,
         )?;
-        if self.cut()? != cut {
+        if self.archive_cut()? != cut {
             return Err(stale_selection());
         }
         let mut hits = Vec::new();
@@ -155,7 +180,7 @@ impl ChatRetrieval {
     }
 
     pub fn accept_archive_results(&mut self, references: &[String]) -> Result<(), ProductError> {
-        let cut = self.cut()?;
+        let cut = self.archive_cut()?;
         self.archive.retain(|_, claim| claim.cut == cut);
         if references.len() + self.archive.len() > 128
             || references.iter().collect::<BTreeSet<_>>().len() != references.len()
@@ -179,7 +204,7 @@ impl ChatRetrieval {
     }
 
     pub fn has_archive_references(&self) -> bool {
-        self.cut()
+        self.archive_cut()
             .is_ok_and(|cut| self.archive.values().any(|claim| claim.cut == cut))
     }
 
@@ -195,7 +220,7 @@ impl ChatRetrieval {
         &self,
         reference: Option<&ArchiveReference>,
     ) -> Result<Vec<HermesCopiedSourceTurn>, ProductError> {
-        let cut = self.cut()?;
+        let cut = self.archive_cut()?;
         let claim = reference
             .filter(|reference| reference.cut == cut)
             .ok_or_else(stale_selection)?;
@@ -206,7 +231,7 @@ impl ChatRetrieval {
             &claim.end_node,
             claim.source_archive_version,
         )?;
-        if self.cut()? != cut {
+        if self.archive_cut()? != cut {
             return Err(stale_selection());
         }
         rows.ok_or_else(stale_selection)
@@ -217,10 +242,34 @@ impl ChatRetrieval {
         query: &str,
         runtime: &ConfiguredRuntime,
     ) -> Result<ChatMemoryResult, ProductError> {
+        self.query(query, runtime, None)
+    }
+
+    /// Query the scoped ordinary population with one shared result limit.
+    pub fn query_memory_limited(
+        &mut self,
+        query: &str,
+        runtime: &ConfiguredRuntime,
+        limit: usize,
+    ) -> Result<ChatMemoryResult, ProductError> {
+        self.query(query, runtime, Some(limit))
+    }
+
+    fn query(
+        &mut self,
+        query: &str,
+        runtime: &ConfiguredRuntime,
+        limit: Option<usize>,
+    ) -> Result<ChatMemoryResult, ProductError> {
         self.returned = None;
         self.pending = None;
         let cut = self.cut()?;
-        let outcome = self.instance.memory_query(&self.session, query, runtime)?;
+        let outcome = if let Some(limit) = limit {
+            self.instance
+                .memory_query_limited(&self.session, query, runtime, limit)?
+        } else {
+            self.instance.memory_query(&self.session, query, runtime)?
+        };
         self.prepare(Uuid::new_v4().simple().to_string(), cut, outcome.preview)
     }
 
@@ -253,13 +302,29 @@ impl ChatRetrieval {
         }
         let cut = self.validate_followup(search_id, seed_ids, true)?;
         self.pending = None;
-        let anchors = seed_ids
-            .iter()
-            .map(|id| parse_memory_id(id))
-            .collect::<Result<Vec<_>, _>>()?;
-        let outcome = self
-            .instance
-            .traverse_graph(&self.session, &anchors, runtime)?;
+        let outcome = if self.session.phy_owner().is_some() {
+            let returned = self.returned.as_ref().ok_or_else(stale_selection)?;
+            let anchors = seed_ids
+                .iter()
+                .map(|id| {
+                    returned
+                        .memories
+                        .iter()
+                        .find(|reference| scoped_reference_id(reference) == *id)
+                        .cloned()
+                        .ok_or_else(stale_selection)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            self.instance
+                .traverse_scoped_graph(&self.session, &anchors, runtime)?
+        } else {
+            let anchors = seed_ids
+                .iter()
+                .map(|id| parse_memory_id(id))
+                .collect::<Result<Vec<_>, _>>()?;
+            self.instance
+                .traverse_graph(&self.session, &anchors, runtime)?
+        };
         self.prepare(search_id.to_owned(), cut, outcome.preview)
     }
 
@@ -280,6 +345,11 @@ impl ChatRetrieval {
         disclosed_ids: &[String],
         disclosed_observations: &[ObservationCitation],
     ) -> Result<(), ProductError> {
+        if self.session.phy_owner().is_some() {
+            return Err(ProductError::invalid(
+                "scoped retrieval requires owner-qualified result references",
+            ));
+        }
         let cut = self.cut()?;
         let pending = self
             .pending
@@ -311,9 +381,101 @@ impl ChatRetrieval {
         Ok(())
     }
 
-    fn cut(&self) -> Result<InspectionCut, ProductError> {
+    /// Authorize the exact owner-qualified references disclosed by the host.
+    pub fn accept_scoped_memory_result(
+        &mut self,
+        result_id: &str,
+        memories: &[RetrievalMemoryReference],
+        observations: &[ObservationCitation],
+    ) -> Result<(), ProductError> {
+        let cut = self.cut()?;
+        let pending = self
+            .pending
+            .as_ref()
+            .filter(|selection| selection.result_id == result_id && selection.cut == cut)
+            .ok_or_else(stale_selection)?;
+        let unique_memories = memories.iter().cloned().collect::<BTreeSet<_>>();
+        let unique_observations = observations.iter().copied().collect::<BTreeSet<_>>();
+        if unique_memories.len() != memories.len()
+            || unique_observations.len() != observations.len()
+            || !unique_memories.is_subset(&pending.memories)
+            || !unique_observations.is_subset(&pending.observations)
+        {
+            return Err(ProductError::invalid(
+                "result references must come from the authorized result",
+            ));
+        }
+        self.instance.inner.accept_inspected_scoped_selection(
+            &self.session.inner,
+            memories,
+            observations,
+        )?;
+        let mut selection = self.pending.take().expect("validated pending result");
+        selection.ids = memories.iter().map(scoped_reference_id).collect();
+        selection.memories = unique_memories;
+        selection.observations = unique_observations;
+        self.returned = Some(selection);
+        Ok(())
+    }
+
+    /// Recheck exact owner-qualified results before model disclosure.
+    pub fn validate_scoped_memory_result(
+        &self,
+        result_id: &str,
+        memories: &[RetrievalMemoryReference],
+        observations: &[ObservationCitation],
+    ) -> Result<(), ProductError> {
+        let cut = self.cut()?;
+        let selection = self
+            .pending
+            .as_ref()
+            .or(self.returned.as_ref())
+            .filter(|selection| selection.result_id == result_id && selection.cut == cut)
+            .ok_or_else(stale_selection)?;
+        if memories
+            .iter()
+            .any(|reference| !selection.memories.contains(reference))
+            || observations
+                .iter()
+                .any(|citation| !selection.observations.contains(citation))
+        {
+            return Err(stale_selection());
+        }
+        self.instance.inner.validate_inspected_scoped_selection(
+            &self.session.inner,
+            memories,
+            observations,
+        )?;
+        Ok(())
+    }
+
+    fn archive_cut(&self) -> Result<InspectionCut, ProductError> {
+        self.instance.validate_retrieval(&self.session)?;
+        let owner = self.session.rel_owner().ok_or_else(stale_selection)?;
         self.instance
-            .semantic_graph_inspection_cut(self.session.owner(), OwnerKind::Rel)
+            .semantic_graph_inspection_cut(owner, OwnerKind::Rel)
+    }
+
+    fn cut(&self) -> Result<MemoryInspectionCut, ProductError> {
+        self.instance.validate_retrieval(&self.session)?;
+        Ok(MemoryInspectionCut {
+            rel: self
+                .session
+                .rel_owner()
+                .map(|owner| {
+                    self.instance
+                        .semantic_graph_inspection_cut(owner, OwnerKind::Rel)
+                })
+                .transpose()?,
+            phy: self
+                .session
+                .phy_owner()
+                .map(|owner| {
+                    self.instance
+                        .semantic_graph_inspection_cut(owner, OwnerKind::Phylactery)
+                })
+                .transpose()?,
+        })
     }
 
     fn validate_followup(
@@ -321,7 +483,7 @@ impl ChatRetrieval {
         search_id: &str,
         ids: &[String],
         require_ids: bool,
-    ) -> Result<InspectionCut, ProductError> {
+    ) -> Result<MemoryInspectionCut, ProductError> {
         let cut = self.cut()?;
         let returned = self
             .returned
@@ -338,17 +500,27 @@ impl ChatRetrieval {
     fn prepare(
         &mut self,
         search_id: String,
-        cut: InspectionCut,
+        cut: MemoryInspectionCut,
         preview: Option<RetrievalPreview>,
     ) -> Result<ChatMemoryResult, ProductError> {
         if self.cut()? != cut {
             return Err(stale_selection());
         }
         let result_id = Uuid::new_v4().simple().to_string();
-        let ids = preview
+        let memories = preview
             .iter()
             .flat_map(|preview| &preview.memories)
-            .map(|memory| memory.memory_id.clone())
+            .map(|memory| memory.reference())
+            .collect::<BTreeSet<_>>();
+        let ids = memories
+            .iter()
+            .map(|memory| {
+                if self.session.phy_owner().is_some() {
+                    scoped_reference_id(memory)
+                } else {
+                    memory.memory_id.clone()
+                }
+            })
             .collect();
         let observations = preview
             .iter()
@@ -363,6 +535,7 @@ impl ChatRetrieval {
             result_id: result_id.clone(),
             cut,
             ids,
+            memories,
             observations,
             observation_version,
         });
@@ -415,4 +588,8 @@ fn stale_selection() -> ProductError {
         ProductErrorKind::Stale,
         "The retrieval result is unavailable in this turn or cut",
     )
+}
+
+fn scoped_reference_id(reference: &RetrievalMemoryReference) -> String {
+    format!("{}:{}", reference.owner_id, reference.memory_id)
 }

@@ -4,9 +4,9 @@ use reliquary_owner_session::{
     observation::ObservationValidity,
 };
 use reliquary_retrieval::{
-    TemporalBasis, TemporalEvidence, TemporalFilter,
-    agentic::{RetrievalTurn, freshness_candidates, validate_query},
-    lexical_score, lexical_terms,
+    RetrievalConfig, TemporalBasis, TemporalEvidence, TemporalFilter,
+    agentic::{MAX_AGENTIC_CANDIDATES, RetrievalTurn, freshness_candidates, validate_query},
+    combine_hybrid_scores, lexical_score, lexical_terms, validate_hybrid_request,
 };
 use reliquary_switchboard::DecisionEndpoint;
 use serde_json::json;
@@ -50,6 +50,20 @@ pub struct RetrievalEvaluation {
     pub anchors: Vec<RetrievalAnchorReport>,
     pub temporal_evidence: BTreeMap<MemoryId, Vec<TemporalEvidence>>,
     pub temporal_evidence_truncated: BTreeSet<MemoryId>,
+    pub scores: BTreeMap<MemoryId, RetrievalScores>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RetrievalScores {
+    pub lexical: f64,
+    pub semantic: Option<f64>,
+    pub combined: f64,
+}
+
+/// Original identities of Memory candidates that use scoped internal keys.
+pub struct AgenticScope<'a> {
+    pub identities: &'a BTreeMap<MemoryId, ([u8; 16], MemoryId)>,
+    pub ranking: RetrievalConfig,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -93,6 +107,7 @@ pub fn evaluate_retrieval(
         action,
         query_vector,
         None,
+        None,
     )
 }
 
@@ -126,6 +141,29 @@ pub fn evaluate_snapshot_retrieval_with_observations(
     query_vector: Option<&[f32]>,
     query_filter: Option<TemporalFilter>,
     observations: &[AgenticObservation],
+) -> Result<RetrievalEvaluation, String> {
+    evaluate_scoped_snapshot_retrieval(
+        endpoint,
+        turn,
+        snapshot,
+        action,
+        query_vector,
+        query_filter,
+        observations,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn evaluate_scoped_snapshot_retrieval(
+    endpoint: &dyn DecisionEndpoint,
+    turn: &RetrievalTurn,
+    snapshot: &RelRetrievalSnapshot,
+    action: RetrievalAction,
+    query_vector: Option<&[f32]>,
+    query_filter: Option<TemporalFilter>,
+    observations: &[AgenticObservation],
+    scope: Option<&AgenticScope<'_>>,
 ) -> Result<RetrievalEvaluation, String> {
     let active_filter = match &action {
         RetrievalAction::Query(_) => query_filter,
@@ -170,6 +208,7 @@ pub fn evaluate_snapshot_retrieval_with_observations(
         action,
         query_vector,
         temporal.as_ref(),
+        scope,
     )?;
     if let Some(temporal) = &mut temporal {
         evaluation.temporal_evidence = evaluation
@@ -229,6 +268,7 @@ fn evaluate(
     action: RetrievalAction,
     query_vector: Option<&[f32]>,
     temporal: Option<&TemporalOffer>,
+    scope: Option<&AgenticScope<'_>>,
 ) -> Result<RetrievalEvaluation, String> {
     let mut next = turn.clone();
     let mut by_id: BTreeMap<_, _> = memories.iter().map(|memory| (memory.id, memory)).collect();
@@ -306,32 +346,82 @@ fn evaluate(
                 .filter(|id| seen.insert(*id))
                 .collect::<Vec<_>>();
             return agentic_traversal::evaluate(
-                endpoint, owner, turn, relations, &anchors, by_id, temporal,
+                endpoint, owner, turn, relations, &anchors, by_id, temporal, scope,
             );
         }
     }
-    let (raw, offered) = freshness_candidates(
-        eligible
-            .iter()
-            .filter_map(|id| by_id.get(id).map(|memory| (*id, memory.freshness))),
-        next.selected(),
-    );
-    let batches: Vec<_> = if operation == "refine_query" {
-        let mut all: Vec<_> = eligible
-            .iter()
-            .filter(|id| by_id.contains_key(id))
-            .copied()
-            .collect();
-        all.sort_by(|a, b| {
-            by_id[b]
-                .freshness
-                .cmp(&by_id[a].freshness)
-                .then_with(|| a.cmp(b))
-        });
-        all.chunks(10).map(|chunk| chunk.to_vec()).collect()
-    } else {
-        vec![offered]
-    };
+    let mut scores = BTreeMap::new();
+    let mut ordered = Vec::new();
+    let (raw, batches) =
+        if let Some(scope) = scope {
+            let query = next.query().ok_or("no active retrieval query")?;
+            let weights =
+                validate_hybrid_request(query, scope.ranking).map_err(|e| format!("{e:?}"))?;
+            let terms = lexical_terms(query);
+            for id in &eligible {
+                let Some(memory) = by_id.get(id) else {
+                    continue;
+                };
+                let lexical = lexical_score(
+                    &format!("{}\n{}", memory.body.title, memory.body.content),
+                    &terms,
+                );
+                let semantic = query_vector
+                    .zip(memory.vector.as_deref())
+                    .map(|(a, b)| cosine(a, b))
+                    .transpose()?;
+                scores.insert(
+                    *id,
+                    RetrievalScores {
+                        lexical,
+                        semantic,
+                        combined: combine_hybrid_scores(
+                            lexical.max(0.0),
+                            semantic.unwrap_or_default().max(0.0),
+                            weights,
+                        ),
+                    },
+                );
+            }
+            let raw = scores.keys().copied().collect::<BTreeSet<_>>();
+            ordered.extend(raw.difference(next.selected()).copied());
+            ordered.sort_by(|a, b| {
+                scores[b]
+                    .combined
+                    .total_cmp(&scores[a].combined)
+                    .then_with(|| by_id[b].freshness.cmp(&by_id[a].freshness))
+                    .then_with(|| {
+                        decision_identity(owner, scope.identities.get(a), *a)
+                            .cmp(&decision_identity(owner, scope.identities.get(b), *b))
+                    })
+            });
+            ordered.truncate(scope.ranking.result_limit.min(MAX_AGENTIC_CANDIDATES));
+            (raw, vec![ordered.clone()])
+        } else {
+            let (raw, offered) = freshness_candidates(
+                eligible
+                    .iter()
+                    .filter_map(|id| by_id.get(id).map(|memory| (*id, memory.freshness))),
+                next.selected(),
+            );
+            let batches: Vec<_> = if operation == "refine_query" {
+                let mut all: Vec<_> = eligible
+                    .iter()
+                    .filter(|id| by_id.contains_key(id))
+                    .copied()
+                    .collect();
+                all.sort_by(|a, b| {
+                    by_id[b]
+                        .freshness
+                        .cmp(&by_id[a].freshness)
+                        .then_with(|| a.cmp(b))
+                });
+                all.chunks(10).map(|chunk| chunk.to_vec()).collect()
+            } else {
+                vec![offered]
+            };
+            (raw, batches)
+        };
     let mut selected = BTreeSet::new();
     for offered in batches {
         if offered.is_empty() {
@@ -345,6 +435,7 @@ fn evaluate(
             &offered,
             &by_id,
             temporal,
+            scope,
         )?;
         next.record_evaluated(offered);
         selected.extend(approved);
@@ -356,15 +447,31 @@ fn evaluate(
     };
     Ok(RetrievalEvaluation {
         next,
-        memories: selected
-            .into_iter()
-            .filter_map(|id| by_id.get(&id).map(|memory| (*memory).clone()))
-            .collect(),
+        memories: if scope.is_some() {
+            ordered
+                .into_iter()
+                .filter(|id| selected.contains(id))
+                .collect::<Vec<_>>()
+        } else {
+            selected.into_iter().collect()
+        }
+        .into_iter()
+        .filter_map(|id| by_id.get(&id).map(|memory| (*memory).clone()))
+        .collect(),
         already_provided,
         anchors: Vec::new(),
         temporal_evidence: BTreeMap::new(),
         temporal_evidence_truncated: BTreeSet::new(),
+        scores,
     })
+}
+
+fn decision_identity(
+    owner: [u8; 16],
+    identity: Option<&([u8; 16], MemoryId)>,
+    id: MemoryId,
+) -> ([u8; 16], MemoryId) {
+    identity.copied().unwrap_or((owner, id))
 }
 
 fn decide(
@@ -375,14 +482,20 @@ fn decide(
     offered: &[MemoryId],
     memories: &BTreeMap<MemoryId, &AgenticMemory>,
     temporal: Option<&TemporalOffer>,
+    scope: Option<&AgenticScope<'_>>,
 ) -> Result<BTreeSet<MemoryId>, String> {
-    let owner = hex(&owner);
-    let allowed: BTreeMap<_, _> = offered.iter().map(|id| (hex(&id.0), *id)).collect();
+    let identity = |id| {
+        let (owner, memory) =
+            decision_identity(owner, scope.and_then(|scope| scope.identities.get(&id)), id);
+        (hex(&owner), hex(&memory.0))
+    };
+    let allowed: BTreeMap<_, _> = offered.iter().map(|id| (identity(*id), *id)).collect();
     let candidates: Vec<_> = offered
         .iter()
         .map(|id| {
+            let (owner, memory_id) = identity(*id);
             let mut candidate = json!({
-                "memory":{"owner_id":owner,"memory_id":hex(&id.0)},
+                "memory":{"owner_id":owner,"memory_id":memory_id},
                 "title":memories[id].body.title,"content":memories[id].body.content,
             });
             if let Some(temporal) = temporal {
@@ -421,17 +534,17 @@ fn decide(
     }
     let mut result = BTreeSet::new();
     for item in approved {
+        let approval_owner = item["owner_id"].as_str().ok_or("invalid approval owner")?;
         if item.as_object().is_none_or(|map| map.len() != 2)
-            || item["owner_id"].as_str() != Some(&owner)
+            || (scope.is_none() && approval_owner != hex(&owner))
         {
             return Err("approval belongs to another owner".into());
         }
+        let approval_id = item["memory_id"]
+            .as_str()
+            .ok_or("invalid approved identity")?;
         let id = allowed
-            .get(
-                item["memory_id"]
-                    .as_str()
-                    .ok_or("invalid approved identity")?,
-            )
+            .get(&(approval_owner.to_owned(), approval_id.to_owned()))
             .ok_or("approval was not offered")?;
         if !result.insert(*id) {
             return Err("duplicate approval".into());

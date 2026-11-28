@@ -54,6 +54,7 @@ pub struct RetrievalSource {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct RetrievalMemory {
+    pub owner_id: String,
     pub memory_id: String,
     pub revision: u64,
     pub body_id: String,
@@ -68,9 +69,41 @@ pub struct RetrievalMemory {
     pub combined_score: Option<f64>,
 }
 
+/// Exact owner-qualified Memory body returned by ordinary recall.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct RetrievalMemoryReference {
+    pub owner_id: String,
+    pub memory_id: String,
+    pub revision: u64,
+    pub body_id: String,
+}
+
+impl RetrievalMemory {
+    pub fn reference(&self) -> RetrievalMemoryReference {
+        RetrievalMemoryReference {
+            owner_id: self.owner_id.clone(),
+            memory_id: self.memory_id.clone(),
+            revision: self.revision,
+            body_id: self.body_id.clone(),
+        }
+    }
+}
+
+/// One position in the shared ranked recall selection.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum RetrievalRankedHit {
+    Memory { reference: RetrievalMemoryReference },
+    Observation { citation: ObservationCitation },
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct RetrievalPreview {
     pub cut: RetrievalCut,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phy_cut: Option<RetrievalCut>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub ranked: Vec<RetrievalRankedHit>,
     pub query: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temporal_filter: Option<TemporalFilter>,
@@ -108,6 +141,8 @@ impl RetrievalPreview {
         });
         Ok(Self {
             cut: RetrievalCut::capture(snapshot, profile, observation_version),
+            phy_cut: None,
+            ranked: Vec::new(),
             query: evaluation.next.query().unwrap_or_default().to_owned(),
             temporal_filter,
             temporal_evidence,
@@ -192,6 +227,7 @@ pub(crate) fn project_memories(
                 time_ns: record.source_time_ns,
             };
             Ok(RetrievalMemory {
+                owner_id: hex(&snapshot.owner_id),
                 memory_id: hex(&id.0),
                 revision: record.revision,
                 body_id: hex(&record.body_id.0),

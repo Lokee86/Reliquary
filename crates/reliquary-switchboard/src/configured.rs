@@ -105,16 +105,20 @@ pub struct ProcessingRouteIdentity {
     pub perception_embedding: [u8; 32],
 }
 
-/// Query and document inputs share one embedding space and are sent unchanged.
+/// Query and document input handling on a bound embedding route.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HostedEmbeddingInputSemantics {
+    /// Both inputs are sent unchanged to a shared-space endpoint.
     Shared,
+    /// Switchboard sends search_query and search_document respectively.
+    SearchQueryDocument,
 }
 
 impl HostedEmbeddingInputSemantics {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Shared => "shared",
+            Self::SearchQueryDocument => "search_query_document",
         }
     }
 }

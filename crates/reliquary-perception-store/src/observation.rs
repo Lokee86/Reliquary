@@ -292,6 +292,22 @@ pub enum ObservationOperation {
     },
 }
 
+impl ObservationOperation {
+    /// Exact sources retained in this effect, including reviewed evidence.
+    pub fn citations(&self) -> impl Iterator<Item = &ObservationCitation> {
+        let (support, reviewed): (&[_], &[_]) = match self {
+            Self::Create { draft } | Self::Successor { draft, .. } => {
+                (&draft.citations, &draft.reviewed)
+            }
+            Self::Pending { evidence, .. } => (&[], evidence),
+            Self::SemanticAward { evidence, .. } => (&[], std::slice::from_ref(evidence)),
+            Self::Reaffirm { reviewed, .. } | Self::Withdraw { reviewed, .. } => (&[], reviewed),
+            Self::Comparison { comparison } => (&[], std::slice::from_ref(&comparison.citation)),
+        };
+        support.iter().chain(reviewed)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ObservationClaimVector {
     pub citation: ObservationCitation,

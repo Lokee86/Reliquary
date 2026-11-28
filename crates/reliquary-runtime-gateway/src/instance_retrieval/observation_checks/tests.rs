@@ -131,13 +131,8 @@ fn publish(
         .unwrap()
 }
 
-fn create_observation(
-    fixture: &Fixture,
-    support: ObservationCitation,
-    fingerprint: u8,
-    proposition: &str,
-) -> (ObservationId, ObservationCitation) {
-    let draft = ObservationDraft {
+fn claim_draft(support: ObservationCitation, proposition: &str) -> ObservationDraft {
+    ObservationDraft {
         proposition: proposition.into(),
         profile: ObservationProfile::Ordinary,
         status: ObservationStatus::Observed,
@@ -159,7 +154,16 @@ fn create_observation(
             vector: vec![1.0],
         })
         .collect(),
-    };
+    }
+}
+
+fn create_observation(
+    fixture: &Fixture,
+    support: ObservationCitation,
+    fingerprint: u8,
+    proposition: &str,
+) -> (ObservationId, ObservationCitation) {
+    let draft = claim_draft(support, proposition);
     let receipt = publish(
         fixture,
         support,
@@ -705,4 +709,454 @@ fn paraphrase_uses_the_shared_memory_search_until_observation_review() {
             .is_empty()
     );
     assert!(recall("paraphrase-in-review").observations.is_empty());
+}
+
+struct ApproveScoped {
+    limit: usize,
+    switch: Option<ActivePhyRecall>,
+}
+
+impl DecisionEndpoint for ApproveScoped {
+    fn model(&self) -> &str {
+        Approve.model()
+    }
+
+    fn evaluate(&self, state: &Value, shape: &Value) -> Result<Value, DecisionEndpointError> {
+        assert!(state["candidates"].as_array().unwrap().len() <= self.limit);
+        if let Some(active) = &self.switch {
+            active.invalidate();
+        }
+        Approve.evaluate(state, shape)
+    }
+}
+
+fn export_scoped_fixture(source: &Path, name: &str) {
+    if let Some(directory) = std::env::var_os("RELIQUARY_TEST_SCOPED_RECALL_FIXTURE_DIR") {
+        let mut source = std::fs::File::open(source).unwrap();
+        let mut destination = std::fs::File::options()
+            .write(true)
+            .create_new(true)
+            .open(Path::new(&directory).join(name))
+            .unwrap();
+        std::io::copy(&mut source, &mut destination).unwrap();
+    }
+}
+
+#[test]
+fn ordinary_scoped_recall_ranks_both_owners_and_fences_phy_disclosure() {
+    use reliquary_owner_session::PhyObservationBatch;
+
+    let fixture = Fixture::new();
+    let phy_path = fixture.path.with_extension("phy");
+    let phy_id = [134; 16];
+    drop(PhyWriter::create_path(&phy_path, phy_id).unwrap());
+    let private_text = "Private needle source proves the handoff.";
+    let private_record = {
+        let mut container = Container::open_writer(&phy_path).unwrap();
+        MemoryStore::open(&container)
+            .unwrap()
+            .publish_versioned_creation(
+                &mut container,
+                MemoryDraft {
+                    title: "Private evidence".into(),
+                    content: private_text.into(),
+                    category: "fact".into(),
+                    memory_type: "semantic".into(),
+                    authority_kind: "direct".into(),
+                    temporal_status: "current".into(),
+                    scope: "user".into(),
+                    lifecycle_state: "knowledge".into(),
+                    archived: false,
+                    parent_id: None,
+                    superseded_by: None,
+                    source_node_id: None,
+                    content_source_conversation_id: None,
+                    content_source_node_id: None,
+                    grounding_source_conversation_id: None,
+                    grounding_source_node_id: None,
+                    source_episode_id: None,
+                    source_ref: None,
+                    source_time_ns: Some(500),
+                    temporal_inference: None,
+                    mutation_id: "fixture-one".into(),
+                    created_at_ns: 1,
+                    updated_at_ns: 1,
+                },
+                1,
+            )
+            .unwrap()
+            .revision
+            .record
+    };
+    let phy = fixture
+        .gateway
+        .mount_writable_phylactery_current(&phy_path)
+        .unwrap();
+    let instance = fixture
+        .gateway
+        .instance("alice", [fixture.owner], [phy])
+        .unwrap();
+    let (observation_id, support) = instance
+        .with_entity_phy_writer(phy, |writer| {
+            let cut = writer.phy_observation_cut();
+            let support = ObservationCitation {
+                owner_id: phy_id,
+                history_generation: cut.audit.history_generation,
+                source: ObservationSource::Memory(private_record.id.0),
+                revision: private_record.revision,
+                body_id: private_record.body_id.0,
+                field: MemoryTextField::Content,
+                start_byte: 0,
+                end_byte: private_text.len() as u32,
+            };
+            let receipt = writer
+                .publish_observation_batch(PhyObservationBatch {
+                    cut,
+                    batch: ObservationBatch {
+                        owner_id: phy_id,
+                        history_generation: cut.audit.history_generation,
+                        input_fingerprint: [1; 32],
+                        policy: POLICY,
+                        operations: vec![ObservationOperation::Create {
+                            draft: claim_draft(support, "Zephyr delivery was approved."),
+                        }],
+                        progress: None,
+                    },
+                })
+                .unwrap();
+            (receipt.revisions[0].0, support)
+        })
+        .unwrap();
+    let claim = instance
+        .inspect_observation(phy, observation_id, None)
+        .unwrap()
+        .unwrap()
+        .claim;
+    assert_eq!(claim.support, vec![support]);
+    assert!(matches!(
+        fixture
+            .alice()
+            .inspect_observation(phy, observation_id, None),
+        Err(GatewayError::UnauthorizedRel { .. })
+    ));
+    assert_eq!(
+        instance
+            .inspect_observation_evidence(phy, observation_id, 1, support)
+            .unwrap()
+            .as_deref(),
+        Some(private_text)
+    );
+
+    let endpoint = crate::g4_retrieval_acceptance::Embed {
+        calls: Default::default(),
+        dimensions: 2,
+    };
+    let profile = instance.publish_embedding_profile(phy, &endpoint).unwrap();
+    instance
+        .with_entity_phy_writer(phy, |writer| {
+            writer.publish_observation_claim_vectors(
+                profile,
+                vec![ObservationClaimVector {
+                    citation: claim.citation,
+                    vector: vec![1.0, 0.0],
+                }],
+            )
+        })
+        .unwrap()
+        .unwrap();
+    // Release both writable leases before copying native bytes, then bind
+    // retrieval to the reopened mounts. Windows locks owners while writable.
+    fixture.gateway.quiesce_owner(fixture.owner).unwrap();
+    fixture.gateway.quiesce_owner(phy).unwrap();
+    let verified_phy = std::fs::read(&phy_path).unwrap();
+    export_scoped_fixture(&fixture.path, "mixed.rel");
+    export_scoped_fixture(&phy_path, "current.phy");
+    assert_eq!(
+        fixture
+            .gateway
+            .mount_writable_reliquary_current(&fixture.path)
+            .unwrap(),
+        fixture.owner
+    );
+    assert_eq!(
+        fixture
+            .gateway
+            .mount_writable_phylactery_current(&phy_path)
+            .unwrap(),
+        phy
+    );
+
+    let active = ActivePhyRecall::new(phy);
+    let inspect = instance
+        .begin_scoped_memory_retrieval(
+            Some(fixture.owner),
+            active.clone(),
+            "mixed-inspect",
+            RetrievalMode::Inspect,
+        )
+        .unwrap();
+    let route = route();
+    let query = || RetrievalAction::Query("needle zephyr".into());
+    let preview = instance
+        .evaluate_agentic_memory(&inspect, &route, query(), || Ok(None))
+        .unwrap()
+        .preview
+        .unwrap();
+    assert_eq!(preview.ranked.len(), 3);
+    assert_eq!(
+        preview
+            .memories
+            .iter()
+            .map(|row| row.owner_id.clone())
+            .collect::<BTreeSet<_>>(),
+        [hex(&fixture.owner.as_bytes()), hex(&phy_id),].into()
+    );
+    assert_eq!(preview.observations[0].claim, claim);
+    assert_eq!(preview.memories[0].memory_id, preview.memories[1].memory_id);
+    assert_ne!(preview.memories[0].body_id, preview.memories[1].body_id);
+    let limited_route = MemoryRetrievalRoute::from_endpoint(Arc::new(ApproveScoped {
+        limit: 2,
+        switch: None,
+    }));
+    let limited = instance
+        .evaluate_agentic_memory_with_policy(
+            &inspect,
+            &limited_route,
+            query(),
+            None,
+            RetrievalConfig {
+                result_limit: 2,
+                ..RetrievalConfig::default()
+            },
+            || Ok(None),
+        )
+        .unwrap()
+        .preview
+        .unwrap();
+    assert_eq!(limited.ranked, preview.ranked[..2]);
+
+    let paraphrase = instance
+        .evaluate_agentic_memory_with_policy(
+            &inspect,
+            &route,
+            RetrievalAction::Query("needle freight authorization".into()),
+            None,
+            RetrievalConfig {
+                result_limit: 1,
+                ..RetrievalConfig::default()
+            },
+            || Ok(Some((profile, vec![1.0, 0.0]))),
+        )
+        .unwrap()
+        .preview
+        .unwrap();
+    assert_eq!(
+        paraphrase.ranked,
+        [RetrievalRankedHit::Observation {
+            citation: claim.citation
+        }]
+    );
+    assert_eq!(paraphrase.observations[0].semantic_score, Some(1.0));
+    assert_eq!(paraphrase.observations[0].lexical_score, 0.0);
+
+    let deliver = instance
+        .begin_scoped_memory_retrieval(
+            Some(fixture.owner),
+            active.clone(),
+            "mixed-deliver",
+            RetrievalMode::Deliver,
+        )
+        .unwrap();
+    let prepared = instance
+        .evaluate_agentic_memory_with_policy(
+            &deliver,
+            &limited_route,
+            query(),
+            None,
+            RetrievalConfig {
+                result_limit: 2,
+                ..RetrievalConfig::default()
+            },
+            || Ok(None),
+        )
+        .unwrap()
+        .prepared
+        .unwrap();
+    let host = Arc::new(Host::default());
+    let router = connect(&fixture.gateway, host.clone());
+    assert_eq!(
+        instance
+            .deliver_agentic_memory_confirmed(&deliver, &prepared, &router)
+            .unwrap(),
+        RetrievalDeliveryOutcome::Confirmed {
+            recorded_memory_use: true
+        },
+    );
+    let receipt = instance
+        .with_reliquary(fixture.owner, |rel| {
+            rel.accepted_external_use(prepared.stable_id())
+                .unwrap()
+                .sources
+                .clone()
+        })
+        .unwrap();
+    assert_eq!(receipt.len(), 1);
+    assert_eq!(receipt[0].0, private_record.id.0);
+    let payload: Value = serde_json::from_slice(
+        &host
+            .operations
+            .lock()
+            .unwrap()
+            .get(prepared.stable_id())
+            .unwrap()
+            .payload,
+    )
+    .unwrap();
+    assert_eq!(
+        payload["ranked"],
+        serde_json::to_value(&preview.ranked[..2]).unwrap()
+    );
+    assert_eq!(payload["phy_owner_id"], hex(&phy_id));
+
+    let stale_turn = instance
+        .begin_scoped_memory_retrieval(
+            None,
+            active.clone(),
+            "stale-standing",
+            RetrievalMode::Deliver,
+        )
+        .unwrap();
+    let stale = instance
+        .evaluate_agentic_memory(&stale_turn, &route, query(), || Ok(None))
+        .unwrap()
+        .prepared
+        .unwrap();
+    instance
+        .with_entity_phy_writer(phy, |writer| {
+            writer.publish_observation_batch(PhyObservationBatch {
+                cut: writer.phy_observation_cut(),
+                batch: ObservationBatch {
+                    owner_id: phy_id,
+                    history_generation: support.history_generation,
+                    input_fingerprint: [2; 32],
+                    policy: POLICY,
+                    operations: vec![ObservationOperation::Pending {
+                        id: observation_id,
+                        expected_revision: 1,
+                        reason: ObservationPendingReason::ChangedSupport,
+                        evidence: Vec::new(),
+                    }],
+                    progress: None,
+                },
+            })
+        })
+        .unwrap()
+        .unwrap();
+    assert!(matches!(
+        instance.preview_agentic_memory_delivery(&stale_turn, &stale),
+        Err(GatewayError::StaleRetrieval)
+    ));
+    let historical = instance
+        .observation_history(phy, observation_id, None, 8)
+        .unwrap();
+    assert!(matches!(
+        historical.items[0].standing,
+        ObservationStanding::Pending(_)
+    ));
+    assert_eq!(historical.items[0].claim.proposition, claim.proposition);
+    let still_visible = instance
+        .evaluate_agentic_memory(&inspect, &route, query(), || Ok(None))
+        .unwrap()
+        .preview
+        .unwrap();
+    assert!(still_visible.observations.is_empty());
+    assert_eq!(still_visible.memories.len(), 2);
+    let previous_profile = ActivePhyRecall::new(phy);
+    let in_flight = instance
+        .begin_scoped_memory_retrieval(
+            None,
+            previous_profile.clone(),
+            "in-flight",
+            RetrievalMode::Inspect,
+        )
+        .unwrap();
+    let switch_route = MemoryRetrievalRoute::from_endpoint(Arc::new(ApproveScoped {
+        limit: 10,
+        switch: Some(previous_profile),
+    }));
+    assert!(matches!(
+        instance.evaluate_agentic_memory(&in_flight, &switch_route, query(), || Ok(None)),
+        Err(GatewayError::StaleRetrieval)
+    ));
+    let switched_turn = instance
+        .begin_scoped_memory_retrieval(None, active.clone(), "switched", RetrievalMode::Deliver)
+        .unwrap();
+    let switched = instance
+        .evaluate_agentic_memory(&switched_turn, &route, query(), || Ok(None))
+        .unwrap()
+        .prepared
+        .unwrap();
+    active.invalidate();
+    assert!(matches!(
+        instance.deliver_agentic_memory_confirmed(&switched_turn, &switched, &router),
+        Err(GatewayError::StaleRetrieval)
+    ));
+    assert_eq!(host.calls.load(Ordering::Relaxed), 1);
+
+    fixture.gateway.quiesce_owner(phy).unwrap();
+    export_scoped_fixture(&phy_path, "pending.phy");
+    let read_only_path = phy_path.with_extension("read-only.phy");
+    std::fs::write(&read_only_path, verified_phy).unwrap();
+    assert_eq!(
+        fixture
+            .gateway
+            .mount_phylactery_current(&read_only_path)
+            .unwrap(),
+        phy
+    );
+    let instance = fixture.gateway.instance("alice", [], [phy]).unwrap();
+    let active = ActivePhyRecall::new(phy);
+    let private_only = instance
+        .begin_scoped_memory_retrieval(None, active.clone(), "private-only", RetrievalMode::Deliver)
+        .unwrap();
+    let delivery = instance
+        .evaluate_agentic_memory(&private_only, &route, query(), || Ok(None))
+        .unwrap()
+        .prepared
+        .unwrap();
+    let private_preview = instance
+        .preview_agentic_memory_delivery(&private_only, &delivery)
+        .unwrap();
+    assert_eq!(private_preview.memories.len(), 1);
+    assert_eq!(private_preview.observations[0].claim, claim);
+    assert_eq!(
+        instance
+            .deliver_agentic_memory_confirmed(&private_only, &delivery, &router)
+            .unwrap(),
+        RetrievalDeliveryOutcome::Confirmed {
+            recorded_memory_use: false
+        },
+    );
+    assert_eq!(
+        instance
+            .deliver_agentic_memory_confirmed(&private_only, &delivery, &router)
+            .unwrap(),
+        RetrievalDeliveryOutcome::Replay,
+    );
+    let reopened = instance
+        .begin_scoped_memory_retrieval(None, active, "private-only", RetrievalMode::Deliver)
+        .unwrap();
+    assert!(
+        !instance
+            .recover_agentic_memory_delivery_with_authority(
+                &reopened,
+                delivery.stable_id(),
+                &router,
+                false
+            )
+            .unwrap()
+    );
+    fixture.gateway.quiesce_owner(phy).unwrap();
+    std::fs::remove_file(phy_path).unwrap();
+    std::fs::remove_file(read_only_path).unwrap();
 }

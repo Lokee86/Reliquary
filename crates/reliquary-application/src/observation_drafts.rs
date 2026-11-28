@@ -3,6 +3,7 @@
 mod backcheck;
 mod capture;
 mod claim_vectors;
+mod owner;
 mod review;
 #[cfg(test)]
 mod tests;
@@ -37,6 +38,7 @@ use ObservationWorkflowError as Error;
 pub use claim_vectors::{
     MAX_CLAIM_VECTOR_BATCH_BYTES, evaluate_claim_vectors, select_claim_vector_profile,
 };
+pub use owner::ObservationRead;
 pub use review::evaluate_review;
 type Result<T> = std::result::Result<T, Error>;
 
@@ -47,7 +49,13 @@ const MAX_EXISTING: usize = 16;
 const MAX_EXISTING_BYTES: usize = 8 * 1024;
 
 pub trait ScopedObservationRead {
-    fn read<T>(&self, capture: impl FnOnce(&RelSession) -> Result<T>) -> Result<T>;
+    fn read<T>(&self, _capture: impl FnOnce(&RelSession) -> Result<T>) -> Result<T> {
+        Err(Error::Stale)
+    }
+
+    fn read_owner<T>(&self, capture: impl FnOnce(ObservationRead<'_>) -> Result<T>) -> Result<T> {
+        self.read(|rel| capture(ObservationRead::Rel(rel)))
+    }
 }
 
 pub struct ObservationDraftRoutes<'a> {
@@ -130,14 +138,22 @@ pub struct PreparedObservation {
 impl PreparedObservation {
     /// Recheck the relevant owner cut under the writer before grouped publication.
     pub fn revalidate(&self, rel: &RelSession, route_identity: [u8; 32]) -> Result<()> {
-        let mut capture = Capture::new(rel);
+        self.revalidate_owner(ObservationRead::Rel(rel), route_identity)
+    }
+
+    pub fn revalidate_owner(
+        &self,
+        owner: ObservationRead<'_>,
+        route_identity: [u8; 32],
+    ) -> Result<()> {
+        let mut capture = Capture::new(owner);
         if self.policy.general_route != route_identity
             || self.owner_id != capture.cut.owner_id
             || self.history_generation != capture.cut.history_generation
             || self.source_removal != capture.cut.source_removal
             || self
                 .memory_vector_profile
-                .is_some_and(|id| rel.active_compatibility_profile(id).is_none())
+                .is_some_and(|id| owner.active_compatibility_profile(id).is_none())
         {
             return Err(Error::Stale);
         }
@@ -148,7 +164,7 @@ impl PreparedObservation {
             fence.revalidate(&mut capture)?;
         }
         if let ObservationOperation::Create { draft } = &self.operation
-            && rel.has_equivalent_manual_relationship(draft)
+            && owner.has_equivalent_manual_relationship(draft)
         {
             return Err(Error::Stale);
         }
@@ -187,8 +203,8 @@ struct SynthesisInput {
 }
 
 impl SynthesisInput {
-    fn check_source_cut(&self, rel: &RelSession) -> Result<()> {
-        if self.source_removal != rel.archive_source_removal_version() {
+    fn check_source_cut(&self, owner: ObservationRead<'_>) -> Result<()> {
+        if self.source_removal != owner.source_removal() {
             return Err(Error::Stale);
         }
         Ok(())
@@ -244,7 +260,7 @@ pub fn evaluate_proposal(
     cut: OwnerCut,
     proposal: &ObservationProposal,
 ) -> Result<ProposalEvaluation> {
-    let mut input = read.read(|rel| proposal_input(rel, routes, cut, proposal))?;
+    let mut input = read.read_owner(|owner| proposal_input(owner, routes, cut, proposal))?;
     let mut draft = match input.run(routes, None)? {
         SynthesisDecision::Abstained => return Ok(ProposalEvaluation::Abstained),
         SynthesisDecision::Duplicate { target, draft } => return Ok(duplicate(target, &draft)),
@@ -253,17 +269,17 @@ pub fn evaluate_proposal(
     let mut required = Vec::new();
     let mut previous: Option<(SynthesisDraft, Vec<ObservationReceptor>)> = None;
     for attempt in 0..2 {
-        let mut canonical = read.read(|rel| {
-            input.check_source_cut(rel)?;
-            canonical_claim(&mut Capture::new(rel), &draft.claim)
+        let mut canonical = read.read_owner(|owner| {
+            input.check_source_cut(owner)?;
+            canonical_claim(&mut Capture::new(owner), &draft.claim)
         })?;
-        if read.read(|rel| Ok(rel.has_equivalent_manual_relationship(&canonical)))? {
+        if read.read_owner(|owner| Ok(owner.has_equivalent_manual_relationship(&canonical)))? {
             return Ok(ProposalEvaluation::Abstained);
         }
-        if let Some(target) = read.read(|rel| {
-            Ok(rel
+        if let Some(target) = read.read_owner(|owner| {
+            Ok(owner
                 .matching_observation(&canonical)
-                .and_then(|id| rel.observation(id))
+                .and_then(|id| owner.observation(id))
                 .filter(|row| {
                     !matches!(
                         row.standing,
@@ -281,9 +297,9 @@ pub fn evaluate_proposal(
                 .as_ref()
                 .map(|(draft, rows)| (draft, rows.as_slice(), routes.route_identity)),
         )?;
-        let frozen = read.read(|rel| {
-            input.check_source_cut(rel)?;
-            freeze(&mut Capture::new(rel), canonical, &required, routes)
+        let frozen = read.read_owner(|owner| {
+            input.check_source_cut(owner)?;
+            freeze(&mut Capture::new(owner), canonical, &required, routes)
         })?;
         let decision = verify(routes.verification, &frozen.state).map_err(Error::Native)?;
         match decision.verdict {
@@ -322,12 +338,12 @@ fn duplicate(target: ExistingObservationRef, draft: &SynthesisDraft) -> Proposal
 }
 
 fn proposal_input(
-    rel: &RelSession,
+    owner: ObservationRead<'_>,
     routes: &ObservationDraftRoutes<'_>,
     cut: OwnerCut,
     proposal: &ObservationProposal,
 ) -> Result<SynthesisInput> {
-    let mut capture = Capture::new(rel);
+    let mut capture = Capture::new(owner);
     if capture.cut.owner_id != cut.owner_id
         || capture.cut.history_generation != cut.history_generation
         || cut.frontier > capture.cut.memory
@@ -344,6 +360,9 @@ fn proposal_input(
         capture.check_relational_sources(&citations)?;
         let anchors = capture.anchors(&citations)?;
         for participant in &proposal.participants {
+            if participant.owner_id != cut.owner_id {
+                return Err(Error::Stale);
+            }
             participant_anchor(participant, &anchors)?;
         }
     }
@@ -369,12 +388,12 @@ fn proposal_input(
         proposal: proposal.clone(),
         source_slots: Vec::new(),
         participants: proposal.participants.clone(),
-        existing: rel
+        existing: owner
             .observations_after(None, MAX_EXISTING)
             .into_iter()
             .filter(|row| row.standing == ObservationStanding::Current)
             .filter_map(|row| {
-                let claim = review::semantic_claim(rel, row.revision);
+                let claim = review::semantic_claim(owner, row.revision);
                 if claim.profile != proposal.profile {
                     return None;
                 }
@@ -419,6 +438,11 @@ fn canonical_claim(
         .copied()
         .map(observation_citation)
         .collect();
+    if matches!(capture.owner, ObservationRead::Phy(_)) {
+        for &cite in &citations {
+            capture.citation(cite)?;
+        }
+    }
     let profile = match claim.profile {
         reliquary_perception::ObservationProfile::Ordinary => ObservationProfile::Ordinary,
         reliquary_perception::ObservationProfile::Relational => {
@@ -659,9 +683,14 @@ fn revision_input(
     frozen: &FrozenDraft,
     decision: &VerificationDecision,
 ) -> Result<RevisionContext> {
-    let backcheck = read.read(|rel| {
-        input.check_source_cut(rel)?;
-        let mut capture = Capture::new(rel);
+    let backcheck = read.read_owner(|owner| {
+        input.check_source_cut(owner)?;
+        let mut capture = Capture::new(owner);
+        if matches!(owner, ObservationRead::Phy(_)) {
+            for passage in &input.source_slots {
+                capture.citation(observation_citation(passage.citation))?;
+            }
+        }
         frozen
             .hits
             .iter()

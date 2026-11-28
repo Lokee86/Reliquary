@@ -35,7 +35,7 @@ const WORDING_PROMPT: &str = concat!(
     "Use null for any attribution whose fixed source ID is empty. ",
     "Return exactly one candidate per group; do not infer details from supporting evidence.",
 );
-const OWNERSHIP_PROMPT: &str = "Classify each fixed synthesis group as user or project. Change only its durable owner; do not alter group membership, propositions, authority, provenance, category, type, or lifecycle. User means genuinely user-global state intended to remain useful across unrelated projects, including stable personal facts, preferences, and reusable personal practices. Project means project-specific facts, decisions, requirements, plans, or state, and is the conservative destination for ambiguous or non-user-owned propositions. Ownership is not confidentiality, access control, visibility, or retrieval relevance. Return exactly one classification for each supplied group key.";
+const OWNERSHIP_PROMPT: &str = "Classify each fixed synthesis group as user or project. Change only its durable owner; do not alter group membership, propositions, authority, provenance, category, type, or lifecycle. User means genuinely user-global state intended to remain useful across unrelated projects, including stable personal facts, preferences, and reusable personal practices. Missing speaker identity does not make a personal proposition project-owned. Project means project-specific facts, decisions, requirements, plans, or state, and is the conservative destination for ambiguous or non-user-owned propositions. Ownership is not confidentiality, access control, visibility, or retrieval relevance. Return exactly one classification for each supplied group key.";
 const MAX_TURN_CHARS: usize = 128 * 1024;
 const MAX_MODEL_JSON_BYTES: usize = 512 * 1024;
 
@@ -311,7 +311,7 @@ fn validate_episode_turns(episode: &Episode, turns: &[ResolvedTurn]) -> Result<(
 }
 
 fn episode_payload(episode: &Episode, turns: &[ResolvedTurn]) -> Result<Value, String> {
-    serde_json::to_value(json!({"source_mode":"native-episode","episode_id":hex(&episode.id.0),"conversation_id":episode.conversation_id,"start_node_id":episode.start_node_id,"end_node_id":episode.end_node_id,"source_through_ns":episode.source_through_ns,"turns":turns.iter().map(|t| json!({"id":t.node_id,"conversation_id":episode.conversation_id,"role":t.role,"timestamp_ns":t.timestamp_ns,"content":t.content})).collect::<Vec<_>>()})).map_err(|e| e.to_string())
+    serde_json::to_value(json!({"source_mode":"native-episode","episode_id":hex(&episode.id.0),"conversation_id":episode.conversation_id,"start_node_id":episode.start_node_id,"end_node_id":episode.end_node_id,"source_through_ns":episode.source_through_ns,"turns":turns.iter().map(|t| json!({"id":t.node_id,"conversation_id":episode.conversation_id,"role":t.role,"principal_id":t.principal_id,"timestamp_ns":t.timestamp_ns,"content":t.content})).collect::<Vec<_>>()})).map_err(|e| e.to_string())
 }
 
 fn ledger_schema(turns: &[ResolvedTurn], evidence: &[EvidenceTurn], allow_requests: bool) -> Value {
@@ -600,7 +600,7 @@ fn parse_candidate(v: &Value) -> Result<RawCandidate, String> {
 }
 
 fn evidence_turn_json(t: &EvidenceTurn) -> Value {
-    json!({"conversation_id":t.conversation_id,"node_id":t.node_id,"role":t.role,"timestamp_ns":t.timestamp_ns,"content":t.content})
+    json!({"conversation_id":t.conversation_id,"node_id":t.node_id,"role":t.role,"principal_id":t.principal_id,"timestamp_ns":t.timestamp_ns,"content":t.content})
 }
 fn evidence_result_json(r: &EvidenceResult) -> Value {
     json!({"kind":r.kind,"turns":r.turns.iter().map(evidence_turn_json).collect::<Vec<_>>(),"error":r.error,"truncated":r.truncated})
@@ -803,6 +803,7 @@ mod tests {
                 conversation_id: "archive".into(),
                 node_id: id.into(),
                 role: "assistant".into(),
+                principal_id: None,
                 timestamp_ns,
                 content: "test".into(),
             })
@@ -950,6 +951,7 @@ mod tests {
             conversation_id: "c".into(),
             node_id: "old".into(),
             role: "assistant".into(),
+            principal_id: None,
             timestamp_ns: 0,
             content: "Maybe use concise answers.".into(),
         };
@@ -976,6 +978,7 @@ mod tests {
             conversation_id: "c".into(),
             node_id: "old".into(),
             role: "assistant".into(),
+            principal_id: None,
             timestamp_ns: 0,
             content: "An earlier proposal.".into(),
         };

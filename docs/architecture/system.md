@@ -32,6 +32,8 @@ The Rust call direction is intentionally constrained: semantic crates do not own
 
 For a durable user change, a caller enters through the root API or CLI, the Gateway authenticates and scopes the request when operating through a trusted host, Application validates and prepares the workflow, and an owner session performs the owner-local publication. Container frames and syncs the resulting bytes; domain stores replay their own records on reopen. Semantic work can produce a proposal or decision, but a proposal becomes current state only through an explicit Application/owner-session workflow.
 
+For automatic copied-source processing, the host provides the verified source message and the registered PHY through Root. Gateway authorizes both owners, Archive preserves their source association, and Application routes Insomnia proposals to the separately authorized writer.
+
 REL and PHY files are separate owner-scoped state domains. A `RelSession` or `PhySession` is the only cross-store composition point for one owner and kind; higher layers do not share a writable store across owners. Runtime queue and configuration journals have their own owners and formats, separate from semantic REL/PHY data.
 
 ## Failure, recovery, and invariants

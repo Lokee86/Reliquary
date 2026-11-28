@@ -150,6 +150,7 @@ fn complete_empty_import(path: &Path, owner: [u8; 16], key_byte: u8, started_at_
         .commit_native_import_receipt(
             &start.import_id,
             ImportReceipt {
+                copied_source_phy: None,
                 schema_version: 1,
                 owner_uuid: owner,
                 import_key: [key_byte; 32],
@@ -219,6 +220,7 @@ fn complete_grouped_memory_import(
         .commit_native_import_receipt(
             &start.import_id,
             ImportReceipt {
+                copied_source_phy: None,
                 schema_version: 1,
                 owner_uuid: owner,
                 import_key: [key_byte; 32],

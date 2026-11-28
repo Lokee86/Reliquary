@@ -26,7 +26,84 @@ Core supports explicit, reversible operator confirmation for a selected cross-RE
 
 Ego and Perception use the same audit code for bounded batches, coverage of selected Memories, optional authorized REL search and source references. One structured discovery call returns two lists. Ego receives suggested topics and Fresh Memory references. Perception receives proposed Observations and source references, with resolved Entities for Relationships. [Audit handoff](memory-web-audit-handoff-spec-2026-11-26.md)
 
-The first audit publishes from a bounded working set. A recurring audit runs after each 25 newly settled Memories and examines the changed sources and affected graph endpoints, with local context as needed. Each discovery request holds up to 125 distinct Memories. Each run adds up to 15 Stale and five Dormant inputs for Perception, with independent rotation. The samples also route to existing Observation receptors. Ego keeps its Fresh-only evidence boundary. [Historical Ego audit plan](https://github.com/Lokee86/Reliquary/blob/2b5bd0eabfbac0a85f899d7d730220b5e8e93efa/docs/ego-service-crate-extraction-spec-2026-10-28.md#L55-L65) · [Shared audit and Observation specification](memory-web-audit-spec-2026-11-24.md) · [Implementation plan](memory-web-audit-plan-2026-11-24.md)
+The first audit covers the entire eligible initial cut in bounded batches and publishes accepted results along the way. A recurring audit runs after each 25 newly settled Memories and examines the changed sources and affected graph endpoints, with local context as needed. Each discovery request holds up to 125 distinct Memories. Each run adds up to 15 Stale and five Dormant inputs for Perception, with independent rotation. The samples also route to existing Observation receptors. Ego keeps its Fresh-only evidence boundary. [Historical Ego audit plan](https://github.com/Lokee86/Reliquary/blob/2b5bd0eabfbac0a85f899d7d730220b5e8e93efa/docs/ego-service-crate-extraction-spec-2026-10-28.md#L55-L65) · [Shared audit and Observation specification](memory-web-audit-spec-2026-11-24.md) · [Implementation plan](memory-web-audit-plan-2026-11-24.md)
+
+## Ego summary contracts
+
+The [Ego specification and implementation plan](ego-implementation-spec-2026-11-27.md) connects the audit, both summaries, Inspector controls and the shared host package.
+
+The active PHY stores an itemized summary for each eligible source REL. Each section has independently readable points and exact supporting Memory references. The source REL supplies the current Freshness scores for context selection. The PHY stores versioned summary records with exact provenance. [Durable summary records](ego-rel-summary-spec-2026-11-26.md#durable-summary-records)
+
+For the REL-backed summary, Ego consolidates and compares the audit topics before synthesis. It drafts up to five points per topic in one structured call, verifies those exact points and citations in a second structured call, and publishes accepted points with the source cut. [Frozen synthesis and verification contract](ego-rel-summary-spec-2026-11-26.md)
+
+## PHY summary
+
+Ego maintains one current text summary of the active PHY's own Memories. A successful refresh replaces the current text as a whole and records its source cut and provenance. Topics and points can organize the draft. The routine user profile and on-demand recall draw from the same saved summary, and recall can also search the original PHY Memories. [Durable handoff](#ego-audit-handoff-and-recovery)
+
+Every Memory category and type is eligible. The audit reads active, settled PHY Memories and selects durable personal context and standing guidance for the summary. Cover the initial eligible cut, then refresh after five eligible Memory changes. Use the source timestamp to order evidence and Chronos to resolve supported time limits. Apply corrections within their scope and retain narrower rules that still apply. [Audit handoff](memory-web-audit-handoff-spec-2026-11-26.md) · [Temporal evidence](temporal-search-spec-2026-11-23.md)
+
+1. **Audit and synthesize.** The initial pass drafts from the audited PHY evidence. On refresh, start with the previous verified text and its source references, the audited changes since that revision's source cut, and the original Memory passages needed to check affected claims. Carry forward supported material with its provenance. Reopen the evidence for claims affected by a correction, withdrawal or substantive rewrite. Produce a source-backed draft of the full replacement summary.
+2. **Check size.** Measure the exact draft text with the token counter used for the saved cap. A draft that fits goes directly to verification.
+3. **Compress if over budget.** Give the full draft to one bounded compression job. The model rewrites for information density and can use a tokenizer tool to measure candidate text and refine it within the same job. Preserve as many distinct facts as possible, including dates, scope, conditions and exceptions that change their meaning. Use the same token counter for the tool and the final size check. [Token-counting interface](../../crates/reliquary-context-engine/src/compaction_budget.rs)
+4. **Verify the final text and save.** Verify the exact candidate against the captured sources. If compression ran, compare with the draft for material information lost or changed in the rewrite. Recheck the final size and source standing before publishing the whole replacement and its source cut. Publish only after those checks and verification pass. [Ego audit handoff and recovery](#ego-audit-handoff-and-recovery)
+
+Use 4,000 tokens as the proposed starting saved cap for calibration. Ego selects the routine profile within the package budget assigned by Context Engine. [Ego injection budget](https://github.com/Lokee86/Reliquary/blob/2b5bd0ea/docs/ego-cross-chat-context-plan.md#L51-L69)
+
+## Ego audit handoff and recovery
+
+Use a small local SQLite database for Ego work in progress. Save each accepted batch's topics and exact Memory references under a stable batch ID, bound to the active PHY, source owner, and captured source cut. Commit the batch before marking its Ego audit work complete. On restart, Ego can resume consolidation and synthesis from the saved references.
+
+Commit the finished summary and its source cut to the PHY before deleting that run's rows. On restart, use the committed summary to recognize a finished run and clear its rows. Reuse the database for subsequent runs. [Proposal handoff](memory-web-audit-handoff-spec-2026-11-26.md)
+
+## Ego summary inspection and control
+
+Authorized inspection can show current and retained revisions and their provenance under the existing PHY and source access rules. Manual changes append revisions, and removals append tombstones. A point replacement keeps the same point ID. For a summary with sections and points, a topic tombstone takes the topic and its points out of the current summary. Inspection leaves Freshness unchanged.
+
+By default, a later audit can propose an equivalent topic or point and publish a new entry when its sources support it. Opt-in suppression sets a flag on the item's tombstone. Future comparisons use the retained text, scope and vector. Lifting suppression appends a change to the flag. [Topic and point suppression](ego-rel-summary-spec-2026-11-26.md#topic-and-point-suppression)
+
+For Freshness, a REL-backed point stays eligible while its average source score is Fresh. Under budget pressure, remove the points with the most Stale or Dormant supporting Memories first. See the [REL point selection rule](ego-implementation-spec-2026-11-27.md#shared-budget-and-host-assembly) for tie-breaks. In V1, revived Memories can seed the next scheduled audit. An independent audit trigger for reawakened Memories remains a future option. [Audit cadence](memory-web-audit-spec-2026-11-24.md#automatic-audit-cadence-and-sampling)
+
+## Ego Identity
+
+Identity holds the assistant's user-authored role, voice and standing self-description as a named record in the active PHY. The Inspector lets authorized users create and edit Identities, see which one is active, and explicitly switch to another saved Identity. Edits append a revision. Switching is a separate selection of the active Identity. [Current Identity storage](../../crates/reliquary-ego-store/src/store.rs) · [Earlier activation API](https://github.com/Lokee86/Reliquary/blob/973617b2/src/phylactery_ego.rs#L40-L62)
+
+The [single PHY summary](#phy-summary) carries learned preferences about how to work with the user. Together, Identity and that summary supersede the earlier standalone Personality layer.
+
+The user invokes `/identity` to have the assistant draft a change to a selected Identity. Show the exact proposed text and save it only after the user approves it. Bind that approval to the target PHY, Identity ID, expected revision and approved text. Recheck write access and the revision at save time. A user's direct edits in the Inspector use the same owner and revision checks.
+
+## Ego Anchors
+
+Show Anchors as **Pinned context** in the Inspector. Authorized users can view, create, edit and remove pins directly. Show each pin's owner and editable priority. New Pins default to Normal. A PHY pin carries user-specific standing context. A REL pin carries standing context for work in that REL. A private preference about one REL can stay PHY-owned with its applicability stated in the text. Ego selects applicable authorized pins for its budgeted package. [Existing Anchor storage](../../crates/reliquary-ego-store/src/store.rs)
+
+Rank applicable, authorized Pins by **High → Normal → Low** for context packing. Within each tier, prefer the active REL, then the active PHY, then parents and farther ancestors in order of distance. Use stable owner and Pin IDs for any remaining ties. [Stored Pin priority](../../crates/reliquary-ego-store/src/model.rs#L40-L52)
+
+Use the Inspector's authorized Pin lookup in the ordinary assistant turn, including for Pins omitted from the budgeted package. When a new user message clearly reaffirms or softens the standing guidance in a matched Pin, the assistant uses `modify_anchor` to move its saved priority one tier up or down within High, Normal and Low. Apply a tier the user names directly. Require a clear match to the Pin and its scope, and use the same owner and revision checks as other edits.
+
+| Assistant tool | When to use it |
+| --- | --- |
+| `pin_anchor` | Create a Pin when the user asks to keep something in view whenever it applies or approves a proposed Pin. Supply the text and explicit PHY or REL owner. Accept a priority when the user requests or approves one. |
+| `modify_anchor` | Edit a Pin at the user's request or adjust its priority after a clear reaffirmation or softening. Supply the owner, Anchor ID, expected revision and the fields to edit. A priority-only edit preserves the text. |
+| `delete_anchor` | Remove an existing pin at the user's request. Supply the owner, Anchor ID and expected revision. |
+
+The assistant can recognize pin requests in ordinary language. A request to remember something ordinarily uses the Memory workflow. Resolve ambiguous scope with the user before pinning. The write path verifies write access to the selected owner and checks the named Anchor and revision on edits and removals. Inspector edits and assistant tool writes use the same owner checks. Edits append revisions and removals append tombstones.
+
+## Ego package in Hermes
+
+Ego builds an ordered package from the active Identity, applicable Pins, the routine PHY profile and relevant points from authorized REL summaries. It fits that package to the budget supplied by Context Engine. Context Engine owns the final request, including placement, the current conversation and any cross-chat context. [Ego budget](https://github.com/Lokee86/Reliquary/blob/2b5bd0ea/docs/ego-cross-chat-context-plan.md#L51-L69)
+
+Use the existing stock Hermes Context Engine plugin interface, selected per profile through `context.engine`. In `select_context()`, match the active profile's rendered `SOUL.md` block at the start of the system message. Swap that exact block for the approved Ego Identity and preserve the remainder of the prompt and request. Return the original request if the expected identity block cannot be matched. Hermes retains its current-chat compaction and transcript ownership. [Stock Hermes request hook](https://github.com/NousResearch/hermes-agent/blob/2bd378ed1b8d6bf2192cb26e0a55ff3091e6bd19/agent/turn_request_assembly.py#L141-L149)
+
+Set `memory.memory_enabled` and `memory.user_profile_enabled` to `false` for a participating profile. This disables Hermes' built-in `MEMORY.md` and `USER.md` stores while keeping the configured external Reliquary provider available. Pins and the routine PHY profile serve those roles in the Ego package. [Stock Hermes memory settings](https://github.com/NousResearch/hermes-agent/blob/v0.23.0/website/docs/user-guide/features/memory.md#L285-L307)
+
+The disposable probe on stock Hermes v0.23.0 (`2bd378ed1`) captured the ordinary Chat Completions request at a local stub. The identity substitution preserved 11,828 bytes of prompt suffix and all other request fields. A mismatching prefix left the request intact. Use that stock extension seam for this design. [Hermes Context Engine plugin interface](https://github.com/NousResearch/hermes-agent/blob/v0.23.0/website/docs/developer-guide/context-engine-plugin.md)
+
+## Ego package in Mercury
+
+Mercury uses the same budgeted Ego package and selection rules as Hermes. In a participating profile, the native Reliquary integration supplies the package to Mercury's request builder. The builder renders the approved Ego Identity where it currently renders `SOUL.md` and places the rest of the package in the system prompt. If no approved Identity is available, use the existing `SOUL.md` path. Preserve Mercury's other prompt blocks, current-chat compaction, and transcript ownership. [Mercury request assembly](https://github.com/itsflownium/hermes-rust-rewrite/blob/89413282c1a0c496d259dbddbaf7cf97d4632eb8/crates/engine/src/lib.rs#L295-L339)
+
+Use Mercury's existing native Reliquary provider selection for participating profiles. That selection already disables the built-in `MEMORY.md` and `USER.md` notes layers. Ego Pins and the routine PHY summary supply that standing context. [Mercury profile memory settings](https://github.com/itsflownium/hermes-rust-rewrite/blob/89413282c1a0c496d259dbddbaf7cf97d4632eb8/crates/engine/src/settings.rs#L245-L253)
+
+Verify on a disposable Mercury profile by capturing the outgoing request. Check that the Ego Identity occupies the persona slot, the rest of the budgeted package appears once, the two legacy notes blocks are absent, and the other prompt blocks and conversation messages are preserved.
 
 ## Observation creation
 
@@ -35,6 +112,8 @@ Perception synthesizes the proposed claim and its citations, generates draft rec
 ## Observation reconsideration
 
 Core `v0.1.0` shipped the complete same-REL Observation lifecycle. After an Observation is published, Perception uses one batched Jev request to decide whether new evidence warrants review. Review and initial creation share the tested Jev Verify contract for exact drafts. Pending standing governs recall and how upstream revisions affect claims that cite them. The contribution contract passed a fresh live rerun on both authored sets, spanning 30 Observations and 150 hits. [Reconsideration specification](observation-reconsideration-spec-2026-11-24.md) · [Core acceptance](../acceptance/perception-same-rel-2026-11-24.md)
+
+The planned same-PHY release applies that lifecycle to private ordinary and relational Observations in the active PHY. It shares the settled PHY audit with Ego and reuses exact evidence, the tested Jev contracts and dependent review. Normal recall ranks eligible PHY Observations alongside Memories whenever the active PHY is in scope. Freshness remains REL-only. [PHY Perception specification](phy-perception-spec-2026-11-27.md)
 
 Hermes and Mercury passed native Jev and shared Observation recall checks on a compatible Core revision. Hermes v0.3.2 includes the copied-source deletion cascade. Mercury merged its matching integration upstream. Archiving keeps eligible knowledge available. Committed deletion and rewind remove the retired source and affected derived evidence from current retrieval. [Host acceptance](../acceptance/perception-host-integration-2026-11-24.md) · [Cascade acceptance](../acceptance/copied-source-deletion-cascade-2026-11-24.md) · [Hermes release](https://github.com/Lokee86/reliquary-hermes/releases/tag/v0.3.2) · [Mercury integration](https://github.com/itsflownium/mercury-hermes-rust-rewrite/pull/11)
 

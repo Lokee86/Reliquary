@@ -28,6 +28,10 @@ mod dream_empty_publication;
 mod dream_publication;
 mod dream_supersession_publication;
 mod dream_temporal;
+pub mod ego_context;
+pub mod ego_pending;
+pub mod ego_phy;
+pub mod ego_rel_workflow;
 mod temporal_query;
 mod temporal_search;
 pub use reliquary_retrieval::{TemporalBasis, TemporalEvidence, TemporalFilter};
@@ -577,6 +581,7 @@ mod tests {
             conversation_id: "conversation".into(),
             node_id: "assistant-turn".into(),
             role: "assistant".into(),
+            principal_id: None,
             timestamp_ns: 2,
             content: "Understood.".into(),
         };
@@ -599,6 +604,7 @@ mod tests {
             conversation_id: "foreign-conversation".into(),
             node_id: "assistant-turn".into(),
             role: "assistant".into(),
+            principal_id: None,
             timestamp_ns: 2,
             content: "Understood.".into(),
         };
@@ -619,6 +625,7 @@ mod tests {
                 conversation_id: "c".into(),
                 node_id: "n".into(),
                 role: "user".into(),
+                principal_id: None,
                 timestamp_ns: 0,
                 content: String::new(),
             };
@@ -632,6 +639,7 @@ mod tests {
             conversation_id: "c".into(),
             node_id: "n".into(),
             role: "user".into(),
+            principal_id: None,
             timestamp_ns: 0,
             content: String::new(),
         };
@@ -649,6 +657,7 @@ mod tests {
                 conversation_id: "conversation".into(),
                 node_id: "user-turn".into(),
                 role: "user".into(),
+                principal_id: None,
                 timestamp_ns: 1,
                 content: String::new(),
             };
@@ -1074,10 +1083,10 @@ pub use external_processing::{
 
 mod agentic_retrieval;
 pub use agentic_retrieval::{
-    AgenticMemory, AgenticObservation, RetrievalAction, RetrievalAnchorReport, RetrievalDirection,
-    RetrievalEvaluation, RetrievalRelationEvidence, evaluate_retrieval,
-    evaluate_snapshot_retrieval, evaluate_snapshot_retrieval_with_observations,
-    observation_matches_temporal,
+    AgenticMemory, AgenticObservation, AgenticScope, RetrievalAction, RetrievalAnchorReport,
+    RetrievalDirection, RetrievalEvaluation, RetrievalRelationEvidence, evaluate_retrieval,
+    evaluate_scoped_snapshot_retrieval, evaluate_snapshot_retrieval,
+    evaluate_snapshot_retrieval_with_observations, observation_matches_temporal,
 };
 pub use reliquary_retrieval::agentic::{MAX_AGENTIC_CANDIDATES, RetrievalTurn};
 pub use reliquary_retrieval::memory_retrieval::{

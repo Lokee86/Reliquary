@@ -91,6 +91,18 @@ pub enum EgoHistoryRecord {
         source_memory_version: u64,
         text: String,
     },
+    IdentitySelection {
+        ego_version: u64,
+        selection: crate::EgoIdentitySelection,
+    },
+    RelSummary {
+        ego_version: u64,
+        publication: crate::EgoRelPublication,
+    },
+    PhySummary {
+        ego_version: u64,
+        publication: crate::EgoPhyPublication,
+    },
 }
 
 /// Ego-local lifecycle facts, mapped into the product lifecycle at the root.

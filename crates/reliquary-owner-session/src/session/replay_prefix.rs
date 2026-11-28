@@ -2,7 +2,9 @@
 use super::dream_population::BirthPopulationReplay;
 use super::identity_receipt::{IdentityHistory, LocalProjection};
 use super::identity_separation::{SeparationHistory, SeparationProjection};
-use super::observations::ObservationPrefix;
+use super::observations::{
+    ObservationAuthority, ObservationPrefix, PhyObservationHistory, PhySettlements,
+};
 use super::*;
 use crate::records::dream::InferredExplicitFrontier;
 use crate::records::dream::dream_begin_codec::{self, BeginPopulation, BeginRecord};
@@ -36,6 +38,26 @@ fn graph_prefix_frame(prefix: &[u8]) -> bool {
 
 fn graph_and_identity_prefix_frame(prefix: &[u8]) -> bool {
     graph_prefix_frame_with_identity(prefix, true)
+}
+
+fn graph_and_phy_prefix_frame(prefix: &[u8]) -> bool {
+    if prefix.starts_with(b"RELEGO01") {
+        return true;
+    }
+    let body = match reliquary_container::decode_publication(prefix) {
+        Ok(Some(envelope)) => envelope.body,
+        Ok(None) => prefix,
+        Err(_) => return true,
+    };
+    [
+        b"RELMBOD1".as_slice(),
+        b"RELETM01",
+        b"RELRLP01",
+        super::observations::PHY_PREFIX,
+    ]
+    .iter()
+    .any(|marker| body.starts_with(marker))
+        || graph_prefix_frame(prefix)
 }
 
 fn graph_prefix_frame_with_identity(prefix: &[u8], identity: bool) -> bool {
@@ -92,13 +114,24 @@ pub(super) fn validate_graph_prefix(
     memory_store: &MemoryStore,
     packed_store: &PackedVectorStore,
     identity_context: Option<(&PerceptionStore, [u8; 32])>,
+    phy_generation: Option<(&PerceptionStore, [u8; 32])>,
     pruned_bodies: &BTreeSet<MemoryBodyId>,
     observation_archive: Option<(&Archive, &BTreeMap<u64, (u64, u64)>)>,
     compatibility_profiles: &CompatibilityProfileStore,
     dream_archive: Option<DreamArchivePrefix<'_>>,
     dreams: &mut DreamReplayPrefix,
-) -> Result<(IdentityHistory, SeparationHistory, ObservationStore), OwnerSessionError> {
+) -> Result<
+    (
+        IdentityHistory,
+        SeparationHistory,
+        ObservationStore,
+        PhyObservationHistory,
+    ),
+    OwnerSessionError,
+> {
     let mut observations = ObservationStore::default();
+    let mut phy_observations = PhyObservationHistory::default();
+    let mut settled = BTreeMap::new();
     let mut receipts = IdentityHistory::default();
     let mut separations = SeparationHistory::default();
     let mut perception_cut = 0;
@@ -124,6 +157,8 @@ pub(super) fn validate_graph_prefix(
     let mut packed_positions = packed_positions.into_iter().peekable();
     let select: fn(&[u8]) -> bool = if identity_context.is_some() {
         graph_and_identity_prefix_frame
+    } else if phy_generation.is_some() {
+        graph_and_phy_prefix_frame
     } else {
         graph_prefix_frame
     };
@@ -132,7 +167,7 @@ pub(super) fn validate_graph_prefix(
     while let Some(mut reader) = frames.next_frame()? {
         let object = reader.object();
         buffer.clear();
-        if identity_context.is_some() {
+        if identity_context.is_some() || phy_generation.is_some() {
             // A timed envelope can occupy 25 bytes. The standalone Memory
             // body ID follows the eight-byte marker in the next 32 bytes.
             buffer.resize(object.length.min(65) as usize, 0);
@@ -171,6 +206,57 @@ pub(super) fn validate_graph_prefix(
             }
             continue;
         }
+        if let Some((_, generation)) = phy_generation
+            && frame.payload.starts_with(b"RELEGO01")
+        {
+            if let Some(publication) =
+                reliquary_ego_store::EgoStore::phy_publication_in_frame(frame.payload)?
+            {
+                super::ego::validate_phy_publication_at_prefix(
+                    &publication,
+                    generation,
+                    memory_store,
+                    memory_head,
+                    &observed_bodies,
+                )?;
+            }
+            continue;
+        }
+        if let Some((perception, generation)) = phy_generation {
+            let envelope = reliquary_container::decode_publication(frame.payload)?;
+            let body = envelope.as_ref().map_or(frame.payload, |entry| entry.body);
+            if body.starts_with(super::observations::PHY_PREFIX) {
+                let cut = PhyObservationCut {
+                    audit: PhyAuditCut {
+                        owner_id: container.owner_id(),
+                        history_generation: generation,
+                        memory: memory_head,
+                        graph: graph_version,
+                        settlements: settled.len() as u64,
+                    },
+                    entity: perception_cut,
+                    retained_resolution: retained_ordinal_cut,
+                    observation: phy_observations.store.frontier(),
+                };
+                let prefix = ObservationPrefix {
+                    owner: cut.audit.owner_id,
+                    generation,
+                    memories: memory_store,
+                    profiles: compatibility_profiles,
+                    memory_cut: memory_head,
+                    perception,
+                    perception_cut,
+                    retained_ordinal_cut,
+                    observed_bodies: Some(&observed_bodies),
+                    unobserved_suffix_bodies: None,
+                    source_eligibility: ObservationAuthority::Phy(PhySettlements::Physical(
+                        &settled,
+                    )),
+                };
+                phy_observations.admit(frame.payload, prefix, cut, &active_profiles)?;
+                continue;
+            }
+        }
         if let Some((perception, history_generation)) = identity_context {
             let envelope = reliquary_container::decode_publication(frame.payload)?;
             let body = envelope.as_ref().map_or(frame.payload, |entry| entry.body);
@@ -193,10 +279,12 @@ pub(super) fn validate_graph_prefix(
                     retained_ordinal_cut,
                     observed_bodies: Some(&observed_bodies),
                     unobserved_suffix_bodies: None,
-                    source_eligibility: super::source_eligibility::SourceEligibility::new(
-                        archive,
-                        container.owner_id(),
-                        archive_cut,
+                    source_eligibility: super::observations::ObservationAuthority::Rel(
+                        super::source_eligibility::SourceEligibility::new(
+                            archive,
+                            container.owner_id(),
+                            archive_cut,
+                        ),
                     ),
                 };
                 prefix.admit(
@@ -232,6 +320,8 @@ pub(super) fn validate_graph_prefix(
                 separations.replay(frame.payload, projection)?;
                 continue;
             }
+        }
+        if identity_context.is_some() || phy_generation.is_some() {
             if let Some(ordinal) =
                 reliquary_perception_store::retained_resolution_ordinal_in_frame(frame.payload)?
             {
@@ -496,6 +586,12 @@ pub(super) fn validate_graph_prefix(
                 crate::records::dream_empty::InitialDreamSettlement::decode(payload)
                     .map_err(OwnerSessionError::Record)?
             {
+                if phy_generation.is_some() {
+                    let position = settled.len() as u64 + 1;
+                    if settled.insert(record.source, position).is_some() {
+                        return Err(OwnerSessionError::StaleDreamCut);
+                    }
+                }
                 if let Some(delta) = record.memory_delta {
                     memory_head = reliquary_memory_core::history_change_in_frame(&delta)?
                         .ok_or(OwnerSessionError::StaleDreamCut)?
@@ -651,7 +747,7 @@ pub(super) fn validate_graph_prefix(
             graph_version = relation.graph_version;
         }
     }
-    Ok((receipts, separations, observations))
+    Ok((receipts, separations, observations, phy_observations))
 }
 
 pub(super) fn validate_user_memory_prefix(

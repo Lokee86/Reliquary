@@ -17,7 +17,7 @@ pub(super) struct ReviewFence {
 
 impl ReviewFence {
     pub fn revalidate(&self, capture: &mut Capture<'_>) -> Result<()> {
-        let head = capture.rel.observation(self.id).ok_or(Error::Stale)?;
+        let head = capture.owner.observation(self.id).ok_or(Error::Stale)?;
         if head.revision.revision != self.revision
             || head.revision.draft.body_id() != self.body_id
             || head.standing != self.standing
@@ -31,7 +31,7 @@ impl ReviewFence {
             }
         }
         for &(entity, revision) in &self.participants {
-            if capture.rel.entity(entity).map(|row| row.revision) != revision {
+            if capture.owner.entity(entity).map(|row| row.revision) != revision {
                 return Err(Error::Stale);
             }
         }
@@ -54,7 +54,7 @@ pub fn evaluate_review(
     routes: &ObservationDraftRoutes<'_>,
     id: ObservationId,
 ) -> Result<Option<PreparedObservation>> {
-    let Some(mut work) = read.read(|rel| capture_review(rel, routes, id))? else {
+    let Some(mut work) = read.read_owner(|owner| capture_review(owner, routes, id))? else {
         return Ok(None);
     };
     let mut draft = if work.unchanged {
@@ -85,7 +85,7 @@ pub fn evaluate_review(
         let mut canonical = if original {
             work.head.draft.clone()
         } else {
-            read.read(|rel| canonical_claim(&mut Capture::new(rel), &draft.claim))?
+            read.read_owner(|owner| canonical_claim(&mut Capture::new(owner), &draft.claim))?
         };
         if !original {
             let reuse = previous
@@ -98,9 +98,9 @@ pub fn evaluate_review(
                 )));
             canonical.receptors = receptors(routes, &draft, reuse)?;
         }
-        let frozen = read.read(|rel| {
-            work.synthesis.check_source_cut(rel)?;
-            let mut capture = Capture::new(rel);
+        let frozen = read.read_owner(|owner| {
+            work.synthesis.check_source_cut(owner)?;
+            let mut capture = Capture::new(owner);
             work.fence.revalidate(&mut capture)?;
             freeze(&mut capture, canonical, &work.required, routes)
         })?;
@@ -149,11 +149,11 @@ pub fn evaluate_review(
 }
 
 fn capture_review(
-    rel: &RelSession,
+    owner: ObservationRead<'_>,
     routes: &ObservationDraftRoutes<'_>,
     id: ObservationId,
 ) -> Result<Option<ReviewInput>> {
-    let Some(head) = rel.observation(id) else {
+    let Some(head) = owner.observation(id) else {
         return Ok(None);
     };
     let ObservationStanding::Pending(reason) = head.standing else {
@@ -162,7 +162,7 @@ fn capture_review(
     if reason == ObservationPendingReason::UpstreamReview && head.triggering_evidence.is_empty() {
         return Ok(None);
     }
-    let mut capture = Capture::new(rel);
+    let mut capture = Capture::new(owner);
     let cut = OwnerCut {
         owner_id: capture.cut.owner_id,
         history_generation: capture.cut.history_generation,
@@ -189,7 +189,7 @@ fn capture_review(
         .collect();
     required.sort_unstable();
     required.dedup();
-    let prior = semantic_claim(rel, head.revision);
+    let prior = semantic_claim(owner, head.revision);
     let prior_id = digest(json!([
         "reliquary-observation-review-head-v1",
         existing_ref(head.revision)
@@ -337,7 +337,7 @@ fn capture_review(
         .iter()
         .filter_map(|original| {
             let cite = support[original]?;
-            let outcome = rel.observation_comparison(&ObservationComparison {
+            let outcome = owner.observation_comparison(&ObservationComparison {
                 id,
                 target_revision: head.revision.revision,
                 citation: *original,
@@ -374,7 +374,7 @@ fn capture_review(
             .map(|p| {
                 (
                     p.entity_id,
-                    rel.entity(p.entity_id).map(|entity| entity.revision),
+                    owner.entity(p.entity_id).map(|entity| entity.revision),
                 )
             })
             .collect(),
@@ -397,7 +397,10 @@ fn resolve(
 ) -> Result<Option<ObservationCitation>> {
     match cite.source {
         ObservationSource::Observation(id) => {
-            let row = capture.rel.observation(id).ok_or(Error::PendingEvidence)?;
+            let row = capture
+                .owner
+                .observation(id)
+                .ok_or(Error::PendingEvidence)?;
             match row.standing {
                 ObservationStanding::Current if row.revision.revision == cite.revision => {
                     capture.citation(cite)?;
@@ -410,7 +413,7 @@ fn resolve(
         }
         ObservationSource::Memory(id) => {
             let mut current = MemoryId(id);
-            let owner = capture.rel.management_read();
+            let owner = capture.owner.management_read().map_err(Error::Owner)?;
             for _ in 0..4 {
                 let Ok(record) = owner.memory_record(current, None) else {
                     return if owner.memory_terminal(current, capture.cut.memory).is_some() {
@@ -423,7 +426,11 @@ fn resolve(
                     current = successor;
                     continue;
                 }
-                if record.archived || !owner.memory_is_source_eligible(current) {
+                if record.archived
+                    || !owner.memory_is_source_eligible(current)
+                    || matches!(capture.owner, ObservationRead::Phy(_))
+                        && capture.memory(current)?.is_none()
+                {
                     return Ok(None);
                 }
                 if current.0 == id
@@ -443,7 +450,10 @@ fn resolve(
     }
 }
 
-pub(super) fn semantic_claim(rel: &RelSession, row: &ObservationRevision) -> ObservationClaim {
+pub(super) fn semantic_claim(
+    owner: ObservationRead<'_>,
+    row: &ObservationRevision,
+) -> ObservationClaim {
     let draft = &row.draft;
     let profile = match draft.profile {
         ObservationProfile::Ordinary => reliquary_perception::ObservationProfile::Ordinary,
@@ -458,7 +468,7 @@ pub(super) fn semantic_claim(rel: &RelSession, row: &ObservationRevision) -> Obs
                 owner_id: row.owner_id,
                 entity_id: p.entity_id.0,
                 revision: p.revision,
-                label: rel
+                label: owner
                     .entity(p.entity_id)
                     .map(|row| row.canonical_name.clone())
                     .unwrap_or_default(),

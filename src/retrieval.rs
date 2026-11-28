@@ -1,10 +1,12 @@
-//! Authenticated REL search, per-turn retrieval, and trusted Memory delivery.
+//! Authenticated search, per-turn retrieval, and trusted Memory delivery.
 use crate::{
     CapabilityRouter, CompatibilityProfileId, ConfiguredRuntime, Instance, MemoryId, OwnerGrant,
     OwnerId, ProductError, ProductErrorKind, TemporalFilter,
 };
 use reliquary_application::RetrievalAction;
-use reliquary_runtime_gateway::{GatewayError, MemoryRetrievalRoute, MemoryRetrievalTurn};
+use reliquary_runtime_gateway::{
+    GatewayError, MemoryQueryEmbedding, MemoryRetrievalRoute, MemoryRetrievalTurn,
+};
 use reliquary_switchboard::DecisionConsumer;
 mod archive;
 mod archive_publication;
@@ -25,9 +27,9 @@ pub use reliquary_application::{
 pub use reliquary_runtime_gateway::{
     ArchiveHybridHit, ArchiveHybridSearch, ArchiveLexicalIndexPublication,
     ArchiveTurnTemporalEvidence, ArchiveVectorHit, ArchiveVectorSearch, MemoryTemporalMatch,
-    RetrievalCut, RetrievalDeliveryOutcome, RetrievalMemory, RetrievalMode, RetrievalObservation,
-    RetrievalPreview, RetrievalSource, SearchMode, SearchResult, TemporalArchiveHitEvidence,
-    TemporalArchiveHybridSearch,
+    RetrievalCut, RetrievalDeliveryOutcome, RetrievalMemory, RetrievalMemoryReference,
+    RetrievalMode, RetrievalObservation, RetrievalPreview, RetrievalRankedHit, RetrievalSource,
+    SearchMode, SearchResult, TemporalArchiveHitEvidence, TemporalArchiveHybridSearch,
 };
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -46,10 +48,33 @@ pub struct TemporalSearchResult {
     pub temporal_evidence: Vec<MemoryTemporalMatch>,
 }
 
-/// Ephemeral controller bound to one authenticated Instance, REL, and external turn.
+/// The active private owner of a trusted host profile. Invalidate the binding
+/// before switching private owners or replacing the profile.
+#[derive(Clone)]
+pub struct ActivePhyRecall(reliquary_runtime_gateway::ActivePhyRecall);
+
+impl ActivePhyRecall {
+    pub fn new(owner: OwnerId) -> Self {
+        Self(reliquary_runtime_gateway::ActivePhyRecall::new(
+            owner.into(),
+        ))
+    }
+
+    pub fn owner(&self) -> OwnerId {
+        self.0.owner().into()
+    }
+
+    pub fn invalidate(&self) {
+        self.0.invalidate();
+    }
+}
+
+/// Ephemeral controller bound to an authenticated Instance, owner scope, and external turn.
 pub struct RetrievalSession {
     inner: MemoryRetrievalTurn,
     owner: OwnerId,
+    rel: Option<OwnerId>,
+    phy: Option<OwnerId>,
     mode: RetrievalMode,
     embedding_route: Option<String>,
 }
@@ -60,6 +85,14 @@ impl RetrievalSession {
     }
     pub fn mode(&self) -> RetrievalMode {
         self.mode
+    }
+
+    pub fn rel_owner(&self) -> Option<OwnerId> {
+        self.rel
+    }
+
+    pub fn phy_owner(&self) -> Option<OwnerId> {
+        self.phy
     }
 }
 
@@ -199,9 +232,50 @@ impl Instance {
         Ok(RetrievalSession {
             inner,
             owner,
+            rel: Some(owner),
+            phy: None,
             mode,
             embedding_route: embedding_route.map(str::to_owned),
         })
+    }
+
+    /// Bind ordinary recall to the authorized active PHY and optional REL.
+    pub fn begin_scoped_retrieval(
+        &self,
+        rel: Option<OwnerId>,
+        phy: ActivePhyRecall,
+        turn_id: &str,
+        mode: RetrievalMode,
+    ) -> Result<RetrievalSession, ProductError> {
+        if let Some(rel) = rel {
+            self.require_rel_read(rel)?;
+        }
+        let private = phy.owner();
+        self.require_phy_read(private)?;
+        let inner =
+            self.inner
+                .begin_scoped_memory_retrieval(rel.map(Into::into), phy.0, turn_id, mode)?;
+        Ok(RetrievalSession {
+            inner,
+            owner: rel.unwrap_or(private),
+            rel,
+            phy: Some(private),
+            mode,
+            embedding_route: None,
+        })
+    }
+
+    /// Recheck the authenticated owner scope and active mount before use.
+    pub fn validate_retrieval(&self, session: &RetrievalSession) -> Result<(), ProductError> {
+        if let Some(owner) = session.rel {
+            self.require_rel_read(owner)?;
+        }
+        if let Some(owner) = session.phy {
+            self.require_phy_read(owner)?;
+        }
+        self.inner
+            .validate_memory_retrieval(&session.inner)
+            .map_err(retrieval_error)
     }
 
     pub fn memory_query(
@@ -215,6 +289,35 @@ impl Instance {
             RetrievalAction::Query(validate_text(query)?.into()),
             runtime,
             None,
+        )
+    }
+
+    /// Start a scoped ordinary query with a shared limit on returned hits.
+    pub fn memory_query_limited(
+        &self,
+        session: &RetrievalSession,
+        query: &str,
+        runtime: &ConfiguredRuntime,
+        limit: usize,
+    ) -> Result<RetrievalOutcome, ProductError> {
+        if session.phy.is_none() {
+            return Err(ProductError::invalid(
+                "a scoped query requires an active PHY",
+            ));
+        }
+        if !(1..=crate::MAX_MANAGEMENT_PAGE_ITEMS).contains(&limit) {
+            return Err(ProductError::invalid(
+                "retrieval limit must be between 1 and 128",
+            ));
+        }
+        let mut policy = runtime.retrieval;
+        policy.result_limit = policy.result_limit.min(limit);
+        self.memory_action_with_policy(
+            session,
+            RetrievalAction::Query(validate_text(query)?.into()),
+            runtime,
+            None,
+            policy,
         )
     }
 
@@ -270,8 +373,28 @@ impl Instance {
         )
     }
 
+    /// Traverse from exact, readable Memories of a scoped ordinary result.
+    pub fn traverse_scoped_graph(
+        &self,
+        session: &RetrievalSession,
+        anchors: &[RetrievalMemoryReference],
+        runtime: &ConfiguredRuntime,
+    ) -> Result<RetrievalOutcome, ProductError> {
+        if anchors.is_empty() || anchors.len() > 10 {
+            return Err(ProductError::invalid(
+                "traversal requires 1 through 10 anchors",
+            ));
+        }
+        self.validate_retrieval(session)?;
+        let ids = self
+            .inner
+            .validate_inspected_scoped_selection(&session.inner, anchors, &[])
+            .map_err(retrieval_error)?;
+        self.memory_action(session, RetrievalAction::Traverse(ids), runtime, None)
+    }
+
     pub fn cancel_retrieval(&self, session: &RetrievalSession) -> Result<(), ProductError> {
-        self.require_rel_read(session.owner)?;
+        self.validate_retrieval(session)?;
         self.inner
             .cancel_memory_retrieval(&session.inner)
             .map_err(retrieval_error)
@@ -282,7 +405,7 @@ impl Instance {
         session: &RetrievalSession,
         prepared: &PreparedMemoryDelivery,
     ) -> Result<RetrievalPreview, ProductError> {
-        self.require_rel_read(session.owner)?;
+        self.validate_retrieval(session)?;
         self.inner
             .preview_agentic_memory_delivery(&session.inner, prepared.inner())
             .map_err(retrieval_error)
@@ -307,7 +430,10 @@ impl Instance {
         prepared: &PreparedMemoryDelivery,
         router: &CapabilityRouter,
     ) -> Result<RetrievalDeliveryOutcome, ProductError> {
-        self.require(OwnerGrant::OperateRel(session.owner))?;
+        self.validate_retrieval(session)?;
+        if session.phy.is_none() || prepared.inner().has_rel_memories() {
+            self.require(OwnerGrant::OperateRel(session.owner))?;
+        }
         self.inner
             .deliver_agentic_memory_confirmed(&session.inner, prepared.inner(), router)
             .map_err(retrieval_error)
@@ -320,9 +446,20 @@ impl Instance {
         stable_id: &str,
         router: &CapabilityRouter,
     ) -> Result<bool, ProductError> {
-        self.require(OwnerGrant::OperateRel(session.owner))?;
+        self.validate_retrieval(session)?;
+        let can_record_rel = session
+            .rel
+            .is_some_and(|rel| self.require(OwnerGrant::OperateRel(rel)).is_ok());
+        if session.phy.is_none() && !can_record_rel {
+            self.require(OwnerGrant::OperateRel(session.owner))?;
+        }
         self.inner
-            .recover_agentic_memory_delivery(&session.inner, stable_id, router)
+            .recover_agentic_memory_delivery_with_authority(
+                &session.inner,
+                stable_id,
+                router,
+                can_record_rel,
+            )
             .map_err(retrieval_error)
     }
 
@@ -333,7 +470,18 @@ impl Instance {
         runtime: &ConfiguredRuntime,
         filter: Option<TemporalFilter>,
     ) -> Result<RetrievalOutcome, ProductError> {
-        self.require_rel_read(session.owner)?;
+        self.memory_action_with_policy(session, action, runtime, filter, runtime.retrieval)
+    }
+
+    fn memory_action_with_policy(
+        &self,
+        session: &RetrievalSession,
+        action: RetrievalAction,
+        runtime: &ConfiguredRuntime,
+        filter: Option<TemporalFilter>,
+        policy: reliquary_application::RetrievalConfig,
+    ) -> Result<RetrievalOutcome, ProductError> {
+        self.validate_retrieval(session)?;
         let route = runtime
             .decision_endpoint_for(DecisionConsumer::MemoryRetrieval)
             .map(MemoryRetrievalRoute::from_endpoint)
@@ -351,19 +499,38 @@ impl Instance {
             ));
         }
         self.inner
-            .evaluate_agentic_memory_with_filter(&session.inner, &route, action, filter, || {
-                query
-                    .zip(endpoint)
-                    .map(|(query, endpoint)| {
-                        self.embed_retrieval_query(
-                            session.owner,
-                            &query,
-                            endpoint,
-                            EmbeddingScope::Memory,
-                        )
-                    })
-                    .transpose()
-            })
+            .evaluate_agentic_memory_with_scope_policy(
+                &session.inner,
+                &route,
+                action,
+                filter,
+                policy,
+                || {
+                    query
+                        .zip(endpoint)
+                        .map(|(query, endpoint)| {
+                            if let Some(phy) = session.phy {
+                                self.embed_scoped_query(session, phy, &query, endpoint)
+                            } else {
+                                self.embed_retrieval_query(
+                                    session.owner,
+                                    &query,
+                                    endpoint,
+                                    EmbeddingScope::Memory,
+                                )
+                                .map(|(profile, vector)| {
+                                    Some(MemoryQueryEmbedding {
+                                        rel_profile: Some(profile),
+                                        phy_profile: None,
+                                        vector,
+                                    })
+                                })
+                            }
+                        })
+                        .transpose()
+                        .map(Option::flatten)
+                },
+            )
             .map(Into::into)
             .map_err(retrieval_error)
     }

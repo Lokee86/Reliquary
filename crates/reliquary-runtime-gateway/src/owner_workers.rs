@@ -24,6 +24,7 @@ pub enum OwnerWorkerKind {
     Vector,
     Freshness,
     Perception,
+    Ego,
 }
 impl OwnerWorkerKind {
     pub(crate) const fn lease_id(self) -> u8 {
@@ -33,6 +34,7 @@ impl OwnerWorkerKind {
             Self::Vector => 3,
             Self::Freshness => 4,
             Self::Perception => 5,
+            Self::Ego => 6,
         }
     }
 }

@@ -1,18 +1,22 @@
 //! Application composition for owner-local Observation discovery and routing.
 mod contribution;
 mod discovery;
+mod phy_discovery;
 
 pub use contribution::{
     ContributionEmbeddingCache, ContributionFailure, ContributionWork, capture_contribution,
-    capture_duplicate_contribution, evaluate_contribution,
+    capture_duplicate_contribution, capture_phy_contribution, capture_phy_duplicate_contribution,
+    evaluate_contribution,
 };
 pub use discovery::retain_current_ego_evidence;
 pub use discovery::{
     AuditDiscovery, AuditDiscoveryResult, audit_lookups, capture_discovery, discover,
 };
-use reliquary_memory_audit::{
-    Eligibility, Grade, OwnerCut, Passage, SourceCitation, SourceId, TextField,
+pub use phy_discovery::{
+    PhyAuditDiscovery, capture_phy_discovery, capture_phy_perception_discovery, discover_phy,
+    discover_phy_for_features, phy_audit_citation, phy_audit_lookups,
 };
+use reliquary_memory_audit::{Grade, Passage, SourceCitation, SourceId, TextField};
 use reliquary_owner_session::model::MemoryTextField;
 use reliquary_owner_session::observation::{ObservationCitation, ObservationId, ObservationSource};
 use reliquary_owner_session::{
@@ -23,7 +27,10 @@ use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
 pub use reliquary_ego::EgoCandidate;
-pub use reliquary_memory_audit::{Feature, ListResult, LookupError};
+pub use reliquary_memory_audit::CONTRACT_VERSION as AUDIT_CONTRACT_VERSION;
+pub use reliquary_memory_audit::{
+    BatchLimits, Eligibility, Feature, ListResult, LookupError, LookupRequest, OwnerCut,
+};
 pub use reliquary_perception::ObservationProposal;
 
 /// Immutable, nonsecret binding supplied by the configured runtime.

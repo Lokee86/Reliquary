@@ -125,6 +125,7 @@ fn resolve_scoped_evidence(
                         conversation_id,
                         node_id: turn.node_id,
                         role: turn.role,
+                        principal_id: turn.principal_id,
                         timestamp_ns: turn.timestamp_ns,
                         content: turn.content,
                     };

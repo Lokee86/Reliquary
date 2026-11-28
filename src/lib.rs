@@ -16,7 +16,8 @@ mod retrieval;
 
 pub use configuration::*;
 pub use reliquary_switchboard::{
-    HostedEmbeddingSettings, HostedModelRoute, HostedSwitchboardConfig,
+    GeneralTool, HostedEmbeddingSettings, HostedModelRoute, HostedSwitchboardConfig,
+    ResolvedEmbeddingRoute,
 };
 
 pub use configured_runtime::{
@@ -29,9 +30,10 @@ pub use configured_runtime::{
 pub use error::{ProductError, ProductErrorKind};
 pub use host::{
     ConversationQueue, EntityReviewAuthority, EntityReviewSession, Gateway, HostAdmissionAdapter,
-    HostAdmissionControl, HostCredentialBinding, Instance, OwnerGrant, TrustedHostAdmission,
+    HostAdmissionControl, HostCredentialBinding, Instance, OwnerGrant, PhyPerceptionWorker,
+    TrustedHostAdmission,
 };
-pub use host::{context::*, external_source::*, project_source::*};
+pub use host::{context::*, ego::*, external_source::*, project_source::*};
 pub use maintenance::*;
 pub use management::*;
 pub use native_import::*;

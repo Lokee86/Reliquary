@@ -109,7 +109,9 @@ fn transform_terminal_memory_copy(
         }
         FileKind::Phylactery => {
             let phy = PhySession::open(&source, graph_admission, []).map_err(|e| e.to_string())?;
-            (phy.common, None)
+            let mut common = phy.common;
+            let observations = std::mem::take(&mut common.phy_observations.store);
+            (common, Some(observations))
         }
     };
     let selected: BTreeSet<_> = selected_memory_ids.iter().copied().collect();
@@ -169,6 +171,16 @@ fn transform_terminal_memory_copy(
         store.requires_memory_body(&ids)
     }) {
         return Err("selected Memory body is required by retained Observation evidence".into());
+    }
+    if source_state
+        .ego
+        .phy_publications()
+        .filter_map(|publication| publication.replacement.as_ref())
+        .flat_map(|text| &text.paragraphs)
+        .flat_map(|paragraph| &paragraph.citations)
+        .any(|citation| bodies.contains(&MemoryBodyId(citation.body_id)))
+    {
+        return Err("selected Memory body is required by a retained PHY summary".into());
     }
     descriptors.sort_by(|a, b| a.target.cmp(&b.target));
     let manifest = HistoryPruneManifest {

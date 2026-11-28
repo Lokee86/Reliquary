@@ -143,6 +143,7 @@ fn copied_rewind_is_admitted_as_a_verified_checkpoint_suffix() {
         .commit_native_import_receipt(
             id,
             ImportReceipt {
+                copied_source_phy: None,
                 schema_version: 1,
                 owner_uuid: OWNER,
                 import_key: digest,

@@ -51,6 +51,9 @@ pub struct ImportReceipt {
     pub source_format: String,
     pub source_digest: [u8; 32],
     pub conversations: Vec<ImportedConversation>,
+    /// Destination fixed at authenticated live copied-source admission.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub copied_source_phy: Option<[u8; 16]>,
     pub receipt_digest: [u8; 32],
 }
 

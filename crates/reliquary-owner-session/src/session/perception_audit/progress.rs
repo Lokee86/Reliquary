@@ -341,6 +341,42 @@ impl PerceptionAuditProgress {
         Ok(recurring)
     }
 
+    /// The final bootstrap page remains active after the bootstrap source
+    /// cursor reaches the end. Only a cadence page binds the active run cut.
+    pub fn shared_page_is_bootstrap(&self) -> bool {
+        self.page.as_ref().is_some_and(|page| {
+            self.run
+                .as_ref()
+                .is_none_or(|run| run.cut.settlements != page.cut.settlements)
+        })
+    }
+
+    /// Test the persisted owner cursor before sealing a shared handoff run.
+    pub fn shared_run_closed(
+        &self,
+        bootstrap: bool,
+        owner: [u8; 16],
+        generation: [u8; 32],
+        settlements: u64,
+        memory: u64,
+    ) -> bool {
+        if self.after.owner_id != owner
+            || self.after.history_generation != generation
+            || self.after.settlements < settlements
+            || self.after.memory < memory
+        {
+            return false;
+        }
+        if bootstrap {
+            return self.bootstrap_cut.is_none()
+                && self.bootstrap_after == Some(BOOTSTRAP_END)
+                && !self.shared_page_is_bootstrap();
+        }
+        self.run
+            .as_ref()
+            .is_none_or(|run| run.cut.settlements > settlements)
+    }
+
     pub fn finish_page(&mut self) {
         self.page = None;
     }
