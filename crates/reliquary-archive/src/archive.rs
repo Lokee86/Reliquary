@@ -1393,6 +1393,11 @@ impl Archive {
             || receipt.source_digest != receipt.import_key
             || !valid_import_text(&receipt.source_namespace)
             || !valid_import_text(&receipt.source_format)
+            || receipt.copied_source_phy.is_some_and(|phy| {
+                receipt.source_format != crate::HERMES_COPIED_SOURCE_FORMAT
+                    || phy == [0; 16]
+                    || phy == receipt.owner_uuid
+            })
             || import_receipt_digest(receipt)? != receipt.receipt_digest
         {
             return Err(ArchiveError::CorruptRecord(
@@ -1453,6 +1458,18 @@ impl Archive {
                             .get(&conversation.conversation_id, node_id)
                             .ok_or(ArchiveError::MissingNode)?;
                         let node = &turn.node;
+                        if receipt.copied_source_phy.is_some()
+                            && let Some(principal) = node.principal_id.as_deref()
+                            && (node.role != "user"
+                                || !message.source_author.as_ref().is_some_and(|author| {
+                                    author.is_bot == Some(false)
+                                        && author.id.as_deref() == Some(principal)
+                                }))
+                        {
+                            return Err(ArchiveError::CorruptRecord(
+                                "invalid verified copied author",
+                            ));
+                        }
                         let source_attachments = &turn.attachments;
                         if message.artifacts.len() != source_attachments.len() {
                             return Err(ArchiveError::InvalidAttachment);
@@ -1684,6 +1701,7 @@ fn import_receipt_digest_preserves_canonical_json() {
         }),
     };
     let receipt = ImportReceipt {
+        copied_source_phy: None,
         schema_version: 1,
         owner_uuid: [1; 16],
         import_key: [2; 32],

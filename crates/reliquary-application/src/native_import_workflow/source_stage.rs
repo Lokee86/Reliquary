@@ -121,6 +121,7 @@ impl NativeImportPlan {
             .native_import_receipt_digest(&self.import_key)
             .is_some();
         let status = session.import_status(&id);
+        let copied_source_phy = self.copied_source_phy();
         let mut turns = self.turns;
         let anchored = if let NativeSource::HermesCopy {
             scope,
@@ -181,6 +182,28 @@ impl NativeImportPlan {
                 turn.principal_id = Some(principal.to_owned());
             }
         }
+        if let NativeSource::HermesCopy {
+            live: Some(binding),
+            ..
+        } = &self.source
+            && let Some(uid) = &binding.verified_message_uid
+        {
+            let author = self.conversations[0]
+                .messages
+                .iter()
+                .find(|message| &message.source_id == uid)
+                .and_then(|message| message.source_author.as_ref());
+            if !author.is_some_and(|author| {
+                author.is_bot == Some(false) && author.id.as_deref() == Some(principal)
+            }) {
+                return Err(NativeImportStageError::Conflict);
+            }
+            let (turn, _) = turns
+                .iter_mut()
+                .find(|(turn, _)| &turn.id == uid)
+                .ok_or(NativeImportStageError::Conflict)?;
+            turn.principal_id = Some(principal.to_owned());
+        }
         let started_at_ns = SystemTime::UNIX_EPOCH
             .elapsed()
             .ok()
@@ -207,6 +230,7 @@ impl NativeImportPlan {
                     source_digest: self.import_key,
                     receipt_digest: [0; 32],
                     conversations: self.conversations,
+                    copied_source_phy,
                 },
                 turns,
                 episodes: self.episodes,

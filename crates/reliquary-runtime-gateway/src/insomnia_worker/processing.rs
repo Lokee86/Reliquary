@@ -1,5 +1,6 @@
 use super::{Instance, OwnerId, SharedEndpoint, now_ns};
 use crate::{GatewayError, RelInsomniaClaimInput};
+use reliquary_application::processing_plan::PERSONAL_ATTRIBUTION_REQUIRED;
 use reliquary_application::{
     INSOMNIA_EXTRACTOR_CONTRACT_VERSION, NativeInsomniaExtraction,
     commit_prepared_native_import_with_routed_receipts, extract_native_insomnia_with_ownership,
@@ -107,6 +108,15 @@ pub(crate) fn process_claim(
         );
     }
     let needs_phy = prepared.user_memories().next().is_some();
+    if prepared.user_memories().any(|candidate| {
+        !claim.turns.iter().any(|turn| {
+            turn.node_id == candidate.source_node_id
+                && turn.role == "user"
+                && turn.principal_id.as_deref() == Some(instance.principal())
+        })
+    }) {
+        return hold(&claim, PERSONAL_ATTRIBUTION_REQUIRED, Some(payload));
+    }
     if needs_phy && phy.is_none() {
         return hold(
             &claim,

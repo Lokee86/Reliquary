@@ -23,6 +23,11 @@ const MAX_MESSAGES: usize = 128;
 const MAX_MESSAGE_BYTES: usize = 32_768;
 const MAX_COPY_BYTES: usize = 262_144;
 
+pub(super) struct LiveHermesCopy {
+    pub(super) phy: [u8; 16],
+    pub(super) verified_message_uid: Option<String>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct HermesCopyScope {
     profile_id: String,
@@ -116,6 +121,52 @@ pub struct HermesCopiedSnapshot {
 }
 
 impl NativeImportPlan {
+    /// Record the checked source-time destination and the exact owner-authored row.
+    /// Gateway separately authorizes use of the supplied destination at staging.
+    pub fn bind_hermes_live_source(
+        mut self,
+        phy: [u8; 16],
+        verified_message_uid: Option<String>,
+    ) -> Result<Self, NativeImportSourceError> {
+        let NativeSource::HermesCopy { live, .. } = &mut self.source else {
+            return Err(invalid("live Hermes binding requires a copied source"));
+        };
+        if live.is_some() || phy == [0; 16] {
+            return Err(invalid("invalid live Hermes destination"));
+        }
+        if let Some(uid) = &verified_message_uid {
+            source_id(uid)?;
+            if !self
+                .turns
+                .iter()
+                .any(|(turn, _)| turn.id == *uid && turn.role == "user")
+            {
+                return Err(invalid("verified Hermes author lacks a copied user row"));
+            }
+        }
+        let mut key = Sha256::new();
+        key.update(b"reliquary/hermes-live-source/v1\0");
+        key.update(self.import_key);
+        key.update(phy);
+        if let Some(uid) = &verified_message_uid {
+            key.update(uid.as_bytes());
+        }
+        self.import_key = key.finalize().into();
+        self.source_sha256 = self.import_key;
+        *live = Some(LiveHermesCopy {
+            phy,
+            verified_message_uid,
+        });
+        Ok(self)
+    }
+
+    pub fn copied_source_phy(&self) -> Option<[u8; 16]> {
+        match &self.source {
+            NativeSource::HermesCopy { live, .. } => live.as_ref().map(|binding| binding.phy),
+            NativeSource::File(_) => None,
+        }
+    }
+
     pub fn from_hermes_copy(
         snapshot: HermesCopiedSnapshot,
     ) -> Result<Self, NativeImportSourceError> {
@@ -276,6 +327,7 @@ impl NativeImportPlan {
                 scope: snapshot.scope,
                 predecessor,
                 echo,
+                live: None,
             },
             source_sha256: import_key,
             import_key,

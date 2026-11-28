@@ -96,6 +96,7 @@ pub(super) fn native_batch(owner: [u8; 16]) -> NativeImportBatch {
         .collect();
     NativeImportBatch {
         source: ImportReceipt {
+            copied_source_phy: None,
             schema_version: 1,
             owner_uuid: owner,
             import_key: digest,

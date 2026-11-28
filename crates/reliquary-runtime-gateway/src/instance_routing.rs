@@ -78,6 +78,10 @@ impl Instance {
             .writer
             .lock()
             .map_err(|_| GatewayError::RegistryPoisoned)?;
+        let _publication = self
+            .credential_publication
+            .read()
+            .map_err(|_| GatewayError::RegistryPoisoned)?;
         let recheck = |rel: &RelWriter| -> Result<i64, GatewayError> {
             self.authorize_routed_owners(owner, destination)?;
             let timestamp = now();
@@ -88,6 +92,10 @@ impl Instance {
             Ok(timestamp)
         };
         recheck(&rel)?;
+        if let Some(id) = import_id {
+            rel.read_session()
+                .validate_copied_import_destination(id, Some(destination.as_bytes()))?;
+        }
         let proofs =
             prepare_routed_user_proofs(rel.read_session(), &phy, prepared, &self.principal)
                 .map_err(|error| GatewayError::RoutedMemory(error.to_string()))?;

@@ -122,6 +122,7 @@ fn suspended_import_checkpoint_replays_large_native_dream_population() {
         .commit_native_import_receipt(
             &start.import_id,
             ImportReceipt {
+                copied_source_phy: None,
                 schema_version: 1,
                 owner_uuid: OWNER,
                 import_key: [0xd3; 32],

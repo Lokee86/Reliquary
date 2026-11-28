@@ -29,6 +29,7 @@ fn prepared_real_import_publication_keeps_epoch_fence_and_reopens() {
     let text = format!("{rollout} {rollback}");
     let mut writer = RelWriter::create_current_path(&path, owner).unwrap();
     let source = ImportReceipt {
+        copied_source_phy: None,
         schema_version: 1,
         owner_uuid: owner,
         import_key: [0x72; 32],

@@ -4,7 +4,7 @@ use reliquary_archive::EpisodeOrigin;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct InsomniaEpisodeStatus {
     pub id: reliquary_archive::EpisodeId,
     pub state: reliquary_insomnia_store::InsomniaWorkState,
@@ -12,6 +12,7 @@ pub struct InsomniaEpisodeStatus {
     pub rel_memories: usize,
     pub phy_memories: usize,
     pub rejected: u32,
+    pub last_error: Option<String>,
 }
 
 pub(in crate::session) struct ActiveImportSource {
@@ -119,6 +120,7 @@ impl RelSession {
         destination: Option<[u8; 16]>,
         mut checkpoint_matches: impl FnMut(&[u8]) -> bool,
     ) -> Result<(), OwnerSessionError> {
+        self.validate_copied_import_destination(import_id, destination)?;
         let destination = destination.map(|owner| {
             owner
                 .iter()
@@ -230,6 +232,7 @@ impl RelSession {
                 rel_memories: receipt.map_or(0, |r| r.memory_ids.len()),
                 phy_memories: receipt.map_or(0, |r| r.external_memory_refs.len()),
                 rejected: receipt.map_or(0, |r| r.rejected_count),
+                last_error: work.and_then(|work| work.last_error.clone()),
             });
         }
         Ok(())

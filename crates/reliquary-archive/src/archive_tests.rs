@@ -546,6 +546,7 @@ fn import_receipt_binds_source_mapping_to_archive_nodes_branches_and_files() {
         .unwrap()[0]
         .clone();
     let receipt = crate::ImportReceipt {
+        copied_source_phy: None,
         schema_version: 1,
         owner_uuid: owner,
         import_key: [0x11; 32],
@@ -721,6 +722,7 @@ fn rewind_replays_the_copied_branch_without_removing_shared_branch_evidence() {
         .put_import_receipt(
             &mut container,
             ImportReceipt {
+                copied_source_phy: None,
                 schema_version: 1,
                 owner_uuid: owner,
                 import_key: source_sha256,

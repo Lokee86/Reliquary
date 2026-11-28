@@ -581,6 +581,7 @@ mod tests {
             conversation_id: "conversation".into(),
             node_id: "assistant-turn".into(),
             role: "assistant".into(),
+            principal_id: None,
             timestamp_ns: 2,
             content: "Understood.".into(),
         };
@@ -603,6 +604,7 @@ mod tests {
             conversation_id: "foreign-conversation".into(),
             node_id: "assistant-turn".into(),
             role: "assistant".into(),
+            principal_id: None,
             timestamp_ns: 2,
             content: "Understood.".into(),
         };
@@ -623,6 +625,7 @@ mod tests {
                 conversation_id: "c".into(),
                 node_id: "n".into(),
                 role: "user".into(),
+                principal_id: None,
                 timestamp_ns: 0,
                 content: String::new(),
             };
@@ -636,6 +639,7 @@ mod tests {
             conversation_id: "c".into(),
             node_id: "n".into(),
             role: "user".into(),
+            principal_id: None,
             timestamp_ns: 0,
             content: String::new(),
         };
@@ -653,6 +657,7 @@ mod tests {
                 conversation_id: "conversation".into(),
                 node_id: "user-turn".into(),
                 role: "user".into(),
+                principal_id: None,
                 timestamp_ns: 1,
                 content: String::new(),
             };

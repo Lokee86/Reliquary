@@ -53,6 +53,8 @@ A committed copied-source change has one `RELCSR01` body in a clocked Archive pu
 
 Full replay validates the completed import or preceding rewind head at the publication's physical position. A verified checkpoint restores removal state and can replay a supported suffix containing copied-source changes. Verified copies retain the publications. Divergent reconciliation and fresh-history rewrite refuse source histories with these records before creating a destination.
 
+Live Hermes copied receipts optionally carry the source-time PHY owner ID. The same receipt identifies the exact source message, and the Archive turn carries the verified principal. Older receipts decode without a destination and retain their original digest. Reading the new attributed receipts requires a Core revision that supports this field.
+
 An open native import fences new copied-source change publication. A fully staged import can finish from its durable REL data using the import ID. Interrupted partial staging must resume with the same copied source input and Echo before completing. The reporting host retains its pending change until publication succeeds.
 
 Native Archive import receipts retain compact source mappings and verified physical references. Replay checks each raw receipt at its physical position against the owning import epoch and Archive history; a receipt without its epoch or substituted across epochs fails admission. Checkpoint restore and suffix replay preserve the same receipt positions. Verified reads check the backing frame and digest before returning source mappings.

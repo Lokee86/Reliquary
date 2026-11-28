@@ -13,9 +13,15 @@ impl Instance {
         owner: OwnerId,
         plan: NativeImportPlan,
     ) -> Result<NativeImportStageResult, GatewayError> {
+        let destination = plan.copied_source_phy().map(OwnerId::from_bytes);
+        if let Some(phy) = destination {
+            self.authorize_routed_owners(owner, phy)?;
+            self.with_entity_phy_writer(phy, |_| ())?;
+        }
         self.with_rel_writer(owner, |writer| {
-            plan.stage(writer, self.principal(), || {
-                self.ensure_credential_active().is_ok()
+            plan.stage(writer, self.principal(), || match destination {
+                Some(phy) => self.authorize_routed_owners(owner, phy).is_ok(),
+                None => self.ensure_credential_active().is_ok(),
             })
         })?
         .map_err(import_error)
