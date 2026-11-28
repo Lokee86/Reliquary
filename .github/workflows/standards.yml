@@ -127,7 +127,8 @@ jobs:
       - name: Check exact Cargo package DAG
         run: python scripts/check_architecture.py
       - name: Validate and check current semantic architecture evidence
-        run: python scripts/check_policy_tools.py --adapters ../standards-tool-sources/lexicon-arcana/lexicon/adapters
+        # Cold Rust analysis can exceed the local default on hosted Windows runners.
+        run: python scripts/check_policy_tools.py --adapters ../standards-tool-sources/lexicon-arcana/lexicon/adapters --timeout-seconds 1800 --overall-timeout-seconds 2100
 
   rust-and-consumers:
     runs-on: windows-latest
